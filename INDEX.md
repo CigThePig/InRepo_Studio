@@ -405,9 +405,25 @@ Micro-format (copy/paste):
   - Role: Public exports for deploy module.
   - Lists of truth: none
 
-- `src/deploy/commit.ts` (planned — Track 13)
-  - Role: Change detection, SHA management, commit flow.
+- `src/deploy/changeDetector.ts`
+  - Role: Detect changes between hot storage and deployed state.
   - Lists of truth: FileChangeSchema, ConflictSchema
+
+- `src/deploy/shaManager.ts`
+  - Role: SHA tracking and remote content fetching.
+  - Lists of truth: ShaEntrySchema, ShaStoreSchema
+
+- `src/deploy/conflictResolver.ts`
+  - Role: Conflict resolution UI.
+  - Lists of truth: none
+
+- `src/deploy/deployUI.ts`
+  - Role: Deploy progress and status UI.
+  - Lists of truth: none
+
+- `src/deploy/commit.ts`
+  - Role: GitHub commit operations and deploy orchestration.
+  - Lists of truth: CommitResultSchema
 
 - `src/deploy/assetUpload.ts` (planned — Track 29)
   - Role: Upload new images to repository.

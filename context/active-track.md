@@ -5,6 +5,7 @@ Completed tracks:
 - Phase 1 (Editor Shell): Tracks 5-9 (Canvas, Panels, Tilemap Rendering, Paint Tool, Touch Foundation)
 - Phase 2 (Playtest & Deploy): Tracks 10-11 (Playtest Bridge, Runtime Loader)
 - Phase 2 (Playtest & Deploy): Track 12 (Authentication)
+- Phase 2 (Playtest & Deploy): Track 13 (Deploy Flow)
 
 Prepared tracks (planning artifacts created):
 - Phase 2 (Playtest & Deploy - Vertical Slice Completion):
@@ -18,12 +19,12 @@ Prepared tracks (planning artifacts created):
   - Track 18: Layer System (spec/blueprint/plan ready)
 
 Next tracks to implement (in order):
-1. Track 13: Deploy Flow — Commit changes to GitHub (completes vertical slice MVP)
+1. Track 14: Erase Tool — Remove tiles from the map
 
 Note: Phase 2 completes the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 planning is ready for implementation after Phase 2.
 
-Last updated: 2026-01-31
+Last updated: 2026-02-01
 
 ---
 
