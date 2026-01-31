@@ -345,26 +345,42 @@ Micro-format (copy/paste):
 
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/runtime/init.ts`
-  - Role: Runtime initialization (placeholder).
+  - Role: Runtime initialization (Phaser boot + scene manager).
   - Lists of truth: none
 
 - `src/runtime/loader.ts`
   - Role: Unified data loader for hot (IndexedDB) and cold (fetch) modes.
   - Lists of truth: DataSourceMode
 
+- `src/runtime/index.ts`
+  - Role: Runtime public API exports.
+  - Lists of truth: none
+
+- `src/runtime/projectLoader.ts`
+  - Role: Load project data and runtime assets.
+  - Lists of truth: none
+
+- `src/runtime/sceneLoader.ts`
+  - Role: Load scene data for runtime.
+  - Lists of truth: none
+
 - `src/runtime/playtestOverlay.ts`
   - Role: Playtest mode UI overlay with exit controls.
   - Lists of truth: none
 
-- `src/runtime/tileMapFactory.ts` (planned — Track 11)
-  - Role: Create Phaser tilemaps from scene data.
+- `src/runtime/tileMapFactory.ts`
+  - Role: Create Phaser tilemaps and overlays from scene data.
   - Lists of truth: none
 
-- `src/runtime/entitySpawner.ts` (planned — Track 11)
+- `src/runtime/entityRegistry.ts`
+  - Role: Entity type registry for runtime.
+  - Lists of truth: none
+
+- `src/runtime/entitySpawner.ts`
   - Role: Instantiate entities from scene data.
   - Lists of truth: none
 
-- `src/runtime/sceneManager.ts` (planned — Track 11)
+- `src/runtime/sceneManager.ts`
   - Role: Scene transitions.
   - Lists of truth: none
 

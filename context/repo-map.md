@@ -119,8 +119,14 @@ Local instruction files (present):
 ### Runtime (`src/runtime/`)
 - `loader.ts`
   - Role: load project/scene from hot or cold storage
+- `projectLoader.ts`
+  - Role: load project data and runtime assets
+- `sceneLoader.ts`
+  - Role: load scene data for runtime use
 - `tileMapFactory.ts`
   - Role: create Phaser tilemaps from scene data
+- `entityRegistry.ts`
+  - Role: manage entity type definitions
 - `entitySpawner.ts`
   - Role: instantiate entities from scene data
 - `sceneManager.ts`
