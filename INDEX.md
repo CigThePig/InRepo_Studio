@@ -164,6 +164,26 @@ Micro-format (copy/paste):
   - Role: Track 9 planning artifacts (Touch Foundation).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-14-erase-tool/`
+  - Role: Track 14 planning artifacts (Erase Tool).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-15-select-tool/`
+  - Role: Track 15 planning artifacts (Select Tool).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-16-undo-redo/`
+  - Role: Track 16 planning artifacts (Undo/Redo System).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-17-scene-management/`
+  - Role: Track 17 planning artifacts (Scene Management).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-18-layer-system/`
+  - Role: Track 18 planning artifacts (Layer System).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
