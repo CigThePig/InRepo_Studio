@@ -84,9 +84,16 @@ Rules:
     - Invariant: exactly one tool active at a time
 
 - `/src/editor/canvas/viewport.ts`
-  - `ViewportStateSchema` — pan/zoom state
+  - `ViewportState` — pan/zoom state (re-exported from storage/hot.ts)
     - Keys: panX, panY, zoom
-    - Invariant: zoom between 0.25 and 4.0
+    - Invariant: zoom between MIN_ZOOM (0.25) and MAX_ZOOM (4.0)
+    - Apply mode: live
+
+- `/src/editor/canvas/grid.ts`
+  - `GridConfig` — grid display settings (internal, not persisted yet)
+    - Keys: visible, color, opacity, lineWidth
+    - Apply mode: live
+    - Note: Will be persisted via EditorSettingsSchema in Track 28
 
 - `/src/editor/settings/editorSettings.ts`
   - `EditorSettingsSchema` — user preferences
