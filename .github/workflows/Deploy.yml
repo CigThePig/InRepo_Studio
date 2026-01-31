@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Needed for GitHub Pages deployments via Actions
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # Configure Pages (metadata + safe defaults)
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # Build for Pages subpath: /<repo-name>/
+      - name: Build
+        run: npm run build -- --base=/${{ github.event.repository.name }}/
+
+      # Optional but harmless: avoid Jekyll + SPA refresh friendliness
+      - name: Add Pages helpers
+        run: |
+          touch dist/.nojekyll
+          if [ -f dist/index.html ]; then cp dist/index.html dist/404.html; fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
