@@ -202,6 +202,19 @@ Purpose:
   - Track 12: Authentication (GitHub PAT management)
   - Track 13: Deploy Flow (Commit changes to GitHub)
 
+### Track 12 — Authentication
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Added GitHub PAT authentication with validation, storage options, and deploy panel status UI.
+- **Shipped**:
+  - Token storage abstraction with session default and IndexedDB persistence
+  - Auth manager + validation against GitHub API with scoped error handling
+  - Auth modal and deploy panel status UI integrated into the editor
+- **Verification**: `npm run build`
+- **Learned**: Centralizing auth state prevents repeated validation calls and keeps UI responsive.
+- **Follow-up**:
+  - Track 13: Deploy Flow (Commit changes to GitHub)
+
 ---
 
 ## Stalled / Abandoned Tracks

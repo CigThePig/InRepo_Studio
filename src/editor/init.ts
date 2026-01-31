@@ -16,6 +16,7 @@ import {
   type BottomPanelController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
+import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
 import {
   preparePlaytest,
   setEditorStateBackup,
@@ -38,6 +39,7 @@ let topPanelController: TopPanelController | null = null;
 let bottomPanelController: BottomPanelController | null = null;
 let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
+let authManager: AuthManager | null = null;
 
 export function getEditorState(): EditorState | null {
   return editorState;
@@ -53,6 +55,10 @@ export function getTopPanel(): TopPanelController | null {
 
 export function getBottomPanel(): BottomPanelController | null {
   return bottomPanelController;
+}
+
+export function getAuthManager(): AuthManager | null {
+  return authManager;
 }
 
 export function getCurrentScene(): Scene | null {
@@ -142,6 +148,8 @@ export async function initEditor(): Promise<void> {
 
   // Initialize canvas (before panels so we can wire up callbacks)
   await initCanvas(currentScene?.tileSize ?? currentProject.settings?.defaultTileSize ?? 32);
+
+  authManager = createAuthManager(createTokenStorage());
 
   // Initialize panels (after canvas so we can wire up canvas updates)
   initPanels();
@@ -311,7 +319,8 @@ function initPanels(): void {
         selectedTile: editorState.selectedTile,
       },
       currentProject ?? undefined,
-      ASSET_BASE_PATH
+      ASSET_BASE_PATH,
+      { authManager: authManager ?? undefined }
     );
 
     // Wire up persistence

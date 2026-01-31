@@ -13,6 +13,10 @@ export type { TopPanelController, TopPanelState } from './topPanel';
 export { createBottomPanel } from './bottomPanel';
 export type { BottomPanelController, BottomPanelState, ToolType } from './bottomPanel';
 
+// Deploy Panel
+export { createDeployPanel } from './deployPanel';
+export type { DeployPanelController } from './deployPanel';
+
 // Tile Picker
 export { createTilePicker } from './tilePicker';
 export type { TilePickerController, TilePickerState, TileSelection } from './tilePicker';
