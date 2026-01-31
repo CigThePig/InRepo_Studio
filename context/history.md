@@ -93,6 +93,34 @@ Purpose:
   - Track 7: Tilemap Rendering (display tiles on canvas)
   - Track 8: Paint Tool (place selected tile on map)
 
+### Track 7 — Tilemap Rendering
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented tilemap rendering with layer support, visible tile culling, layer dimming for inactive layers, and hover highlight with touch offset.
+- **Shipped**:
+  - Phase 1: Tile image cache (tileCache.ts) for shared image loading
+  - Phase 1: Tilemap renderer (renderer.ts) with layer rendering order
+  - Phase 2: Canvas integration with scene, activeLayer, hover tracking
+  - Phase 2: Layer dimming (inactive layers at 40% opacity)
+  - Phase 3: Collision/trigger layer overlay visualization (red/green)
+  - Phase 3: Hover highlight with touch offset (-48px above finger)
+  - Preloading of tile categories on editor startup
+  - Active layer and tile category wiring from panels to canvas
+- **Verification**:
+  - TypeScript compiles without errors
+  - Vite build succeeds
+  - Layers render in correct order (ground → props → collision → triggers)
+  - Visible tile culling uses getVisibleTileRange
+  - Active layer renders at full opacity, others dimmed
+  - Hover highlight follows touch position with offset
+- **Learned**:
+  - ctx.imageSmoothingEnabled = false for pixel-perfect tile rendering
+  - Touch offset improves mobile usability (finger doesn't hide target)
+  - Preloading tiles on startup provides instant rendering
+- **Follow-up**:
+  - Track 8: Paint Tool (place tiles on map)
+  - Track 18: Layer visibility/lock toggles
+
 ---
 
 ## Stalled / Abandoned Tracks

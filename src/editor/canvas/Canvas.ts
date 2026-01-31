@@ -13,10 +13,18 @@ import {
   createViewport,
   applyPan,
   applyZoom,
+  screenToTile,
   type ViewportState,
 } from './viewport';
 import { createGestureHandler, type GestureHandler } from './gestures';
 import { drawGrid, createDefaultGridConfig, type GridConfig } from './grid';
+import {
+  createTilemapRenderer,
+  TOUCH_OFFSET_Y,
+  type TilemapRenderer,
+} from './renderer';
+import { createTileCache, type TileImageCache } from './tileCache';
+import type { Scene, LayerType, TileCategory } from '@/types';
 
 const LOG_PREFIX = '[Canvas]';
 
@@ -56,6 +64,30 @@ export interface CanvasController {
     onMove?: (x: number, y: number) => void;
     onEnd?: () => void;
   }): void;
+
+  /** Set the scene to render */
+  setScene(scene: Scene | null): void;
+
+  /** Get the current scene */
+  getScene(): Scene | null;
+
+  /** Set the active layer (affects dimming) */
+  setActiveLayer(layer: LayerType): void;
+
+  /** Set the selected tile category (for rendering ground/props) */
+  setSelectedCategory(category: string): void;
+
+  /** Notify that scene data changed externally */
+  invalidateScene(): void;
+
+  /** Get the tile image cache */
+  getTileCache(): TileImageCache;
+
+  /** Get the tilemap renderer */
+  getRenderer(): TilemapRenderer;
+
+  /** Preload tile images for categories */
+  preloadCategories(categories: TileCategory[], basePath: string): Promise<void>;
 }
 
 export interface CanvasOptions {
@@ -67,6 +99,15 @@ export interface CanvasOptions {
 
   /** Initial grid configuration */
   gridConfig?: Partial<GridConfig>;
+
+  /** Initial scene to render */
+  scene?: Scene;
+
+  /** Initial active layer */
+  activeLayer?: LayerType;
+
+  /** Asset base path for loading tile images */
+  assetBasePath?: string;
 }
 
 // --- Constants ---
@@ -90,6 +131,7 @@ export function createCanvas(
   let viewport = createViewport(options.viewport);
   let gridConfig = createDefaultGridConfig(options.gridConfig);
   const tileSize = options.tileSize ?? DEFAULT_TILE_SIZE;
+  const assetBasePath = options.assetBasePath ?? '';
   let isDirty = true;
   let isDestroyed = false;
 
@@ -106,6 +148,24 @@ export function createCanvas(
 
   // Animation frame handle
   let animationFrameId: number | null = null;
+
+  // --- Tile Cache and Renderer ---
+  const tileCache = createTileCache();
+  const renderer = createTilemapRenderer({ tileCache, assetBasePath });
+
+  // Set initial scene and active layer if provided
+  if (options.scene) {
+    renderer.setScene(options.scene);
+  }
+  if (options.activeLayer) {
+    renderer.setActiveLayer(options.activeLayer);
+  }
+
+  // Re-render when tile images load
+  tileCache.onImageLoad(() => {
+    isDirty = true;
+    scheduleRender();
+  });
 
   // --- Create Canvas Element ---
   const canvas = document.createElement('canvas');
@@ -199,6 +259,32 @@ export function createCanvas(
     }
   }
 
+  // --- Hover Tracking ---
+
+  function updateHoverTile(screenX: number, screenY: number): void {
+    const scene = renderer.getScene();
+    if (!scene) {
+      renderer.setHoverTile(null, null);
+      return;
+    }
+
+    // Apply touch offset (position above finger)
+    const offsetY = screenY + TOUCH_OFFSET_Y;
+
+    // Convert screen position to tile coordinates
+    const tile = screenToTile(viewport, screenX, offsetY, scene.tileSize);
+
+    renderer.setHoverTile(tile.x, tile.y);
+    isDirty = true;
+    scheduleRender();
+  }
+
+  function clearHoverTile(): void {
+    renderer.setHoverTile(null, null);
+    isDirty = true;
+    scheduleRender();
+  }
+
   // --- Gesture Handler ---
 
   const gestureHandler: GestureHandler = createGestureHandler(canvas, {
@@ -206,13 +292,20 @@ export function createCanvas(
     onZoom: handleZoom,
     onToolStart: (x, y) => {
       const rect = canvas.getBoundingClientRect();
-      toolCallbacks.onStart?.(x - rect.left, y - rect.top);
+      const canvasX = x - rect.left;
+      const canvasY = y - rect.top;
+      updateHoverTile(canvasX, canvasY);
+      toolCallbacks.onStart?.(canvasX, canvasY);
     },
     onToolMove: (x, y) => {
       const rect = canvas.getBoundingClientRect();
-      toolCallbacks.onMove?.(x - rect.left, y - rect.top);
+      const canvasX = x - rect.left;
+      const canvasY = y - rect.top;
+      updateHoverTile(canvasX, canvasY);
+      toolCallbacks.onMove?.(canvasX, canvasY);
     },
     onToolEnd: () => {
+      clearHoverTile();
       toolCallbacks.onEnd?.();
     },
   });
@@ -233,10 +326,11 @@ export function createCanvas(
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, width, height);
 
+    // Draw tilemap (before grid so grid overlays tiles)
+    renderer.render(ctx, viewport, width, height);
+
     // Draw grid
     drawGrid(ctx, viewport, tileSize, width, height, gridConfig);
-
-    // Future: Draw tiles, entities, selection, etc.
 
     isDirty = false;
   }
@@ -344,6 +438,50 @@ export function createCanvas(
 
     onToolGesture(callbacks) {
       toolCallbacks = callbacks;
+    },
+
+    setScene(scene: Scene | null) {
+      renderer.setScene(scene);
+      isDirty = true;
+      scheduleRender();
+    },
+
+    getScene() {
+      return renderer.getScene();
+    },
+
+    setActiveLayer(layer: LayerType) {
+      renderer.setActiveLayer(layer);
+      isDirty = true;
+      scheduleRender();
+    },
+
+    setSelectedCategory(category: string) {
+      renderer.setSelectedCategory(category);
+      isDirty = true;
+      scheduleRender();
+    },
+
+    invalidateScene() {
+      renderer.invalidate();
+      isDirty = true;
+      scheduleRender();
+    },
+
+    getTileCache() {
+      return tileCache;
+    },
+
+    getRenderer() {
+      return renderer;
+    },
+
+    async preloadCategories(categories: TileCategory[], basePath: string) {
+      for (const category of categories) {
+        await tileCache.preloadCategory(category, basePath);
+      }
+      isDirty = true;
+      scheduleRender();
     },
   };
 

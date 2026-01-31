@@ -4,10 +4,11 @@ Completed tracks:
 - Phase 0 (Foundation Architecture): Tracks 1-4 (Data Structures, Hot Storage, Cold Storage, Boot System)
 - Track 5: Canvas System (viewport, gestures, grid)
 - Track 6: Panels + Tile Picker (panel containers, toolbar, layer tabs, tile picker)
+- Track 7: Tilemap Rendering (tile cache, renderer, layer dimming, hover highlight)
 
 Next tracks (in order):
-- Track 7: Tilemap Rendering
 - Track 8: Paint Tool
+- Track 10: Playtest Bridge
 
 Last updated: 2026-01-31
 

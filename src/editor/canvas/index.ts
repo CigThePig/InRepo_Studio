@@ -37,3 +37,16 @@ export type { GridConfig } from './grid';
 // Gestures
 export { createGestureHandler } from './gestures';
 export type { GestureCallbacks, GestureHandler } from './gestures';
+
+// Tile Cache
+export { createTileCache } from './tileCache';
+export type { TileImageCache } from './tileCache';
+
+// Tilemap Renderer
+export {
+  createTilemapRenderer,
+  LAYER_RENDER_ORDER,
+  LAYER_COLORS,
+  TOUCH_OFFSET_Y,
+} from './renderer';
+export type { TilemapRenderer, TilemapRendererConfig } from './renderer';
