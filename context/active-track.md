@@ -1,13 +1,21 @@
-Active track: (none)
+Active track: (none — Phase 0 complete)
 
-When active:
-- Track number:
-- Track title:
-- Track path: tracks/YYYY-MM-DD-track-N-slug/
-- Track type: Full | Micro
-- Current phase:
-- Next task:
-- Last updated: YYYY-MM-DD
+Phase 0 (Foundation Architecture) completed:
+- Track 1: Data Structures — TypeScript types for project, scene, entity schemas
+- Track 2: Hot Storage — IndexedDB operations via idb library
+- Track 3: Cold Storage — Fetch operations for loading from repository
+- Track 4: Boot System — Mode router, entry point, editor/game initialization
+
+Next recommended track: Track 5 — Canvas System (Phase 1: Editor Shell)
+
+When starting next track:
+- Track number: 5
+- Track title: Canvas System
+- Track path: tracks/2026-01-31-track-5-canvas/
+- Track type: Full
+- Current phase: (pending)
+- Next task: Create spec.md, blueprint.md, plan.md
+- Last updated: 2026-01-31
 
 ---
 

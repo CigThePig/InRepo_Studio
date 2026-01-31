@@ -25,6 +25,26 @@ Micro-format (copy/paste):
   - Role: Rules for AI agents working in this repo.
   - Lists of truth: RequiredReadingOrder, RiskGates (human-readable policies)
 
+- `package.json`
+  - Role: NPM dependencies and scripts.
+  - Lists of truth: none
+
+- `tsconfig.json`
+  - Role: TypeScript compiler configuration.
+  - Lists of truth: none
+
+- `vite.config.ts`
+  - Role: Vite build configuration.
+  - Lists of truth: none
+
+- `index.html`
+  - Role: HTML entry point.
+  - Lists of truth: none
+
+- `.eslintrc.cjs`
+  - Role: ESLint configuration.
+  - Lists of truth: none
+
 ## Scoped agent rules (local AGENTS.md)
 - `src/boot/AGENTS.md`
   - Role: Boot routing rules for editor/game mode + GitHub Pages base path notes.
@@ -137,34 +157,42 @@ Micro-format (copy/paste):
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
 
-## Source (created starting Track 1)
+## Source (Phase 0 complete, Phase 1+ planned)
 
-### Boot
+### Boot (Track 4 — exists)
 - `src/boot/main.ts`
   - Role: Entry point, mode detection, initialization.
   - Lists of truth: none
 
 - `src/boot/modeRouter.ts`
   - Role: Route to editor or game mode.
+  - Lists of truth: BootConfig
+
+### Types (Track 1 — exists)
+- `src/types/index.ts`
+  - Role: Re-exports all types.
   - Lists of truth: none
 
-### Types
 - `src/types/project.ts`
   - Role: ProjectSchema, TileCategorySchema, EntityTypeSchema.
   - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema
 
 - `src/types/scene.ts`
   - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema.
-  - Lists of truth: SceneSchema, LayerDataSchema, EntityInstanceSchema
+  - Lists of truth: SceneSchema, LayerDataSchema, EntityInstanceSchema, LayerType
 
 - `src/types/entity.ts`
   - Role: PropertyDefinitionSchema, PropertyConstraintsSchema.
-  - Lists of truth: PropertyDefinitionSchema, PropertyConstraintsSchema
+  - Lists of truth: PropertyDefinitionSchema, PropertyConstraintsSchema, PropertyType
 
-### Storage
+### Storage (Tracks 2-3 — exists)
+- `src/storage/index.ts`
+  - Role: Re-exports all storage functions.
+  - Lists of truth: none
+
 - `src/storage/hot.ts`
   - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema
+  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -172,79 +200,91 @@ Micro-format (copy/paste):
 
 - `src/storage/migration.ts`
   - Role: Cold-to-hot migration on first load.
+  - Lists of truth: MigrationResult
+
+- `src/vite-env.d.ts`
+  - Role: Vite type declarations.
   - Lists of truth: none
 
-### Editor
-- `src/editor/canvas/viewport.ts`
+### Editor (Track 4 stub — exists, Tracks 5-9 planned)
+- `src/editor/init.ts`
+  - Role: Editor initialization (placeholder).
+  - Lists of truth: none
+
+- `src/editor/canvas/viewport.ts` (planned — Track 5)
   - Role: Pan, zoom, coordinate transforms.
   - Lists of truth: ViewportStateSchema
 
-- `src/editor/canvas/grid.ts`
+- `src/editor/canvas/grid.ts` (planned — Track 5)
   - Role: Grid rendering.
   - Lists of truth: none
 
-- `src/editor/canvas/renderer.ts`
+- `src/editor/canvas/renderer.ts` (planned — Track 7)
   - Role: Tilemap and entity rendering.
   - Lists of truth: none
 
-- `src/editor/panels/topPanel.ts`
+- `src/editor/panels/topPanel.ts` (planned — Track 6)
   - Role: Scene selector, layer switcher, deploy button.
   - Lists of truth: none
 
-- `src/editor/panels/bottomPanel.ts`
+- `src/editor/panels/bottomPanel.ts` (planned — Track 6)
   - Role: Toolbar, tile picker, entity palette, inspector.
   - Lists of truth: ToolList
 
-- `src/editor/tools/paint.ts`
+- `src/editor/tools/paint.ts` (planned — Track 8)
   - Role: Tile painting logic.
   - Lists of truth: none
 
-- `src/editor/tools/erase.ts`
+- `src/editor/tools/erase.ts` (planned — Track 14)
   - Role: Tile erasing logic.
   - Lists of truth: none
 
-- `src/editor/tools/select.ts`
+- `src/editor/tools/select.ts` (planned — Track 15)
   - Role: Selection and manipulation.
   - Lists of truth: none
 
-- `src/editor/tools/entity.ts`
+- `src/editor/tools/entity.ts` (planned — Track 20)
   - Role: Entity placement and editing.
   - Lists of truth: none
 
-- `src/editor/inspectors/propertyInspector.ts`
+- `src/editor/inspectors/propertyInspector.ts` (planned — Track 22)
   - Role: Entity property editing UI.
   - Lists of truth: none
 
-- `src/editor/settings/editorSettings.ts`
+- `src/editor/settings/editorSettings.ts` (planned — Track 28)
   - Role: User preferences.
   - Lists of truth: EditorSettingsSchema
 
-### Runtime
-- `src/runtime/loader.ts`
+### Runtime (Track 4 stub — exists, Track 11 planned)
+- `src/runtime/init.ts`
+  - Role: Runtime initialization (placeholder).
+  - Lists of truth: none
+
+- `src/runtime/loader.ts` (planned — Track 11)
   - Role: Load project/scene from hot or cold storage.
   - Lists of truth: none
 
-- `src/runtime/tileMapFactory.ts`
+- `src/runtime/tileMapFactory.ts` (planned — Track 11)
   - Role: Create Phaser tilemaps from scene data.
   - Lists of truth: none
 
-- `src/runtime/entitySpawner.ts`
+- `src/runtime/entitySpawner.ts` (planned — Track 11)
   - Role: Instantiate entities from scene data.
   - Lists of truth: none
 
-- `src/runtime/sceneManager.ts`
+- `src/runtime/sceneManager.ts` (planned — Track 11)
   - Role: Scene transitions.
   - Lists of truth: none
 
-### Deploy
-- `src/deploy/auth.ts`
+### Deploy (planned — Tracks 12-13)
+- `src/deploy/auth.ts` (planned — Track 12)
   - Role: GitHub PAT management.
   - Lists of truth: AuthStateSchema
 
-- `src/deploy/commit.ts`
+- `src/deploy/commit.ts` (planned — Track 13)
   - Role: Change detection, SHA management, commit flow.
   - Lists of truth: FileChangeSchema, ConflictSchema
 
-- `src/deploy/assetUpload.ts`
+- `src/deploy/assetUpload.ts` (planned — Track 29)
   - Role: Upload new images to repository.
   - Lists of truth: none
