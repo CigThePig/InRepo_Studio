@@ -1,9 +1,12 @@
 /**
  * Bottom Panel Component
  *
- * Contains the toolbar (tool buttons) and placeholder for tile picker.
+ * Contains the toolbar (tool buttons) and tile picker.
  * Expandable/collapsible with tap on header.
  */
+
+import type { Project } from '@/types';
+import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
 
 const LOG_PREFIX = '[BottomPanel]';
 
@@ -14,6 +17,7 @@ export type ToolType = 'select' | 'paint' | 'erase' | 'entity';
 export interface BottomPanelState {
   expanded: boolean;
   currentTool: ToolType;
+  selectedTile?: { category: string; index: number } | null;
 }
 
 export interface BottomPanelController {
@@ -29,13 +33,22 @@ export interface BottomPanelController {
   /** Get current expanded state */
   isExpanded(): boolean;
 
+  /** Get the selected tile */
+  getSelectedTile(): TileSelection | null;
+
+  /** Set the selected tile */
+  setSelectedTile(category: string, index: number): void;
+
   /** Register callback for tool changes */
   onToolChange(callback: (tool: ToolType) => void): void;
 
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
 
-  /** Get the content container for adding tile picker (Phase 3) */
+  /** Register callback for tile selection */
+  onTileSelect(callback: (selection: TileSelection) => void): void;
+
+  /** Get the content container */
   getContentContainer(): HTMLElement;
 
   /** Clean up resources */
@@ -150,15 +163,25 @@ const STYLES = `
   }
 `;
 
+// --- Helper: Check if tool shows tile picker ---
+
+function toolShowsTilePicker(tool: ToolType): boolean {
+  return tool === 'paint' || tool === 'erase';
+}
+
 // --- Factory ---
 
 export function createBottomPanel(
   container: HTMLElement,
-  initialState: BottomPanelState
+  initialState: BottomPanelState,
+  project?: Project,
+  assetBasePath: string = ''
 ): BottomPanelController {
-  let state = { ...initialState };
+  const state = { ...initialState };
   let toolChangeCallback: ((tool: ToolType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
+  let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
+  let tilePickerController: TilePickerController | null = null;
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -204,6 +227,9 @@ export function createBottomPanel(
         btn.classList.toggle('tool-button--active', type === toolType);
       });
 
+      // Show/hide tile picker based on tool
+      tilePickerController?.setVisible(toolShowsTilePicker(toolType));
+
       // Notify
       toolChangeCallback?.(toolType);
       console.log(`${LOG_PREFIX} Tool changed to "${toolType}"`);
@@ -213,15 +239,35 @@ export function createBottomPanel(
     toolbar.appendChild(button);
   }
 
-  // Content area (for tile picker in Phase 3)
+  // Content area (for tile picker)
   const content = document.createElement('div');
   content.className = 'bottom-panel__content';
 
-  // Placeholder
-  const placeholder = document.createElement('div');
-  placeholder.className = 'bottom-panel__placeholder';
-  placeholder.textContent = 'Phase 2: Tile Picker coming soon';
-  content.appendChild(placeholder);
+  // Create tile picker if project has tile categories
+  if (project && project.tileCategories.length > 0) {
+    tilePickerController = createTilePicker(
+      content,
+      project.tileCategories,
+      assetBasePath,
+      state.selectedTile
+        ? { category: state.selectedTile.category, tileIndex: state.selectedTile.index }
+        : undefined
+    );
+
+    // Wire up tile selection callback
+    tilePickerController.onTileSelect((selection) => {
+      tileSelectCallback?.(selection);
+    });
+
+    // Set initial visibility based on current tool
+    tilePickerController.setVisible(toolShowsTilePicker(state.currentTool));
+  } else {
+    // No project or no tile categories - show placeholder
+    const placeholder = document.createElement('div');
+    placeholder.className = 'bottom-panel__placeholder';
+    placeholder.textContent = project ? 'No tile categories defined' : 'No project loaded';
+    content.appendChild(placeholder);
+  }
 
   // Toggle expand/collapse
   header.addEventListener('click', () => {
@@ -254,6 +300,9 @@ export function createBottomPanel(
       toolButtons.forEach((btn, type) => {
         btn.classList.toggle('tool-button--active', type === tool);
       });
+
+      // Show/hide tile picker based on tool
+      tilePickerController?.setVisible(toolShowsTilePicker(tool));
     },
 
     getCurrentTool() {
@@ -271,6 +320,15 @@ export function createBottomPanel(
       return state.expanded;
     },
 
+    getSelectedTile() {
+      return tilePickerController?.getSelectedTile() ?? null;
+    },
+
+    setSelectedTile(category: string, index: number) {
+      tilePickerController?.setSelectedCategory(category);
+      tilePickerController?.setSelectedTile(index);
+    },
+
     onToolChange(callback) {
       toolChangeCallback = callback;
     },
@@ -279,11 +337,16 @@ export function createBottomPanel(
       expandToggleCallback = callback;
     },
 
+    onTileSelect(callback) {
+      tileSelectCallback = callback;
+    },
+
     getContentContainer() {
       return content;
     },
 
     destroy() {
+      tilePickerController?.destroy();
       container.removeChild(panel);
       document.head.removeChild(styleEl);
       console.log(`${LOG_PREFIX} Bottom panel destroyed`);

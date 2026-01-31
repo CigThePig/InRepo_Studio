@@ -68,6 +68,31 @@ Purpose:
   - Track 6: Panels + Tile Picker
   - Track 9: Touch Foundation (gesture refinements)
 
+### Track 6 — Panels + Tile Picker
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented the editor's collapsible panel system with layer tabs, toolbar, and tile picker. Users can now select tiles for painting.
+- **Shipped**:
+  - Phase 1: Panel containers (topPanel.ts, bottomPanel.ts) with expand/collapse, layer tabs, toolbar
+  - Phase 2: Toolbar with tool buttons (Select, Paint, Erase, Entity) — integrated into bottomPanel.ts
+  - Phase 3: Tile picker (tilePicker.ts) with category tabs, tile grid, image loading
+  - EditorState extended with activeLayer and selectedTile fields
+  - Tile selection persists across reload
+  - Tile picker shows only for Paint/Erase tools
+- **Verification**:
+  - TypeScript compiles without errors
+  - ESLint passes
+  - Panel states persist correctly
+  - Tile images load from project categories
+  - Tile selection updates EditorState
+- **Learned**:
+  - CSS grid with auto-fill provides responsive tile grid layout
+  - Image caching prevents redundant fetches when switching categories
+  - Vite's BASE_URL handles asset paths for GitHub Pages deployment
+- **Follow-up**:
+  - Track 7: Tilemap Rendering (display tiles on canvas)
+  - Track 8: Paint Tool (place selected tile on map)
+
 ---
 
 ## Stalled / Abandoned Tracks
