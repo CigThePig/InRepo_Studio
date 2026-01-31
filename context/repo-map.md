@@ -93,8 +93,11 @@ Local instruction files (present):
   - Owns: ViewportStateSchema
 - `canvas/grid.ts`
   - Role: grid rendering
+- `canvas/tileCache.ts`
+  - Role: tile image loading and caching
 - `canvas/renderer.ts`
-  - Role: tilemap and entity rendering
+  - Role: tilemap rendering with layer support, culling, and dimming
+  - Owns: LAYER_RENDER_ORDER, LAYER_COLORS
 - `panels/topPanel.ts`
   - Role: scene selector, layer switcher, deploy button
 - `panels/bottomPanel.ts`
