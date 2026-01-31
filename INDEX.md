@@ -315,6 +315,10 @@ Micro-format (copy/paste):
   - Role: Bottom panel with toolbar and tile picker.
   - Lists of truth: ToolType
 
+- `src/editor/panels/deployPanel.ts`
+  - Role: Deploy panel with authentication status.
+  - Lists of truth: none
+
 - `src/editor/panels/tilePicker.ts`
   - Role: Tile category tabs and tile grid for selection.
   - Lists of truth: none (uses TileCategory from types/project.ts)
@@ -384,10 +388,22 @@ Micro-format (copy/paste):
   - Role: Scene transitions.
   - Lists of truth: none
 
-### Deploy (planned — Tracks 12-13)
-- `src/deploy/auth.ts` (planned — Track 12)
+### Deploy (Tracks 12-13)
+- `src/deploy/auth.ts`
   - Role: GitHub PAT management.
   - Lists of truth: AuthStateSchema
+
+- `src/deploy/tokenStorage.ts`
+  - Role: Token storage abstraction (session + IndexedDB).
+  - Lists of truth: StorageKeys
+
+- `src/deploy/authUI.ts`
+  - Role: Authentication modal UI.
+  - Lists of truth: none
+
+- `src/deploy/index.ts`
+  - Role: Public exports for deploy module.
+  - Lists of truth: none
 
 - `src/deploy/commit.ts` (planned — Track 13)
   - Role: Change detection, SHA management, commit flow.

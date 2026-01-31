@@ -6,7 +6,9 @@
  */
 
 import type { Project } from '@/types';
+import type { AuthManager } from '@/deploy';
 import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
+import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
 const LOG_PREFIX = '[BottomPanel]';
 
@@ -53,6 +55,10 @@ export interface BottomPanelController {
 
   /** Clean up resources */
   destroy(): void;
+}
+
+export interface BottomPanelOptions {
+  authManager?: AuthManager;
 }
 
 // --- Tool Configuration ---
@@ -113,6 +119,7 @@ const STYLES = `
     gap: 8px;
     padding: 8px 12px;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .tool-button {
@@ -143,12 +150,35 @@ const STYLES = `
     color: #fff;
   }
 
+  .tool-button--deploy {
+    min-width: 72px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tool-button--deploy-active {
+    border-color: #4a9eff;
+    background: #3a3a6e;
+    color: #fff;
+  }
+
   .bottom-panel__content {
     flex: 1;
     padding: 0 12px 12px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .bottom-panel__section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .bottom-panel__section--hidden {
+    display: none;
   }
 
   .bottom-panel__placeholder {
@@ -175,13 +205,16 @@ export function createBottomPanel(
   container: HTMLElement,
   initialState: BottomPanelState,
   project?: Project,
-  assetBasePath: string = ''
+  assetBasePath: string = '',
+  options: BottomPanelOptions = {}
 ): BottomPanelController {
   const state = { ...initialState };
   let toolChangeCallback: ((tool: ToolType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
   let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
   let tilePickerController: TilePickerController | null = null;
+  let deployPanelController: DeployPanelController | null = null;
+  let activePanel: 'tiles' | 'deploy' = 'tiles';
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -228,7 +261,10 @@ export function createBottomPanel(
       });
 
       // Show/hide tile picker based on tool
-      tilePickerController?.setVisible(toolShowsTilePicker(toolType));
+      if (activePanel === 'tiles') {
+        tilePickerController?.setVisible(toolShowsTilePicker(toolType));
+      }
+      setActivePanel('tiles');
 
       // Notify
       toolChangeCallback?.(toolType);
@@ -239,14 +275,38 @@ export function createBottomPanel(
     toolbar.appendChild(button);
   }
 
+  const deployButton = document.createElement('button');
+  deployButton.className = 'tool-button tool-button--deploy';
+  deployButton.textContent = 'Deploy';
+  deployButton.setAttribute('aria-label', 'Deploy');
+  deployButton.setAttribute('title', 'Deploy');
+
+  deployButton.addEventListener('click', () => {
+    if (!options.authManager) {
+      console.warn(`${LOG_PREFIX} Auth manager not available for deploy panel`);
+      return;
+    }
+    setActivePanel('deploy');
+  });
+
+  toolbar.appendChild(deployButton);
+
   // Content area (for tile picker)
   const content = document.createElement('div');
   content.className = 'bottom-panel__content';
 
+  const tilePickerSection = document.createElement('div');
+  tilePickerSection.className = 'bottom-panel__section';
+  content.appendChild(tilePickerSection);
+
+  const deploySection = document.createElement('div');
+  deploySection.className = 'bottom-panel__section bottom-panel__section--hidden';
+  content.appendChild(deploySection);
+
   // Create tile picker if project has tile categories
   if (project && project.tileCategories.length > 0) {
     tilePickerController = createTilePicker(
-      content,
+      tilePickerSection,
       project.tileCategories,
       assetBasePath,
       state.selectedTile
@@ -266,7 +326,19 @@ export function createBottomPanel(
     const placeholder = document.createElement('div');
     placeholder.className = 'bottom-panel__placeholder';
     placeholder.textContent = project ? 'No tile categories defined' : 'No project loaded';
-    content.appendChild(placeholder);
+    tilePickerSection.appendChild(placeholder);
+  }
+
+  if (options.authManager) {
+    deployPanelController = createDeployPanel({
+      container: deploySection,
+      authManager: options.authManager,
+    });
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'bottom-panel__placeholder';
+    placeholder.textContent = 'Deploy panel unavailable';
+    deploySection.appendChild(placeholder);
   }
 
   // Toggle expand/collapse
@@ -281,6 +353,21 @@ export function createBottomPanel(
     panel.classList.toggle('bottom-panel--expanded', state.expanded);
     panel.classList.toggle('bottom-panel--collapsed', !state.expanded);
     chevron.textContent = state.expanded ? '▼' : '▲';
+  }
+
+  function setActivePanel(panelName: 'tiles' | 'deploy'): void {
+    activePanel = panelName;
+    const isDeploy = activePanel === 'deploy';
+
+    tilePickerSection.classList.toggle('bottom-panel__section--hidden', isDeploy);
+    deploySection.classList.toggle('bottom-panel__section--hidden', !isDeploy);
+    deployButton.classList.toggle('tool-button--deploy-active', isDeploy);
+
+    if (isDeploy) {
+      tilePickerController?.setVisible(false);
+    } else {
+      tilePickerController?.setVisible(toolShowsTilePicker(state.currentTool));
+    }
   }
 
   panel.appendChild(header);
@@ -302,7 +389,9 @@ export function createBottomPanel(
       });
 
       // Show/hide tile picker based on tool
-      tilePickerController?.setVisible(toolShowsTilePicker(tool));
+      if (activePanel === 'tiles') {
+        tilePickerController?.setVisible(toolShowsTilePicker(tool));
+      }
     },
 
     getCurrentTool() {
@@ -347,6 +436,7 @@ export function createBottomPanel(
 
     destroy() {
       tilePickerController?.destroy();
+      deployPanelController?.destroy();
       container.removeChild(panel);
       document.head.removeChild(styleEl);
       console.log(`${LOG_PREFIX} Bottom panel destroyed`);

@@ -4,10 +4,10 @@ Completed tracks:
 - Phase 0 (Foundation Architecture): Tracks 1-4 (Data Structures, Hot Storage, Cold Storage, Boot System)
 - Phase 1 (Editor Shell): Tracks 5-9 (Canvas, Panels, Tilemap Rendering, Paint Tool, Touch Foundation)
 - Phase 2 (Playtest & Deploy): Tracks 10-11 (Playtest Bridge, Runtime Loader)
+- Phase 2 (Playtest & Deploy): Track 12 (Authentication)
 
 Prepared tracks (planning artifacts created):
 - Phase 2 (Playtest & Deploy - Vertical Slice Completion):
-  - Track 12: Authentication (spec/blueprint/plan ready)
   - Track 13: Deploy Flow (spec/blueprint/plan ready)
 
 - Phase 3 (Full Tilemap Editing):
@@ -18,8 +18,7 @@ Prepared tracks (planning artifacts created):
   - Track 18: Layer System (spec/blueprint/plan ready)
 
 Next tracks to implement (in order):
-1. Track 12: Authentication — GitHub PAT management
-2. Track 13: Deploy Flow — Commit changes to GitHub (completes vertical slice MVP)
+1. Track 13: Deploy Flow — Commit changes to GitHub (completes vertical slice MVP)
 
 Note: Phase 2 completes the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 planning is ready for implementation after Phase 2.

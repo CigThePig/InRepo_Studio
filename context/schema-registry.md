@@ -106,8 +106,12 @@ Rules:
 
 - `/src/deploy/auth.ts`
   - `AuthStateSchema` — GitHub auth state
-    - Keys: token, username, scopes[], persistToken
+    - Keys: username, scopes[], isPersistent, isAuthenticated
     - Invariant: token never logged or exposed
+
+- `/src/deploy/tokenStorage.ts`
+  - `StorageKeys` — storage keys for GitHub token persistence
+    - Keys: sessionStorage key, IndexedDB name/store/key
 
 - `/src/deploy/commit.ts`
   - `FileChangeSchema` — detected change
