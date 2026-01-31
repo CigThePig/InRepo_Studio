@@ -164,6 +164,22 @@ Micro-format (copy/paste):
   - Role: Track 9 planning artifacts (Touch Foundation).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-10-playtest-bridge/`
+  - Role: Track 10 planning artifacts (Playtest Bridge).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-11-runtime-loader/`
+  - Role: Track 11 planning artifacts (Runtime Loader).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-12-authentication/`
+  - Role: Track 12 planning artifacts (Authentication).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-13-deploy-flow/`
+  - Role: Track 13 planning artifacts (Deploy Flow).
+  - Lists of truth: Spec, Blueprint, Plan
+
 - `tracks/2026-01-31-track-14-erase-tool/`
   - Role: Track 14 planning artifacts (Erase Tool).
   - Lists of truth: Spec, Blueprint, Plan
