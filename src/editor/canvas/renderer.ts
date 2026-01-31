@@ -47,8 +47,8 @@ const HOVER_HIGHLIGHT_FILL = 'rgba(255, 255, 255, 0.25)';
 const HOVER_HIGHLIGHT_BORDER = 'rgba(74, 158, 255, 0.9)';
 const HOVER_HIGHLIGHT_BORDER_WIDTH = 2;
 
-/** Touch offset for hover highlight (pixels above touch point) */
-export const TOUCH_OFFSET_Y = -48;
+// Re-export TOUCH_OFFSET_Y for backwards compatibility
+export { TOUCH_OFFSET_Y } from './touchConfig';
 
 // --- Types ---
 

@@ -50,3 +50,16 @@ export {
   TOUCH_OFFSET_Y,
 } from './renderer';
 export type { TilemapRenderer, TilemapRendererConfig } from './renderer';
+
+// Touch Configuration
+export {
+  getTouchConfig,
+  setTouchConfig,
+  resetTouchConfig,
+  DEFAULT_TOUCH_CONFIG,
+} from './touchConfig';
+export type { TouchConfig } from './touchConfig';
+
+// Brush Cursor
+export { createBrushCursor } from './brushCursor';
+export type { BrushCursor, BrushCursorState } from './brushCursor';
