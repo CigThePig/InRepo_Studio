@@ -5,39 +5,36 @@
  * It will be expanded in Track 11 to include Phaser integration.
  */
 
-import { loadProject, loadScene, hasHotData } from '@/storage';
-import { fetchProject, fetchScene } from '@/storage';
+import { createUnifiedLoader, type DataSourceMode, type UnifiedLoader } from '@/runtime/loader';
 
 const LOG_PREFIX = '[Runtime]';
 
 // --- Initialization ---
 
-export async function initRuntime(): Promise<void> {
+export interface RuntimeConfig {
+  dataSource?: DataSourceMode;
+  loader?: UnifiedLoader;
+  startSceneId?: string | null;
+}
+
+export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
   console.log(`${LOG_PREFIX} Initializing runtime...`);
 
-  // Determine data source (hot for playtest, cold for deployed)
-  const useHot = await hasHotData();
-  console.log(`${LOG_PREFIX} Data source: ${useHot ? 'hot (playtest)' : 'cold (deployed)'}`);
+  const dataSource = config.dataSource ?? 'cold';
+  const loader = config.loader ?? createUnifiedLoader(dataSource);
+  console.log(`${LOG_PREFIX} Data source: ${loader.getMode()} (${loader.getMode() === 'hot' ? 'playtest' : 'deployed'})`);
 
   // Load project
-  const project = useHot
-    ? await loadProject()
-    : await fetchProject();
+  const project = await loader.loadProject();
 
-  if (!project) {
-    throw new Error('No project data available');
-  }
   console.log(`${LOG_PREFIX} Project: "${project.name}"`);
 
   // Load default scene
-  const sceneId = project.defaultScene;
-  const scene = useHot
-    ? await loadScene(sceneId)
-    : await fetchScene(sceneId);
-
-  if (!scene) {
-    throw new Error(`Scene "${sceneId}" not found`);
+  const sceneId = config.startSceneId ?? project.defaultScene;
+  if (!sceneId) {
+    throw new Error('No scene selected for runtime');
   }
+  const scene = await loader.loadScene(sceneId);
   console.log(`${LOG_PREFIX} Scene: "${scene.name}"`);
 
   // Render game UI (placeholder)
