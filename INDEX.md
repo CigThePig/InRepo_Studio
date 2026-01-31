@@ -243,9 +243,13 @@ Micro-format (copy/paste):
   - Role: Main canvas controller (orchestrates viewport, gestures, rendering).
   - Lists of truth: none
 
-- `src/editor/canvas/renderer.ts` (planned — Track 7)
-  - Role: Tilemap and entity rendering.
+- `src/editor/canvas/tileCache.ts`
+  - Role: Shared tile image cache for renderer and tile picker.
   - Lists of truth: none
+
+- `src/editor/canvas/renderer.ts`
+  - Role: Tilemap rendering with layer support, culling, and dimming.
+  - Lists of truth: LAYER_RENDER_ORDER, LAYER_COLORS
 
 - `src/editor/panels/index.ts`
   - Role: Public exports for panels module.
