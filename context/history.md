@@ -215,6 +215,20 @@ Purpose:
 - **Follow-up**:
   - Track 13: Deploy Flow (Commit changes to GitHub)
 
+### Track 13 — Deploy Flow
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented change detection, SHA tracking, conflict handling, and GitHub commit orchestration to deploy hot data to the repository.
+- **Shipped**:
+  - SHA manager with IndexedDB-backed deploy metadata store and GitHub SHA/content fetching
+  - Change detection with content hashing and conflict detection
+  - Conflict resolution modal (overwrite/pull/skip)
+  - Commit + deploy orchestration with progress/status UI in the deploy panel
+- **Verification**: `npm run build`
+- **Learned**: Centralizing deploy state in a dedicated UI component keeps panel feedback consistent during multi-step commits.
+- **Follow-up**:
+  - Track 14: Erase Tool (tile removal)
+
 ---
 
 ## Stalled / Abandoned Tracks

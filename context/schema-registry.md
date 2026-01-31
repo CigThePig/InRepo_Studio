@@ -113,11 +113,21 @@ Rules:
   - `StorageKeys` — storage keys for GitHub token persistence
     - Keys: sessionStorage key, IndexedDB name/store/key
 
-- `/src/deploy/commit.ts`
+- `/src/deploy/shaManager.ts`
+  - `ShaEntrySchema` — per-file deploy metadata
+    - Keys: sha, contentHash, updatedAt
+  - `ShaStoreSchema` — persisted SHA store
+    - Keys: entries{}, lastUpdated
+
+- `/src/deploy/changeDetector.ts`
   - `FileChangeSchema` — detected change
-    - Keys: path, oldSha, newContent, status (added|modified|deleted)
+    - Keys: path, status (added|modified|deleted), content, contentHash, localSha
   - `ConflictSchema` — remote conflict
-    - Keys: path, localSha, remoteSha, resolution (overwrite|pull|skip)
+    - Keys: path, localSha, remoteSha, hasConflict
+
+- `/src/deploy/commit.ts`
+  - `CommitResultSchema` — deploy commit result
+    - Keys: success, path, newSha, error
 
 ### Runtime (Track 10)
 

@@ -136,9 +136,19 @@ Local instruction files (present):
 - `auth.ts`
   - Role: GitHub PAT management
   - Owns: AuthStateSchema
-- `commit.ts`
-  - Role: change detection, SHA management, commit flow
+- `changeDetector.ts`
+  - Role: detect hot vs deployed changes + conflicts
   - Owns: FileChangeSchema, ConflictSchema
+- `shaManager.ts`
+  - Role: SHA storage + GitHub SHA/content fetching
+  - Owns: ShaStoreSchema
+- `commit.ts`
+  - Role: GitHub commit operations + deploy orchestration
+  - Owns: CommitResultSchema
+- `conflictResolver.ts`
+  - Role: conflict resolution UI
+- `deployUI.ts`
+  - Role: deploy status/progress UI
 - `assetUpload.ts`
   - Role: upload new images to repository
 
