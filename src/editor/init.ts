@@ -7,7 +7,7 @@
 
 import { loadEditorState, loadProject, loadScene, saveEditorState, saveScene } from '@/storage';
 import type { EditorState } from '@/storage';
-import type { Scene, Project } from '@/types';
+import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
   createTopPanel,
@@ -102,8 +102,23 @@ export async function initEditor(): Promise<void> {
   // Load current scene or default
   const sceneId = editorState.currentSceneId ?? currentProject.defaultScene;
   if (sceneId) {
-    const scene = await loadScene(sceneId);
+    let scene = await loadScene(sceneId);
     if (scene) {
+      // Ensure tilesets are present and compatible with project categories.
+      const ensured = ensureSceneTilesets(scene, currentProject);
+      scene = ensured.scene;
+
+      if (ensured.warnings.length > 0) {
+        for (const w of ensured.warnings) {
+          console.warn(`${LOG_PREFIX} ${w}`);
+        }
+      }
+
+      if (ensured.changed) {
+        await saveScene(scene);
+        console.log(`${LOG_PREFIX} Scene tilesets normalized${ensured.migratedLegacyTileValues ? ' (legacy tiles migrated)' : ''}`);
+      }
+
       console.log(`${LOG_PREFIX} Scene loaded: "${scene.name}"`);
       currentScene = scene;
       editorState.currentSceneId = sceneId;

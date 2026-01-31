@@ -20,7 +20,7 @@
  * - [ ] Inactive layers are dimmed
  */
 
-import type { Scene, LayerType, TileLayer } from '@/types';
+import { resolveTileGid, type Scene, type LayerType, type TileLayer } from '@/types';
 import type { ViewportState } from './viewport';
 import { getVisibleTileRange, tileToScreen } from './viewport';
 import { getTile, LAYER_ORDER } from '@/types/scene';
@@ -154,9 +154,11 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           ctx.fillStyle = LAYER_COLORS[layerType];
           ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
         } else {
-          // Draw tile image
-          // tileValue is 1-indexed, so subtract 1 for cache lookup
-          const img = tileCache.getTileImage(selectedCategory, tileValue - 1);
+          // Draw tile image (GID -> category/index via scene.tilesets)
+          if (!scene) continue;
+          const resolved = resolveTileGid(scene, tileValue);
+          if (!resolved) continue;
+          const img = tileCache.getTileImage(resolved.category, resolved.index);
           if (img) {
             ctx.drawImage(
               img,

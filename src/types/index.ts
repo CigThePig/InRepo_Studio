@@ -30,6 +30,8 @@ export type {
   TilesetReference,
   EntityInstance,
   LayerType,
+  ResolvedTileRef,
+  EnsureTilesetsResult,
 } from './scene';
 
 export {
@@ -42,6 +44,10 @@ export {
   validateLayerData,
   validateTileLayer,
   validateEntityInstance,
+  resolveTileGid,
+  getGidForTile,
+  computeDefaultTilesets,
+  ensureSceneTilesets,
   getTile,
   setTile,
   resizeLayer,

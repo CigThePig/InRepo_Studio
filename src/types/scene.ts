@@ -24,6 +24,9 @@
  * - [ ] Entity instance IDs are unique within scene
  */
 
+import type { Project } from './project';
+
+
 // --- Layer Types ---
 
 export type LayerType = 'ground' | 'props' | 'collision' | 'triggers';
@@ -38,6 +41,286 @@ export interface TilesetReference {
   /** First GID for this tileset */
   firstGid: number;
 }
+
+// --- Tileset GID Helpers ---
+
+/** Default per-category GID block size for new/normalized scenes. */
+export const DEFAULT_TILESET_BLOCK_SIZE = 1000;
+
+
+/**
+ * A resolved tile reference derived from a global tile GID.
+ * `index` is 0-based within the resolved category.
+ */
+export interface ResolvedTileRef {
+  category: string;
+  index: number;
+}
+
+/**
+ * Resolve a global tile GID to a {category, index} pair using scene.tilesets.
+ *
+ * Rules:
+ * - gid <= 0 => null (empty)
+ * - Picks the tileset with the greatest firstGid that is <= gid (Tiled-style)
+ * - index is 0-based: index = gid - firstGid
+ *
+ * Note: This does NOT validate that the index is within the category's file list.
+ * Callers should treat out-of-range indices as "not renderable".
+ */
+export function resolveTileGid(scene: Scene, gid: number): ResolvedTileRef | null {
+  if (!Number.isFinite(gid) || gid <= 0) return null;
+  const tilesets = scene.tilesets ?? [];
+  if (tilesets.length === 0) return null;
+
+  // Find the tileset with the greatest firstGid <= gid.
+  // (We sort a shallow copy to make selection deterministic even if scene.tilesets is unsorted.)
+  const sorted = [...tilesets].sort((a, b) => a.firstGid - b.firstGid);
+
+  let chosen: TilesetReference | null = null;
+  for (const ts of sorted) {
+    if (gid >= ts.firstGid) {
+      chosen = ts;
+    } else {
+      break;
+    }
+  }
+
+  if (!chosen) return null;
+
+  const index = gid - chosen.firstGid;
+  if (!Number.isFinite(index) || index < 0) return null;
+
+  return { category: chosen.category, index };
+}
+
+/**
+ * Convert a tile selection (category + 0-based index) into a global GID using scene.tilesets.
+ * Returns null if the scene has no tileset reference for the selected category.
+ */
+export function getGidForTile(scene: Scene, category: string, index: number): number | null {
+  if (!Number.isFinite(index) || index < 0) return null;
+  const tilesets = scene.tilesets ?? [];
+  const ts = tilesets.find(t => t.category === category);
+  if (!ts) return null;
+  return ts.firstGid + index;
+}
+
+/**
+ * Compute a deterministic default tileset table for a project:
+ * - Uses project.tileCategories order
+ * - Packs categories contiguously starting at firstGid=1
+ */
+export function computeDefaultTilesets(project: Project): TilesetReference[] {
+  const refs: TilesetReference[] = [];
+
+  for (let i = 0; i < project.tileCategories.length; i++) {
+    const cat = project.tileCategories[i];
+    const firstGid = 1 + i * DEFAULT_TILESET_BLOCK_SIZE;
+
+    if ((cat.files?.length ?? 0) > DEFAULT_TILESET_BLOCK_SIZE) {
+      console.warn(
+        `[SceneSchema] Tile category "${cat.name}" has ${(cat.files?.length ?? 0)} tiles, which exceeds DEFAULT_TILESET_BLOCK_SIZE=${DEFAULT_TILESET_BLOCK_SIZE}. ` +
+          `Consider manually increasing firstGid spacing in scene.tilesets to avoid overlap.`
+      );
+    }
+
+    refs.push({ category: cat.name, firstGid });
+  }
+
+  return refs;
+}
+
+function getCategoryTileCount(project: Project, categoryName: string): number | null {
+  const cat = project.tileCategories.find(c => c.name === categoryName);
+  if (!cat) return null;
+  return cat.files?.length ?? 0;
+}
+
+function computeTilesetEndExclusive(project: Project, ts: TilesetReference): number {
+  const count = getCategoryTileCount(project, ts.category);
+  // If unknown, assume at least 1 so we don't "collapse" ranges.
+  const safeCount = Math.max(1, count ?? 0);
+  return ts.firstGid + safeCount;
+}
+
+function hasAnyPaintedTiles(scene: Scene): boolean {
+  for (const layerType of LAYER_ORDER) {
+    const layer = scene.layers[layerType];
+    for (const row of layer) {
+      for (const cell of row) {
+        if (cell !== 0) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function layerMaxValue(layer: TileLayer): number {
+  let max = 0;
+  for (const row of layer) {
+    for (const cell of row) {
+      if (cell > max) max = cell;
+    }
+  }
+  return max;
+}
+
+/**
+ * Ensure a scene has a tileset table that is compatible with the current project categories.
+ *
+ * What it does:
+ * - If scene.tilesets is empty:
+ *   - Creates a default packed mapping (computeDefaultTilesets)
+ *   - Optionally migrates legacy tile values that were stored as local 1-based indices
+ *     (ground -> terrain, props -> props) into real GIDs.
+ * - If scene.tilesets exists:
+ *   - Appends any missing project categories at the end (does NOT change existing firstGid values)
+ *   - Emits warnings (returned) for duplicates, unknown categories, or overlaps.
+ *
+ * This function is designed to be conservative: it never rewrites existing firstGid values.
+ */
+export interface EnsureTilesetsResult {
+  scene: Scene;
+  changed: boolean;
+  migratedLegacyTileValues: boolean;
+  warnings: string[];
+}
+
+export function ensureSceneTilesets(scene: Scene, project: Project): EnsureTilesetsResult {
+  const warnings: string[] = [];
+  let changed = false;
+  let migratedLegacyTileValues = false;
+
+  const originalTilesets = scene.tilesets ?? [];
+
+  // De-dupe tilesets by category (keep the first)
+  const seen = new Set<string>();
+  const cleanedTilesets: TilesetReference[] = [];
+  for (const ts of originalTilesets) {
+    if (seen.has(ts.category)) {
+      warnings.push(`Duplicate tileset category "${ts.category}" found; keeping the first.`);
+      continue;
+    }
+    seen.add(ts.category);
+    cleanedTilesets.push(ts);
+  }
+
+  if (cleanedTilesets.length !== originalTilesets.length) {
+    changed = true;
+  }
+
+  let tilesets: TilesetReference[] = cleanedTilesets;
+
+  const projectCategories = project.tileCategories.map(c => c.name);
+
+  // Warn on tilesets that reference unknown categories
+  for (const ts of tilesets) {
+    if (!projectCategories.includes(ts.category)) {
+      warnings.push(`Scene tileset references unknown category "${ts.category}" (not in project.tileCategories).`);
+    }
+  }
+
+  // If no tilesets, build a deterministic default table
+  if (tilesets.length === 0) {
+    tilesets = computeDefaultTilesets(project);
+    changed = true;
+
+    // Legacy migration: if a scene existed before tilesets were written, the editor stored
+    // local 1-based indices (index+1) regardless of category. The safest, least-surprising
+    // assumption is:
+    // - ground layer uses "terrain" if it exists, else the first category
+    // - props layer uses "props" if it exists, else the second category (or first)
+    //
+    // We only migrate if there are any painted tiles AND the max values look like local indices.
+    if (hasAnyPaintedTiles(scene) && project.tileCategories.length > 0) {
+      const terrainName = projectCategories.includes('terrain') ? 'terrain' : projectCategories[0];
+      const propsName =
+        projectCategories.includes('props')
+          ? 'props'
+          : projectCategories[1] ?? projectCategories[0];
+
+      const terrainCount = getCategoryTileCount(project, terrainName) ?? 0;
+      const propsCount = getCategoryTileCount(project, propsName) ?? 0;
+
+      const groundMax = layerMaxValue(scene.layers.ground);
+      const propsMax = layerMaxValue(scene.layers.props);
+
+      const looksLikeLocal =
+        (groundMax <= Math.max(terrainCount, 1)) &&
+        (propsMax <= Math.max(propsCount, 1));
+
+      if (looksLikeLocal) {
+        const terrainFirst = tilesets.find(t => t.category === terrainName)?.firstGid ?? 1;
+        const propsFirst = tilesets.find(t => t.category === propsName)?.firstGid ?? 1;
+
+        const remapLayer = (layer: TileLayer, firstGid: number): TileLayer =>
+          layer.map(row =>
+            row.map(v => (v > 0 ? firstGid + (v - 1) : 0))
+          );
+
+        const newLayers = {
+          ...scene.layers,
+          ground: remapLayer(scene.layers.ground, terrainFirst),
+          props: remapLayer(scene.layers.props, propsFirst),
+          // collision/triggers are already binary
+        };
+
+        scene = { ...scene, layers: newLayers };
+        migratedLegacyTileValues = true;
+        changed = true;
+        warnings.push('Migrated legacy local tile indices into GIDs (ground/props).');
+      } else {
+        warnings.push(
+          'Scene had no tilesets; created default tilesets but did not migrate tile values because they did not look like local indices.'
+        );
+      }
+    }
+
+    return { scene: { ...scene, tilesets }, changed, migratedLegacyTileValues, warnings };
+  }
+
+  // Append missing categories without changing existing firstGids
+  const existing = new Set(tilesets.map(t => t.category));
+  const missing = project.tileCategories.filter(c => !existing.has(c.name));
+
+  if (missing.length > 0) {
+    // Choose the next block boundary at or after the current max end.
+    let maxEndExclusive = 1;
+    for (const ts of tilesets) {
+      maxEndExclusive = Math.max(maxEndExclusive, computeTilesetEndExclusive(project, ts));
+    }
+
+    // Align to our default block scheme: firstGid = 1 + k * BLOCK_SIZE
+    const k = Math.ceil((maxEndExclusive - 1) / DEFAULT_TILESET_BLOCK_SIZE);
+    let next = 1 + k * DEFAULT_TILESET_BLOCK_SIZE;
+
+    for (const cat of missing) {
+      tilesets = [...tilesets, { category: cat.name, firstGid: next }];
+      next += DEFAULT_TILESET_BLOCK_SIZE;
+    }
+
+    warnings.push(`Appended ${missing.length} missing category tileset(s) to scene.tilesets.`);
+    changed = true;
+  }
+
+  // Optional overlap warnings (does not modify data)
+  const sorted = [...tilesets].sort((a, b) => a.firstGid - b.firstGid);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const aEnd = computeTilesetEndExclusive(project, a);
+    if (b.firstGid < aEnd) {
+      warnings.push(
+        `Tileset GID ranges overlap or are ambiguous: "${a.category}" [${a.firstGid}..${aEnd - 1}] overlaps "${b.category}" starting at ${b.firstGid}.`
+      );
+    }
+  }
+
+  const finalScene = changed ? { ...scene, tilesets } : scene;
+  return { scene: finalScene, changed, migratedLegacyTileValues, warnings };
+}
+
 
 // --- Layer Data ---
 
@@ -121,14 +404,32 @@ export function createScene(
   width: number,
   height: number,
   tileSize: number
+): Scene;
+export function createScene(
+  id: string,
+  name: string,
+  width: number,
+  height: number,
+  tileSize: number,
+  project: Project
+): Scene;
+export function createScene(
+  id: string,
+  name: string,
+  width: number,
+  height: number,
+  tileSize: number,
+  project?: Project
 ): Scene {
+  const tilesets = project ? computeDefaultTilesets(project) : [];
+
   return {
     id,
     name,
     width,
     height,
     tileSize,
-    tilesets: [],
+    tilesets,
     layers: createEmptyLayerData(width, height),
     entities: [],
   };

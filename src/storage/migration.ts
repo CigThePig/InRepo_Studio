@@ -6,7 +6,7 @@
  */
 
 import type { Scene } from '@/types';
-import { createDefaultProject, createScene } from '@/types';
+import { createDefaultProject, createScene, ensureSceneTilesets } from '@/types';
 import * as hot from './hot';
 import * as cold from './cold';
 
@@ -66,8 +66,18 @@ export async function migrateFromCold(): Promise<MigrationResult> {
             sceneId === project.defaultScene ? 'Main Scene' : sceneId,
             project.settings.defaultGridWidth,
             project.settings.defaultGridHeight,
-            project.settings.defaultTileSize
+            project.settings.defaultTileSize,
+            project
           );
+        }
+
+        // Normalize tilesets to avoid ambiguous GID mapping.
+        const ensured = ensureSceneTilesets(scene, project);
+        scene = ensured.scene;
+        if (ensured.warnings.length > 0) {
+          for (const w of ensured.warnings) {
+            console.warn(`${LOG_PREFIX} ${w}`);
+          }
         }
 
         await hot.saveScene(scene);
@@ -87,9 +97,17 @@ export async function migrateFromCold(): Promise<MigrationResult> {
         'Main Scene',
         project.settings.defaultGridWidth,
         project.settings.defaultGridHeight,
-        project.settings.defaultTileSize
+        project.settings.defaultTileSize,
+        project
       );
-      await hot.saveScene(defaultScene);
+      const ensured = ensureSceneTilesets(defaultScene, project);
+      const normalized = ensured.scene;
+      if (ensured.warnings.length > 0) {
+        for (const w of ensured.warnings) {
+          console.warn(`${LOG_PREFIX} ${w}`);
+        }
+      }
+      await hot.saveScene(normalized);
       result.scenesLoaded.push(defaultScene.id);
     }
 

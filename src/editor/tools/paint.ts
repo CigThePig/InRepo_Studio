@@ -7,7 +7,7 @@
  * Uses the touch offset from renderer to paint above the finger.
  */
 
-import type { Scene, LayerType } from '@/types';
+import { getGidForTile, type Scene, type LayerType } from '@/types';
 import type { ViewportState } from '@/editor/canvas/viewport';
 import type { EditorState, SelectedTile } from '@/storage/hot';
 import { screenToTile } from '@/editor/canvas/viewport';
@@ -51,10 +51,10 @@ interface Point {
 
 /**
  * Get the tile value to paint based on layer type and selected tile.
- * - Ground/Props: selectedTile.index + 1 (0 is empty)
+ * - Ground/Props: global tile GID computed from scene.tilesets (0 is empty)
  * - Collision/Triggers: 1 (binary filled state)
  */
-function getTileValue(layer: LayerType, selectedTile: SelectedTile | null): number {
+function getTileValue(scene: Scene, layer: LayerType, selectedTile: SelectedTile | null): number {
   if (layer === 'collision' || layer === 'triggers') {
     return 1; // Binary filled state
   }
@@ -63,7 +63,17 @@ function getTileValue(layer: LayerType, selectedTile: SelectedTile | null): numb
     return 0; // No tile selected, do nothing
   }
 
-  return selectedTile.index + 1; // 1-indexed tile value
+  const gid = getGidForTile(scene, selectedTile.category, selectedTile.index);
+  if (gid === null) {
+    // This should not happen if scenes are normalized with ensureSceneTilesets().
+    console.warn(
+      `${LOG_PREFIX} No tileset mapping for category "${selectedTile.category}". ` +
+        `Paint skipped (scene.tilesets missing category).`
+    );
+    return 0;
+  }
+
+  return gid;
 }
 
 /**
@@ -98,7 +108,7 @@ function interpolateLine(x0: number, y0: number, x1: number, y1: number): Point[
   let x = x0;
   let y = y0;
 
-  while (true) {
+  for (;;) {
     points.push({ x, y });
 
     if (x === x1 && y === y1) break;
@@ -169,7 +179,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
 
     const activeLayer = editorState.activeLayer;
     const selectedTile = editorState.selectedTile;
-    const value = getTileValue(activeLayer, selectedTile);
+    const value = getTileValue(scene, activeLayer, selectedTile);
 
     // Skip if no tile to paint (ground/props without selection)
     if (value === 0 && (activeLayer === 'ground' || activeLayer === 'props')) {
