@@ -5,10 +5,12 @@ Completed tracks:
 - Track 5: Canvas System (viewport, gestures, grid)
 - Track 6: Panels + Tile Picker (panel containers, toolbar, layer tabs, tile picker)
 - Track 7: Tilemap Rendering (tile cache, renderer, layer dimming, hover highlight)
+- Track 8: Paint Tool (single-tap/drag painting, auto-save, Bresenham line interpolation)
+- Track 9: Touch Foundation (touch config, brush cursor, long-press detection)
 
 Next tracks (in order):
-- Track 8: Paint Tool
 - Track 10: Playtest Bridge
+- Track 11: Runtime Loader
 
 Last updated: 2026-01-31
 

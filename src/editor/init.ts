@@ -5,7 +5,7 @@
  * Sets up the canvas, panels, and tool systems.
  */
 
-import { loadEditorState, loadProject, loadScene, saveEditorState } from '@/storage';
+import { loadEditorState, loadProject, loadScene, saveEditorState, saveScene } from '@/storage';
 import type { EditorState } from '@/storage';
 import type { Scene, Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
@@ -15,6 +15,7 @@ import {
   type TopPanelController,
   type BottomPanelController,
 } from '@/editor/panels';
+import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -29,6 +30,7 @@ let canvasController: CanvasController | null = null;
 let topPanelController: TopPanelController | null = null;
 let bottomPanelController: BottomPanelController | null = null;
 let currentScene: Scene | null = null;
+let paintTool: PaintTool | null = null;
 
 export function getEditorState(): EditorState | null {
   return editorState;
@@ -46,10 +48,16 @@ export function getBottomPanel(): BottomPanelController | null {
   return bottomPanelController;
 }
 
+export function getCurrentScene(): Scene | null {
+  return currentScene;
+}
+
 // --- Debounced Save ---
 
 let saveTimeout: number | null = null;
+let sceneSaveTimeout: number | null = null;
 const SAVE_DEBOUNCE_MS = 500;
+const SCENE_SAVE_DEBOUNCE_MS = 500;
 
 function scheduleSave(): void {
   if (saveTimeout !== null) {
@@ -62,6 +70,17 @@ function scheduleSave(): void {
       console.log(`${LOG_PREFIX} Editor state saved`);
     }
   }, SAVE_DEBOUNCE_MS);
+}
+
+function scheduleSceneSave(scene: Scene): void {
+  if (sceneSaveTimeout !== null) {
+    window.clearTimeout(sceneSaveTimeout);
+  }
+  sceneSaveTimeout = window.setTimeout(async () => {
+    sceneSaveTimeout = null;
+    await saveScene(scene);
+    console.log(`${LOG_PREFIX} Scene "${scene.name}" auto-saved`);
+  }, SCENE_SAVE_DEBOUNCE_MS);
 }
 
 // --- Initialization ---
@@ -145,6 +164,36 @@ async function initCanvas(tileSize: number): Promise<void> {
       editorState.viewport = viewport;
       scheduleSave();
     }
+  });
+
+  // Initialize paint tool
+  paintTool = createPaintTool({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    onSceneChange: (scene) => {
+      currentScene = scene;
+      canvasController?.invalidateScene();
+      scheduleSceneSave(scene);
+    },
+  });
+
+  // Wire up tool gestures
+  canvasController.onToolGesture({
+    onStart: (x, y) => {
+      if (editorState?.currentTool === 'paint' && paintTool) {
+        paintTool.start(x, y, canvasController!.getViewport(), tileSize);
+      }
+    },
+    onMove: (x, y) => {
+      if (editorState?.currentTool === 'paint' && paintTool) {
+        paintTool.move(x, y, canvasController!.getViewport(), tileSize);
+      }
+    },
+    onEnd: () => {
+      if (paintTool) {
+        paintTool.end();
+      }
+    },
   });
 
   console.log(`${LOG_PREFIX} Canvas initialized (tile size: ${tileSize}px)`);

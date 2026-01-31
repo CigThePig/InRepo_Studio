@@ -121,6 +121,54 @@ Purpose:
   - Track 8: Paint Tool (place tiles on map)
   - Track 18: Layer visibility/lock toggles
 
+### Track 8 — Paint Tool
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented tile painting with single-tap and drag support. Tiles paint to the active layer with auto-save to IndexedDB.
+- **Shipped**:
+  - Paint tool module (paint.ts) with start/move/end gesture handling
+  - Single-tap tile placement at touch offset position
+  - Drag painting with Bresenham line interpolation for continuous lines
+  - Layer-aware painting (ground/props use tile index, collision/trigger use value 1)
+  - Debounced auto-save of scene data after paint operations
+  - Wired paint tool into editor initialization
+- **Verification**:
+  - TypeScript compiles without errors
+  - Vite build succeeds
+  - Tapping canvas places tiles at correct position
+  - Dragging paints continuous lines with no gaps
+  - Scene persists after page reload
+- **Learned**:
+  - Bresenham algorithm handles fast drag efficiently
+  - Debouncing saves prevents IndexedDB thrashing during drag
+  - Touch offset must match renderer's hover highlight for consistency
+- **Follow-up**:
+  - Track 14: Erase Tool
+  - Track 16: Undo/Redo System
+
+### Track 9 — Touch Foundation
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Centralized touch configuration and added enhanced gesture handling with long-press detection and brush cursor infrastructure.
+- **Shipped**:
+  - Touch configuration module (touchConfig.ts) with centralized constants
+  - Brush cursor module (brushCursor.ts) for visual tool feedback
+  - Long-press detection in gestures.ts (500ms threshold)
+  - Updated gesture handler to use configurable delays and thresholds
+  - Re-exported TOUCH_OFFSET_Y from touchConfig for consistency
+- **Verification**:
+  - TypeScript compiles without errors
+  - Vite build succeeds
+  - Gestures use configurable constants from touchConfig
+  - Long-press cancels on movement, doesn't trigger paint
+- **Learned**:
+  - Centralizing touch config enables future user preferences (Track 28)
+  - Long-press provides foundation for context menus
+  - Brush cursor can show tile preview in future enhancement
+- **Follow-up**:
+  - Track 25: Touch Refinements (haptic feedback, loupe mode)
+  - Track 28: Editor Settings (configurable touch offset)
+
 ---
 
 ## Stalled / Abandoned Tracks

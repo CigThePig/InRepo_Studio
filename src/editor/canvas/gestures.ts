@@ -5,7 +5,10 @@
  * Distinguishes between:
  * - 1 pointer: tool action (delegated to handler)
  * - 2+ pointers: pan/zoom (handled internally)
+ * - Long press: special action (for future context menu)
  */
+
+import { getTouchConfig } from './touchConfig';
 
 // --- Types ---
 
@@ -24,6 +27,9 @@ export interface GestureCallbacks {
 
   /** Called when a tool gesture ends */
   onToolEnd?: () => void;
+
+  /** Called when a long press is detected (for future context menu) */
+  onLongPress?: (x: number, y: number) => void;
 }
 
 export interface GestureHandler {
@@ -38,15 +44,7 @@ interface PointerInfo {
   y: number;
 }
 
-type GestureState = 'idle' | 'pending' | 'tool' | 'pan_zoom';
-
-// --- Constants ---
-
-/** Time to wait before confirming single-finger as tool gesture */
-const TOOL_CONFIRM_DELAY = 150;
-
-/** Movement threshold to confirm gesture without waiting for delay */
-const MOVEMENT_THRESHOLD = 5;
+type GestureState = 'idle' | 'pending' | 'tool' | 'pan_zoom' | 'long_press';
 
 // --- Gesture Handler Factory ---
 
@@ -54,9 +52,17 @@ export function createGestureHandler(
   element: HTMLElement,
   callbacks: GestureCallbacks
 ): GestureHandler {
+  // Get configuration (read once at creation, updates on next gesture handler creation)
+  const config = getTouchConfig();
+
   const activePointers: Map<number, PointerInfo> = new Map();
   let gestureState: GestureState = 'idle';
   let toolConfirmTimeout: number | null = null;
+  let longPressTimeout: number | null = null;
+
+  // For long-press tracking
+  let longPressStartX = 0;
+  let longPressStartY = 0;
 
   // For pinch-zoom tracking
   let initialPinchDistance: number | null = null;
@@ -101,9 +107,21 @@ export function createGestureHandler(
     }
   }
 
+  function clearLongPressTimeout(): void {
+    if (longPressTimeout !== null) {
+      window.clearTimeout(longPressTimeout);
+      longPressTimeout = null;
+    }
+  }
+
+  function clearAllTimeouts(): void {
+    clearToolConfirmTimeout();
+    clearLongPressTimeout();
+  }
+
   function startPanZoom(): void {
     gestureState = 'pan_zoom';
-    clearToolConfirmTimeout();
+    clearAllTimeouts();
 
     if (activePointers.size >= 2) {
       const pointers = Array.from(activePointers.values());
@@ -117,8 +135,14 @@ export function createGestureHandler(
 
   function startTool(x: number, y: number): void {
     gestureState = 'tool';
-    clearToolConfirmTimeout();
+    clearAllTimeouts();
     callbacks.onToolStart?.(x, y);
+  }
+
+  function triggerLongPress(x: number, y: number): void {
+    gestureState = 'long_press';
+    clearAllTimeouts();
+    callbacks.onLongPress?.(x, y);
   }
 
   // --- Event Handlers ---
@@ -136,18 +160,29 @@ export function createGestureHandler(
     const pointerCount = activePointers.size;
 
     if (pointerCount === 1) {
-      // First finger - start pending, may become tool or pan/zoom
+      // First finger - start pending, may become tool, long-press, or pan/zoom
       gestureState = 'pending';
 
       const startX = e.clientX;
       const startY = e.clientY;
+
+      // Track start position for long-press movement detection
+      longPressStartX = startX;
+      longPressStartY = startY;
 
       // Set timeout to confirm tool gesture
       toolConfirmTimeout = window.setTimeout(() => {
         if (gestureState === 'pending' && activePointers.size === 1) {
           startTool(startX, startY);
         }
-      }, TOOL_CONFIRM_DELAY);
+      }, config.toolConfirmDelay);
+
+      // Set timeout for long-press detection
+      longPressTimeout = window.setTimeout(() => {
+        if (gestureState === 'pending' && activePointers.size === 1) {
+          triggerLongPress(startX, startY);
+        }
+      }, config.longPressDelay);
     } else if (pointerCount >= 2) {
       // Second+ finger - switch to pan/zoom mode
       // If we were in tool mode, end it first
@@ -162,8 +197,6 @@ export function createGestureHandler(
     const pointer = activePointers.get(e.pointerId);
     if (!pointer) return;
 
-    const prevX = pointer.x;
-    const prevY = pointer.y;
     const newX = e.clientX;
     const newY = e.clientY;
 
@@ -172,14 +205,25 @@ export function createGestureHandler(
     pointer.y = newY;
 
     if (gestureState === 'pending') {
-      // Check if movement exceeds threshold - confirm as tool
-      const dx = newX - prevX;
-      const dy = newY - prevY;
+      // Check movement from start position
+      const dx = newX - longPressStartX;
+      const dy = newY - longPressStartY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance > MOVEMENT_THRESHOLD) {
+      // Cancel long-press if moved too much
+      if (distance > config.longPressMovementThreshold) {
+        clearLongPressTimeout();
+      }
+
+      // Confirm as tool if moved beyond tool threshold
+      if (distance > config.movementThreshold) {
         startTool(newX, newY);
       }
+      return;
+    }
+
+    if (gestureState === 'long_press') {
+      // In long-press state, don't process further movement
       return;
     }
 
@@ -256,7 +300,7 @@ export function createGestureHandler(
       if (gestureState === 'tool') {
         callbacks.onToolEnd?.();
       }
-      clearToolConfirmTimeout();
+      clearAllTimeouts();
       gestureState = 'idle';
       initialPinchDistance = null;
       lastPinchCenter = null;
@@ -291,7 +335,7 @@ export function createGestureHandler(
   // --- Cleanup ---
 
   function destroy(): void {
-    clearToolConfirmTimeout();
+    clearAllTimeouts();
     element.removeEventListener('pointerdown', handlePointerDown);
     element.removeEventListener('pointermove', handlePointerMove);
     element.removeEventListener('pointerup', handlePointerUp);
