@@ -148,6 +148,10 @@ Micro-format (copy/paste):
   - Role: Track 5 planning artifacts (Canvas System).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-6-panels/`
+  - Role: Track 6 planning artifacts (Panels + Tile Picker).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -161,7 +165,7 @@ Micro-format (copy/paste):
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
 
-## Source (Phase 0 complete, Phase 1 in progress)
+## Source (Phase 0 complete, Tracks 5-6 in progress)
 
 ### Boot (Track 4 — exists)
 - `src/boot/main.ts`
@@ -196,7 +200,7 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates
+  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -239,13 +243,17 @@ Micro-format (copy/paste):
   - Role: Tilemap and entity rendering.
   - Lists of truth: none
 
-- `src/editor/panels/topPanel.ts` (planned — Track 6)
-  - Role: Scene selector, layer switcher, deploy button.
+- `src/editor/panels/index.ts`
+  - Role: Public exports for panels module.
   - Lists of truth: none
 
-- `src/editor/panels/bottomPanel.ts` (planned — Track 6)
-  - Role: Toolbar, tile picker, entity palette, inspector.
-  - Lists of truth: ToolList
+- `src/editor/panels/topPanel.ts`
+  - Role: Top panel with scene info and layer tabs.
+  - Lists of truth: none
+
+- `src/editor/panels/bottomPanel.ts`
+  - Role: Bottom panel with toolbar and content container.
+  - Lists of truth: ToolType
 
 - `src/editor/tools/paint.ts` (planned — Track 8)
   - Role: Tile painting logic.

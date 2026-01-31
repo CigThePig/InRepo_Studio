@@ -1,19 +1,25 @@
-Active track: Track 5 — Canvas System
+Active track: Track 6 — Panels + Tile Picker
 
-Phase 0 (Foundation Architecture) completed:
-- Track 1: Data Structures — TypeScript types for project, scene, entity schemas
-- Track 2: Hot Storage — IndexedDB operations via idb library
-- Track 3: Cold Storage — Fetch operations for loading from repository
-- Track 4: Boot System — Mode router, entry point, editor/game initialization
+Completed tracks:
+- Phase 0 (Foundation Architecture): Tracks 1-4 (Data Structures, Hot Storage, Cold Storage, Boot System)
+- Track 5: Canvas System (viewport, gestures, grid)
 
 Current track details:
-- Track number: 5
-- Track title: Canvas System
-- Track path: tracks/2026-01-31-track-5-canvas/
+- Track number: 6
+- Track title: Panels + Tile Picker
+- Track path: tracks/2026-01-31-track-6-panels/
 - Track type: Full
-- Current phase: Phase 1 (Viewport Foundation)
-- Next task: Implement viewport.ts with coordinate transforms
+- Current phase: Phase 1 (Panel Containers + Layout) — COMPLETED
+- Next phase: Phase 2 (Toolbar + Layer Tabs) — already largely done, Phase 3 is Tile Picker
 - Last updated: 2026-01-31
+
+Phase 1 completed:
+- EditorState schema updated with activeLayer and selectedTile fields
+- topPanel.ts with expand/collapse and layer tabs
+- bottomPanel.ts with expand/collapse and tool buttons
+- panels/index.ts with exports
+- init.ts integration with panel persistence
+- Build verified: TypeScript compiles without errors
 
 ---
 

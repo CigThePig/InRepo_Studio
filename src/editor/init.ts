@@ -7,7 +7,14 @@
 
 import { loadEditorState, loadProject, loadScene, saveEditorState } from '@/storage';
 import type { EditorState } from '@/storage';
+import type { Scene } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
+import {
+  createTopPanel,
+  createBottomPanel,
+  type TopPanelController,
+  type BottomPanelController,
+} from '@/editor/panels';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -15,6 +22,9 @@ const LOG_PREFIX = '[Editor]';
 
 let editorState: EditorState | null = null;
 let canvasController: CanvasController | null = null;
+let topPanelController: TopPanelController | null = null;
+let bottomPanelController: BottomPanelController | null = null;
+let currentScene: Scene | null = null;
 
 export function getEditorState(): EditorState | null {
   return editorState;
@@ -22,6 +32,14 @@ export function getEditorState(): EditorState | null {
 
 export function getCanvas(): CanvasController | null {
   return canvasController;
+}
+
+export function getTopPanel(): TopPanelController | null {
+  return topPanelController;
+}
+
+export function getBottomPanel(): BottomPanelController | null {
+  return bottomPanelController;
 }
 
 // --- Debounced Save ---
@@ -59,12 +77,12 @@ export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Project: "${project.name}"`);
 
   // Load current scene or default
-  let currentScene = null;
   const sceneId = editorState.currentSceneId ?? project.defaultScene;
   if (sceneId) {
-    currentScene = await loadScene(sceneId);
-    if (currentScene) {
-      console.log(`${LOG_PREFIX} Scene loaded: "${currentScene.name}"`);
+    const scene = await loadScene(sceneId);
+    if (scene) {
+      console.log(`${LOG_PREFIX} Scene loaded: "${scene.name}"`);
+      currentScene = scene;
       editorState.currentSceneId = sceneId;
     }
   }
@@ -72,8 +90,11 @@ export async function initEditor(): Promise<void> {
   // Save updated state
   await saveEditorState(editorState);
 
-  // Render editor UI
+  // Render editor UI layout
   renderEditorUI();
+
+  // Initialize panels
+  initPanels();
 
   // Initialize canvas
   initCanvas(currentScene?.tileSize ?? project.settings?.defaultTileSize ?? 32);
@@ -107,6 +128,63 @@ function initCanvas(tileSize: number): void {
   console.log(`${LOG_PREFIX} Canvas initialized (tile size: ${tileSize}px)`);
 }
 
+// --- Panel Initialization ---
+
+function initPanels(): void {
+  if (!editorState) return;
+
+  // Initialize top panel
+  const topPanelContainer = document.getElementById('top-panel-container');
+  if (topPanelContainer) {
+    topPanelController = createTopPanel(topPanelContainer, {
+      expanded: editorState.panelStates.topExpanded,
+      sceneName: currentScene?.name ?? 'No Scene',
+      activeLayer: editorState.activeLayer,
+    });
+
+    // Wire up persistence
+    topPanelController.onExpandToggle((expanded) => {
+      if (editorState) {
+        editorState.panelStates.topExpanded = expanded;
+        scheduleSave();
+      }
+    });
+
+    topPanelController.onLayerChange((layer) => {
+      if (editorState) {
+        editorState.activeLayer = layer;
+        scheduleSave();
+      }
+    });
+  }
+
+  // Initialize bottom panel
+  const bottomPanelContainer = document.getElementById('bottom-panel-container');
+  if (bottomPanelContainer) {
+    bottomPanelController = createBottomPanel(bottomPanelContainer, {
+      expanded: editorState.panelStates.bottomExpanded,
+      currentTool: editorState.currentTool,
+    });
+
+    // Wire up persistence
+    bottomPanelController.onExpandToggle((expanded) => {
+      if (editorState) {
+        editorState.panelStates.bottomExpanded = expanded;
+        scheduleSave();
+      }
+    });
+
+    bottomPanelController.onToolChange((tool) => {
+      if (editorState) {
+        editorState.currentTool = tool;
+        scheduleSave();
+      }
+    });
+  }
+
+  console.log(`${LOG_PREFIX} Panels initialized`);
+}
+
 // --- UI Rendering ---
 
 function renderEditorUI(): void {
@@ -122,20 +200,8 @@ function renderEditorUI(): void {
       background: #1a1a2e;
       overflow: hidden;
     ">
-      <!-- Top Panel (placeholder) -->
-      <div id="top-panel" style="
-        height: 48px;
-        min-height: 48px;
-        background: #16213e;
-        border-bottom: 1px solid #0f3460;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 12px;
-      ">
-        <span style="color: #fff; font-weight: bold;">InRepo Studio</span>
-        <span style="color: #888; font-size: 0.9em;">Press G to toggle grid</span>
-      </div>
+      <!-- Top Panel Container -->
+      <div id="top-panel-container"></div>
 
       <!-- Canvas Area -->
       <div id="canvas-container" style="
@@ -145,19 +211,8 @@ function renderEditorUI(): void {
         background: #0a0a1a;
       "></div>
 
-      <!-- Bottom Panel (placeholder) -->
-      <div id="bottom-panel" style="
-        height: 120px;
-        min-height: 120px;
-        background: #16213e;
-        border-top: 1px solid #0f3460;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #666;
-      ">
-        <span>Track 6: Panels + Tile Picker</span>
-      </div>
+      <!-- Bottom Panel Container -->
+      <div id="bottom-panel-container"></div>
     </div>
   `;
 }
