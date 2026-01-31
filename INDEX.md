@@ -152,6 +152,10 @@ Micro-format (copy/paste):
   - Role: Track 6 planning artifacts (Panels + Tile Picker).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-7-tilemap-rendering/`
+  - Role: Track 7 planning artifacts (Tilemap Rendering).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
