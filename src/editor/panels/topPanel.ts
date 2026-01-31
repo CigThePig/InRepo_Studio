@@ -149,7 +149,7 @@ export function createTopPanel(
   container: HTMLElement,
   initialState: TopPanelState
 ): TopPanelController {
-  let state = { ...initialState };
+  const state = { ...initialState };
   let layerChangeCallback: ((layer: LayerType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
 

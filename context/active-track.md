@@ -1,25 +1,15 @@
-Active track: Track 6 — Panels + Tile Picker
+Active track: (none — ready for next track)
 
 Completed tracks:
 - Phase 0 (Foundation Architecture): Tracks 1-4 (Data Structures, Hot Storage, Cold Storage, Boot System)
 - Track 5: Canvas System (viewport, gestures, grid)
+- Track 6: Panels + Tile Picker (panel containers, toolbar, layer tabs, tile picker)
 
-Current track details:
-- Track number: 6
-- Track title: Panels + Tile Picker
-- Track path: tracks/2026-01-31-track-6-panels/
-- Track type: Full
-- Current phase: Phase 1 (Panel Containers + Layout) — COMPLETED
-- Next phase: Phase 2 (Toolbar + Layer Tabs) — already largely done, Phase 3 is Tile Picker
-- Last updated: 2026-01-31
+Next tracks (in order):
+- Track 7: Tilemap Rendering
+- Track 8: Paint Tool
 
-Phase 1 completed:
-- EditorState schema updated with activeLayer and selectedTile fields
-- topPanel.ts with expand/collapse and layer tabs
-- bottomPanel.ts with expand/collapse and tool buttons
-- panels/index.ts with exports
-- init.ts integration with panel persistence
-- Build verified: TypeScript compiles without errors
+Last updated: 2026-01-31
 
 ---
 

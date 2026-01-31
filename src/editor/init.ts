@@ -7,7 +7,7 @@
 
 import { loadEditorState, loadProject, loadScene, saveEditorState } from '@/storage';
 import type { EditorState } from '@/storage';
-import type { Scene } from '@/types';
+import type { Scene, Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
   createTopPanel,
@@ -18,9 +18,13 @@ import {
 
 const LOG_PREFIX = '[Editor]';
 
+// Asset base path for loading tile images
+const ASSET_BASE_PATH = import.meta.env.BASE_URL + 'game';
+
 // --- Editor State ---
 
 let editorState: EditorState | null = null;
+let currentProject: Project | null = null;
 let canvasController: CanvasController | null = null;
 let topPanelController: TopPanelController | null = null;
 let bottomPanelController: BottomPanelController | null = null;
@@ -70,14 +74,14 @@ export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
 
   // Load project
-  const project = await loadProject();
-  if (!project) {
+  currentProject = await loadProject();
+  if (!currentProject) {
     throw new Error('No project data available');
   }
-  console.log(`${LOG_PREFIX} Project: "${project.name}"`);
+  console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
 
   // Load current scene or default
-  const sceneId = editorState.currentSceneId ?? project.defaultScene;
+  const sceneId = editorState.currentSceneId ?? currentProject.defaultScene;
   if (sceneId) {
     const scene = await loadScene(sceneId);
     if (scene) {
@@ -97,7 +101,7 @@ export async function initEditor(): Promise<void> {
   initPanels();
 
   // Initialize canvas
-  initCanvas(currentScene?.tileSize ?? project.settings?.defaultTileSize ?? 32);
+  initCanvas(currentScene?.tileSize ?? currentProject.settings?.defaultTileSize ?? 32);
 
   console.log(`${LOG_PREFIX} Editor initialized`);
 }
@@ -161,10 +165,16 @@ function initPanels(): void {
   // Initialize bottom panel
   const bottomPanelContainer = document.getElementById('bottom-panel-container');
   if (bottomPanelContainer) {
-    bottomPanelController = createBottomPanel(bottomPanelContainer, {
-      expanded: editorState.panelStates.bottomExpanded,
-      currentTool: editorState.currentTool,
-    });
+    bottomPanelController = createBottomPanel(
+      bottomPanelContainer,
+      {
+        expanded: editorState.panelStates.bottomExpanded,
+        currentTool: editorState.currentTool,
+        selectedTile: editorState.selectedTile,
+      },
+      currentProject ?? undefined,
+      ASSET_BASE_PATH
+    );
 
     // Wire up persistence
     bottomPanelController.onExpandToggle((expanded) => {
@@ -177,6 +187,16 @@ function initPanels(): void {
     bottomPanelController.onToolChange((tool) => {
       if (editorState) {
         editorState.currentTool = tool;
+        scheduleSave();
+      }
+    });
+
+    bottomPanelController.onTileSelect((selection) => {
+      if (editorState) {
+        editorState.selectedTile = {
+          category: selection.category,
+          index: selection.index,
+        };
         scheduleSave();
       }
     });

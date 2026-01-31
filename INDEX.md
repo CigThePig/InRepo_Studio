@@ -252,8 +252,12 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/bottomPanel.ts`
-  - Role: Bottom panel with toolbar and content container.
+  - Role: Bottom panel with toolbar and tile picker.
   - Lists of truth: ToolType
+
+- `src/editor/panels/tilePicker.ts`
+  - Role: Tile category tabs and tile grid for selection.
+  - Lists of truth: none (uses TileCategory from types/project.ts)
 
 - `src/editor/tools/paint.ts` (planned — Track 8)
   - Role: Tile painting logic.
