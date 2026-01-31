@@ -184,6 +184,24 @@ Purpose:
   - Track 11: Runtime Loader (Phaser integration)
   - Track 12: Authentication (GitHub PAT management)
 
+### Track 11 — Runtime Loader
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented Phaser runtime loading to render tilemaps, spawn entities, and manage scene transitions from hot or cold data sources.
+- **Shipped**:
+  - Project loader that registers tiles and entity sprites for runtime use
+  - Scene loader, tilemap factory, and overlays for collision/trigger layers
+  - Entity registry/spawner and scene manager with cleanup and transitions
+  - Runtime init rewritten to boot Phaser and load the starting scene
+- **Verification**:
+  - `npm run build`
+  - `npm run lint`
+- **Learned**:
+  - Phaser runtime boot benefits from explicit project/scene loader boundaries.
+- **Follow-up**:
+  - Track 12: Authentication (GitHub PAT management)
+  - Track 13: Deploy Flow (Commit changes to GitHub)
+
 ---
 
 ## Stalled / Abandoned Tracks
