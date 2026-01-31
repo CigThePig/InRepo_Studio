@@ -97,29 +97,47 @@ export async function initEditor(): Promise<void> {
   // Render editor UI layout
   renderEditorUI();
 
-  // Initialize panels
-  initPanels();
+  // Initialize canvas (before panels so we can wire up callbacks)
+  await initCanvas(currentScene?.tileSize ?? currentProject.settings?.defaultTileSize ?? 32);
 
-  // Initialize canvas
-  initCanvas(currentScene?.tileSize ?? currentProject.settings?.defaultTileSize ?? 32);
+  // Initialize panels (after canvas so we can wire up canvas updates)
+  initPanels();
 
   console.log(`${LOG_PREFIX} Editor initialized`);
 }
 
 // --- Canvas Initialization ---
 
-function initCanvas(tileSize: number): void {
+async function initCanvas(tileSize: number): Promise<void> {
   const container = document.getElementById('canvas-container');
   if (!container) {
     console.error(`${LOG_PREFIX} Canvas container not found`);
     return;
   }
 
-  // Create canvas controller with initial viewport from editor state
+  // Get initial selected category
+  const initialCategory = editorState?.selectedTile?.category ??
+    currentProject?.tileCategories[0]?.name ?? '';
+
+  // Create canvas controller with initial viewport and scene from editor state
   canvasController = createCanvas(container, {
     viewport: editorState?.viewport,
     tileSize,
+    scene: currentScene ?? undefined,
+    activeLayer: editorState?.activeLayer,
+    assetBasePath: ASSET_BASE_PATH,
   });
+
+  // Set initial selected category for rendering
+  canvasController.setSelectedCategory(initialCategory);
+
+  // Preload tile images for all categories
+  if (currentProject?.tileCategories) {
+    await canvasController.preloadCategories(
+      currentProject.tileCategories,
+      ASSET_BASE_PATH
+    );
+  }
 
   // Wire up viewport persistence
   canvasController.onViewportChange((viewport) => {
@@ -159,6 +177,8 @@ function initPanels(): void {
         editorState.activeLayer = layer;
         scheduleSave();
       }
+      // Update canvas active layer for dimming
+      canvasController?.setActiveLayer(layer);
     });
   }
 
@@ -199,6 +219,8 @@ function initPanels(): void {
         };
         scheduleSave();
       }
+      // Update canvas selected category for rendering
+      canvasController?.setSelectedCategory(selection.category);
     });
   }
 
