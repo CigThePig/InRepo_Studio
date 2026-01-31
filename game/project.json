@@ -1,0 +1,109 @@
+{
+  "name": "Demo Project",
+  "defaultScene": "main",
+  "tileCategories": [
+    {
+      "name": "terrain",
+      "path": "assets/tiles/terrain",
+      "files": ["grass.png", "dirt.png", "water.png", "stone.png"]
+    },
+    {
+      "name": "props",
+      "path": "assets/tiles/props",
+      "files": ["tree.png", "rock.png", "bush.png"]
+    }
+  ],
+  "entityTypes": [
+    {
+      "name": "player",
+      "displayName": "Player",
+      "sprite": "assets/sprites/player.png",
+      "properties": [
+        {
+          "name": "speed",
+          "label": "Move Speed",
+          "type": "number",
+          "default": 200,
+          "constraints": { "min": 50, "max": 500 }
+        },
+        {
+          "name": "health",
+          "label": "Health",
+          "type": "number",
+          "default": 100,
+          "constraints": { "min": 1, "max": 999 }
+        }
+      ]
+    },
+    {
+      "name": "enemy",
+      "displayName": "Enemy",
+      "sprite": "assets/sprites/enemy.png",
+      "properties": [
+        {
+          "name": "speed",
+          "label": "Move Speed",
+          "type": "number",
+          "default": 100,
+          "constraints": { "min": 25, "max": 300 }
+        },
+        {
+          "name": "damage",
+          "label": "Damage",
+          "type": "number",
+          "default": 10,
+          "constraints": { "min": 1, "max": 100 }
+        },
+        {
+          "name": "patrolDistance",
+          "label": "Patrol Distance",
+          "type": "number",
+          "default": 100,
+          "constraints": { "min": 0, "max": 500 }
+        }
+      ]
+    },
+    {
+      "name": "door",
+      "displayName": "Door",
+      "sprite": "assets/sprites/door.png",
+      "properties": [
+        {
+          "name": "targetScene",
+          "label": "Target Scene",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "spawnPoint",
+          "label": "Spawn Point ID",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "locked",
+          "label": "Locked",
+          "type": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "name": "spawnPoint",
+      "displayName": "Spawn Point",
+      "properties": [
+        {
+          "name": "pointId",
+          "label": "Point ID",
+          "type": "string",
+          "default": "spawn_1"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "defaultTileSize": 32,
+    "defaultGridWidth": 20,
+    "defaultGridHeight": 15
+  }
+}
