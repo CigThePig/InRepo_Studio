@@ -40,6 +40,9 @@ export interface TopPanelController {
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
 
+  /** Register callback for playtest action */
+  onPlaytest(callback: () => void): void;
+
   /** Clean up resources */
   destroy(): void;
 }
@@ -100,6 +103,30 @@ const STYLES = `
     margin-left: 8px;
   }
 
+  .top-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .top-panel__playtest {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    background: #4a9eff;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .top-panel__playtest:active {
+    background: #3a7fd6;
+  }
+
   .top-panel__content {
     padding: 8px 12px 12px;
   }
@@ -152,6 +179,7 @@ export function createTopPanel(
   const state = { ...initialState };
   let layerChangeCallback: ((layer: LayerType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
+  let playtestCallback: (() => void) | null = null;
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -169,12 +197,28 @@ export function createTopPanel(
   title.className = 'top-panel__title';
   title.textContent = `Scene: ${state.sceneName}`;
 
+  const actions = document.createElement('div');
+  actions.className = 'top-panel__actions';
+
+  const playtestButton = document.createElement('button');
+  playtestButton.className = 'top-panel__playtest';
+  playtestButton.type = 'button';
+  playtestButton.textContent = '▶ Playtest';
+
+  playtestButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    playtestCallback?.();
+  });
+
   const chevron = document.createElement('span');
   chevron.className = 'top-panel__chevron';
   chevron.textContent = state.expanded ? '▲' : '▼';
 
+  actions.appendChild(playtestButton);
+  actions.appendChild(chevron);
+
   header.appendChild(title);
-  header.appendChild(chevron);
+  header.appendChild(actions);
 
   const content = document.createElement('div');
   content.className = 'top-panel__content';
@@ -271,6 +315,10 @@ export function createTopPanel(
 
     onExpandToggle(callback) {
       expandToggleCallback = callback;
+    },
+
+    onPlaytest(callback) {
+      playtestCallback = callback;
     },
 
     destroy() {

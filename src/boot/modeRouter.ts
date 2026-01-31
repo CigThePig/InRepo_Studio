@@ -7,9 +7,15 @@
 
 const LOG_PREFIX = '[Boot/ModeRouter]';
 
+// --- Playtest Session Keys ---
+
+const PLAYTEST_FLAG = 'inrepo_playtest';
+const PLAYTEST_SCENE = 'inrepo_playtest_scene';
+const EDITOR_STATE_BACKUP = 'inrepo_editor_backup';
+
 // --- Types ---
 
-export type AppMode = 'editor' | 'game';
+export type AppMode = 'editor' | 'game' | 'playtest';
 
 export interface BootConfig {
   mode: AppMode;
@@ -32,6 +38,11 @@ function getQueryParams(): URLSearchParams {
  * - otherwise -> game mode
  */
 export function detectMode(): AppMode {
+  if (isPlaytestMode()) {
+    console.log(`${LOG_PREFIX} Playtest mode detected (session flag)`);
+    return 'playtest';
+  }
+
   const params = getQueryParams();
   const tool = params.get('tool');
 
@@ -71,6 +82,42 @@ export function getBootConfig(): BootConfig {
     debug: isDebugMode(),
     sceneOverride: getSceneOverride(),
   };
+}
+
+// --- Playtest Session Helpers ---
+
+export function isPlaytestMode(): boolean {
+  return sessionStorage.getItem(PLAYTEST_FLAG) === 'true';
+}
+
+export function preparePlaytest(sceneId: string | null): void {
+  sessionStorage.setItem(PLAYTEST_FLAG, 'true');
+  if (sceneId) {
+    sessionStorage.setItem(PLAYTEST_SCENE, sceneId);
+  } else {
+    sessionStorage.removeItem(PLAYTEST_SCENE);
+  }
+}
+
+export function cleanupPlaytest(): void {
+  sessionStorage.removeItem(PLAYTEST_FLAG);
+  sessionStorage.removeItem(PLAYTEST_SCENE);
+}
+
+export function getPlaytestSceneId(): string | null {
+  return sessionStorage.getItem(PLAYTEST_SCENE);
+}
+
+export function setEditorStateBackup(serialized: string): void {
+  sessionStorage.setItem(EDITOR_STATE_BACKUP, serialized);
+}
+
+export function getEditorStateBackup(): string | null {
+  return sessionStorage.getItem(EDITOR_STATE_BACKUP);
+}
+
+export function clearEditorStateBackup(): void {
+  sessionStorage.removeItem(EDITOR_STATE_BACKUP);
 }
 
 // --- URL Helpers ---

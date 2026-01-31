@@ -169,6 +169,21 @@ Purpose:
   - Track 25: Touch Refinements (haptic feedback, loupe mode)
   - Track 28: Editor Settings (configurable touch offset)
 
+### Track 10 — Playtest Bridge
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Added playtest mode to launch runtime from the editor using hot storage data and a playtest overlay with exit control.
+- **Shipped**:
+  - Unified runtime loader for hot/cold data sources with explicit data source mode
+  - Playtest overlay UI with exit button and badge
+  - Boot routing for playtest mode with session flag handling
+  - Editor playtest button with state preservation and round-trip flow
+- **Verification**: Not run (not requested).
+- **Learned**: Playtest flow benefits from explicit data source selection instead of auto-detection.
+- **Follow-up**:
+  - Track 11: Runtime Loader (Phaser integration)
+  - Track 12: Authentication (GitHub PAT management)
+
 ---
 
 ## Stalled / Abandoned Tracks

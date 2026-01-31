@@ -13,7 +13,13 @@
  * - Runtime must be able to boot without editor code
  */
 
-import { getBootConfig, type AppMode } from './modeRouter';
+import {
+  getBootConfig,
+  type AppMode,
+  cleanupPlaytest,
+  getPlaytestSceneId,
+  switchMode,
+} from './modeRouter';
 import { initHotStorage, needsMigration, migrateFromCold, loadProject } from '@/storage';
 
 const LOG_PREFIX = '[Boot]';
@@ -77,10 +83,35 @@ async function bootGame(): Promise<void> {
 
   // Dynamically import runtime module
   const { initRuntime } = await import('@/runtime/init');
-  await initRuntime();
+  await initRuntime({ dataSource: 'cold' });
 
   hideLoading();
   console.log(`${LOG_PREFIX} Game ready`);
+}
+
+// --- Playtest Boot ---
+
+async function bootPlaytest(): Promise<void> {
+  console.log(`${LOG_PREFIX} Booting playtest mode...`);
+  updateLoadingText('Loading playtest...');
+
+  const { initRuntime } = await import('@/runtime/init');
+  const { createUnifiedLoader } = await import('@/runtime/loader');
+  const { createPlaytestOverlay } = await import('@/runtime/playtestOverlay');
+
+  const startSceneId = getPlaytestSceneId();
+  const loader = createUnifiedLoader('hot');
+  await initRuntime({ loader, startSceneId, dataSource: 'hot' });
+
+  const overlay = createPlaytestOverlay(document.body);
+  overlay.onExit(() => {
+    cleanupPlaytest();
+    switchMode('editor');
+  });
+  overlay.show();
+
+  hideLoading();
+  console.log(`${LOG_PREFIX} Playtest ready`);
 }
 
 // --- Main Boot Sequence ---
@@ -134,6 +165,9 @@ async function routeToMode(mode: AppMode): Promise<void> {
       break;
     case 'game':
       await bootGame();
+      break;
+    case 'playtest':
+      await bootPlaytest();
       break;
     default:
       throw new Error(`Unknown mode: ${mode}`);

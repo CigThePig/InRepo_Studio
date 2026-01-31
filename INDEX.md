@@ -343,13 +343,17 @@ Micro-format (copy/paste):
   - Role: User preferences.
   - Lists of truth: EditorSettingsSchema
 
-### Runtime (Track 4 stub — exists, Track 11 planned)
+### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/runtime/init.ts`
   - Role: Runtime initialization (placeholder).
   - Lists of truth: none
 
-- `src/runtime/loader.ts` (planned — Track 11)
-  - Role: Load project/scene from hot or cold storage.
+- `src/runtime/loader.ts`
+  - Role: Unified data loader for hot (IndexedDB) and cold (fetch) modes.
+  - Lists of truth: DataSourceMode
+
+- `src/runtime/playtestOverlay.ts`
+  - Role: Playtest mode UI overlay with exit controls.
   - Lists of truth: none
 
 - `src/runtime/tileMapFactory.ts` (planned — Track 11)

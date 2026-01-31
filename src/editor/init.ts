@@ -16,6 +16,13 @@ import {
   type BottomPanelController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
+import {
+  preparePlaytest,
+  setEditorStateBackup,
+  getEditorStateBackup,
+  clearEditorStateBackup,
+  switchMode,
+} from '@/boot/modeRouter';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -90,6 +97,7 @@ export async function initEditor(): Promise<void> {
 
   // Load editor state
   editorState = await loadEditorState();
+  editorState = restoreEditorStateFromPlaytest(editorState);
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
 
   // Load project
@@ -127,6 +135,7 @@ export async function initEditor(): Promise<void> {
 
   // Save updated state
   await saveEditorState(editorState);
+  clearEditorStateBackup();
 
   // Render editor UI layout
   renderEditorUI();
@@ -138,6 +147,45 @@ export async function initEditor(): Promise<void> {
   initPanels();
 
   console.log(`${LOG_PREFIX} Editor initialized`);
+}
+
+function restoreEditorStateFromPlaytest(state: EditorState): EditorState {
+  const backup = getEditorStateBackup();
+  if (!backup) {
+    return state;
+  }
+
+  try {
+    const parsed = JSON.parse(backup) as Partial<EditorState>;
+    return {
+      ...state,
+      ...parsed,
+      viewport: { ...state.viewport, ...parsed.viewport },
+      panelStates: { ...state.panelStates, ...parsed.panelStates },
+    };
+  } catch (error) {
+    console.warn(`${LOG_PREFIX} Failed to restore editor state from playtest:`, error);
+    return state;
+  }
+}
+
+async function startPlaytest(): Promise<void> {
+  if (!editorState) {
+    console.warn(`${LOG_PREFIX} Cannot start playtest without editor state`);
+    return;
+  }
+
+  const sceneId = currentScene?.id ?? currentProject?.defaultScene ?? null;
+
+  if (currentScene) {
+    await saveScene(currentScene);
+  }
+
+  await saveEditorState(editorState);
+  setEditorStateBackup(JSON.stringify(editorState));
+  preparePlaytest(sceneId);
+
+  switchMode('game');
 }
 
 // --- Canvas Initialization ---
@@ -243,6 +291,12 @@ function initPanels(): void {
       }
       // Update canvas active layer for dimming
       canvasController?.setActiveLayer(layer);
+    });
+
+    topPanelController.onPlaytest(() => {
+      startPlaytest().catch((error) => {
+        console.error(`${LOG_PREFIX} Failed to start playtest:`, error);
+      });
     });
   }
 

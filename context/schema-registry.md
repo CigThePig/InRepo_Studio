@@ -115,6 +115,12 @@ Rules:
   - `ConflictSchema` — remote conflict
     - Keys: path, localSha, remoteSha, resolution (overwrite|pull|skip)
 
+### Runtime (Track 10)
+
+- `/src/runtime/loader.ts`
+  - `DataSourceMode` — runtime data source selector (hot | cold)
+    - Invariant: playtest uses hot, deployed uses cold
+
 ---
 
 ## Invariants checklist for schema-driven work
