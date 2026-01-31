@@ -144,6 +144,10 @@ Micro-format (copy/paste):
   - Role: Planning artifacts for a single bounded unit of work.
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-5-canvas/`
+  - Role: Track 5 planning artifacts (Canvas System).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -157,7 +161,7 @@ Micro-format (copy/paste):
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
 
-## Source (Phase 0 complete, Phase 1+ planned)
+## Source (Phase 0 complete, Phase 1 in progress)
 
 ### Boot (Track 4 — exists)
 - `src/boot/main.ts`
@@ -206,17 +210,29 @@ Micro-format (copy/paste):
   - Role: Vite type declarations.
   - Lists of truth: none
 
-### Editor (Track 4 stub — exists, Tracks 5-9 planned)
+### Editor (Track 5 — exists, Tracks 6-9 planned)
 - `src/editor/init.ts`
-  - Role: Editor initialization (placeholder).
+  - Role: Editor initialization, canvas setup, state management.
   - Lists of truth: none
 
-- `src/editor/canvas/viewport.ts` (planned — Track 5)
-  - Role: Pan, zoom, coordinate transforms.
-  - Lists of truth: ViewportStateSchema
+- `src/editor/canvas/index.ts`
+  - Role: Public exports for canvas module.
+  - Lists of truth: none
 
-- `src/editor/canvas/grid.ts` (planned — Track 5)
-  - Role: Grid rendering.
+- `src/editor/canvas/viewport.ts`
+  - Role: Viewport state and coordinate transforms.
+  - Lists of truth: ViewportState (re-exported from storage), MIN_ZOOM, MAX_ZOOM
+
+- `src/editor/canvas/gestures.ts`
+  - Role: Pan/zoom gesture handling (multi-touch).
+  - Lists of truth: none
+
+- `src/editor/canvas/grid.ts`
+  - Role: Grid rendering with culling.
+  - Lists of truth: GridConfig
+
+- `src/editor/canvas/Canvas.ts`
+  - Role: Main canvas controller (orchestrates viewport, gestures, rendering).
   - Lists of truth: none
 
 - `src/editor/canvas/renderer.ts` (planned — Track 7)
