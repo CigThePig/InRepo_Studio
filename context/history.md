@@ -45,6 +45,29 @@ Purpose:
   - Track 5: Canvas System (pan/zoom/grid)
   - Track 6: Panels + Tile Picker
 
+### Track 5 — Canvas System
+- **Dates**: 2026-01-31
+- **Status**: Completed
+- **Summary**: Implemented the central workspace canvas with pan/zoom gestures and grid overlay. This is the foundation for all visual editing in InRepo Studio.
+- **Shipped**:
+  - Phase 1: Viewport state management with coordinate transforms (screen↔world↔tile)
+  - Phase 2: Canvas controller with gesture handling (two-finger pan, pinch zoom)
+  - Phase 3: Grid rendering with culling and 'G' toggle
+  - ResizeObserver for responsive canvas sizing
+  - Debounced viewport persistence to IndexedDB
+- **Verification**:
+  - TypeScript compiles without errors
+  - Transform functions verified as inverses
+  - Grid renders and scales correctly with zoom
+  - Viewport state saved and restored on reload
+- **Learned**:
+  - Pointer events provide unified touch/mouse handling
+  - 0.5px offset needed for crisp grid lines on non-retina displays
+  - Debouncing viewport saves prevents excessive IndexedDB writes
+- **Follow-up**:
+  - Track 6: Panels + Tile Picker
+  - Track 9: Touch Foundation (gesture refinements)
+
 ---
 
 ## Stalled / Abandoned Tracks

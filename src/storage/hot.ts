@@ -23,7 +23,7 @@
  */
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Project, Scene } from '@/types';
+import type { Project, Scene, LayerType } from '@/types';
 
 // --- Constants ---
 
@@ -45,9 +45,16 @@ export interface PanelStates {
   bottomExpanded: boolean;
 }
 
+export interface SelectedTile {
+  category: string;
+  index: number;
+}
+
 export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
+  activeLayer: LayerType;
+  selectedTile: SelectedTile | null;
   viewport: ViewportState;
   panelStates: PanelStates;
   recentTiles: number[];
@@ -206,6 +213,8 @@ export async function getAllSceneIds(): Promise<string[]> {
 const DEFAULT_EDITOR_STATE: EditorState = {
   currentSceneId: null,
   currentTool: 'select',
+  activeLayer: 'ground',
+  selectedTile: null,
   viewport: {
     panX: 0,
     panY: 0,
@@ -233,8 +242,16 @@ export async function loadEditorState(): Promise<EditorState> {
     return { ...DEFAULT_EDITOR_STATE };
   }
 
+  // Merge with defaults to handle missing fields from older versions
+  const mergedState: EditorState = {
+    ...DEFAULT_EDITOR_STATE,
+    ...state,
+    viewport: { ...DEFAULT_EDITOR_STATE.viewport, ...state.viewport },
+    panelStates: { ...DEFAULT_EDITOR_STATE.panelStates, ...state.panelStates },
+  };
+
   console.log(`${LOG_PREFIX} Editor state loaded`);
-  return state;
+  return mergedState;
 }
 
 // --- Storage Quota ---
