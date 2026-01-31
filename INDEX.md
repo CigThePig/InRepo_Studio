@@ -156,6 +156,14 @@ Micro-format (copy/paste):
   - Role: Track 7 planning artifacts (Tilemap Rendering).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-01-31-track-8-paint-tool/`
+  - Role: Track 8 planning artifacts (Paint Tool).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-01-31-track-9-touch-foundation/`
+  - Role: Track 9 planning artifacts (Touch Foundation).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -169,7 +177,7 @@ Micro-format (copy/paste):
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
 
-## Source (Phase 0 complete, Tracks 5-6 in progress)
+## Source (Phase 0 complete, Tracks 5-9 complete)
 
 ### Boot (Track 4 — exists)
 - `src/boot/main.ts`
@@ -218,7 +226,7 @@ Micro-format (copy/paste):
   - Role: Vite type declarations.
   - Lists of truth: none
 
-### Editor (Track 5 — exists, Tracks 6-9 planned)
+### Editor (Tracks 5-9 complete)
 - `src/editor/init.ts`
   - Role: Editor initialization, canvas setup, state management.
   - Lists of truth: none
@@ -232,7 +240,15 @@ Micro-format (copy/paste):
   - Lists of truth: ViewportState (re-exported from storage), MIN_ZOOM, MAX_ZOOM
 
 - `src/editor/canvas/gestures.ts`
-  - Role: Pan/zoom gesture handling (multi-touch).
+  - Role: Pan/zoom gesture handling, tool gestures, and long-press detection.
+  - Lists of truth: none
+
+- `src/editor/canvas/touchConfig.ts`
+  - Role: Centralized touch offset and gesture configuration.
+  - Lists of truth: TouchConfig, DEFAULT_TOUCH_CONFIG
+
+- `src/editor/canvas/brushCursor.ts`
+  - Role: Brush cursor rendering for tool actions.
   - Lists of truth: none
 
 - `src/editor/canvas/grid.ts`
@@ -267,8 +283,8 @@ Micro-format (copy/paste):
   - Role: Tile category tabs and tile grid for selection.
   - Lists of truth: none (uses TileCategory from types/project.ts)
 
-- `src/editor/tools/paint.ts` (planned — Track 8)
-  - Role: Tile painting logic.
+- `src/editor/tools/paint.ts`
+  - Role: Tile painting logic with single-tap and drag support.
   - Lists of truth: none
 
 - `src/editor/tools/erase.ts` (planned — Track 14)
