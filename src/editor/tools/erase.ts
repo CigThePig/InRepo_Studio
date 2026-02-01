@@ -91,6 +91,12 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
     }
 
     const activeLayer = editorState.activeLayer;
+
+    // Skip if layer is locked
+    if (editorState.layerLocks?.[activeLayer]) {
+      return false;
+    }
+
     const brushSize = getBrushSize();
     const layerData = scene.layers[activeLayer];
     if (!layerData) {

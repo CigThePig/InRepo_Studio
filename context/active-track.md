@@ -9,22 +9,18 @@ Completed tracks:
 - Phase 3 (Full Tilemap Editing): Track 14 (Erase Tool)
 - Phase 3 (Full Tilemap Editing): Track 15 (Select Tool)
 - Phase 3 (Full Tilemap Editing): Track 16 (Undo/Redo System)
+- Phase 3 (Full Tilemap Editing): Track 17 (Scene Management)
+- Phase 3 (Full Tilemap Editing): Track 18 (Layer System)
 
 Prepared tracks (planning artifacts created):
-- Phase 2 (Playtest & Deploy - Vertical Slice Completion):
-  - Track 13: Deploy Flow (spec/blueprint/plan ready)
-
-- Phase 3 (Full Tilemap Editing):
-  - Track 15: Select Tool (spec/blueprint/plan ready)
-  - Track 16: Undo/Redo System (spec/blueprint/plan ready)
-  - Track 17: Scene Management (spec/blueprint/plan ready)
-  - Track 18: Layer System (spec/blueprint/plan ready)
+- (none pending)
 
 Next tracks to implement (in order):
-1. Track 17: Scene Management — Create and manage multiple scenes
+1. Track 19: Entity Tool — Place and edit entities
+2. Track 20: Entity Inspector — Property editing panel
 
-Note: Phase 2 completes the vertical slice MVP: edit → playtest → deploy → verify on live site.
-Phase 3 planning is ready for implementation after Phase 2.
+Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
+Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 
 Last updated: 2026-02-01
 

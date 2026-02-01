@@ -129,6 +129,12 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
     }
 
     const activeLayer = editorState.activeLayer;
+
+    // Skip if layer is locked
+    if (editorState.layerLocks?.[activeLayer]) {
+      return false;
+    }
+
     const selectedTile = editorState.selectedTile;
     const value = getTileValue(scene, activeLayer, selectedTile);
 

@@ -26,6 +26,7 @@ import {
   type BottomPanelController,
   createSelectionBar,
   type SelectionBarController,
+  createLayerPanel,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
@@ -40,6 +41,18 @@ import {
   clearEditorStateBackup,
   switchMode,
 } from '@/boot/modeRouter';
+import {
+  createSceneManager,
+  createSceneSelector,
+  showCreateSceneDialog,
+  showRenameDialog,
+  showResizeDialog,
+  showDeleteConfirmation,
+  showDuplicateDialog,
+  type SceneManager,
+  type SceneSelector,
+  type SceneAction,
+} from '@/editor/scenes';
 
 import { downloadJson } from '@/utils/download';
 
@@ -66,6 +79,8 @@ let authManager: AuthManager | null = null;
 let historyManager: HistoryManager | null = null;
 let updateInfo: UpdateCheckResult | null = null;
 let assetCacheBust: string | null = null;
+let sceneManager: SceneManager | null = null;
+let sceneSelector: SceneSelector | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -236,7 +251,7 @@ export async function initEditor(): Promise<void> {
   authManager = createAuthManager(createTokenStorage());
 
   // Initialize panels (after canvas so we can wire up canvas updates)
-  initPanels();
+  await initPanels();
 
   // Render update banner (if needed) after panels exist.
   renderSystemNotice(updateInfo);
@@ -501,7 +516,7 @@ async function initCanvas(tileSize: number): Promise<void> {
 
 // --- Panel Initialization ---
 
-function initPanels(): void {
+async function initPanels(): Promise<void> {
   if (!editorState) return;
 
   // Initialize top panel
@@ -535,6 +550,49 @@ function initPanels(): void {
         console.error(`${LOG_PREFIX} Failed to start playtest:`, error);
       });
     });
+
+    // Initialize scene manager and selector
+    await initSceneManagement();
+
+    // Initialize layer panel
+    const layerPanelContainer = topPanelController.getLayerPanelContainer();
+    layerPanelContainer.innerHTML = ''; // Clear default layer tabs
+
+    createLayerPanel(layerPanelContainer, {
+      activeLayer: editorState.activeLayer,
+      visibility: editorState.layerVisibility,
+      locks: editorState.layerLocks,
+      onLayerSelect: (layer) => {
+        if (editorState) {
+          editorState.activeLayer = layer;
+          scheduleSave();
+        }
+        topPanelController?.setActiveLayer(layer);
+        canvasController?.setActiveLayer(layer);
+      },
+      onVisibilityChange: (visibility) => {
+        if (editorState) {
+          editorState.layerVisibility = visibility;
+          scheduleSave();
+        }
+        canvasController?.getRenderer()?.setLayerVisibility(visibility);
+        canvasController?.invalidateScene();
+      },
+      onLocksChange: (locks) => {
+        if (editorState) {
+          editorState.layerLocks = locks;
+          scheduleSave();
+        }
+        canvasController?.getRenderer()?.setLayerLocks(locks);
+      },
+    });
+
+    // Initialize renderer with current visibility and locks
+    const renderer = canvasController?.getRenderer();
+    if (renderer) {
+      renderer.setLayerVisibility(editorState.layerVisibility);
+      renderer.setLayerLocks(editorState.layerLocks);
+    }
   }
 
   // Initialize bottom panel
@@ -612,6 +670,165 @@ function initPanels(): void {
   }
 
   console.log(`${LOG_PREFIX} Panels initialized`);
+}
+
+// --- Scene Management ---
+
+async function initSceneManagement(): Promise<void> {
+  if (!topPanelController || !currentProject) return;
+
+  // Create scene manager
+  sceneManager = createSceneManager({
+    getProject: () => currentProject!,
+    getCurrentScene: () => currentScene,
+    getCurrentSceneId: () => currentScene?.id ?? null,
+    onSceneChange: (scene) => {
+      handleSceneChange(scene);
+      topPanelController?.setSceneName(scene.name);
+      sceneSelector?.setSceneName(scene.name);
+    },
+    onSceneListChange: async () => {
+      if (sceneManager && sceneSelector) {
+        const scenes = await sceneManager.getSceneList();
+        sceneSelector.updateScenes(scenes);
+      }
+    },
+    onSceneSwitch: (scene) => {
+      handleSceneSwitch(scene);
+    },
+    saveCurrentScene: async () => {
+      if (currentScene) {
+        await saveScene(currentScene);
+      }
+    },
+  });
+
+  // Get initial scene list
+  const scenes = await sceneManager.getSceneList();
+
+  // Create scene selector in top panel
+  const container = topPanelController.getSceneSelectorContainer();
+  container.innerHTML = ''; // Clear fallback title
+
+  sceneSelector = createSceneSelector(container, {
+    scenes,
+    currentSceneId: currentScene?.id ?? null,
+    onSceneSelect: (sceneId) => {
+      sceneManager?.switchToScene(sceneId).catch((error) => {
+        console.error(`${LOG_PREFIX} Failed to switch scene:`, error);
+      });
+    },
+    onSceneAction: (action, sceneId) => {
+      handleSceneAction(action, sceneId).catch((error) => {
+        console.error(`${LOG_PREFIX} Scene action failed:`, error);
+      });
+    },
+    onCreateScene: () => {
+      handleCreateScene().catch((error) => {
+        console.error(`${LOG_PREFIX} Failed to create scene:`, error);
+      });
+    },
+  });
+
+  console.log(`${LOG_PREFIX} Scene management initialized`);
+}
+
+function handleSceneSwitch(scene: Scene): void {
+  // Ensure tilesets
+  if (currentProject) {
+    const ensured = ensureSceneTilesets(scene, currentProject);
+    if (ensured.changed) {
+      scene = ensured.scene;
+      saveScene(scene).catch(console.error);
+    }
+  }
+
+  // Update state
+  setCurrentScene(scene, { clearHistory: true });
+
+  if (editorState) {
+    editorState.currentSceneId = scene.id;
+    scheduleSave();
+  }
+
+  // Update canvas
+  canvasController?.setScene(scene);
+  canvasController?.invalidateScene();
+
+  // Update UI
+  topPanelController?.setSceneName(scene.name);
+  sceneSelector?.setCurrentScene(scene.id);
+  sceneSelector?.setSceneName(scene.name);
+
+  console.log(`${LOG_PREFIX} Switched to scene "${scene.name}"`);
+}
+
+async function handleCreateScene(): Promise<void> {
+  if (!sceneManager || !currentProject) return;
+
+  const scenes = await sceneManager.getSceneList();
+  const defaultWidth = currentProject.settings?.defaultGridWidth ?? 20;
+  const defaultHeight = currentProject.settings?.defaultGridHeight ?? 15;
+
+  const result = await showCreateSceneDialog(defaultWidth, defaultHeight, scenes);
+
+  if (!result.confirmed || !result.value) return;
+
+  const scene = await sceneManager.createScene(
+    result.value.name,
+    result.value.width,
+    result.value.height
+  );
+
+  // Switch to the new scene
+  await sceneManager.switchToScene(scene.id);
+}
+
+async function handleSceneAction(action: SceneAction, sceneId: string): Promise<void> {
+  if (!sceneManager) return;
+
+  const scenes = await sceneManager.getSceneList();
+  const scene = scenes.find(s => s.id === sceneId);
+  if (!scene) return;
+
+  switch (action) {
+    case 'rename': {
+      const result = await showRenameDialog(scene.name, scenes, sceneId);
+      if (result.confirmed && result.value) {
+        await sceneManager.renameScene(sceneId, result.value.name);
+      }
+      break;
+    }
+
+    case 'duplicate': {
+      const result = await showDuplicateDialog(scene.name, scenes);
+      if (result.confirmed && result.value) {
+        const duplicate = await sceneManager.duplicateScene(sceneId, result.value.name);
+        // Switch to the duplicated scene
+        await sceneManager.switchToScene(duplicate.id);
+      }
+      break;
+    }
+
+    case 'resize': {
+      const loadedScene = await loadScene(sceneId);
+      if (!loadedScene) return;
+
+      const result = await showResizeDialog(loadedScene.width, loadedScene.height);
+      if (result.confirmed && result.value) {
+        await sceneManager.resizeScene(sceneId, result.value.width, result.value.height);
+      }
+      break;
+    }
+
+    case 'delete': {
+      const confirmed = await showDeleteConfirmation(scene.name);
+      if (confirmed) {
+        await sceneManager.deleteScene(sceneId);
+      }
+      break;
+    }
+  }
 }
 
 

@@ -24,3 +24,7 @@ export type { TilePickerController, TilePickerState, TileSelection } from './til
 // Selection Bar
 export { createSelectionBar } from './selectionBar';
 export type { SelectionBarController } from './selectionBar';
+
+// Layer Panel
+export { createLayerPanel } from './layerPanel';
+export type { LayerPanelController, LayerPanelConfig } from './layerPanel';

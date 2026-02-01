@@ -252,7 +252,7 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile
+  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -330,6 +330,31 @@ Micro-format (copy/paste):
 - `src/editor/panels/selectionBar.ts`
   - Role: Floating action bar for selection operations.
   - Lists of truth: none
+
+- `src/editor/panels/layerPanel.ts`
+  - Role: Layer panel with visibility and lock toggles.
+  - Lists of truth: none
+
+### Scene Management (Track 17)
+- `src/editor/scenes/AGENTS.md`
+  - Role: Scene management module rules.
+  - Lists of truth: none
+
+- `src/editor/scenes/index.ts`
+  - Role: Public exports for scenes module.
+  - Lists of truth: none
+
+- `src/editor/scenes/sceneManager.ts`
+  - Role: Scene CRUD operations (create, rename, delete, duplicate, resize).
+  - Lists of truth: SceneListItem, ValidationResult
+
+- `src/editor/scenes/sceneDialog.ts`
+  - Role: Modal dialogs for scene operations.
+  - Lists of truth: none
+
+- `src/editor/scenes/sceneSelector.ts`
+  - Role: Scene dropdown selector UI in top panel.
+  - Lists of truth: SceneAction
 
 - `src/editor/tools/paint.ts`
   - Role: Tile painting logic with single-tap and drag support.
