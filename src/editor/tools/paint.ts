@@ -12,6 +12,7 @@ import type { ViewportState } from '@/editor/canvas/viewport';
 import type { EditorState, SelectedTile } from '@/storage/hot';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import { interpolateLine, screenToTileWithOffset } from '@/editor/tools/common';
+import { createTileChangeOperation, type HistoryManager } from '@/editor/history';
 
 const LOG_PREFIX = '[PaintTool]';
 
@@ -26,6 +27,9 @@ export interface PaintToolConfig {
 
   /** Callback when scene data changes */
   onSceneChange: (scene: Scene) => void;
+
+  /** History manager for undo/redo */
+  history: HistoryManager;
 }
 
 export interface PaintTool {
@@ -109,7 +113,7 @@ function paintTile(
 // --- Factory ---
 
 export function createPaintTool(config: PaintToolConfig): PaintTool {
-  const { getEditorState, getScene, onSceneChange } = config;
+  const { getEditorState, getScene, onSceneChange, history } = config;
 
   // Paint state
   let painting = false;
@@ -133,9 +137,43 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
       return false;
     }
 
+    const layerData = scene.layers[activeLayer];
+    if (!layerData) {
+      return false;
+    }
+
+    const oldValue = layerData[tileY]?.[tileX];
+    if (oldValue === undefined) {
+      return false;
+    }
+
+    if (oldValue === value) {
+      return false;
+    }
+
     const modified = paintTile(scene, activeLayer, tileX, tileY, value);
 
     if (modified) {
+      const operation = createTileChangeOperation({
+        scene,
+        changes: [
+          {
+            layer: activeLayer,
+            x: tileX,
+            y: tileY,
+            oldValue,
+            newValue: value,
+          },
+        ],
+        type: 'paint',
+        description: 'Paint tile',
+        onApply: () => onSceneChange(scene),
+      });
+
+      if (operation) {
+        history.push(operation);
+      }
+
       onSceneChange(scene);
     }
 
@@ -163,6 +201,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
       }
 
       painting = true;
+      history.beginGroup('Paint tiles');
 
       const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
       lastTileX = tile.x;
@@ -198,6 +237,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
       painting = false;
       lastTileX = null;
       lastTileY = null;
+      history.endGroup();
     },
 
     isPainting(): boolean {

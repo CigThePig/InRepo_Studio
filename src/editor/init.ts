@@ -31,6 +31,7 @@ import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
 import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
+import { createHistoryManager, type HistoryManager } from '@/editor/history';
 import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
 import {
   preparePlaytest,
@@ -62,6 +63,7 @@ let selectionBar: SelectionBarController | null = null;
 let clipboard: Clipboard | null = null;
 let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
+let historyManager: HistoryManager | null = null;
 let updateInfo: UpdateCheckResult | null = null;
 let assetCacheBust: string | null = null;
 
@@ -111,6 +113,14 @@ export function getCurrentScene(): Scene | null {
   return currentScene;
 }
 
+function setCurrentScene(scene: Scene | null, options: { clearHistory?: boolean } = {}): void {
+  if (options.clearHistory && scene?.id !== currentScene?.id) {
+    historyManager?.clear();
+  }
+
+  currentScene = scene;
+}
+
 // --- Debounced Save ---
 
 let saveTimeout: number | null = null;
@@ -142,6 +152,12 @@ function scheduleSceneSave(scene: Scene): void {
   }, SCENE_SAVE_DEBOUNCE_MS);
 }
 
+function handleSceneChange(scene: Scene): void {
+  setCurrentScene(scene);
+  canvasController?.invalidateScene();
+  scheduleSceneSave(scene);
+}
+
 // --- Initialization ---
 
 export async function initEditor(): Promise<void> {
@@ -152,6 +168,13 @@ export async function initEditor(): Promise<void> {
   editorState = restoreEditorStateFromPlaytest(editorState);
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
   currentBrushSize = editorState.brushSize ?? 1;
+
+  historyManager = createHistoryManager({
+    maxSize: 50,
+    onStateChange: (canUndo, canRedo) => {
+      bottomPanelController?.setUndoRedoState(canUndo, canRedo);
+    },
+  });
 
   // Load project
   currentProject = await loadProject();
@@ -195,7 +218,7 @@ export async function initEditor(): Promise<void> {
       }
 
       console.log(`${LOG_PREFIX} Scene loaded: "${scene.name}"`);
-      currentScene = scene;
+      setCurrentScene(scene, { clearHistory: true });
       editorState.currentSceneId = sceneId;
     }
   }
@@ -334,15 +357,18 @@ async function initCanvas(tileSize: number): Promise<void> {
     }
   });
 
+  if (!historyManager) {
+    throw new Error('History manager not initialized');
+  }
+
   // Initialize paint tool
   paintTool = createPaintTool({
     getEditorState: () => editorState,
     getScene: () => currentScene,
     onSceneChange: (scene) => {
-      currentScene = scene;
-      canvasController?.invalidateScene();
-      scheduleSceneSave(scene);
+      handleSceneChange(scene);
     },
+    history: historyManager,
   });
 
   // Initialize erase tool
@@ -350,11 +376,10 @@ async function initCanvas(tileSize: number): Promise<void> {
     getEditorState: () => editorState,
     getScene: () => currentScene,
     onSceneChange: (scene) => {
-      currentScene = scene;
-      canvasController?.invalidateScene();
-      scheduleSceneSave(scene);
+      handleSceneChange(scene);
     },
     getBrushSize: () => currentBrushSize,
+    history: historyManager,
   });
 
   clipboard = createClipboard();
@@ -363,9 +388,7 @@ async function initCanvas(tileSize: number): Promise<void> {
     getEditorState: () => editorState,
     getScene: () => currentScene,
     onSceneChange: (scene) => {
-      currentScene = scene;
-      canvasController?.invalidateScene();
-      scheduleSceneSave(scene);
+      handleSceneChange(scene);
     },
     onSelectionChange: (state) => {
       const renderer = canvasController?.getRenderer();
@@ -409,6 +432,7 @@ async function initCanvas(tileSize: number): Promise<void> {
         showToast('Fill stopped early (limit reached).');
       }
     },
+    history: historyManager,
   });
 
   selectionBar = createSelectionBar(container, {
@@ -572,6 +596,19 @@ function initPanels(): void {
       }
       updateHoverPreview(editorState?.currentTool ?? 'select');
     });
+
+    bottomPanelController.onUndo(() => {
+      historyManager?.undo();
+    });
+
+    bottomPanelController.onRedo(() => {
+      historyManager?.redo();
+    });
+
+    bottomPanelController.setUndoRedoState(
+      historyManager?.canUndo() ?? false,
+      historyManager?.canRedo() ?? false
+    );
   }
 
   console.log(`${LOG_PREFIX} Panels initialized`);

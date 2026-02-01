@@ -12,6 +12,7 @@ import type { ViewportState } from '@/editor/canvas/viewport';
 import type { BrushSize, EditorState } from '@/storage/hot';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import { getBrushFootprint, interpolateLine, screenToTileWithOffset } from '@/editor/tools/common';
+import { createTileChangeOperation, type HistoryManager, type TileChange } from '@/editor/history';
 
 const LOG_PREFIX = '[EraseTool]';
 
@@ -29,6 +30,9 @@ export interface EraseToolConfig {
 
   /** Get current brush size */
   getBrushSize: () => BrushSize;
+
+  /** History manager for undo/redo */
+  history: HistoryManager;
 }
 
 export interface EraseTool {
@@ -72,7 +76,7 @@ function eraseTile(scene: Scene, layer: LayerType, x: number, y: number): boolea
 // --- Factory ---
 
 export function createEraseTool(config: EraseToolConfig): EraseTool {
-  const { getEditorState, getScene, onSceneChange, getBrushSize } = config;
+  const { getEditorState, getScene, onSceneChange, getBrushSize, history } = config;
 
   let erasing = false;
   let lastTileX: number | null = null;
@@ -88,22 +92,65 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
 
     const activeLayer = editorState.activeLayer;
     const brushSize = getBrushSize();
-    let modified = false;
+    const layerData = scene.layers[activeLayer];
+    if (!layerData) {
+      return false;
+    }
+
+    const changesMap = new Map<string, TileChange>();
 
     for (const point of points) {
       const footprint = getBrushFootprint(point.x, point.y, brushSize);
       for (const tile of footprint) {
-        if (eraseTile(scene, activeLayer, tile.x, tile.y)) {
-          modified = true;
+        if (tile.x < 0 || tile.x >= scene.width || tile.y < 0 || tile.y >= scene.height) {
+          continue;
         }
+
+        const key = `${tile.x},${tile.y}`;
+        if (changesMap.has(key)) {
+          continue;
+        }
+
+        const oldValue = layerData[tile.y]?.[tile.x] ?? 0;
+        if (oldValue === 0) {
+          continue;
+        }
+
+        changesMap.set(key, {
+          layer: activeLayer,
+          x: tile.x,
+          y: tile.y,
+          oldValue,
+          newValue: 0,
+        });
       }
     }
 
-    if (modified) {
-      onSceneChange(scene);
+    const changes = Array.from(changesMap.values());
+
+    if (changes.length === 0) {
+      return false;
     }
 
-    return modified;
+    for (const change of changes) {
+      eraseTile(scene, activeLayer, change.x, change.y);
+    }
+
+    const operation = createTileChangeOperation({
+      scene,
+      changes,
+      type: 'erase',
+      description: 'Erase tiles',
+      onApply: () => onSceneChange(scene),
+    });
+
+    if (operation) {
+      history.push(operation);
+    }
+
+    onSceneChange(scene);
+
+    return true;
   }
 
   const tool: EraseTool = {
@@ -114,6 +161,7 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
       }
 
       erasing = true;
+      history.beginGroup('Erase tiles');
 
       const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
       applyErase([tile]);
@@ -150,6 +198,7 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
       erasing = false;
       lastTileX = null;
       lastTileY = null;
+      history.endGroup();
     },
 
     isErasing(): boolean {

@@ -98,6 +98,8 @@ Local instruction files (present):
 - `canvas/renderer.ts`
   - Role: tilemap rendering with layer support, culling, and dimming
   - Owns: LAYER_RENDER_ORDER, LAYER_COLORS
+- `history/`
+  - Role: undo/redo stack, operation definitions, grouping
 - `panels/topPanel.ts`
   - Role: scene selector, layer switcher, deploy button
 - `panels/bottomPanel.ts`

@@ -12,6 +12,8 @@ export interface FloodFillConfig {
 export interface FloodFillResult {
   count: number;
   limitReached: boolean;
+  targetValue: number | null;
+  changes: Array<{ x: number; y: number }>;
 }
 
 export function floodFill(config: FloodFillConfig): FloodFillResult {
@@ -21,11 +23,12 @@ export function floodFill(config: FloodFillConfig): FloodFillResult {
   const targetValue = row?.[startX];
 
   if (targetValue === undefined || targetValue === fillValue) {
-    return { count: 0, limitReached: false };
+    return { count: 0, limitReached: false, targetValue: null, changes: [] };
   }
 
   const queue: Array<{ x: number; y: number }> = [{ x: startX, y: startY }];
   const visited = new Set<string>();
+  const changes: Array<{ x: number; y: number }> = [];
   let count = 0;
 
   while (queue.length > 0 && count < maxTiles) {
@@ -46,6 +49,7 @@ export function floodFill(config: FloodFillConfig): FloodFillResult {
 
     visited.add(key);
     layerData[y][x] = fillValue;
+    changes.push({ x, y });
     count += 1;
 
     queue.push({ x: x + 1, y });
@@ -54,5 +58,5 @@ export function floodFill(config: FloodFillConfig): FloodFillResult {
     queue.push({ x, y: y - 1 });
   }
 
-  return { count, limitReached: queue.length > 0 };
+  return { count, limitReached: queue.length > 0, targetValue, changes };
 }
