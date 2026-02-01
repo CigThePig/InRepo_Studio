@@ -257,6 +257,19 @@ Purpose:
 - **Follow-up**:
   - Track 16: Undo/Redo System (selection operations should become reversible)
 
+### Track 16 — Undo/Redo System
+- **Dates**: 2026-02-01
+- **Status**: Completed
+- **Summary**: Added an undo/redo history system with grouped operations and toolbar controls, integrating paint/erase/select tools for reversible edits.
+- **Shipped**:
+  - History module with undo/redo stacks, grouping, and operation definitions
+  - Paint/erase/select tools record tile deltas for undo/redo (including move, paste, delete, fill)
+  - Undo/redo buttons in the bottom toolbar with disabled states
+- **Verification**: `npm run build`, `npm run lint` (warnings in storage files).
+- **Learned**: Selection operations benefit from wrapping tile deltas with selection state updates to keep overlays consistent.
+- **Follow-up**:
+  - Track 17: Scene Management (clear history when switching scenes via UI)
+
 ---
 
 ## Stalled / Abandoned Tracks

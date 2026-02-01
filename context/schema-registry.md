@@ -95,6 +95,12 @@ Rules:
   - `SelectToolMode` — selection tool sub-states
     - Values: idle, selecting, selected, moving, pasting
 
+### Editor History (Track 16)
+
+- `/src/editor/history/operations.ts`
+  - `OperationType` — undo/redo operation categories
+    - Values: paint, erase, move, delete, paste, fill, composite
+
 - `/src/editor/canvas/viewport.ts`
   - `ViewportState` — pan/zoom state (re-exported from storage/hot.ts)
     - Keys: panX, panY, zoom

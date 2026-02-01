@@ -347,6 +347,22 @@ Micro-format (copy/paste):
   - Role: Selection and manipulation tool.
   - Lists of truth: SelectToolMode
 
+- `src/editor/history/index.ts`
+  - Role: Public exports for history module.
+  - Lists of truth: none
+
+- `src/editor/history/historyManager.ts`
+  - Role: Undo/redo stack management with grouping.
+  - Lists of truth: none
+
+- `src/editor/history/operations.ts`
+  - Role: Operation types and tile delta factories for undo/redo.
+  - Lists of truth: OperationType
+
+- `src/editor/history/AGENTS.md`
+  - Role: History module rules and patterns.
+  - Lists of truth: none
+
 - `src/editor/tools/clipboard.ts`
   - Role: Clipboard for selection copy/paste.
   - Lists of truth: none
