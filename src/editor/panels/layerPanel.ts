@@ -13,12 +13,16 @@ const LOG_PREFIX = '[LayerPanel]';
 // --- Types ---
 
 export interface LayerPanelConfig {
+  /** Optional custom render order (bottom to top). Defaults to LAYER_ORDER. */
+  order?: LayerType[];
   activeLayer: LayerType;
   visibility: LayerVisibility;
   locks: LayerLocks;
   onLayerSelect: (layer: LayerType) => void;
   onVisibilityChange: (visibility: LayerVisibility) => void;
   onLocksChange: (locks: LayerLocks) => void;
+  /** Called when the layer order changes */
+  onOrderChange?: (order: LayerType[]) => void;
 }
 
 export interface LayerPanelController {
@@ -30,6 +34,12 @@ export interface LayerPanelController {
 
   /** Set layer locks state */
   setLocks(locks: LayerLocks): void;
+
+  /** Set layer order (bottom to top) */
+  setOrder(order: LayerType[]): void;
+
+  /** Get current layer order */
+  getOrder(): LayerType[];
 
   /** Get the root element */
   getElement(): HTMLElement;
@@ -107,7 +117,30 @@ const STYLES = `
     text-decoration: line-through;
   }
 
-  .layer-row__toggle {
+  
+  .layer-row__reorder {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #aab0d4;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .layer-row__reorder:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .layer-row__reorder--disabled,
+  .layer-row__reorder:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+.layer-row__toggle {
     min-width: 44px;
     min-height: 44px;
     display: flex;
@@ -141,7 +174,9 @@ export function createLayerPanel(
   container: HTMLElement,
   config: LayerPanelConfig
 ): LayerPanelController {
-  let { activeLayer, visibility, locks, onLayerSelect, onVisibilityChange, onLocksChange } = config;
+  let { activeLayer, visibility, locks, order, onLayerSelect, onVisibilityChange, onLocksChange, onOrderChange } = config;
+  let layerOrder: LayerType[] = order ? [...order] : [...LAYER_ORDER];
+  const emitOrderChange = onOrderChange ?? (() => {});
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -156,8 +191,10 @@ export function createLayerPanel(
   const rows: Map<LayerType, HTMLDivElement> = new Map();
   const visibilityToggles: Map<LayerType, HTMLButtonElement> = new Map();
   const lockToggles: Map<LayerType, HTMLButtonElement> = new Map();
+  const moveUpButtons: Map<LayerType, HTMLButtonElement> = new Map();
+  const moveDownButtons: Map<LayerType, HTMLButtonElement> = new Map();
 
-  for (const layerType of LAYER_ORDER) {
+  for (const layerType of layerOrder) {
     const row = document.createElement('div');
     row.className = 'layer-row';
     row.dataset.layer = layerType;
@@ -226,15 +263,86 @@ export function createLayerPanel(
       }
     });
 
-    row.appendChild(indicator);
+    
+    // Reorder controls (stretch)
+    const moveUp = document.createElement('button');
+    moveUp.className = 'layer-row__reorder';
+    moveUp.type = 'button';
+    moveUp.textContent = '↑';
+    moveUp.setAttribute('aria-label', 'Move layer up');
+    moveUp.setAttribute('title', 'Move layer up');
+    moveUp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveLayer(layerType, -1);
+    });
+
+    const moveDown = document.createElement('button');
+    moveDown.className = 'layer-row__reorder';
+    moveDown.type = 'button';
+    moveDown.textContent = '↓';
+    moveDown.setAttribute('aria-label', 'Move layer down');
+    moveDown.setAttribute('title', 'Move layer down');
+    moveDown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveLayer(layerType, 1);
+    });
+row.appendChild(indicator);
     row.appendChild(name);
+    row.appendChild(moveUp);
+    row.appendChild(moveDown);
     row.appendChild(visToggle);
     row.appendChild(lockToggle);
 
     rows.set(layerType, row);
     visibilityToggles.set(layerType, visToggle);
     lockToggles.set(layerType, lockToggle);
+    moveUpButtons.set(layerType, moveUp);
+    moveDownButtons.set(layerType, moveDown);
     root.appendChild(row);
+  }
+
+
+  function normalizeOrder(order: LayerType[]): LayerType[] {
+    const unique = Array.from(new Set(order));
+    const valid = unique.length === LAYER_ORDER.length && LAYER_ORDER.every((l) => unique.includes(l));
+    return valid ? unique : [...LAYER_ORDER];
+  }
+
+  function rebuildRowOrder(): void {
+    // Re-append rows in the current order to update DOM order.
+    for (const layerType of layerOrder) {
+      const row = rows.get(layerType);
+      if (row) root.appendChild(row);
+    }
+    updateReorderButtonStates();
+  }
+
+  function updateReorderButtonStates(): void {
+    for (const layerType of LAYER_ORDER) {
+      const idx = layerOrder.indexOf(layerType);
+      const up = moveUpButtons.get(layerType);
+      const down = moveDownButtons.get(layerType);
+      if (!up || !down) continue;
+      up.disabled = idx <= 0;
+      down.disabled = idx < 0 || idx >= layerOrder.length - 1;
+      up.classList.toggle('layer-row__reorder--disabled', up.disabled);
+      down.classList.toggle('layer-row__reorder--disabled', down.disabled);
+    }
+  }
+
+  function moveLayer(layerType: LayerType, delta: -1 | 1): void {
+    const idx = layerOrder.indexOf(layerType);
+    if (idx < 0) return;
+    const next = idx + delta;
+    if (next < 0 || next >= layerOrder.length) return;
+
+    const newOrder = [...layerOrder];
+    const [moved] = newOrder.splice(idx, 1);
+    newOrder.splice(next, 0, moved);
+    layerOrder = normalizeOrder(newOrder);
+
+    rebuildRowOrder();
+    emitOrderChange([...layerOrder]);
   }
 
   container.appendChild(root);
@@ -263,7 +371,7 @@ export function createLayerPanel(
   }
 
   function updateAllRows(): void {
-    for (const layerType of LAYER_ORDER) {
+    for (const layerType of layerOrder) {
       updateRow(layerType);
     }
   }
@@ -286,6 +394,15 @@ export function createLayerPanel(
     setLocks(newLocks: LayerLocks): void {
       locks = { ...newLocks };
       updateAllRows();
+    },
+
+    setOrder(newOrder: LayerType[]): void {
+      layerOrder = normalizeOrder(newOrder);
+      rebuildRowOrder();
+    },
+
+    getOrder(): LayerType[] {
+      return [...layerOrder];
     },
 
     getElement(): HTMLElement {

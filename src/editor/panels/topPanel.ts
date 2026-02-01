@@ -79,7 +79,7 @@ const STYLES = `
   }
 
   .top-panel--expanded {
-    max-height: 120px;
+    max-height: 240px;
   }
 
   .top-panel__header {
@@ -155,11 +155,11 @@ const STYLES = `
   }
 
   .layer-tabs {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    scrollbar-width: thin;
   }
 
   .layer-tabs::-webkit-scrollbar {

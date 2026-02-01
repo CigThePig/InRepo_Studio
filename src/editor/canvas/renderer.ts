@@ -108,6 +108,12 @@ export interface TilemapRenderer {
   /** Get layer locks state */
   getLayerLocks(): LayerLocks;
 
+  /** Set layer render order (bottom to top) */
+  setLayerOrder(order: LayerType[]): void;
+
+  /** Get the current layer render order */
+  getLayerOrder(): LayerType[];
+
   /** Set the current tile category for rendering */
   setSelectedCategory(category: string): void;
 
@@ -164,6 +170,7 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     collision: false,
     triggers: false,
   };
+  let layerOrder: LayerType[] = [...LAYER_RENDER_ORDER];
   let selectedCategory = '';
   let hoverTileX: number | null = null;
   let hoverTileY: number | null = null;
@@ -445,6 +452,23 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       }
     },
 
+    setLayerOrder(order: LayerType[]): void {
+      // Validate order contains all layer types exactly once.
+      const unique = Array.from(new Set(order));
+      const valid = unique.length === LAYER_ORDER.length && LAYER_ORDER.every((l) => unique.includes(l));
+      if (!valid) {
+        console.warn(`${LOG_PREFIX} Invalid layer order, ignoring`, order);
+        return;
+      }
+      layerOrder = [...unique];
+      dirty = true;
+    },
+
+    getLayerOrder(): LayerType[] {
+      return [...layerOrder];
+    },
+
+
     getLayerLocks(): LayerLocks {
       return { ...layerLocks };
     },
@@ -510,7 +534,7 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       ctx.imageSmoothingEnabled = false;
 
       // Render layers in order (bottom to top)
-      for (const layerType of LAYER_RENDER_ORDER) {
+      for (const layerType of layerOrder) {
         // Skip hidden layers
         if (!layerVisibility[layerType]) continue;
 

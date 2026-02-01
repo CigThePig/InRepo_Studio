@@ -7,7 +7,8 @@
 
 import type { Project } from '@/types';
 import type { AuthManager } from '@/deploy';
-import type { BrushSize } from '@/storage/hot';
+import type { BrushSize, StorageQuotaInfo } from '@/storage/hot';
+import { exportAllData, importAllData, checkStorageQuota } from '@/storage';
 import type { TileImageCache } from '@/editor/canvas/tileCache';
 import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
@@ -17,6 +18,8 @@ const LOG_PREFIX = '[BottomPanel]';
 // --- Types ---
 
 export type ToolType = 'select' | 'paint' | 'erase' | 'entity';
+
+export type BottomPanelSection = 'tiles' | 'deploy' | 'data';
 
 export interface BottomPanelState {
   expanded: boolean;
@@ -37,6 +40,12 @@ export interface BottomPanelController {
 
   /** Get current expanded state */
   isExpanded(): boolean;
+
+  /** Set which content section is active */
+  setActivePanel(section: BottomPanelSection): void;
+
+  /** Get which content section is active */
+  getActivePanel(): BottomPanelSection;
 
   /** Get the selected tile */
   getSelectedTile(): TileSelection | null;
@@ -193,6 +202,23 @@ const STYLES = `
     color: #fff;
   }
 
+  .tool-button--data {
+    min-width: 60px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tool-button--data-active {
+    border-color: #4a9eff;
+    background: #3a3a6e;
+    color: #fff;
+  }
+
+  .tool-button--data-action {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   .bottom-panel__content {
     flex: 1;
     padding: 0 12px 12px;
@@ -296,7 +322,7 @@ export function createBottomPanel(
   let redoCallback: (() => void) | null = null;
   let tilePickerController: TilePickerController | null = null;
   let deployPanelController: DeployPanelController | null = null;
-  let activePanel: 'tiles' | 'deploy' = 'tiles';
+  let activePanel: BottomPanelSection = 'tiles';
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -399,6 +425,18 @@ export function createBottomPanel(
 
   toolbar.appendChild(deployButton);
 
+  const dataButton = document.createElement('button');
+  dataButton.className = 'tool-button tool-button--data';
+  dataButton.textContent = 'Data';
+  dataButton.setAttribute('aria-label', 'Data Tools');
+  dataButton.setAttribute('title', 'Data Tools');
+
+  dataButton.addEventListener('click', () => {
+    setActivePanel('data');
+  });
+
+  toolbar.appendChild(dataButton);
+
   // Content area (for tile picker)
   const content = document.createElement('div');
   content.className = 'bottom-panel__content';
@@ -449,6 +487,147 @@ export function createBottomPanel(
   const deploySection = document.createElement('div');
   deploySection.className = 'bottom-panel__section bottom-panel__section--hidden';
   content.appendChild(deploySection);
+
+  const dataSection = document.createElement('div');
+  dataSection.className = 'bottom-panel__section bottom-panel__section--hidden';
+  content.appendChild(dataSection);
+
+  // --- Data Tools panel (Track 2: export/import + quota warning) ---
+  const dataTitle = document.createElement('div');
+  dataTitle.style.cssText = 'font-size: 13px; font-weight: 700; color: #e6e6e6; margin-bottom: 8px;';
+  dataTitle.textContent = 'Data Tools';
+
+  const dataDesc = document.createElement('div');
+  dataDesc.style.cssText = 'font-size: 12px; color: #aab0d4; margin-bottom: 10px; line-height: 1.35;';
+  dataDesc.textContent = 'Export or import hot storage data (projects, scenes, editor state).';
+
+  const dataActions = document.createElement('div');
+  dataActions.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
+
+  const dataStatus = document.createElement('div');
+  dataStatus.style.cssText = 'font-size: 12px; color: #aab0d4; margin-top: 10px;';
+  dataStatus.textContent = '';
+
+  function formatBytes(bytes: number): string {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit++;
+    }
+    return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+  }
+
+  function downloadJson(filename: string, data: unknown): void {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  const btnCheck = document.createElement('button');
+  btnCheck.className = 'tool-button tool-button--data-action';
+  btnCheck.textContent = 'Check Storage';
+  btnCheck.addEventListener('click', async () => {
+    try {
+      dataStatus.textContent = 'Checking storage...';
+      const info: StorageQuotaInfo | null = await checkStorageQuota();
+      if (!info) {
+        dataStatus.textContent = 'Storage estimate not available in this browser.';
+        return;
+      }
+      const used = formatBytes(info.used);
+      const quota = formatBytes(info.quota);
+      dataStatus.textContent = `Used ${used} of ${quota} (${info.percentUsed.toFixed(1)}%).` + (info.isNearLimit ? ' ⚠ Near limit.' : '');
+    } catch (e) {
+      console.error(e);
+      dataStatus.textContent = 'Storage check failed (see console).';
+    }
+  });
+
+  const btnExport = document.createElement('button');
+  btnExport.className = 'tool-button tool-button--data-action';
+  btnExport.textContent = 'Export JSON';
+  btnExport.addEventListener('click', async () => {
+    try {
+      dataStatus.textContent = 'Exporting...';
+      const data = await exportAllData();
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadJson(`inrepo-export-${ts}.json`, data);
+      dataStatus.textContent = 'Export complete.';
+    } catch (e) {
+      console.error(e);
+      dataStatus.textContent = 'Export failed (see console).';
+    }
+  });
+
+  const btnCopy = document.createElement('button');
+  btnCopy.className = 'tool-button tool-button--data-action';
+  btnCopy.textContent = 'Copy JSON';
+  btnCopy.addEventListener('click', async () => {
+    try {
+      dataStatus.textContent = 'Preparing JSON...';
+      const data = await exportAllData();
+      const text = JSON.stringify(data, null, 2);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        dataStatus.textContent = 'Copied to clipboard.';
+        return;
+      }
+      window.prompt('Copy the JSON below:', text);
+      dataStatus.textContent = 'Copy prompt opened.';
+    } catch (e) {
+      console.error(e);
+      dataStatus.textContent = 'Copy failed (see console).';
+    }
+  });
+
+  const importInput = document.createElement('input');
+  importInput.type = 'file';
+  importInput.accept = 'application/json,.json';
+  importInput.style.display = 'none';
+
+  const btnImport = document.createElement('button');
+  btnImport.className = 'tool-button tool-button--data-action';
+  btnImport.textContent = 'Import JSON';
+  btnImport.addEventListener('click', () => {
+    importInput.value = '';
+    importInput.click();
+  });
+
+  importInput.addEventListener('change', async () => {
+    const file = importInput.files?.[0];
+    if (!file) return;
+    try {
+      dataStatus.textContent = 'Importing...';
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      await importAllData(parsed);
+      dataStatus.textContent = 'Import complete. Reloading...';
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      dataStatus.textContent = 'Import failed (invalid JSON or storage error).';
+    }
+  });
+
+  dataActions.appendChild(btnCheck);
+  dataActions.appendChild(btnExport);
+  dataActions.appendChild(btnCopy);
+  dataActions.appendChild(btnImport);
+
+  dataSection.appendChild(dataTitle);
+  dataSection.appendChild(dataDesc);
+  dataSection.appendChild(dataActions);
+  dataSection.appendChild(importInput);
+  dataSection.appendChild(dataStatus);
+
 
   // Create tile picker if project has tile categories
   if (project && project.tileCategories.length > 0) {
@@ -506,15 +685,20 @@ export function createBottomPanel(
     chevron.textContent = state.expanded ? '▼' : '▲';
   }
 
-  function setActivePanel(panelName: 'tiles' | 'deploy'): void {
+  function setActivePanel(panelName: BottomPanelSection): void {
     activePanel = panelName;
+    const isTiles = activePanel === 'tiles';
     const isDeploy = activePanel === 'deploy';
+    const isData = activePanel === 'data';
 
-    tilePickerSection.classList.toggle('bottom-panel__section--hidden', isDeploy);
+    tilePickerSection.classList.toggle('bottom-panel__section--hidden', !isTiles);
     deploySection.classList.toggle('bottom-panel__section--hidden', !isDeploy);
-    deployButton.classList.toggle('tool-button--deploy-active', isDeploy);
+    dataSection.classList.toggle('bottom-panel__section--hidden', !isData);
 
-    if (isDeploy) {
+    deployButton.classList.toggle('tool-button--deploy-active', isDeploy);
+    dataButton.classList.toggle('tool-button--data-active', isData);
+
+    if (!isTiles) {
       tilePickerController?.setVisible(false);
     } else {
       tilePickerController?.setVisible(toolShowsTilePicker(state.currentTool));
@@ -568,6 +752,14 @@ export function createBottomPanel(
 
     isExpanded() {
       return state.expanded;
+    },
+
+    setActivePanel(section: BottomPanelSection) {
+      setActivePanel(section);
+    },
+
+    getActivePanel() {
+      return activePanel;
     },
 
     getSelectedTile() {

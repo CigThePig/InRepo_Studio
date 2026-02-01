@@ -59,6 +59,8 @@ export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
   activeLayer: LayerType;
+  /** Custom layer render order (bottom to top) */
+  layerOrder: LayerType[];
   selectedTile: SelectedTile | null;
   brushSize: BrushSize;
   viewport: ViewportState;
@@ -253,6 +255,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   currentSceneId: null,
   currentTool: 'select',
   activeLayer: 'ground',
+  layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
   brushSize: 1,
   viewport: {

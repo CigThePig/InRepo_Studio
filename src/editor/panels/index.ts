@@ -11,7 +11,7 @@ export type { TopPanelController, TopPanelState } from './topPanel';
 
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';
-export type { BottomPanelController, BottomPanelState, ToolType } from './bottomPanel';
+export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';
 
 // Deploy Panel
 export { createDeployPanel } from './deployPanel';

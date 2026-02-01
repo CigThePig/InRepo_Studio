@@ -12,10 +12,12 @@ import {
   saveEditorState,
   saveScene,
   exportAllData,
+  checkStorageQuota,
   checkForUpdates,
   forceRefreshFromCold,
 } from '@/storage';
 import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
+import type { StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import { tileToScreen } from '@/editor/canvas/viewport';
@@ -253,8 +255,14 @@ export async function initEditor(): Promise<void> {
   // Initialize panels (after canvas so we can wire up canvas updates)
   await initPanels();
 
-  // Render update banner (if needed) after panels exist.
-  renderSystemNotice(updateInfo);
+  // Render system notices (update + quota warning) after panels exist.
+  let quotaInfo: StorageQuotaInfo | null = null;
+  try {
+    quotaInfo = await checkStorageQuota();
+  } catch (e) {
+    console.warn(`${LOG_PREFIX} Failed to check storage quota:`, e);
+  }
+  renderSystemNotices(updateInfo, quotaInfo);
 
   console.log(`${LOG_PREFIX} Editor initialized`);
 }
@@ -559,6 +567,7 @@ async function initPanels(): Promise<void> {
     layerPanelContainer.innerHTML = ''; // Clear default layer tabs
 
     createLayerPanel(layerPanelContainer, {
+      order: editorState.layerOrder,
       activeLayer: editorState.activeLayer,
       visibility: editorState.layerVisibility,
       locks: editorState.layerLocks,
@@ -585,11 +594,21 @@ async function initPanels(): Promise<void> {
         }
         canvasController?.getRenderer()?.setLayerLocks(locks);
       },
+      onOrderChange: (order) => {
+        if (editorState) {
+          editorState.layerOrder = [...order];
+          scheduleSave();
+        }
+        const renderer = canvasController?.getRenderer();
+        renderer?.setLayerOrder(order);
+        canvasController?.invalidateScene();
+      },
     });
 
     // Initialize renderer with current visibility and locks
     const renderer = canvasController?.getRenderer();
     if (renderer) {
+      renderer.setLayerOrder(editorState.layerOrder);
       renderer.setLayerVisibility(editorState.layerVisibility);
       renderer.setLayerLocks(editorState.layerLocks);
     }
@@ -832,7 +851,10 @@ async function handleSceneAction(action: SceneAction, sceneId: string): Promise<
 }
 
 
-function renderSystemNotice(info: UpdateCheckResult | null): void {
+function renderSystemNotices(
+  updateInfo: UpdateCheckResult | null,
+  quotaInfo: StorageQuotaInfo | null
+): void {
   const container = document.getElementById('system-notice-container');
   if (!container) return;
 
@@ -840,84 +862,92 @@ function renderSystemNotice(info: UpdateCheckResult | null): void {
   container.innerHTML = '';
   container.style.display = 'none';
 
-  if (!info) return;
+  const banners: HTMLElement[] = [];
+
+  const updateBanner = buildUpdateBanner(updateInfo);
+  if (updateBanner) banners.push(updateBanner);
+
+  const quotaBanner = buildQuotaBanner(quotaInfo);
+  if (quotaBanner) banners.push(quotaBanner);
+
+  if (banners.length === 0) return;
+
+  for (const banner of banners) {
+    container.appendChild(banner);
+  }
+  container.style.display = 'block';
+}
+
+function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
+  if (!info) return null;
 
   // Only show a banner when we have a strong signal that cold changed or hot baseline is missing+diff.
-  if (!info.needsUpdate) return;
+  if (!info.needsUpdate) return null;
 
   // Allow dismissing per-session for the current fingerprint.
   const dismissKey = `inrepo_dismiss_update_banner:${info.remote?.etag ?? info.remote?.lastModified ?? 'unknown'}`;
-  if (sessionStorage.getItem(dismissKey) === 'true') {
-    return;
-  }
+  if (sessionStorage.getItem(dismissKey) === 'true') return null;
 
   const banner = document.createElement('div');
   banner.style.cssText = `
-    background: #2a1f3a;
-    border-bottom: 1px solid #3a2a6e;
-    color: #f0e6ff;
+    background: rgba(255, 185, 80, 0.12);
+    border: 1px solid rgba(255, 185, 80, 0.35);
+    color: #ffddaa;
     padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    border-radius: 10px;
+    margin: 10px 12px;
   `;
 
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight: 700; font-size: 13px;';
-  title.textContent = 'Published project changed on GitHub';
+  title.textContent = 'Published project changed';
+  title.style.cssText = 'font-weight: 700; margin-bottom: 6px;';
 
   const desc = document.createElement('div');
-  desc.style.cssText = 'font-size: 12px; color: #cbbbe8; line-height: 1.35;';
+  desc.style.cssText = 'font-size: 12px; color: #d6d0c2; line-height: 1.35;';
   desc.textContent =
-    'Your editor is using a local (hot) copy that may be out of date. Refreshing will overwrite local edits, so export a backup first if you want to keep them.';
+    'The repository version differs from your local hot storage. You can refresh from the repo (cold) or export a local backup first.';
 
   const actions = document.createElement('div');
-  actions.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap;';
+  actions.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;';
 
   const btnPrimary = document.createElement('button');
-  btnPrimary.type = 'button';
   btnPrimary.textContent = 'Refresh from Repo';
   btnPrimary.style.cssText = `
-    min-height: 44px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: none;
-    background: #ff6b6b;
-    color: #1a0f14;
-    font-weight: 800;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 185, 80, 0.45);
+    background: rgba(255, 185, 80, 0.2);
+    color: #ffddaa;
+    font-weight: 700;
     cursor: pointer;
   `;
 
   const btnSecondary = document.createElement('button');
-  btnSecondary.type = 'button';
   btnSecondary.textContent = 'Export Local Backup';
   btnSecondary.style.cssText = `
-    min-height: 44px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: 1px solid #3a3a6e;
-    background: #1f1f3a;
-    color: #fff;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(160, 200, 255, 0.45);
+    background: rgba(160, 200, 255, 0.12);
+    color: #cfe6ff;
     font-weight: 700;
     cursor: pointer;
   `;
 
   const btnDismiss = document.createElement('button');
-  btnDismiss.type = 'button';
   btnDismiss.textContent = 'Dismiss';
   btnDismiss.style.cssText = `
-    min-height: 44px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: 1px solid #3a3a6e;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     background: transparent;
-    color: #cbbbe8;
+    color: #c9c9c9;
     font-weight: 700;
     cursor: pointer;
   `;
 
   const status = document.createElement('div');
-  status.style.cssText = 'font-size: 12px; color: #aab0d4;';
+  status.style.cssText = 'font-size: 12px; color: #aab0d4; margin-top: 8px;';
   status.textContent = '';
 
   async function exportBackup(): Promise<void> {
@@ -938,11 +968,6 @@ function renderSystemNotice(info: UpdateCheckResult | null): void {
   });
 
   btnPrimary.addEventListener('click', async () => {
-    const ok = window.confirm(
-      'Refresh from Repo will overwrite your local (hot) edits with the published repo version.\n\nTip: Export a backup first if you might want to restore your edits.\n\nContinue?'
-    );
-    if (!ok) return;
-
     try {
       status.textContent = 'Exporting backup...';
       await exportBackup();
@@ -964,8 +989,7 @@ function renderSystemNotice(info: UpdateCheckResult | null): void {
 
   btnDismiss.addEventListener('click', () => {
     sessionStorage.setItem(dismissKey, 'true');
-    container.innerHTML = '';
-    container.style.display = 'none';
+    banner.remove();
   });
 
   actions.appendChild(btnPrimary);
@@ -977,11 +1001,83 @@ function renderSystemNotice(info: UpdateCheckResult | null): void {
   banner.appendChild(actions);
   banner.appendChild(status);
 
-  container.appendChild(banner);
-  container.style.display = 'block';
+  return banner;
+}
+
+function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
+  if (!info || !info.isNearLimit) return null;
+
+  const bucket = Math.floor(info.percentUsed);
+  const dismissKey = `inrepo_dismiss_quota_banner:${bucket}`;
+  if (sessionStorage.getItem(dismissKey) === 'true') return null;
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    background: rgba(255, 80, 80, 0.10);
+    border: 1px solid rgba(255, 80, 80, 0.35);
+    color: #ffd0d0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin: 10px 12px;
+  `;
+
+  const title = document.createElement('div');
+  title.textContent = 'Storage nearly full';
+  title.style.cssText = 'font-weight: 700; margin-bottom: 6px;';
+
+  const desc = document.createElement('div');
+  desc.style.cssText = 'font-size: 12px; color: #e7c7c7; line-height: 1.35;';
+  desc.textContent = `Hot storage is using about ${info.percentUsed.toFixed(1)}% of the available quota. Consider exporting a backup or clearing old data.`;
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;';
+
+  const btnOpen = document.createElement('button');
+  btnOpen.textContent = 'Open Data Tools';
+  btnOpen.style.cssText = `
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 80, 80, 0.45);
+    background: rgba(255, 80, 80, 0.14);
+    color: #ffd0d0;
+    font-weight: 700;
+    cursor: pointer;
+  `;
+
+  const btnDismiss = document.createElement('button');
+  btnDismiss.textContent = 'Dismiss';
+  btnDismiss.style.cssText = `
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #c9c9c9;
+    font-weight: 700;
+    cursor: pointer;
+  `;
+
+  btnOpen.addEventListener('click', () => {
+    bottomPanelController?.setExpanded(true);
+    bottomPanelController?.setActivePanel('data');
+  });
+
+  btnDismiss.addEventListener('click', () => {
+    sessionStorage.setItem(dismissKey, 'true');
+    banner.remove();
+  });
+
+  actions.appendChild(btnOpen);
+  actions.appendChild(btnDismiss);
+
+  banner.appendChild(title);
+  banner.appendChild(desc);
+  banner.appendChild(actions);
+
+  return banner;
 }
 
 // --- UI Rendering ---
+
 
 function renderEditorUI(): void {
   const app = document.getElementById('app');
