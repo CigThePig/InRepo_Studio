@@ -7,6 +7,7 @@ Completed tracks:
 - Phase 2 (Playtest & Deploy): Track 12 (Authentication)
 - Phase 2 (Playtest & Deploy): Track 13 (Deploy Flow)
 - Phase 3 (Full Tilemap Editing): Track 14 (Erase Tool)
+- Phase 3 (Full Tilemap Editing): Track 15 (Select Tool)
 
 Prepared tracks (planning artifacts created):
 - Phase 2 (Playtest & Deploy - Vertical Slice Completion):
@@ -19,12 +20,12 @@ Prepared tracks (planning artifacts created):
   - Track 18: Layer System (spec/blueprint/plan ready)
 
 Next tracks to implement (in order):
-1. Track 15: Select Tool — Select and manipulate tile regions
+1. Track 16: Undo/Redo System — Track and reverse editing operations
 
 Note: Phase 2 completes the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 planning is ready for implementation after Phase 2.
 
-Last updated: 2026-02-01
+Last updated: 2026-02-02
 
 ---
 

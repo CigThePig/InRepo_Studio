@@ -64,6 +64,7 @@ export interface CanvasController {
     onStart?: (x: number, y: number) => void;
     onMove?: (x: number, y: number) => void;
     onEnd?: () => void;
+    onLongPress?: (x: number, y: number) => void;
   }): void;
 
   /** Set the scene to render */
@@ -148,6 +149,7 @@ export function createCanvas(
     onStart?: (x: number, y: number) => void;
     onMove?: (x: number, y: number) => void;
     onEnd?: () => void;
+    onLongPress?: (x: number, y: number) => void;
   } = {};
 
   // Debounce timer for viewport saves
@@ -319,6 +321,13 @@ export function createCanvas(
     onToolEnd: () => {
       clearHoverTile();
       toolCallbacks.onEnd?.();
+    },
+    onLongPress: (x, y) => {
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = x - rect.left;
+      const canvasY = y - rect.top;
+      updateHoverTile(canvasX, canvasY);
+      toolCallbacks.onLongPress?.(canvasX, canvasY);
     },
   });
 

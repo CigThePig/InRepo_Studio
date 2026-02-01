@@ -18,14 +18,19 @@ import {
 import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
+import { tileToScreen } from '@/editor/canvas/viewport';
 import {
   createTopPanel,
   createBottomPanel,
   type TopPanelController,
   type BottomPanelController,
+  createSelectionBar,
+  type SelectionBarController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
+import { createSelectTool, type SelectTool } from '@/editor/tools/select';
+import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
 import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
 import {
   preparePlaytest,
@@ -52,6 +57,9 @@ let bottomPanelController: BottomPanelController | null = null;
 let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
 let eraseTool: EraseTool | null = null;
+let selectTool: SelectTool | null = null;
+let selectionBar: SelectionBarController | null = null;
+let clipboard: Clipboard | null = null;
 let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
 let updateInfo: UpdateCheckResult | null = null;
@@ -261,6 +269,38 @@ async function initCanvas(tileSize: number): Promise<void> {
     return;
   }
 
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    background: rgba(20, 24, 48, 0.95);
+    color: #e6ecff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #30407a;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    display: none;
+    z-index: 9;
+  `;
+  container.appendChild(toast);
+
+  let toastTimeout: number | null = null;
+  function showToast(message: string): void {
+    toast.textContent = message;
+    toast.style.display = 'block';
+    if (toastTimeout !== null) {
+      window.clearTimeout(toastTimeout);
+    }
+    toastTimeout = window.setTimeout(() => {
+      toast.style.display = 'none';
+      toastTimeout = null;
+    }, 2200);
+  }
+
   // Get initial selected category
   const initialCategory = editorState?.selectedTile?.category ??
     currentProject?.tileCategories[0]?.name ?? '';
@@ -317,28 +357,115 @@ async function initCanvas(tileSize: number): Promise<void> {
     getBrushSize: () => currentBrushSize,
   });
 
+  clipboard = createClipboard();
+
+  selectTool = createSelectTool({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    onSceneChange: (scene) => {
+      currentScene = scene;
+      canvasController?.invalidateScene();
+      scheduleSceneSave(scene);
+    },
+    onSelectionChange: (state) => {
+      const renderer = canvasController?.getRenderer();
+      renderer?.setSelectionOverlay({
+        selection: state.selection,
+        moveOffset: state.moveOffset,
+        previewTiles: state.previewTiles,
+      });
+      canvasController?.invalidateScene();
+
+      if (selectionBar) {
+        selectionBar.setPasteEnabled(clipboard?.hasData() ?? false);
+        if (state.selection && state.mode === 'selected') {
+          selectionBar.show();
+          const viewport = canvasController?.getViewport();
+          if (viewport && currentScene) {
+            const start = tileToScreen(
+              viewport,
+              state.selection.startX,
+              state.selection.startY,
+              currentScene.tileSize
+            );
+            const end = tileToScreen(
+              viewport,
+              state.selection.startX + state.selection.width,
+              state.selection.startY + state.selection.height,
+              currentScene.tileSize
+            );
+            const centerX = (start.x + end.x) / 2;
+            const topY = Math.min(start.y, end.y) - 8;
+            selectionBar.setPosition(centerX, topY);
+          }
+        } else {
+          selectionBar.hide();
+        }
+      }
+    },
+    clipboard,
+    onFillResult: (result) => {
+      if (result.limitReached) {
+        showToast('Fill stopped early (limit reached).');
+      }
+    },
+  });
+
+  selectionBar = createSelectionBar(container, {
+    onMove: () => {
+      selectTool?.armMove();
+    },
+    onCopy: () => {
+      selectTool?.copySelection();
+    },
+    onPaste: () => {
+      selectTool?.armPaste();
+    },
+    onDelete: () => {
+      selectTool?.deleteSelection();
+    },
+    onFill: () => {
+      selectTool?.armFill();
+    },
+    onCancel: () => {
+      selectTool?.clearSelection();
+    },
+  });
+
   // Wire up tool gestures
   canvasController.onToolGesture({
     onStart: (x, y) => {
-      if (editorState?.currentTool === 'paint' && paintTool) {
+      if (editorState?.currentTool === 'select' && selectTool) {
+        selectTool.start(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'paint' && paintTool) {
         paintTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onMove: (x, y) => {
-      if (editorState?.currentTool === 'paint' && paintTool) {
+      if (editorState?.currentTool === 'select' && selectTool) {
+        selectTool.move(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'paint' && paintTool) {
         paintTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onEnd: () => {
+      if (selectTool) {
+        selectTool.end();
+      }
       if (paintTool) {
         paintTool.end();
       }
       if (eraseTool) {
         eraseTool.end();
+      }
+    },
+    onLongPress: (x, y) => {
+      if (editorState?.currentTool === 'select' && selectTool) {
+        selectTool.startMove(x, y, canvasController!.getViewport(), tileSize);
       }
     },
   });
@@ -420,6 +547,9 @@ function initPanels(): void {
         scheduleSave();
       }
       updateHoverPreview(tool);
+      if (tool !== 'select') {
+        selectTool?.clearSelection();
+      }
     });
 
     bottomPanelController.onTileSelect((selection) => {

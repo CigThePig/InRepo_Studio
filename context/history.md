@@ -244,6 +244,19 @@ Purpose:
   - Track 15: Select Tool (tile region manipulation)
   - Track 16: Undo/Redo System (erase operations)
 
+### Track 15 — Select Tool
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Implemented the select tool with rectangular selection, copy/paste/delete, move via long-press, flood fill, and a floating action bar for selection actions.
+- **Shipped**:
+  - Selection tool state machine with clipboard, move preview, and flood fill support
+  - Selection overlay rendering with move ghost preview
+  - Floating selection action bar with Move/Copy/Paste/Delete/Fill
+- **Verification**: Not run (not requested).
+- **Learned**: Selection UX needs clear visual feedback when switching between move and paste modes.
+- **Follow-up**:
+  - Track 16: Undo/Redo System (selection operations should become reversible)
+
 ---
 
 ## Stalled / Abandoned Tracks

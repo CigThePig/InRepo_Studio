@@ -20,3 +20,7 @@ export type { DeployPanelController } from './deployPanel';
 // Tile Picker
 export { createTilePicker } from './tilePicker';
 export type { TilePickerController, TilePickerState, TileSelection } from './tilePicker';
+
+// Selection Bar
+export { createSelectionBar } from './selectionBar';
+export type { SelectionBarController } from './selectionBar';

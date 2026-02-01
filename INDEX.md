@@ -327,6 +327,10 @@ Micro-format (copy/paste):
   - Role: Tile category tabs and tile grid for selection.
   - Lists of truth: none (uses TileCategory from types/project.ts)
 
+- `src/editor/panels/selectionBar.ts`
+  - Role: Floating action bar for selection operations.
+  - Lists of truth: none
+
 - `src/editor/tools/paint.ts`
   - Role: Tile painting logic with single-tap and drag support.
   - Lists of truth: none
@@ -339,8 +343,16 @@ Micro-format (copy/paste):
   - Role: Shared utilities for paint/erase tools.
   - Lists of truth: none
 
-- `src/editor/tools/select.ts` (planned — Track 15)
-  - Role: Selection and manipulation.
+- `src/editor/tools/select.ts`
+  - Role: Selection and manipulation tool.
+  - Lists of truth: SelectToolMode
+
+- `src/editor/tools/clipboard.ts`
+  - Role: Clipboard for selection copy/paste.
+  - Lists of truth: none
+
+- `src/editor/tools/floodFill.ts`
+  - Role: Flood fill algorithm for selection fill.
   - Lists of truth: none
 
 - `src/editor/tools/entity.ts` (planned — Track 20)
