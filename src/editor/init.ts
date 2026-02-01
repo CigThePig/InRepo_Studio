@@ -29,6 +29,7 @@ import {
   createSelectionBar,
   type SelectionBarController,
   createLayerPanel,
+  type LayerPanelController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
@@ -83,6 +84,7 @@ let updateInfo: UpdateCheckResult | null = null;
 let assetCacheBust: string | null = null;
 let sceneManager: SceneManager | null = null;
 let sceneSelector: SceneSelector | null = null;
+let layerPanelController: LayerPanelController | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -566,7 +568,7 @@ async function initPanels(): Promise<void> {
     const layerPanelContainer = topPanelController.getLayerPanelContainer();
     layerPanelContainer.innerHTML = ''; // Clear default layer tabs
 
-    createLayerPanel(layerPanelContainer, {
+    layerPanelController = createLayerPanel(layerPanelContainer, {
       order: editorState.layerOrder,
       activeLayer: editorState.activeLayer,
       visibility: editorState.layerVisibility,
@@ -576,6 +578,8 @@ async function initPanels(): Promise<void> {
           editorState.activeLayer = layer;
           scheduleSave();
         }
+        // Update layer panel UI
+        layerPanelController?.setActiveLayer(layer);
         topPanelController?.setActiveLayer(layer);
         canvasController?.setActiveLayer(layer);
       },
