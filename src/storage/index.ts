@@ -31,6 +31,7 @@ export {
 } from './hot';
 
 export type {
+  BrushSize,
   EditorState,
   ViewportState,
   PanelStates,

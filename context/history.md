@@ -210,7 +210,7 @@ Purpose:
   - Token storage abstraction with session default and IndexedDB persistence
   - Auth manager + validation against GitHub API with scoped error handling
   - Auth modal and deploy panel status UI integrated into the editor
-- **Verification**: `npm run build`
+- **Verification**: `npm run build`, `npm run lint` (warnings in migration.ts)
 - **Learned**: Centralizing auth state prevents repeated validation calls and keeps UI responsive.
 - **Follow-up**:
   - Track 13: Deploy Flow (Commit changes to GitHub)
@@ -224,10 +224,25 @@ Purpose:
   - Change detection with content hashing and conflict detection
   - Conflict resolution modal (overwrite/pull/skip)
   - Commit + deploy orchestration with progress/status UI in the deploy panel
-- **Verification**: `npm run build`
+- **Verification**: `npm run build`, `npm run lint` (warnings in migration.ts)
 - **Learned**: Centralizing deploy state in a dedicated UI component keeps panel feedback consistent during multi-step commits.
 - **Follow-up**:
   - Track 14: Erase Tool (tile removal)
+
+### Track 14 — Erase Tool
+- **Dates**: 2026-02-01
+- **Status**: Completed
+- **Summary**: Added erase tool support with brush sizes, UI controls, and hover previews, plus shared tool utilities for paint/erase behavior.
+- **Shipped**:
+  - Erase tool with tap/drag behavior and debounced auto-save wiring
+  - Brush size selector in the bottom panel and persisted brush size in editor state
+  - Shared tool utilities for line interpolation and brush footprints
+  - Hover highlight and brush cursor sizing for erase previews
+- **Verification**: `npm run build`
+- **Learned**: Centralizing brush logic avoids duplicated line/offset math across tools.
+- **Follow-up**:
+  - Track 15: Select Tool (tile region manipulation)
+  - Track 16: Undo/Redo System (erase operations)
 
 ---
 

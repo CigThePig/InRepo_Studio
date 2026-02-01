@@ -10,8 +10,8 @@
 import { getGidForTile, type Scene, type LayerType } from '@/types';
 import type { ViewportState } from '@/editor/canvas/viewport';
 import type { EditorState, SelectedTile } from '@/storage/hot';
-import { screenToTile } from '@/editor/canvas/viewport';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
+import { interpolateLine, screenToTileWithOffset } from '@/editor/tools/common';
 
 const LOG_PREFIX = '[PaintTool]';
 
@@ -44,11 +44,6 @@ export interface PaintTool {
 
 // --- Helpers ---
 
-interface Point {
-  x: number;
-  y: number;
-}
-
 /**
  * Get the tile value to paint based on layer type and selected tile.
  * - Ground/Props: global tile GID computed from scene.tilesets (0 is empty)
@@ -79,54 +74,6 @@ function getTileValue(scene: Scene, layer: LayerType, selectedTile: SelectedTile
 /**
  * Convert screen coordinates to tile coordinates with touch offset.
  */
-function screenToTileWithOffset(
-  screenX: number,
-  screenY: number,
-  viewport: ViewportState,
-  tileSize: number
-): Point {
-  // Apply touch offset (position above finger)
-  const offsetScreenY = screenY + TOUCH_OFFSET_Y;
-
-  // Convert to tile coordinates
-  return screenToTile(viewport, screenX, offsetScreenY, tileSize);
-}
-
-/**
- * Bresenham line algorithm for interpolating between two points.
- * Returns all tile positions along the line (inclusive).
- */
-function interpolateLine(x0: number, y0: number, x1: number, y1: number): Point[] {
-  const points: Point[] = [];
-
-  const dx = Math.abs(x1 - x0);
-  const dy = Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
-
-  let x = x0;
-  let y = y0;
-
-  for (;;) {
-    points.push({ x, y });
-
-    if (x === x1 && y === y1) break;
-
-    const e2 = 2 * err;
-    if (e2 > -dy) {
-      err -= dy;
-      x += sx;
-    }
-    if (e2 < dx) {
-      err += dx;
-      y += sy;
-    }
-  }
-
-  return points;
-}
-
 /**
  * Paint a single tile at the given position.
  * Returns true if the scene was modified.
@@ -217,7 +164,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
 
       painting = true;
 
-      const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize);
+      const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
       lastTileX = tile.x;
       lastTileY = tile.y;
 
@@ -229,7 +176,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
     move(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void {
       if (!painting) return;
 
-      const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize);
+      const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
 
       // Paint from last position to current (interpolate line)
       if (lastTileX !== null && lastTileY !== null) {

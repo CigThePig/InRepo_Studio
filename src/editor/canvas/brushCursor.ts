@@ -8,6 +8,7 @@
 import type { ViewportState } from './viewport';
 import { tileToScreen, screenToTile } from './viewport';
 import { getTouchConfig } from './touchConfig';
+import type { BrushSize } from '@/storage/hot';
 
 // --- Constants ---
 
@@ -33,6 +34,12 @@ export interface BrushCursorState {
 
   /** Optional preview tile image */
   previewImage: HTMLImageElement | null;
+
+  /** Brush size */
+  brushSize: BrushSize;
+
+  /** Cursor color */
+  color: string;
 }
 
 export interface BrushCursor {
@@ -47,6 +54,12 @@ export interface BrushCursor {
 
   /** Set optional tile preview image */
   setPreviewImage(image: HTMLImageElement | null): void;
+
+  /** Set brush size */
+  setBrushSize(size: BrushSize): void;
+
+  /** Set cursor color */
+  setColor(color: string): void;
 
   /** Get current state */
   getState(): BrushCursorState;
@@ -69,6 +82,8 @@ export function createBrushCursor(): BrushCursor {
     tileX: 0,
     tileY: 0,
     previewImage: null,
+    brushSize: 1,
+    color: CURSOR_BORDER_COLOR,
   };
 
   const cursor: BrushCursor = {
@@ -103,6 +118,14 @@ export function createBrushCursor(): BrushCursor {
       state.previewImage = image;
     },
 
+    setBrushSize(size: BrushSize): void {
+      state.brushSize = size;
+    },
+
+    setColor(color: string): void {
+      state.color = color;
+    },
+
     getState(): BrushCursorState {
       return { ...state };
     },
@@ -123,8 +146,16 @@ export function createBrushCursor(): BrushCursor {
         return;
       }
 
-      const screenPos = tileToScreen(viewport, tileX, tileY, tileSize);
       const screenTileSize = tileSize * viewport.zoom;
+      const brushSize = state.brushSize;
+
+      const offsetX = brushSize === 3 ? -1 : 0;
+      const offsetY = brushSize === 3 ? -1 : 0;
+      const widthTiles = brushSize === 2 ? 2 : brushSize === 3 ? 3 : 1;
+      const heightTiles = widthTiles;
+      const screenPos = tileToScreen(viewport, tileX + offsetX, tileY + offsetY, tileSize);
+      const brushWidth = screenTileSize * widthTiles;
+      const brushHeight = screenTileSize * heightTiles;
 
       // Draw preview tile (semi-transparent) if available
       if (previewImage) {
@@ -140,14 +171,14 @@ export function createBrushCursor(): BrushCursor {
       }
 
       // Draw dashed cursor outline
-      ctx.strokeStyle = CURSOR_BORDER_COLOR;
+      ctx.strokeStyle = state.color;
       ctx.lineWidth = CURSOR_BORDER_WIDTH;
       ctx.setLineDash(CURSOR_DASH_PATTERN);
       ctx.strokeRect(
         screenPos.x + 1,
         screenPos.y + 1,
-        screenTileSize - 2,
-        screenTileSize - 2
+        brushWidth - 2,
+        brushHeight - 2
       );
       ctx.setLineDash([]); // Reset dash pattern
     },

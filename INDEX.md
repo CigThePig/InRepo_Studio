@@ -327,8 +327,12 @@ Micro-format (copy/paste):
   - Role: Tile painting logic with single-tap and drag support.
   - Lists of truth: none
 
-- `src/editor/tools/erase.ts` (planned — Track 14)
-  - Role: Tile erasing logic.
+- `src/editor/tools/erase.ts`
+  - Role: Tile erasing logic with brush size support.
+  - Lists of truth: none
+
+- `src/editor/tools/common.ts`
+  - Role: Shared utilities for paint/erase tools.
   - Lists of truth: none
 
 - `src/editor/tools/select.ts` (planned — Track 15)

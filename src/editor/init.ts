@@ -15,7 +15,7 @@ import {
   checkForUpdates,
   forceRefreshFromCold,
 } from '@/storage';
-import type { EditorState, UpdateCheckResult } from '@/storage';
+import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
@@ -25,6 +25,7 @@ import {
   type BottomPanelController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
+import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
 import {
   preparePlaytest,
@@ -50,9 +51,33 @@ let topPanelController: TopPanelController | null = null;
 let bottomPanelController: BottomPanelController | null = null;
 let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
+let eraseTool: EraseTool | null = null;
+let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
 let updateInfo: UpdateCheckResult | null = null;
 let assetCacheBust: string | null = null;
+
+const ERASE_HOVER_STYLE = {
+  fill: 'rgba(255, 80, 80, 0.25)',
+  border: 'rgba(255, 120, 120, 0.9)',
+};
+
+function updateHoverPreview(tool: EditorState['currentTool']): void {
+  const renderer = canvasController?.getRenderer();
+  if (!renderer) return;
+
+  if (tool === 'erase') {
+    renderer.setHoverBrushSize(currentBrushSize);
+    renderer.setHoverStyle(ERASE_HOVER_STYLE);
+    canvasController?.setBrushCursorSize(currentBrushSize);
+    canvasController?.setBrushCursorColor(ERASE_HOVER_STYLE.border);
+  } else {
+    renderer.setHoverBrushSize(1);
+    renderer.setHoverStyle();
+    canvasController?.setBrushCursorSize(1);
+    canvasController?.setBrushCursorColor('rgba(255, 255, 255, 0.9)');
+  }
+}
 
 export function getEditorState(): EditorState | null {
   return editorState;
@@ -118,6 +143,7 @@ export async function initEditor(): Promise<void> {
   editorState = await loadEditorState();
   editorState = restoreEditorStateFromPlaytest(editorState);
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
+  currentBrushSize = editorState.brushSize ?? 1;
 
   // Load project
   currentProject = await loadProject();
@@ -279,24 +305,45 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
   });
 
+  // Initialize erase tool
+  eraseTool = createEraseTool({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    onSceneChange: (scene) => {
+      currentScene = scene;
+      canvasController?.invalidateScene();
+      scheduleSceneSave(scene);
+    },
+    getBrushSize: () => currentBrushSize,
+  });
+
   // Wire up tool gestures
   canvasController.onToolGesture({
     onStart: (x, y) => {
       if (editorState?.currentTool === 'paint' && paintTool) {
         paintTool.start(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'erase' && eraseTool) {
+        eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onMove: (x, y) => {
       if (editorState?.currentTool === 'paint' && paintTool) {
         paintTool.move(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'erase' && eraseTool) {
+        eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onEnd: () => {
       if (paintTool) {
         paintTool.end();
       }
+      if (eraseTool) {
+        eraseTool.end();
+      }
     },
   });
+
+  updateHoverPreview(editorState?.currentTool ?? 'select');
 
   console.log(`${LOG_PREFIX} Canvas initialized (tile size: ${tileSize}px)`);
 }
@@ -348,6 +395,7 @@ function initPanels(): void {
         expanded: editorState.panelStates.bottomExpanded,
         currentTool: editorState.currentTool,
         selectedTile: editorState.selectedTile,
+        brushSize: editorState.brushSize,
       },
       currentProject ?? undefined,
       ASSET_BASE_PATH,
@@ -367,6 +415,7 @@ function initPanels(): void {
         editorState.currentTool = tool;
         scheduleSave();
       }
+      updateHoverPreview(tool);
     });
 
     bottomPanelController.onTileSelect((selection) => {
@@ -379,6 +428,15 @@ function initPanels(): void {
       }
       // Update canvas selected category for rendering
       canvasController?.setSelectedCategory(selection.category);
+    });
+
+    bottomPanelController.onBrushSizeChange((size) => {
+      currentBrushSize = size;
+      if (editorState) {
+        editorState.brushSize = size;
+        scheduleSave();
+      }
+      updateHoverPreview(editorState?.currentTool ?? 'select');
     });
   }
 

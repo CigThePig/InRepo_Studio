@@ -67,7 +67,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, viewport{}, panelStates{}, recentTiles[]
+    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, brushSize, viewport{}, panelStates{}, recentTiles[]
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)

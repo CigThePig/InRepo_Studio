@@ -7,6 +7,7 @@
 
 import type { Project } from '@/types';
 import type { AuthManager } from '@/deploy';
+import type { BrushSize } from '@/storage/hot';
 import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
@@ -20,6 +21,7 @@ export interface BottomPanelState {
   expanded: boolean;
   currentTool: ToolType;
   selectedTile?: { category: string; index: number } | null;
+  brushSize: BrushSize;
 }
 
 export interface BottomPanelController {
@@ -49,6 +51,15 @@ export interface BottomPanelController {
 
   /** Register callback for tile selection */
   onTileSelect(callback: (selection: TileSelection) => void): void;
+
+  /** Register callback for brush size changes */
+  onBrushSizeChange(callback: (size: BrushSize) => void): void;
+
+  /** Set brush size */
+  setBrushSize(size: BrushSize): void;
+
+  /** Get brush size */
+  getBrushSize(): BrushSize;
 
   /** Get the content container */
   getContentContainer(): HTMLElement;
@@ -181,6 +192,54 @@ const STYLES = `
     display: none;
   }
 
+  .bottom-panel__brush {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 0 8px;
+  }
+
+  .bottom-panel__brush--hidden {
+    display: none;
+  }
+
+  .bottom-panel__brush-label {
+    color: #8fa3d8;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .brush-size-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #1f2745;
+    color: #cfd8ff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .brush-size-button:active {
+    background: #2c3563;
+  }
+
+  .brush-size-button--active {
+    border-color: #4a9eff;
+    background: #2c3563;
+    color: #fff;
+  }
+
   .bottom-panel__placeholder {
     display: flex;
     align-items: center;
@@ -212,6 +271,7 @@ export function createBottomPanel(
   let toolChangeCallback: ((tool: ToolType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
   let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
+  let brushSizeChangeCallback: ((size: BrushSize) => void) | null = null;
   let tilePickerController: TilePickerController | null = null;
   let deployPanelController: DeployPanelController | null = null;
   let activePanel: 'tiles' | 'deploy' = 'tiles';
@@ -265,6 +325,7 @@ export function createBottomPanel(
         tilePickerController?.setVisible(toolShowsTilePicker(toolType));
       }
       setActivePanel('tiles');
+      updateBrushVisibility();
 
       // Notify
       toolChangeCallback?.(toolType);
@@ -295,8 +356,47 @@ export function createBottomPanel(
   const content = document.createElement('div');
   content.className = 'bottom-panel__content';
 
+  const brushSizeRow = document.createElement('div');
+  brushSizeRow.className = 'bottom-panel__brush';
+
+  const brushLabel = document.createElement('span');
+  brushLabel.className = 'bottom-panel__brush-label';
+  brushLabel.textContent = 'Brush';
+
+  const brushButtons: Map<BrushSize, HTMLButtonElement> = new Map();
+  const brushSizes: BrushSize[] = [1, 2, 3];
+
+  const brushButtonGroup = document.createElement('div');
+  brushButtonGroup.style.display = 'flex';
+  brushButtonGroup.style.gap = '8px';
+
+  for (const size of brushSizes) {
+    const button = document.createElement('button');
+    button.className = `brush-size-button ${state.brushSize === size ? 'brush-size-button--active' : ''}`;
+    button.textContent = String(size);
+    button.setAttribute('aria-label', `Brush size ${size}`);
+    button.setAttribute('title', `Brush size ${size}`);
+
+    button.addEventListener('click', () => {
+      if (state.brushSize === size) return;
+      state.brushSize = size;
+      brushButtons.forEach((btn, value) => {
+        btn.classList.toggle('brush-size-button--active', value === size);
+      });
+      brushSizeChangeCallback?.(size);
+      console.log(`${LOG_PREFIX} Brush size changed to ${size}`);
+    });
+
+    brushButtons.set(size, button);
+    brushButtonGroup.appendChild(button);
+  }
+
+  brushSizeRow.appendChild(brushLabel);
+  brushSizeRow.appendChild(brushButtonGroup);
+
   const tilePickerSection = document.createElement('div');
   tilePickerSection.className = 'bottom-panel__section';
+  tilePickerSection.appendChild(brushSizeRow);
   content.appendChild(tilePickerSection);
 
   const deploySection = document.createElement('div');
@@ -368,12 +468,21 @@ export function createBottomPanel(
     } else {
       tilePickerController?.setVisible(toolShowsTilePicker(state.currentTool));
     }
+
+    updateBrushVisibility();
+  }
+
+  function updateBrushVisibility(): void {
+    const shouldShow = activePanel === 'tiles' && state.currentTool === 'erase';
+    brushSizeRow.classList.toggle('bottom-panel__brush--hidden', !shouldShow);
   }
 
   panel.appendChild(header);
   panel.appendChild(toolbar);
   panel.appendChild(content);
   container.appendChild(panel);
+
+  updateBrushVisibility();
 
   console.log(`${LOG_PREFIX} Bottom panel created`);
 
@@ -392,6 +501,7 @@ export function createBottomPanel(
       if (activePanel === 'tiles') {
         tilePickerController?.setVisible(toolShowsTilePicker(tool));
       }
+      updateBrushVisibility();
     },
 
     getCurrentTool() {
@@ -428,6 +538,22 @@ export function createBottomPanel(
 
     onTileSelect(callback) {
       tileSelectCallback = callback;
+    },
+
+    onBrushSizeChange(callback) {
+      brushSizeChangeCallback = callback;
+    },
+
+    setBrushSize(size: BrushSize) {
+      if (state.brushSize === size) return;
+      state.brushSize = size;
+      brushButtons.forEach((btn, value) => {
+        btn.classList.toggle('brush-size-button--active', value === size);
+      });
+    },
+
+    getBrushSize() {
+      return state.brushSize;
     },
 
     getContentContainer() {
