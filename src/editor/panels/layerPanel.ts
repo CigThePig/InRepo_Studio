@@ -63,21 +63,39 @@ const STYLES = `
   .layer-panel {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: 2px;
+    padding: 0 8px 8px;
+  }
+
+  .layer-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 4px;
+  }
+
+  .layer-panel__title {
+    color: #8a90b8;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .layer-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     min-height: 44px;
-    padding: 4px 8px;
-    border-radius: 8px;
+    padding: 4px 6px;
+    border-radius: 10px;
     background: transparent;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s;
+    border: 1px solid transparent;
   }
 
   .layer-row:active {
@@ -85,24 +103,72 @@ const STYLES = `
   }
 
   .layer-row--active {
-    background: rgba(74, 158, 255, 0.15);
-    border: 1px solid rgba(74, 158, 255, 0.3);
+    background: rgba(74, 158, 255, 0.12);
+    border-color: rgba(74, 158, 255, 0.35);
   }
 
   .layer-row--locked {
-    opacity: 0.6;
+    opacity: 0.7;
+  }
+
+  .layer-row--hidden {
+    opacity: 0.5;
+  }
+
+  .layer-row__reorder-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-right: 2px;
+  }
+
+  .layer-row__reorder {
+    width: 24px;
+    height: 18px;
+    padding: 0;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: #6a70a0;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .layer-row__reorder:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #aab0d4;
+  }
+
+  .layer-row__reorder:active {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .layer-row__reorder--disabled,
+  .layer-row__reorder:disabled {
+    opacity: 0.25;
+    cursor: default;
+    pointer-events: none;
   }
 
   .layer-row__indicator {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: transparent;
     flex-shrink: 0;
+    border: 2px solid transparent;
+    transition: all 0.15s;
   }
 
   .layer-row--active .layer-row__indicator {
     background: #4a9eff;
+    border-color: #4a9eff;
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
   }
 
   .layer-row__name {
@@ -110,49 +176,31 @@ const STYLES = `
     color: #e6ecff;
     font-size: 13px;
     font-weight: 500;
+    padding: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .layer-row--hidden .layer-row__name {
-    opacity: 0.5;
+    color: #888;
     text-decoration: line-through;
   }
 
-  
-  .layer-row__reorder {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: #aab0d4;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-  }
-
-  .layer-row__reorder:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .layer-row__reorder--disabled,
-  .layer-row__reorder:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-.layer-row__toggle {
-    min-width: 44px;
-    min-height: 44px;
+  .layer-row__toggle {
+    min-width: 40px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    font-size: 16px;
-    color: #888;
+    font-size: 15px;
+    color: #555;
+    transition: background 0.12s, color 0.12s;
   }
 
   .layer-row__toggle:active {
@@ -163,8 +211,18 @@ const STYLES = `
     color: #4a9eff;
   }
 
+  .layer-row__toggle--off {
+    color: #555;
+  }
+
   .layer-row__toggle--warning {
     color: #ff6b6b;
+  }
+
+  .layer-row__toggles {
+    display: flex;
+    align-items: center;
+    gap: 2px;
   }
 `;
 
@@ -186,6 +244,15 @@ export function createLayerPanel(
   // Create root element
   const root = document.createElement('div');
   root.className = 'layer-panel';
+
+  // Add header
+  const header = document.createElement('div');
+  header.className = 'layer-panel__header';
+  const title = document.createElement('span');
+  title.className = 'layer-panel__title';
+  title.textContent = 'Layers';
+  header.appendChild(title);
+  root.appendChild(header);
 
   // Layer rows
   const rows: Map<LayerType, HTMLDivElement> = new Map();
@@ -209,6 +276,35 @@ export function createLayerPanel(
       row.classList.add('layer-row--locked');
     }
 
+    // Reorder controls group (left side)
+    const reorderGroup = document.createElement('div');
+    reorderGroup.className = 'layer-row__reorder-group';
+
+    const moveUp = document.createElement('button');
+    moveUp.className = 'layer-row__reorder';
+    moveUp.type = 'button';
+    moveUp.textContent = '▲';
+    moveUp.setAttribute('aria-label', 'Move layer up');
+    moveUp.setAttribute('title', 'Move layer up');
+    moveUp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveLayer(layerType, -1);
+    });
+
+    const moveDown = document.createElement('button');
+    moveDown.className = 'layer-row__reorder';
+    moveDown.type = 'button';
+    moveDown.textContent = '▼';
+    moveDown.setAttribute('aria-label', 'Move layer down');
+    moveDown.setAttribute('title', 'Move layer down');
+    moveDown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveLayer(layerType, 1);
+    });
+
+    reorderGroup.appendChild(moveUp);
+    reorderGroup.appendChild(moveDown);
+
     // Active indicator
     const indicator = document.createElement('div');
     indicator.className = 'layer-row__indicator';
@@ -218,13 +314,19 @@ export function createLayerPanel(
     name.className = 'layer-row__name';
     name.textContent = LAYER_LABELS[layerType];
 
-    // Visibility toggle
+    // Toggles group (right side)
+    const togglesGroup = document.createElement('div');
+    togglesGroup.className = 'layer-row__toggles';
+
+    // Visibility toggle - use clearer icons
     const visToggle = document.createElement('button');
     visToggle.className = 'layer-row__toggle';
     visToggle.type = 'button';
-    visToggle.textContent = visibility[layerType] ? '👁' : '👁‍🗨';
+    visToggle.textContent = visibility[layerType] ? '👁' : '○';
     if (visibility[layerType]) {
       visToggle.classList.add('layer-row__toggle--on');
+    } else {
+      visToggle.classList.add('layer-row__toggle--off');
     }
     visToggle.title = visibility[layerType] ? 'Hide layer' : 'Show layer';
 
@@ -263,35 +365,14 @@ export function createLayerPanel(
       }
     });
 
-    
-    // Reorder controls (stretch)
-    const moveUp = document.createElement('button');
-    moveUp.className = 'layer-row__reorder';
-    moveUp.type = 'button';
-    moveUp.textContent = '↑';
-    moveUp.setAttribute('aria-label', 'Move layer up');
-    moveUp.setAttribute('title', 'Move layer up');
-    moveUp.addEventListener('click', (e) => {
-      e.stopPropagation();
-      moveLayer(layerType, -1);
-    });
+    togglesGroup.appendChild(visToggle);
+    togglesGroup.appendChild(lockToggle);
 
-    const moveDown = document.createElement('button');
-    moveDown.className = 'layer-row__reorder';
-    moveDown.type = 'button';
-    moveDown.textContent = '↓';
-    moveDown.setAttribute('aria-label', 'Move layer down');
-    moveDown.setAttribute('title', 'Move layer down');
-    moveDown.addEventListener('click', (e) => {
-      e.stopPropagation();
-      moveLayer(layerType, 1);
-    });
-row.appendChild(indicator);
+    // Assemble row: reorder | indicator | name | toggles
+    row.appendChild(reorderGroup);
+    row.appendChild(indicator);
     row.appendChild(name);
-    row.appendChild(moveUp);
-    row.appendChild(moveDown);
-    row.appendChild(visToggle);
-    row.appendChild(lockToggle);
+    row.appendChild(togglesGroup);
 
     rows.set(layerType, row);
     visibilityToggles.set(layerType, visToggle);
@@ -347,6 +428,9 @@ row.appendChild(indicator);
 
   container.appendChild(root);
 
+  // Initialize reorder button states
+  updateReorderButtonStates();
+
   function updateRow(layerType: LayerType): void {
     const row = rows.get(layerType);
     const visToggle = visibilityToggles.get(layerType);
@@ -359,8 +443,9 @@ row.appendChild(indicator);
 
     // Update visibility state
     row.classList.toggle('layer-row--hidden', !visibility[layerType]);
-    visToggle.textContent = visibility[layerType] ? '👁' : '👁‍🗨';
+    visToggle.textContent = visibility[layerType] ? '👁' : '○';
     visToggle.classList.toggle('layer-row__toggle--on', visibility[layerType]);
+    visToggle.classList.toggle('layer-row__toggle--off', !visibility[layerType]);
     visToggle.title = visibility[layerType] ? 'Hide layer' : 'Show layer';
 
     // Update lock state
