@@ -13,6 +13,8 @@ export {
   saveProject,
   loadProject,
   getHotProject,
+  getColdBaseline,
+  setColdBaseline,
   updateLastDeployedSha,
   saveScene,
   loadScene,
@@ -33,6 +35,7 @@ export type {
   ViewportState,
   PanelStates,
   HotProject,
+  ColdBaseline,
   StorageQuotaInfo,
   ExportData,
 } from './hot';
@@ -60,4 +63,4 @@ export {
   checkForUpdates,
 } from './migration';
 
-export type { MigrationResult } from './migration';
+export type { MigrationResult, UpdateCheckResult } from './migration';

@@ -5,8 +5,17 @@
  * Sets up the canvas, panels, and tool systems.
  */
 
-import { loadEditorState, loadProject, loadScene, saveEditorState, saveScene } from '@/storage';
-import type { EditorState } from '@/storage';
+import {
+  loadEditorState,
+  loadProject,
+  loadScene,
+  saveEditorState,
+  saveScene,
+  exportAllData,
+  checkForUpdates,
+  forceRefreshFromCold,
+} from '@/storage';
+import type { EditorState, UpdateCheckResult } from '@/storage';
 import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
@@ -25,6 +34,8 @@ import {
   switchMode,
 } from '@/boot/modeRouter';
 
+import { downloadJson } from '@/utils/download';
+
 const LOG_PREFIX = '[Editor]';
 
 // Asset base path for loading tile images
@@ -40,6 +51,8 @@ let bottomPanelController: BottomPanelController | null = null;
 let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
 let authManager: AuthManager | null = null;
+let updateInfo: UpdateCheckResult | null = null;
+let assetCacheBust: string | null = null;
 
 export function getEditorState(): EditorState | null {
   return editorState;
@@ -113,6 +126,20 @@ export async function initEditor(): Promise<void> {
   }
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
 
+  // Check if the published (cold) project has changed since this hot snapshot was created.
+  // This is non-destructive: we only surface a banner so the user can choose to refresh.
+  try {
+    updateInfo = await checkForUpdates();
+    assetCacheBust = updateInfo.cacheBust;
+    if (updateInfo.needsUpdate) {
+      console.warn(`${LOG_PREFIX} Published project appears to have changed (${updateInfo.reason})`);
+    }
+  } catch (e) {
+    console.warn(`${LOG_PREFIX} Update check failed:`, e);
+    updateInfo = null;
+    assetCacheBust = null;
+  }
+
   // Load current scene or default
   const sceneId = editorState.currentSceneId ?? currentProject.defaultScene;
   if (sceneId) {
@@ -153,6 +180,9 @@ export async function initEditor(): Promise<void> {
 
   // Initialize panels (after canvas so we can wire up canvas updates)
   initPanels();
+
+  // Render update banner (if needed) after panels exist.
+  renderSystemNotice(updateInfo);
 
   console.log(`${LOG_PREFIX} Editor initialized`);
 }
@@ -225,7 +255,8 @@ async function initCanvas(tileSize: number): Promise<void> {
   if (currentProject?.tileCategories) {
     await canvasController.preloadCategories(
       currentProject.tileCategories,
-      ASSET_BASE_PATH
+      ASSET_BASE_PATH,
+      assetCacheBust
     );
   }
 
@@ -354,6 +385,156 @@ function initPanels(): void {
   console.log(`${LOG_PREFIX} Panels initialized`);
 }
 
+
+function renderSystemNotice(info: UpdateCheckResult | null): void {
+  const container = document.getElementById('system-notice-container');
+  if (!container) return;
+
+  // Clear existing
+  container.innerHTML = '';
+  container.style.display = 'none';
+
+  if (!info) return;
+
+  // Only show a banner when we have a strong signal that cold changed or hot baseline is missing+diff.
+  if (!info.needsUpdate) return;
+
+  // Allow dismissing per-session for the current fingerprint.
+  const dismissKey = `inrepo_dismiss_update_banner:${info.remote?.etag ?? info.remote?.lastModified ?? 'unknown'}`;
+  if (sessionStorage.getItem(dismissKey) === 'true') {
+    return;
+  }
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    background: #2a1f3a;
+    border-bottom: 1px solid #3a2a6e;
+    color: #f0e6ff;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  `;
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-weight: 700; font-size: 13px;';
+  title.textContent = 'Published project changed on GitHub';
+
+  const desc = document.createElement('div');
+  desc.style.cssText = 'font-size: 12px; color: #cbbbe8; line-height: 1.35;';
+  desc.textContent =
+    'Your editor is using a local (hot) copy that may be out of date. Refreshing will overwrite local edits, so export a backup first if you want to keep them.';
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap;';
+
+  const btnPrimary = document.createElement('button');
+  btnPrimary.type = 'button';
+  btnPrimary.textContent = 'Refresh from Repo';
+  btnPrimary.style.cssText = `
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: none;
+    background: #ff6b6b;
+    color: #1a0f14;
+    font-weight: 800;
+    cursor: pointer;
+  `;
+
+  const btnSecondary = document.createElement('button');
+  btnSecondary.type = 'button';
+  btnSecondary.textContent = 'Export Local Backup';
+  btnSecondary.style.cssText = `
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a6e;
+    background: #1f1f3a;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  `;
+
+  const btnDismiss = document.createElement('button');
+  btnDismiss.type = 'button';
+  btnDismiss.textContent = 'Dismiss';
+  btnDismiss.style.cssText = `
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a6e;
+    background: transparent;
+    color: #cbbbe8;
+    font-weight: 700;
+    cursor: pointer;
+  `;
+
+  const status = document.createElement('div');
+  status.style.cssText = 'font-size: 12px; color: #aab0d4;';
+  status.textContent = '';
+
+  async function exportBackup(): Promise<void> {
+    const data = await exportAllData();
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadJson(`inrepo-hot-backup-${ts}.json`, data);
+  }
+
+  btnSecondary.addEventListener('click', async () => {
+    try {
+      status.textContent = 'Exporting...';
+      await exportBackup();
+      status.textContent = 'Backup exported.';
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Export failed (see console).';
+    }
+  });
+
+  btnPrimary.addEventListener('click', async () => {
+    const ok = window.confirm(
+      'Refresh from Repo will overwrite your local (hot) edits with the published repo version.\n\nTip: Export a backup first if you might want to restore your edits.\n\nContinue?'
+    );
+    if (!ok) return;
+
+    try {
+      status.textContent = 'Exporting backup...';
+      await exportBackup();
+
+      status.textContent = 'Refreshing from repo...';
+      const result = await forceRefreshFromCold();
+      if (!result.success) {
+        status.textContent = `Refresh failed: ${result.errors.join('; ')}`;
+        return;
+      }
+
+      status.textContent = 'Done. Reloading...';
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Refresh failed (see console).';
+    }
+  });
+
+  btnDismiss.addEventListener('click', () => {
+    sessionStorage.setItem(dismissKey, 'true');
+    container.innerHTML = '';
+    container.style.display = 'none';
+  });
+
+  actions.appendChild(btnPrimary);
+  actions.appendChild(btnSecondary);
+  actions.appendChild(btnDismiss);
+
+  banner.appendChild(title);
+  banner.appendChild(desc);
+  banner.appendChild(actions);
+  banner.appendChild(status);
+
+  container.appendChild(banner);
+  container.style.display = 'block';
+}
+
 // --- UI Rendering ---
 
 function renderEditorUI(): void {
@@ -371,6 +552,9 @@ function renderEditorUI(): void {
     ">
       <!-- Top Panel Container -->
       <div id="top-panel-container"></div>
+
+      <!-- System Notice (update banner, etc.) -->
+      <div id="system-notice-container"></div>
 
       <!-- Canvas Area -->
       <div id="canvas-container" style="

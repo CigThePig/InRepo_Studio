@@ -29,7 +29,7 @@ export interface TileImageCache {
   getTileImage(category: string, index: number): HTMLImageElement | null;
 
   /** Preload all tiles for a category */
-  preloadCategory(category: TileCategory, basePath: string): Promise<void>;
+  preloadCategory(category: TileCategory, basePath: string, cacheBust?: string | null): Promise<void>;
 
   /** Check if an image is loaded */
   isLoaded(category: string, index: number): boolean;
@@ -51,6 +51,13 @@ export interface TileImageCache {
 
 function makeCacheKey(category: string, index: number): string {
   return `${category}:${index}`;
+}
+
+
+function appendCacheBust(url: string, cacheBust?: string | null): string {
+  if (!cacheBust) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${encodeURIComponent(cacheBust)}`;
 }
 
 // --- Factory ---
@@ -111,13 +118,13 @@ export function createTileCache(): TileImageCache {
       return imageCache.get(key) ?? null;
     },
 
-    async preloadCategory(category: TileCategory, basePath: string): Promise<void> {
+    async preloadCategory(category: TileCategory, basePath: string, cacheBust?: string | null): Promise<void> {
       const promises: Promise<HTMLImageElement | null>[] = [];
 
       for (let i = 0; i < category.files.length; i++) {
         const filename = category.files[i];
         const key = makeCacheKey(category.name, i);
-        const src = `${basePath}/${category.path}/${filename}`;
+        const src = appendCacheBust(`${basePath}/${category.path}/${filename}`, cacheBust);
 
         // Store path for debugging
         pathCache.set(key, src);

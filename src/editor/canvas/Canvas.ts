@@ -87,7 +87,7 @@ export interface CanvasController {
   getRenderer(): TilemapRenderer;
 
   /** Preload tile images for categories */
-  preloadCategories(categories: TileCategory[], basePath: string): Promise<void>;
+  preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null): Promise<void>;
 }
 
 export interface CanvasOptions {
@@ -476,9 +476,9 @@ export function createCanvas(
       return renderer;
     },
 
-    async preloadCategories(categories: TileCategory[], basePath: string) {
+    async preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null) {
       for (const category of categories) {
-        await tileCache.preloadCategory(category, basePath);
+        await tileCache.preloadCategory(category, basePath, cacheBust);
       }
       isDirty = true;
       scheduleRender();

@@ -136,7 +136,7 @@ export async function checkFreshness(path: string): Promise<FreshnessCheck> {
   const url = resolveGamePath(path);
 
   try {
-    const response = await fetch(url, { method: 'HEAD' });
+    const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
 
     if (!response.ok) {
       return { etag: null, lastModified: null, sha: null };

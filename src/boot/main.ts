@@ -20,7 +20,7 @@ import {
   getPlaytestSceneId,
   switchMode,
 } from './modeRouter';
-import { initHotStorage, needsMigration, migrateFromCold, loadProject } from '@/storage';
+import { initHotStorage, needsMigration, migrateFromCold, forceRefreshFromCold, loadProject } from '@/storage';
 
 const LOG_PREFIX = '[Boot]';
 
@@ -131,6 +131,24 @@ async function boot(): Promise<void> {
     // Initialize hot storage
     updateLoadingText('Initializing storage...');
     await initHotStorage();
+
+    // Optional: explicit reset trigger (?reset=1) to wipe hot storage and re-seed from repo.
+    // This is an escape hatch for stale IndexedDB data (mobile cache quirks, etc.).
+    const params = new URLSearchParams(window.location.search);
+    const reset = params.get('reset') === 'true' || params.get('reset') === '1';
+    if (reset) {
+      updateLoadingText('Resetting local data...');
+      console.log(`${LOG_PREFIX} Reset requested via query param`);
+      try {
+        await forceRefreshFromCold();
+      } catch (e) {
+        console.warn(`${LOG_PREFIX} Reset failed:`, e);
+      }
+      params.delete('reset');
+      const url = new URL(window.location.href);
+      url.search = params.toString();
+      history.replaceState({}, '', url.toString());
+    }
 
     // Check if migration is needed
     if (await needsMigration()) {

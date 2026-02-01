@@ -62,7 +62,18 @@ export interface EditorState {
 
 // --- Hot Project Schema ---
 
+export interface ColdBaseline {
+  project: {
+    etag: string | null;
+    lastModified: string | null;
+  };
+  checkedAt: number;
+}
+
 export interface HotProject {
+  /** Last known cold (repo) fingerprint used to seed/compare hot data. */
+  coldBaseline?: ColdBaseline;
+
   project: Project;
   lastSaved: number;
   lastDeployedSha: Record<string, string>;
@@ -133,10 +144,13 @@ function getDB(): IDBPDatabase<InRepoStudioDB> {
 
 export async function saveProject(project: Project): Promise<void> {
   const database = getDB();
+  const existing = await database.get('project', 'current');
+
   const hotProject: HotProject = {
     project,
     lastSaved: Date.now(),
-    lastDeployedSha: {},
+    lastDeployedSha: existing?.lastDeployedSha ?? {},
+    coldBaseline: existing?.coldBaseline,
   };
 
   await database.put('project', hotProject, 'current');
@@ -159,6 +173,21 @@ export async function loadProject(): Promise<Project | null> {
 export async function getHotProject(): Promise<HotProject | null> {
   const database = getDB();
   return await database.get('project', 'current') ?? null;
+}
+
+export async function getColdBaseline(): Promise<ColdBaseline | null> {
+  const hotProject = await getHotProject();
+  return hotProject?.coldBaseline ?? null;
+}
+
+export async function setColdBaseline(baseline: ColdBaseline): Promise<void> {
+  const database = getDB();
+  const hotProject = await database.get('project', 'current');
+  if (!hotProject) return;
+
+  hotProject.coldBaseline = baseline;
+  await database.put('project', hotProject, 'current');
+  console.log(`${LOG_PREFIX} Cold baseline updated`);
 }
 
 export async function updateLastDeployedSha(filePath: string, sha: string): Promise<void> {
@@ -327,6 +356,7 @@ export async function importAllData(data: ExportData): Promise<void> {
       project: data.project,
       lastSaved: Date.now(),
       lastDeployedSha: {},
+      coldBaseline: undefined,
     };
     await tx.objectStore('project').put(hotProject, 'current');
   }
