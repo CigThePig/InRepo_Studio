@@ -223,7 +223,7 @@ export function createGestureHandler(
     }
 
     if (gestureState === 'long_press') {
-      // In long-press state, don't process further movement
+      callbacks.onToolMove?.(newX, newY);
       return;
     }
 
@@ -297,7 +297,7 @@ export function createGestureHandler(
 
     if (pointerCount === 0) {
       // All fingers lifted
-      if (gestureState === 'tool') {
+      if (gestureState === 'tool' || gestureState === 'long_press') {
         callbacks.onToolEnd?.();
       }
       clearAllTimeouts();

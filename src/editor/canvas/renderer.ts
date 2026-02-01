@@ -47,6 +47,12 @@ const HOVER_HIGHLIGHT_FILL = 'rgba(255, 255, 255, 0.25)';
 const HOVER_HIGHLIGHT_BORDER = 'rgba(74, 158, 255, 0.9)';
 const HOVER_HIGHLIGHT_BORDER_WIDTH = 2;
 
+/** Selection styling */
+const SELECTION_BORDER = 'rgba(74, 158, 255, 0.9)';
+const SELECTION_FILL = 'rgba(74, 158, 255, 0.2)';
+const SELECTION_BORDER_WIDTH = 2;
+const SELECTION_MOVE_BORDER = 'rgba(114, 255, 196, 0.9)';
+
 // Re-export TOUCH_OFFSET_Y for backwards compatibility
 export { TOUCH_OFFSET_Y } from './touchConfig';
 
@@ -62,6 +68,18 @@ export interface TilemapRendererConfig {
 export interface HoverStyle {
   fill: string;
   border: string;
+}
+
+interface SelectionOverlayState {
+  selection: {
+    startX: number;
+    startY: number;
+    width: number;
+    height: number;
+    layer: LayerType;
+  } | null;
+  moveOffset: { x: number; y: number } | null;
+  previewTiles: number[][] | null;
 }
 
 export interface TilemapRenderer {
@@ -95,6 +113,9 @@ export interface TilemapRenderer {
   /** Get the current hover tile position */
   getHoverTile(): { x: number; y: number } | null;
 
+  /** Set selection overlay state */
+  setSelectionOverlay(state: SelectionOverlayState): void;
+
   /** Render the tilemap to the canvas context */
   render(
     ctx: CanvasRenderingContext2D,
@@ -125,6 +146,11 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   let hoverStyle: HoverStyle = {
     fill: HOVER_HIGHLIGHT_FILL,
     border: HOVER_HIGHLIGHT_BORDER,
+  };
+  let selectionOverlay: SelectionOverlayState = {
+    selection: null,
+    moveOffset: null,
+    previewTiles: null,
   };
   let dirty = true;
 
@@ -255,6 +281,95 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     }
   }
 
+  function renderSelectionOverlay(
+    ctx: CanvasRenderingContext2D,
+    viewport: ViewportState,
+    tileSize: number,
+    sceneWidth: number,
+    sceneHeight: number
+  ): void {
+    if (!selectionOverlay.selection) return;
+
+    const { selection, moveOffset, previewTiles } = selectionOverlay;
+    const screenTileSize = tileSize * viewport.zoom;
+
+    const renderSelectionRect = (startX: number, startY: number, width: number, height: number, border: string) => {
+      const screenPos = tileToScreen(viewport, startX, startY, tileSize);
+      ctx.lineWidth = SELECTION_BORDER_WIDTH;
+      ctx.fillStyle = SELECTION_FILL;
+      ctx.strokeStyle = border;
+      ctx.fillRect(
+        screenPos.x,
+        screenPos.y,
+        width * screenTileSize,
+        height * screenTileSize
+      );
+      ctx.strokeRect(
+        screenPos.x + 1,
+        screenPos.y + 1,
+        width * screenTileSize - 2,
+        height * screenTileSize - 2
+      );
+    };
+
+    renderSelectionRect(
+      selection.startX,
+      selection.startY,
+      selection.width,
+      selection.height,
+      SELECTION_BORDER
+    );
+
+    if (!moveOffset || !previewTiles) return;
+
+    const previewStartX = selection.startX + moveOffset.x;
+    const previewStartY = selection.startY + moveOffset.y;
+
+    renderSelectionRect(
+      previewStartX,
+      previewStartY,
+      selection.width,
+      selection.height,
+      SELECTION_MOVE_BORDER
+    );
+
+    if (!scene) return;
+
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+
+    for (let y = 0; y < previewTiles.length; y += 1) {
+      for (let x = 0; x < previewTiles[y].length; x += 1) {
+        const value = previewTiles[y][x];
+        if (value === 0) continue;
+
+        const destX = previewStartX + x;
+        const destY = previewStartY + y;
+
+        if (destX < 0 || destX >= sceneWidth || destY < 0 || destY >= sceneHeight) {
+          continue;
+        }
+
+        const screenPos = tileToScreen(viewport, destX, destY, tileSize);
+
+        if (selection.layer === 'collision' || selection.layer === 'triggers') {
+          ctx.fillStyle = LAYER_COLORS[selection.layer];
+          ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+          continue;
+        }
+
+        const resolved = resolveTileGid(scene, value);
+        if (!resolved) continue;
+        const img = tileCache.getTileImage(resolved.category, resolved.index);
+        if (img) {
+          ctx.drawImage(img, screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
   // --- Renderer Instance ---
 
   const renderer: TilemapRenderer = {
@@ -323,6 +438,11 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       return { x: hoverTileX, y: hoverTileY };
     },
 
+    setSelectionOverlay(state: SelectionOverlayState): void {
+      selectionOverlay = state;
+      dirty = true;
+    },
+
     render(
       ctx: CanvasRenderingContext2D,
       viewport: ViewportState,
@@ -367,6 +487,8 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           sceneHeight
         );
       }
+
+      renderSelectionOverlay(ctx, viewport, tileSize, sceneWidth, sceneHeight);
 
       dirty = false;
     },

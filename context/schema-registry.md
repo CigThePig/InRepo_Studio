@@ -91,6 +91,10 @@ Rules:
     - Values: select, paint, erase, entity
     - Invariant: exactly one tool active at a time
 
+- `/src/editor/tools/select.ts`
+  - `SelectToolMode` — selection tool sub-states
+    - Values: idle, selecting, selected, moving, pasting
+
 - `/src/editor/canvas/viewport.ts`
   - `ViewportState` — pan/zoom state (re-exported from storage/hot.ts)
     - Keys: panX, panY, zoom
