@@ -7,7 +7,7 @@ Owns:
 - PAT input/validation and storage policy (session default)
 - Change detection (hot vs cold)
 - SHA freshness checks and conflict detection UI
-- Commit/write flow (files and small binary images)
+- Commit/write flow (project + scene JSON files)
 
 Does NOT own:
 - Editor UI layout (use `/src/editor/panels`)

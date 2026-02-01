@@ -6,6 +6,7 @@
  */
 
 import type { TileCategory } from '@/types';
+import type { TileImageCache } from '@/editor/canvas/tileCache';
 
 const LOG_PREFIX = '[TilePicker]';
 
@@ -47,6 +48,13 @@ export interface TilePickerController {
 
   /** Clean up resources */
   destroy(): void;
+}
+
+export interface TilePickerOptions {
+  /** Optional shared cache from the canvas renderer (avoids duplicate loads and keeps cache-bust consistent). */
+  tileCache?: TileImageCache;
+  /** Optional cache-bust token (used when tileCache is not provided). */
+  cacheBust?: string | null;
 }
 
 // --- Styles ---
@@ -173,6 +181,12 @@ const STYLES = `
 
 const imageCache = new Map<string, HTMLImageElement>();
 
+function appendCacheBust(url: string, cacheBust?: string | null): string {
+  if (!cacheBust) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${encodeURIComponent(cacheBust)}`;
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   const cached = imageCache.get(src);
   if (cached) {
@@ -198,7 +212,8 @@ export function createTilePicker(
   container: HTMLElement,
   categories: TileCategory[],
   assetBasePath: string,
-  initialState?: { category?: string; tileIndex?: number }
+  initialState?: { category?: string; tileIndex?: number },
+  options: TilePickerOptions = {}
 ): TilePickerController {
   const state: TilePickerState = {
     categories,
@@ -208,6 +223,9 @@ export function createTilePicker(
 
   let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
   let categoryChangeCallback: ((categoryName: string) => void) | null = null;
+
+  const sharedTileCache = options.tileCache;
+  const cacheBust = options.cacheBust ?? null;
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -292,9 +310,90 @@ export function createTilePicker(
 
   const tileCells = new Map<number, HTMLElement>();
 
+  // When using the shared tile cache, keep track of visible cells that are still waiting on images.
+  const pendingCells = new Map<number, { filename: string }>();
+
+  function renderCellImage(
+    cell: HTMLElement,
+    categoryName: string,
+    categoryPath: string,
+    index: number,
+    filename: string
+  ): void {
+    cell.innerHTML = '';
+    const imgEl = document.createElement('img');
+    imgEl.className = 'tile-cell__img';
+    imgEl.alt = filename;
+
+    if (sharedTileCache) {
+      const cachedImg = sharedTileCache.getTileImage(categoryName, index);
+      if (!cachedImg) {
+        // Not ready yet; keep placeholder.
+        const placeholder = document.createElement('div');
+        placeholder.className = 'tile-cell__placeholder';
+        cell.appendChild(placeholder);
+        pendingCells.set(index, { filename });
+        return;
+      }
+      imgEl.src = cachedImg.src;
+      cell.appendChild(imgEl);
+      return;
+    }
+
+    const url = appendCacheBust(`${assetBasePath}/${categoryPath}/${filename}`, cacheBust);
+    loadImage(url)
+      .then((img) => {
+        imgEl.src = img.src;
+        cell.appendChild(imgEl);
+      })
+      .catch(() => {
+        cell.innerHTML = '';
+        const errorEl = document.createElement('span');
+        errorEl.className = 'tile-cell__error';
+        errorEl.textContent = '?';
+        errorEl.title = `Failed to load: ${filename}`;
+        cell.appendChild(errorEl);
+        console.warn(`${LOG_PREFIX} Failed to load tile: ${url}`);
+      });
+  }
+
+  function tryResolvePendingCells(): void {
+    if (!sharedTileCache) return;
+    const category = categories.find(c => c.name === state.selectedCategory);
+    if (!category) return;
+
+    // Only update cells that are currently visible for the active category.
+    for (const [index, meta] of pendingCells) {
+      const cell = tileCells.get(index);
+      if (!cell) {
+        pendingCells.delete(index);
+        continue;
+      }
+      const img = sharedTileCache.getTileImage(category.name, index);
+      if (img) {
+        cell.innerHTML = '';
+        const imgEl = document.createElement('img');
+        imgEl.className = 'tile-cell__img';
+        imgEl.src = img.src;
+        imgEl.alt = meta.filename;
+        cell.appendChild(imgEl);
+        pendingCells.delete(index);
+      }
+    }
+  }
+
+  // If we're using the shared cache, refresh tile picker cells as images become available.
+  const onSharedCacheLoad = () => {
+    tryResolvePendingCells();
+  };
+  if (sharedTileCache) {
+    sharedTileCache.onImageLoad(onSharedCacheLoad);
+  }
+
   function renderTileGrid(): void {
     tileGrid.innerHTML = '';
     tileCells.clear();
+    pendingCells.clear();
 
     const category = categories.find(c => c.name === state.selectedCategory);
     if (!category) {
@@ -318,31 +417,8 @@ export function createTilePicker(
       cell.className = `tile-cell ${state.selectedTileIndex === index ? 'tile-cell--selected' : ''}`;
       cell.setAttribute('data-index', String(index));
 
-      // Placeholder while loading
-      const placeholder = document.createElement('div');
-      placeholder.className = 'tile-cell__placeholder';
-      cell.appendChild(placeholder);
-
-      // Load image
-      const imagePath = `${assetBasePath}/${category.path}/${filename}`;
-      loadImage(imagePath)
-        .then((img) => {
-          cell.innerHTML = '';
-          const imgEl = document.createElement('img');
-          imgEl.className = 'tile-cell__img';
-          imgEl.src = img.src;
-          imgEl.alt = filename;
-          cell.appendChild(imgEl);
-        })
-        .catch(() => {
-          cell.innerHTML = '';
-          const errorEl = document.createElement('span');
-          errorEl.className = 'tile-cell__error';
-          errorEl.textContent = '?';
-          errorEl.title = `Failed to load: ${filename}`;
-          cell.appendChild(errorEl);
-          console.warn(`${LOG_PREFIX} Failed to load tile: ${imagePath}`);
-        });
+      // Render tile image (shared cache preferred; falls back to direct image loading)
+      renderCellImage(cell, category.name, category.path, index, filename);
 
       // Click handler
       cell.addEventListener('click', () => {
@@ -369,6 +445,9 @@ export function createTilePicker(
       tileCells.set(index, cell);
       tileGrid.appendChild(cell);
     });
+
+    // If some images were already loaded in the shared cache, resolve them immediately.
+    tryResolvePendingCells();
   }
 
   // Initial render
@@ -446,6 +525,9 @@ export function createTilePicker(
     destroy() {
       container.removeChild(picker);
       document.head.removeChild(styleEl);
+      if (sharedTileCache) {
+        sharedTileCache.offImageLoad(onSharedCacheLoad);
+      }
       console.log(`${LOG_PREFIX} Tile picker destroyed`);
     },
   };

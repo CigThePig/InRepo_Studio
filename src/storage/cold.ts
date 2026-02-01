@@ -175,16 +175,79 @@ export async function hasRemoteChanges(
 export async function discoverScenes(project: Project): Promise<string[]> {
   const sceneIds = new Set<string>();
 
-  // Add default scene
-  if (project.defaultScene) {
-    sceneIds.add(project.defaultScene);
+  const addSceneId = (id: unknown): void => {
+    if (typeof id !== 'string') return;
+    const trimmed = id.trim();
+    if (!trimmed) return;
+    // Keep IDs conservative: avoid path traversal and file extensions.
+    // Scene files are expected at `game/scenes/<id>.json`.
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return;
+    sceneIds.add(trimmed);
+  };
+
+  // Always include the project's default scene
+  addSceneId(project.defaultScene);
+
+  /**
+   * GitHub Pages cannot provide directory listings. To support multi-scene projects
+   * (and offline-after-load), we optionally read a manifest if the game provides one.
+   *
+   * Supported optional manifests (first one found wins):
+   * - `game/scenes/index.json` (recommended)
+   * - `game/scenes/manifest.json`
+   * - `game/scenes.json`
+   *
+   * Accepted JSON shapes:
+   * - string[]: ["main", "town", ...]
+   * - { scenes: string[] }
+   * - { scenes: { id: string }[] }
+   * - { ids: string[] }
+   *
+   * If none exist, we fall back to just the default scene.
+   */
+  const candidates = ['scenes/index.json', 'scenes/manifest.json', 'scenes.json'];
+
+  for (const manifestPath of candidates) {
+    const url = resolveGamePath(manifestPath);
+    const before = sceneIds.size;
+
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) continue;
+
+      const data = await response.json();
+
+      let list: unknown[] | null = null;
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && typeof data === 'object') {
+        const obj = data as Record<string, unknown>;
+        if (Array.isArray(obj.scenes)) list = obj.scenes as unknown[];
+        else if (Array.isArray(obj.ids)) list = obj.ids as unknown[];
+      }
+
+      if (!list) continue;
+
+      for (const entry of list) {
+        if (typeof entry === 'string') addSceneId(entry);
+        else if (entry && typeof entry === 'object') {
+          addSceneId((entry as any).id);
+        }
+      }
+
+      if (sceneIds.size > before) {
+        console.log(`${LOG_PREFIX} Discovered ${sceneIds.size} scenes via ${manifestPath}`);
+        break;
+      }
+    } catch (error) {
+      // Non-fatal: we can still run with the default scene.
+      console.warn(`${LOG_PREFIX} Failed to read scene manifest ${manifestPath}:`, error);
+    }
   }
 
-  // Try to find scenes by checking for scene files
-  // In a real scenario, we'd need a manifest or directory listing
-  // For now, just return the default scene
   return Array.from(sceneIds);
 }
+
 
 // --- Preload Assets ---
 

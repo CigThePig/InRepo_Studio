@@ -95,6 +95,12 @@ const STYLES = `
     cursor: pointer;
   }
 
+  .conflict-action-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+  }
+
   .conflict-action-btn.active {
     border-color: #4a9eff;
     background: #2f3f68;
@@ -184,11 +190,15 @@ export function createConflictResolver(container: HTMLElement = document.body): 
     conflicts.forEach((conflict) => {
       const card = document.createElement('div');
       card.className = 'conflict-card';
+      const remoteHint =
+        conflict.remoteSha === null ? 'Remote file is missing (deleted).' : 'Remote file exists on GitHub.';
+
       card.innerHTML = `
         <div class="conflict-path">${conflict.path}</div>
+        <div class="conflict-help">${remoteHint}</div>
         <div class="conflict-actions">
           <button class="conflict-action-btn" data-resolution="overwrite" type="button">Overwrite</button>
-          <button class="conflict-action-btn" data-resolution="pull" type="button">Pull remote</button>
+          <button class="conflict-action-btn" data-resolution="pull" type="button" ${conflict.remoteSha === null ? 'disabled' : ''}>Pull remote</button>
           <button class="conflict-action-btn active" data-resolution="skip" type="button">Skip</button>
         </div>
       `;

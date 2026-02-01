@@ -32,18 +32,40 @@ function getQueryParams(): URLSearchParams {
   return new URLSearchParams(window.location.search);
 }
 
+function isPlaytestDisabledByQuery(params: URLSearchParams): boolean {
+  const v = (params.get('playtest') ?? '').toLowerCase();
+  return v === '0' || v === 'false' || v === 'off' || v === 'disable';
+}
+
 /**
  * Determine the app mode from query parameters
  * - ?tool=editor -> editor mode
  * - otherwise -> game mode
  */
 export function detectMode(): AppMode {
+  const params = getQueryParams();
+
+  const disablePlaytest = isPlaytestDisabledByQuery(params);
+
+  // Escape hatch: if a playtest session flag is stuck (e.g., crash mid-playtest),
+  // allow forcing normal routing via `?playtest=0`.
+  if (disablePlaytest && isPlaytestMode()) {
+    console.warn(`${LOG_PREFIX} Playtest disabled via query param; clearing session flag`);
+    cleanupPlaytest();
+  }
+
+  // Treat the escape hatch as one-shot so it doesn't permanently break starting playtest later.
+  if (disablePlaytest && params.has('playtest')) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('playtest');
+    history.replaceState({}, '', url.toString());
+  }
+
   if (isPlaytestMode()) {
     console.log(`${LOG_PREFIX} Playtest mode detected (session flag)`);
     return 'playtest';
   }
 
-  const params = getQueryParams();
   const tool = params.get('tool');
 
   if (tool === 'editor') {

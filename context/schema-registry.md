@@ -56,6 +56,12 @@ Rules:
     - Keys: id, type, x, y, properties{}
     - Invariant: type must reference valid entityType from project
 
+
+- `/game/scenes/index.json`
+  - `SceneIndexSchema` — optional scene manifest to enable cold-start discovery on GitHub Pages
+    - Shapes supported: string[], { scenes: string[] }, { scenes: {id:string}[] }, { ids: string[] }
+    - Invariant: ids map to files at `game/scenes/<id>.json`
+
 - `/src/types/entity.ts`
   - `PropertyDefinitionSchema` — entity property schema
     - Keys: name, type, default, constraints{}
@@ -72,7 +78,7 @@ Rules:
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)
   - `HotProjectSchema` — IndexedDB project record
-    - Keys: project (ProjectSchema), lastSaved, lastDeployedSha{}
+    - Keys: project (ProjectSchema), lastSaved, lastDeployedSha{}, coldBaseline?{project{etag,lastModified},checkedAt}
 
 - `/src/storage/cold.ts`
   - `FreshnessCheckSchema` — remote file state

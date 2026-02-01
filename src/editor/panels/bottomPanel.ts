@@ -8,6 +8,7 @@
 import type { Project } from '@/types';
 import type { AuthManager } from '@/deploy';
 import type { BrushSize } from '@/storage/hot';
+import type { TileImageCache } from '@/editor/canvas/tileCache';
 import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
@@ -70,6 +71,10 @@ export interface BottomPanelController {
 
 export interface BottomPanelOptions {
   authManager?: AuthManager;
+  /** Optional shared tile cache (from canvas) so the tile picker doesn't re-fetch assets. */
+  tileCache?: TileImageCache;
+  /** Optional cache-bust token for tile picker fallback loading. */
+  cacheBust?: string | null;
 }
 
 // --- Tool Configuration ---
@@ -411,7 +416,11 @@ export function createBottomPanel(
       assetBasePath,
       state.selectedTile
         ? { category: state.selectedTile.category, tileIndex: state.selectedTile.index }
-        : undefined
+        : undefined,
+      {
+        tileCache: options.tileCache,
+        cacheBust: options.cacheBust,
+      }
     );
 
     // Wire up tile selection callback

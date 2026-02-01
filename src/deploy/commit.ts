@@ -125,8 +125,10 @@ export function createCommitter(config: CommitConfig): Committer {
       const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${change.path}`;
 
       if (change.status === 'deleted') {
+        // If the file is already missing remotely, the delete is effectively a no-op.
+        // Treat this as success so deploy can still advance the local SHA store.
         if (!remoteSha) {
-          return { success: false, path: change.path, error: 'Missing remote SHA for delete' };
+          return { success: true, path: change.path };
         }
 
         const deleteResponse = await fetch(url, {
@@ -297,6 +299,101 @@ async function resolveConflicts(
   return filesToCommit;
 }
 
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function deepEqualJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (!deepEqualJson(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const aKeys = Object.keys(a).sort();
+    const bKeys = Object.keys(b).sort();
+    if (aKeys.length !== bKeys.length) return false;
+    for (let i = 0; i < aKeys.length; i += 1) {
+      if (aKeys[i] !== bKeys[i]) return false;
+      const key = aKeys[i]!;
+      if (!deepEqualJson(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
+  // primitives / mismatched types
+  return false;
+}
+
+function tryParseJson(value: string): unknown | null {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * If SHA tracking is missing (new device / cleared storage) but local hot content
+ * matches the current remote file, we can safely "baseline" the SHA store without
+ * forcing the user through conflict resolution.
+ *
+ * This protects against accidental overwrites while still making first-run deploy UX sane.
+ */
+async function pruneBaselineNoops(
+  changes: FileChange[],
+  remoteShas: Record<string, string | null>,
+  shaManager: ShaManager,
+  shaStore: ShaStore
+): Promise<{ remaining: FileChange[]; baselined: number }> {
+  let baselined = 0;
+  const remaining: FileChange[] = [];
+
+  for (const change of changes) {
+    const remoteSha = remoteShas[change.path] ?? null;
+
+    // Only consider "added" files that exist remotely (store missing localSha).
+    if (
+      change.status === 'added' &&
+      change.localSha === null &&
+      remoteSha !== null &&
+      typeof change.content === 'string' &&
+      typeof change.contentHash === 'string'
+    ) {
+      const remote = await shaManager.fetchRemoteContent(change.path);
+      if (remote?.content) {
+        const localJson = tryParseJson(change.content);
+        const remoteJson = tryParseJson(remote.content);
+
+        const equivalent =
+          localJson !== null && remoteJson !== null
+            ? deepEqualJson(localJson, remoteJson)
+            : change.content.trim() === remote.content.trim();
+
+        if (equivalent) {
+          shaStore.set(change.path, {
+            sha: remote.sha,
+            contentHash: change.contentHash,
+            updatedAt: new Date().toISOString(),
+          });
+          baselined += 1;
+          continue; // Drop from deploy list (no-op).
+        }
+      }
+    }
+
+    remaining.push(change);
+  }
+
+  return { remaining, baselined };
+}
+
 export async function deployChanges(config: DeployOrchestratorConfig): Promise<void> {
   const { authManager, changeDetector, shaManager, committer, deployUI } = config;
 
@@ -324,7 +421,29 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
     const paths = changes.map((change) => change.path);
     const remoteShas = await shaManager.fetchRemoteShas(paths);
 
-    const conflictResult = detectConflicts(changes, remoteShas);
+    // Create a working SHA store once for this deploy attempt.
+    const shaStore = await shaManager.createStore();
+
+    // If the user is on a fresh device / cleared storage, we may have "added" files
+    // that already exist remotely. When local content matches remote content, we can
+    // baseline the SHA store and drop those files from the deploy list.
+    const { remaining: effectiveChanges, baselined } = await pruneBaselineNoops(
+      changes,
+      remoteShas,
+      shaManager,
+      shaStore
+    );
+
+    if (baselined > 0) {
+      await shaStore.save();
+    }
+
+    if (effectiveChanges.length === 0) {
+      deployUI.setStatus({ phase: 'done', message: 'No changes to deploy.' });
+      return;
+    }
+
+    const conflictResult = detectConflicts(effectiveChanges, remoteShas);
 
     let filesToCommit = conflictResult.safe;
     if (conflictResult.conflicts.length > 0) {
@@ -339,7 +458,6 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
         return;
       }
 
-      const shaStore = await shaManager.createStore();
       filesToCommit = await resolveConflicts(conflictResult, resolutions, shaManager, shaStore);
       await shaStore.save();
     }
@@ -366,7 +484,7 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
       }
     );
 
-    const shaStore = await shaManager.createStore();
+    const resultStore = await shaManager.createStore();
     for (const result of results) {
       if (result.success) {
         const change = filesToCommit.find((item) => item.path === result.path);
@@ -374,11 +492,11 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
           continue;
         }
         if (change.status === 'deleted') {
-          shaStore.remove(result.path);
+          resultStore.remove(result.path);
           continue;
         }
         if (result.newSha && change.contentHash) {
-          shaStore.set(result.path, {
+          resultStore.set(result.path, {
             sha: result.newSha,
             contentHash: change.contentHash,
             updatedAt: new Date().toISOString(),
@@ -386,7 +504,7 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
         }
       }
     }
-    await shaStore.save();
+    await resultStore.save();
 
     const successCount = results.filter((result) => result.success).length;
     const failCount = results.filter((result) => !result.success).length;

@@ -15,7 +15,7 @@
 
 import {
   getBootConfig,
-  type AppMode,
+  type BootConfig,
   cleanupPlaytest,
   getPlaytestSceneId,
   switchMode,
@@ -77,13 +77,13 @@ async function bootEditor(): Promise<void> {
 
 // --- Game Boot ---
 
-async function bootGame(): Promise<void> {
+async function bootGame(config: BootConfig): Promise<void> {
   console.log(`${LOG_PREFIX} Booting game mode...`);
   updateLoadingText('Loading game...');
 
   // Dynamically import runtime module
   const { initRuntime } = await import('@/runtime/init');
-  await initRuntime({ dataSource: 'cold' });
+  await initRuntime({ dataSource: 'cold', startSceneId: config.sceneOverride });
 
   hideLoading();
   console.log(`${LOG_PREFIX} Game ready`);
@@ -91,7 +91,7 @@ async function bootGame(): Promise<void> {
 
 // --- Playtest Boot ---
 
-async function bootPlaytest(): Promise<void> {
+async function bootPlaytest(config: BootConfig): Promise<void> {
   console.log(`${LOG_PREFIX} Booting playtest mode...`);
   updateLoadingText('Loading playtest...');
 
@@ -99,7 +99,7 @@ async function bootPlaytest(): Promise<void> {
   const { createUnifiedLoader } = await import('@/runtime/loader');
   const { createPlaytestOverlay } = await import('@/runtime/playtestOverlay');
 
-  const startSceneId = getPlaytestSceneId();
+  const startSceneId = getPlaytestSceneId() ?? config.sceneOverride;
   const loader = createUnifiedLoader('hot');
   await initRuntime({ loader, startSceneId, dataSource: 'hot' });
 
@@ -169,26 +169,26 @@ async function boot(): Promise<void> {
     }
 
     // Route to appropriate mode
-    await routeToMode(config.mode);
+    await routeToMode(config);
   } catch (error) {
     console.error(`${LOG_PREFIX} Boot failed:`, error);
     showError(error instanceof Error ? error.message : 'Failed to start');
   }
 }
 
-async function routeToMode(mode: AppMode): Promise<void> {
-  switch (mode) {
+async function routeToMode(config: BootConfig): Promise<void> {
+  switch (config.mode) {
     case 'editor':
       await bootEditor();
       break;
     case 'game':
-      await bootGame();
+      await bootGame(config);
       break;
     case 'playtest':
-      await bootPlaytest();
+      await bootPlaytest(config);
       break;
     default:
-      throw new Error(`Unknown mode: ${mode}`);
+      throw new Error(`Unknown mode: ${config.mode}`);
   }
 }
 

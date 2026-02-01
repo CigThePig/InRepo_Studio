@@ -399,7 +399,11 @@ function initPanels(): void {
       },
       currentProject ?? undefined,
       ASSET_BASE_PATH,
-      { authManager: authManager ?? undefined }
+        {
+          authManager: authManager ?? undefined,
+          tileCache: canvasController?.getTileCache() ?? undefined,
+          cacheBust: assetCacheBust,
+        }
     );
 
     // Wire up persistence

@@ -6,7 +6,7 @@
  */
 
 import type { Scene } from '@/types';
-import { createDefaultProject, createScene, ensureSceneTilesets } from '@/types';
+import { createDefaultProject, createScene, ensureSceneTilesets, validateProject } from '@/types';
 import * as hot from './hot';
 import * as cold from './cold';
 
@@ -27,7 +27,9 @@ export interface UpdateCheckResult {
     | 'last-modified-changed'
     | 'project-diff'
     | 'remote-unreachable'
-    | 'remote-unknown';
+    | 'remote-unknown'
+    | 'no-change'
+    | 'baseline-updated';
   remote: cold.FreshnessCheck | null;
   baseline: {
     etag: string | null;
@@ -252,22 +254,72 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
 
   // If we have a baseline, compare it.
   if (baseline) {
-    if (baseline.etag && remote.etag && baseline.etag !== remote.etag) {
-      return {
-        needsUpdate: true,
-        canCheckRemote: true,
-        reason: 'etag-changed',
-        remote,
-        baseline,
-        cacheBust,
-      };
-    }
+    const etagChanged = !!(baseline.etag && remote.etag && baseline.etag !== remote.etag);
+    const lastModifiedChanged = !!(
+      baseline.lastModified &&
+      remote.lastModified &&
+      baseline.lastModified !== remote.lastModified
+    );
+    const fingerprintChanged = etagChanged || lastModifiedChanged;
 
-    if (baseline.lastModified && remote.lastModified && baseline.lastModified !== remote.lastModified) {
+    /**
+     * Important nuance:
+     * - A fingerprint change does NOT necessarily mean hot is out-of-date.
+     * - After a successful deploy, the published (cold) file changes but hot already matches it.
+     *
+     * So when the fingerprint changes, we confirm by comparing cold project.json content to the hot snapshot.
+     * If they match, we simply advance the stored baseline and suppress the "update" banner.
+     */
+    if (fingerprintChanged) {
+      try {
+        const url = cold.resolveGamePath('project.json');
+        const response = await fetch(url, { cache: 'no-store' });
+
+        if (response.ok) {
+          const coldProject = await response.json();
+
+          // Only trust the compare if the cold data validates.
+          // If it doesn't, we won't overwrite hot or update baselines automatically.
+          if (validateProject(coldProject)) {
+            const hotStr = stableStringify(hotProject.project);
+            const coldStr = stableStringify(coldProject);
+
+            if (hotStr === coldStr) {
+              await hot.setColdBaseline({
+                project: { etag: remote.etag, lastModified: remote.lastModified },
+                checkedAt: Date.now(),
+              });
+
+              return {
+                needsUpdate: false,
+                canCheckRemote: true,
+                reason: 'baseline-updated',
+                remote,
+                baseline: { etag: remote.etag, lastModified: remote.lastModified },
+                cacheBust,
+              };
+            }
+
+            return {
+              needsUpdate: true,
+              canCheckRemote: true,
+              reason: 'project-diff',
+              remote,
+              baseline,
+              cacheBust,
+            };
+          }
+        }
+      } catch (e) {
+        console.warn(`${LOG_PREFIX} Unable to compare cold vs hot project.json after fingerprint change:`, e);
+      }
+
+      // We detected a fingerprint change but could not confirm content equality/difference safely.
+      // Be conservative and surface an update banner so the user can choose how to proceed.
       return {
         needsUpdate: true,
         canCheckRemote: true,
-        reason: 'last-modified-changed',
+        reason: etagChanged ? 'etag-changed' : 'last-modified-changed',
         remote,
         baseline,
         cacheBust,
@@ -277,7 +329,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
     return {
       needsUpdate: false,
       canCheckRemote: true,
-      reason: 'remote-unknown',
+      reason: 'no-change',
       remote,
       baseline,
       cacheBust,

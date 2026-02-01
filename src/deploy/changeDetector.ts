@@ -158,8 +158,26 @@ export function detectConflicts(
 
   for (const change of changes) {
     const remoteSha = remoteShas[change.path] ?? null;
-    const hasConflict =
-      remoteSha !== null && change.localSha !== remoteSha;
+    const hasConflict = (() => {
+      // Safety rules:
+      // - If remote changed since last deploy (SHA differs), require user choice.
+      // - Remote deletion is also a change: if we previously deployed a file (localSha)
+      //   but it is now missing remotely, treat as a conflict for add/modify.
+      if (change.status === 'deleted') {
+        // If remote is already missing, deletion is a no-op (safe).
+        // If remote exists and SHA differs, someone changed it since last deploy.
+        return remoteSha !== null && change.localSha !== remoteSha;
+      }
+
+      // added/modified
+      if (remoteSha === null) {
+        // Remote missing but we have a localSha means it was deleted remotely.
+        return change.localSha !== null;
+      }
+
+      // Remote exists.
+      return change.localSha !== remoteSha;
+    })();
 
     if (hasConflict) {
       conflicts.push({

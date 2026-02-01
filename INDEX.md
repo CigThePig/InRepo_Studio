@@ -209,6 +209,10 @@ Micro-format (copy/paste):
   - Role: Scene data files (layers, entities).
   - Lists of truth: SceneSchema
 
+- `game/scenes/index.json`
+  - Role: Optional scene manifest for cold-start discovery (GitHub Pages has no directory listing).
+  - Lists of truth: SceneIndexSchema
+
 - `game/assets/`
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
