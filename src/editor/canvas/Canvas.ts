@@ -24,6 +24,7 @@ import {
   type TilemapRenderer,
 } from './renderer';
 import { createTileCache, type TileImageCache } from './tileCache';
+import { createBrushCursor, type BrushCursor } from './brushCursor';
 import type { Scene, LayerType, TileCategory } from '@/types';
 
 const LOG_PREFIX = '[Canvas]';
@@ -88,6 +89,12 @@ export interface CanvasController {
 
   /** Preload tile images for categories */
   preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null): Promise<void>;
+
+  /** Set brush cursor size */
+  setBrushCursorSize(size: number): void;
+
+  /** Set brush cursor color */
+  setBrushCursorColor(color: string): void;
 }
 
 export interface CanvasOptions {
@@ -152,6 +159,7 @@ export function createCanvas(
   // --- Tile Cache and Renderer ---
   const tileCache = createTileCache();
   const renderer = createTilemapRenderer({ tileCache, assetBasePath });
+  const brushCursor: BrushCursor = createBrushCursor();
 
   // Set initial scene and active layer if provided
   if (options.scene) {
@@ -265,6 +273,7 @@ export function createCanvas(
     const scene = renderer.getScene();
     if (!scene) {
       renderer.setHoverTile(null, null);
+      brushCursor.setVisible(false);
       return;
     }
 
@@ -275,12 +284,15 @@ export function createCanvas(
     const tile = screenToTile(viewport, screenX, offsetY, scene.tileSize);
 
     renderer.setHoverTile(tile.x, tile.y);
+    brushCursor.setPosition(screenX, screenY, viewport, scene.tileSize);
+    brushCursor.setVisible(true);
     isDirty = true;
     scheduleRender();
   }
 
   function clearHoverTile(): void {
     renderer.setHoverTile(null, null);
+    brushCursor.setVisible(false);
     isDirty = true;
     scheduleRender();
   }
@@ -331,6 +343,11 @@ export function createCanvas(
 
     // Draw grid
     drawGrid(ctx, viewport, tileSize, width, height, gridConfig);
+
+    const scene = renderer.getScene();
+    if (scene) {
+      brushCursor.render(ctx, viewport, tileSize, scene.width, scene.height);
+    }
 
     isDirty = false;
   }
@@ -474,6 +491,18 @@ export function createCanvas(
 
     getRenderer() {
       return renderer;
+    },
+
+    setBrushCursorSize(size: number) {
+      brushCursor.setBrushSize(Math.max(1, Math.min(3, Math.round(size))) as 1 | 2 | 3);
+      isDirty = true;
+      scheduleRender();
+    },
+
+    setBrushCursorColor(color: string) {
+      brushCursor.setColor(color);
+      isDirty = true;
+      scheduleRender();
     },
 
     async preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null) {

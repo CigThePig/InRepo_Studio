@@ -9,6 +9,12 @@ This plan breaks Track 14 into phases with verification checklists and stop poin
 
 ---
 
+## Deviation Notes
+
+- Added hover preview updates in `Canvas.ts` and `renderer.ts` to render brush-sized previews alongside the brush cursor adjustments.
+
+---
+
 ## Recon Summary
 
 ### Files Likely to Change
@@ -75,28 +81,28 @@ This plan breaks Track 14 into phases with verification checklists and stop poin
 
 ### Tasks
 
-- [ ] Read `src/editor/tools/AGENTS.md` before editing
-- [ ] Create `src/editor/tools/common.ts`
-  - [ ] Export `TilePoint` interface
-  - [ ] Export `interpolateLine()` function (move from paint.ts)
-  - [ ] Export `screenToTileWithOffset()` function
-- [ ] Refactor `src/editor/tools/paint.ts`
-  - [ ] Import shared utilities from common.ts
-  - [ ] Remove duplicated code
+- [x] Read `src/editor/tools/AGENTS.md` before editing
+- [x] Create `src/editor/tools/common.ts`
+  - [x] Export `TilePoint` interface
+  - [x] Export `interpolateLine()` function (move from paint.ts)
+  - [x] Export `screenToTileWithOffset()` function
+- [x] Refactor `src/editor/tools/paint.ts`
+  - [x] Import shared utilities from common.ts
+  - [x] Remove duplicated code
   - [ ] Verify paint tool still works
-- [ ] Create `src/editor/tools/erase.ts`
-  - [ ] Implement EraseToolConfig interface
-  - [ ] Implement EraseTool interface
-  - [ ] `createEraseTool()` factory function
-  - [ ] `start()` method for tap/drag start
-  - [ ] `move()` method for drag erasing
-  - [ ] `end()` method for gesture end
-  - [ ] `eraseTile()` helper for scene mutation
-  - [ ] Track lastTileX/Y for interpolation
-- [ ] Update `src/editor/init.ts`
-  - [ ] Import erase tool
-  - [ ] Create erase tool instance
-  - [ ] Extend onToolGesture for erase tool
+- [x] Create `src/editor/tools/erase.ts`
+  - [x] Implement EraseToolConfig interface
+  - [x] Implement EraseTool interface
+  - [x] `createEraseTool()` factory function
+  - [x] `start()` method for tap/drag start
+  - [x] `move()` method for drag erasing
+  - [x] `end()` method for gesture end
+  - [x] `eraseTile()` helper for scene mutation
+  - [x] Track lastTileX/Y for interpolation
+- [x] Update `src/editor/init.ts`
+  - [x] Import erase tool
+  - [x] Create erase tool instance
+  - [x] Extend onToolGesture for erase tool
 
 ### Files Touched
 
@@ -114,8 +120,8 @@ This plan breaks Track 14 into phases with verification checklists and stop poin
 - [ ] No gaps in erased line when dragging fast
 - [ ] Scene data in memory is updated
 - [ ] Erasing sets tile value to 0
-- [ ] TypeScript compiles without errors
-- [ ] `npm run build` succeeds
+- [x] TypeScript compiles without errors
+- [x] `npm run build` succeeds
 
 ### Stop Point
 
@@ -129,30 +135,31 @@ Pause for review. Test basic erasing works before adding brush size.
 
 ### Tasks
 
-- [ ] Update `src/storage/hot.ts`
-  - [ ] Add `brushSize: BrushSize` to EditorState interface
-  - [ ] Add default value (1) in getDefaultEditorState()
-  - [ ] Handle missing brushSize on load (migration)
-- [ ] Update `src/editor/tools/common.ts`
-  - [ ] Add `BrushSize` type export
-  - [ ] Add `getBrushFootprint()` function
-- [ ] Update `src/editor/tools/erase.ts`
-  - [ ] Accept getBrushSize in config
-  - [ ] Use getBrushFootprint() in start/move methods
-  - [ ] Erase all tiles in footprint
-- [ ] Update `src/editor/panels/bottomPanel.ts`
-  - [ ] Create brush size selector component
-  - [ ] Show selector only when erase tool active
-  - [ ] Add onBrushSizeChange callback
-- [ ] Update `src/editor/init.ts`
-  - [ ] Track currentBrushSize state
-  - [ ] Pass getBrushSize to erase tool
-  - [ ] Wire up brush size selector callback
-  - [ ] Persist brushSize to EditorState
+- [x] Update `src/storage/hot.ts`
+  - [x] Add `brushSize: BrushSize` to EditorState interface
+  - [x] Add default value (1) in getDefaultEditorState()
+  - [x] Handle missing brushSize on load (migration)
+- [x] Update `src/editor/tools/common.ts`
+  - [x] Add `BrushSize` type export
+  - [x] Add `getBrushFootprint()` function
+- [x] Update `src/editor/tools/erase.ts`
+  - [x] Accept getBrushSize in config
+  - [x] Use getBrushFootprint() in start/move methods
+  - [x] Erase all tiles in footprint
+- [x] Update `src/editor/panels/bottomPanel.ts`
+  - [x] Create brush size selector component
+  - [x] Show selector only when erase tool active
+  - [x] Add onBrushSizeChange callback
+- [x] Update `src/editor/init.ts`
+  - [x] Track currentBrushSize state
+  - [x] Pass getBrushSize to erase tool
+  - [x] Wire up brush size selector callback
+  - [x] Persist brushSize to EditorState
 
 ### Files Touched
 
 - `src/storage/hot.ts` (modify)
+- `src/storage/index.ts` (modify)
 - `src/editor/tools/common.ts` (modify)
 - `src/editor/tools/erase.ts` (modify)
 - `src/editor/panels/bottomPanel.ts` (modify)
@@ -168,8 +175,8 @@ Pause for review. Test basic erasing works before adding brush size.
 - [ ] Brush size persists across page reload
 - [ ] Drag erasing uses current brush size
 - [ ] Scene auto-saves after erasing
-- [ ] TypeScript compiles without errors
-- [ ] `npm run build` succeeds
+- [x] TypeScript compiles without errors
+- [x] `npm run build` succeeds
 
 ### Stop Point
 
@@ -183,27 +190,31 @@ Pause for review. Test brush size before adding visual feedback.
 
 ### Tasks
 
-- [ ] Update `src/editor/canvas/brushCursor.ts`
-  - [ ] Accept brushSize parameter
-  - [ ] Render brush size preview rectangle
-  - [ ] Use different color/opacity for erase vs paint
-- [ ] Update `src/editor/init.ts`
-  - [ ] Pass brush size to brush cursor
-  - [ ] Update cursor on brush size change
+- [x] Update `src/editor/canvas/brushCursor.ts`
+  - [x] Accept brushSize parameter
+  - [x] Render brush size preview rectangle
+  - [x] Use different color/opacity for erase vs paint
+- [x] Update `src/editor/canvas/Canvas.ts` to render brush cursor updates
+- [x] Update `src/editor/canvas/renderer.ts` to render brush-sized hover previews
+- [x] Update `src/editor/init.ts`
+  - [x] Pass brush size to brush cursor
+  - [x] Update cursor on brush size change
 - [ ] Verify erase tool only activates for 'erase' tool state
 - [ ] Test with all four layer types
 - [ ] Test edge cases (bounds, empty tiles)
-- [ ] Update `INDEX.md` with new files
-  - [ ] Add `src/editor/tools/erase.ts`
-  - [ ] Add `src/editor/tools/common.ts`
-- [ ] Update `context/schema-registry.md`
-  - [ ] Add brushSize to EditorStateSchema
-- [ ] Update `context/active-track.md` to mark Track 14 complete
-- [ ] Append summary to `context/history.md`
+- [x] Update `INDEX.md` with new files
+  - [x] Add `src/editor/tools/erase.ts`
+  - [x] Add `src/editor/tools/common.ts`
+- [x] Update `context/schema-registry.md`
+  - [x] Add brushSize to EditorStateSchema
+- [x] Update `context/active-track.md` to mark Track 14 complete
+- [x] Append summary to `context/history.md`
 
 ### Files Touched
 
+- `src/editor/canvas/Canvas.ts` (modify)
 - `src/editor/canvas/brushCursor.ts` (modify)
+- `src/editor/canvas/renderer.ts` (modify)
 - `src/editor/init.ts` (modify)
 - `INDEX.md` (modify)
 - `context/schema-registry.md` (modify)
@@ -220,10 +231,10 @@ Pause for review. Test brush size before adding visual feedback.
 - [ ] Erasing at scene edges handles bounds correctly
 - [ ] Erasing empty tiles doesn't cause extra saves
 - [ ] Full manual test on mobile device
-- [ ] INDEX.md lists new files
-- [ ] schema-registry.md updated
-- [ ] TypeScript compiles without errors
-- [ ] `npm run build` succeeds
+- [x] INDEX.md lists new files
+- [x] schema-registry.md updated
+- [x] TypeScript compiles without errors
+- [x] `npm run build` succeeds
 - [ ] `npm run lint` passes
 
 ### Stop Point
@@ -286,7 +297,7 @@ After Phase 3, add:
 
 - `src/editor/tools/common.ts`
   - Role: Shared utilities for paint/erase tools.
-  - Lists of truth: BrushSize
+  - Lists of truth: none
 ```
 
 ---

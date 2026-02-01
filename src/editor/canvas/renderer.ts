@@ -59,6 +59,11 @@ export interface TilemapRendererConfig {
   assetBasePath: string;
 }
 
+export interface HoverStyle {
+  fill: string;
+  border: string;
+}
+
 export interface TilemapRenderer {
   /** Set the scene to render */
   setScene(scene: Scene | null): void;
@@ -80,6 +85,12 @@ export interface TilemapRenderer {
 
   /** Set the hover tile position (or null/null to hide) */
   setHoverTile(tileX: number | null, tileY: number | null): void;
+
+  /** Set hover brush size for the hover highlight */
+  setHoverBrushSize(size: number): void;
+
+  /** Set hover highlight style (omit to reset default) */
+  setHoverStyle(style?: HoverStyle): void;
 
   /** Get the current hover tile position */
   getHoverTile(): { x: number; y: number } | null;
@@ -110,7 +121,39 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   let selectedCategory = '';
   let hoverTileX: number | null = null;
   let hoverTileY: number | null = null;
+  let hoverBrushSize = 1;
+  let hoverStyle: HoverStyle = {
+    fill: HOVER_HIGHLIGHT_FILL,
+    border: HOVER_HIGHLIGHT_BORDER,
+  };
   let dirty = true;
+
+  function getHoverFootprint(
+    tileX: number,
+    tileY: number,
+    brushSize: number
+  ): { x: number; y: number }[] {
+    const size = Math.max(1, Math.min(3, Math.round(brushSize)));
+    const points: { x: number; y: number }[] = [];
+
+    if (size === 1) {
+      points.push({ x: tileX, y: tileY });
+    } else if (size === 2) {
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) {
+          points.push({ x: tileX + dx, y: tileY + dy });
+        }
+      }
+    } else {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          points.push({ x: tileX + dx, y: tileY + dy });
+        }
+      }
+    }
+
+    return points;
+  }
 
   // --- Layer Rendering ---
 
@@ -186,27 +229,30 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     sceneWidth: number,
     sceneHeight: number
   ): void {
-    // Clamp to scene bounds
-    if (tileX < 0 || tileX >= sceneWidth || tileY < 0 || tileY >= sceneHeight) {
-      return;
-    }
-
-    const screenPos = tileToScreen(viewport, tileX, tileY, tileSize);
+    const footprint = getHoverFootprint(tileX, tileY, hoverBrushSize);
     const screenTileSize = tileSize * viewport.zoom;
-
-    // Draw fill
-    ctx.fillStyle = HOVER_HIGHLIGHT_FILL;
-    ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
-
-    // Draw border
-    ctx.strokeStyle = HOVER_HIGHLIGHT_BORDER;
     ctx.lineWidth = HOVER_HIGHLIGHT_BORDER_WIDTH;
-    ctx.strokeRect(
-      screenPos.x + 1,
-      screenPos.y + 1,
-      screenTileSize - 2,
-      screenTileSize - 2
-    );
+
+    for (const point of footprint) {
+      if (point.x < 0 || point.x >= sceneWidth || point.y < 0 || point.y >= sceneHeight) {
+        continue;
+      }
+
+      const screenPos = tileToScreen(viewport, point.x, point.y, tileSize);
+
+      // Draw fill
+      ctx.fillStyle = hoverStyle.fill;
+      ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+
+      // Draw border
+      ctx.strokeStyle = hoverStyle.border;
+      ctx.strokeRect(
+        screenPos.x + 1,
+        screenPos.y + 1,
+        screenTileSize - 2,
+        screenTileSize - 2
+      );
+    }
   }
 
   // --- Renderer Instance ---
@@ -250,6 +296,22 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       if (hoverTileX !== x || hoverTileY !== y) {
         hoverTileX = x;
         hoverTileY = y;
+        dirty = true;
+      }
+    },
+
+    setHoverBrushSize(size: number): void {
+      const normalized = Math.max(1, Math.min(3, Math.round(size)));
+      if (hoverBrushSize !== normalized) {
+        hoverBrushSize = normalized;
+        dirty = true;
+      }
+    },
+
+    setHoverStyle(style?: HoverStyle): void {
+      const nextStyle = style ?? { fill: HOVER_HIGHLIGHT_FILL, border: HOVER_HIGHLIGHT_BORDER };
+      if (hoverStyle.fill !== nextStyle.fill || hoverStyle.border !== nextStyle.border) {
+        hoverStyle = nextStyle;
         dirty = true;
       }
     },

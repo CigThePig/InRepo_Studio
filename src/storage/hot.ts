@@ -50,11 +50,14 @@ export interface SelectedTile {
   index: number;
 }
 
+export type BrushSize = 1 | 2 | 3;
+
 export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
   activeLayer: LayerType;
   selectedTile: SelectedTile | null;
+  brushSize: BrushSize;
   viewport: ViewportState;
   panelStates: PanelStates;
   recentTiles: number[];
@@ -244,6 +247,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   currentTool: 'select',
   activeLayer: 'ground',
   selectedTile: null,
+  brushSize: 1,
   viewport: {
     panX: 0,
     panY: 0,
