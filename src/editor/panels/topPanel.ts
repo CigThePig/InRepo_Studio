@@ -152,10 +152,16 @@ const STYLES = `
 
   .top-panel__content {
     padding: 8px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .layer-tabs {
     display: block;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;

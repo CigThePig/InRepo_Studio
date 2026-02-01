@@ -65,6 +65,24 @@ const STYLES = `
     flex-direction: column;
     gap: 2px;
     padding: 0 8px 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .layer-panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .layer-panel__list::-webkit-scrollbar {
+    display: none;
   }
 
   .layer-panel__header {
@@ -254,6 +272,11 @@ export function createLayerPanel(
   header.appendChild(title);
   root.appendChild(header);
 
+  // Scrollable list container
+  const list = document.createElement('div');
+  list.className = 'layer-panel__list';
+  root.appendChild(list);
+
   // Layer rows
   const rows: Map<LayerType, HTMLDivElement> = new Map();
   const visibilityToggles: Map<LayerType, HTMLButtonElement> = new Map();
@@ -379,7 +402,7 @@ export function createLayerPanel(
     lockToggles.set(layerType, lockToggle);
     moveUpButtons.set(layerType, moveUp);
     moveDownButtons.set(layerType, moveDown);
-    root.appendChild(row);
+    list.appendChild(row);
   }
 
 
@@ -393,7 +416,7 @@ export function createLayerPanel(
     // Re-append rows in the current order to update DOM order.
     for (const layerType of layerOrder) {
       const row = rows.get(layerType);
-      if (row) root.appendChild(row);
+      if (row) list.appendChild(row);
     }
     updateReorderButtonStates();
   }
