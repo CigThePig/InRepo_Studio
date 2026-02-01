@@ -270,6 +270,36 @@ Purpose:
 - **Follow-up**:
   - Track 17: Scene Management (clear history when switching scenes via UI)
 
+### Track 17 — Scene Management
+- **Dates**: 2026-02-01
+- **Status**: Completed
+- **Summary**: Added multi-scene support with create/rename/delete/duplicate/resize operations and a scene selector dropdown in the top panel.
+- **Shipped**:
+  - Scene manager module with CRUD operations (create, rename, delete, duplicate, resize, switch)
+  - Scene dialogs for create, rename, resize, and delete confirmation
+  - Scene selector dropdown in top panel with scene list and action menus
+  - Auto-save current scene before switching, history cleared on scene switch
+  - Default scene update when current default is deleted
+- **Verification**: `npm run build`
+- **Learned**: Scene switching requires coordinating multiple state updates (canvas, panels, editor state) and the scene manager acts as the central coordinator.
+- **Follow-up**:
+  - Track 18: Layer System (visibility/lock toggles)
+
+### Track 18 — Layer System
+- **Dates**: 2026-02-01
+- **Status**: Completed
+- **Summary**: Added layer visibility toggles and lock controls with a layer panel in the top panel, plus tool integration to prevent editing locked layers.
+- **Shipped**:
+  - Layer visibility and lock state in EditorState with persistence
+  - Layer panel UI with visibility and lock toggles per layer
+  - Renderer skip of hidden layers for visibility toggle
+  - Tool integration: paint, erase, select operations blocked on locked layers
+  - Layer panel replaces simple layer tabs in top panel
+- **Verification**: `npm run build`
+- **Learned**: Layer locks need to be checked at multiple points (paint, erase, delete, move, paste, fill) to fully prevent edits.
+- **Follow-up**:
+  - Track 19: Entity Tool (place and edit entities)
+
 ---
 
 ## Stalled / Abandoned Tracks

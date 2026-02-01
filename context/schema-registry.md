@@ -73,10 +73,12 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, brushSize, viewport{}, panelStates{}, recentTiles[]
+    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, brushSize, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)
+    - `layerVisibility`: Record<LayerType, boolean> (default: all true)
+    - `layerLocks`: Record<LayerType, boolean> (default: all false)
   - `HotProjectSchema` — IndexedDB project record
     - Keys: project (ProjectSchema), lastSaved, lastDeployedSha{}, coldBaseline?{project{etag,lastModified},checkedAt}
 

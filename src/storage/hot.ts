@@ -52,6 +52,9 @@ export interface SelectedTile {
 
 export type BrushSize = 1 | 2 | 3;
 
+export type LayerVisibility = Record<LayerType, boolean>;
+export type LayerLocks = Record<LayerType, boolean>;
+
 export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
@@ -61,6 +64,10 @@ export interface EditorState {
   viewport: ViewportState;
   panelStates: PanelStates;
   recentTiles: number[];
+  /** Per-layer visibility toggle (true = visible) */
+  layerVisibility: LayerVisibility;
+  /** Per-layer lock toggle (true = locked, cannot edit) */
+  layerLocks: LayerLocks;
 }
 
 // --- Hot Project Schema ---
@@ -258,6 +265,18 @@ const DEFAULT_EDITOR_STATE: EditorState = {
     bottomExpanded: true,
   },
   recentTiles: [],
+  layerVisibility: {
+    ground: true,
+    props: true,
+    collision: true,
+    triggers: true,
+  },
+  layerLocks: {
+    ground: false,
+    props: false,
+    collision: false,
+    triggers: false,
+  },
 };
 
 export async function saveEditorState(state: EditorState): Promise<void> {
@@ -281,6 +300,8 @@ export async function loadEditorState(): Promise<EditorState> {
     ...state,
     viewport: { ...DEFAULT_EDITOR_STATE.viewport, ...state.viewport },
     panelStates: { ...DEFAULT_EDITOR_STATE.panelStates, ...state.panelStates },
+    layerVisibility: { ...DEFAULT_EDITOR_STATE.layerVisibility, ...state.layerVisibility },
+    layerLocks: { ...DEFAULT_EDITOR_STATE.layerLocks, ...state.layerLocks },
   };
 
   console.log(`${LOG_PREFIX} Editor state loaded`);

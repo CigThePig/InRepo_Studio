@@ -34,6 +34,12 @@ export interface TopPanelController {
   /** Get current active layer */
   getActiveLayer(): LayerType;
 
+  /** Get the scene selector container */
+  getSceneSelectorContainer(): HTMLElement;
+
+  /** Get the content container for layer panel */
+  getLayerPanelContainer(): HTMLElement;
+
   /** Register callback for layer changes */
   onLayerChange(callback: (layer: LayerType) => void): void;
 
@@ -80,12 +86,16 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding: 0 0 0 0;
     height: 48px;
     min-height: 48px;
-    cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  .top-panel__scene-selector-container {
+    flex: 1;
+    min-width: 0;
   }
 
   .top-panel__title {
@@ -95,12 +105,25 @@ const STYLES = `
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 0 12px;
   }
 
   .top-panel__chevron {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #888;
     font-size: 12px;
-    margin-left: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .top-panel__chevron:active {
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .top-panel__actions {
@@ -193,9 +216,15 @@ export function createTopPanel(
   const header = document.createElement('div');
   header.className = 'top-panel__header';
 
+  // Scene selector container (will be populated by init.ts)
+  const sceneSelectorContainer = document.createElement('div');
+  sceneSelectorContainer.className = 'top-panel__scene-selector-container';
+
+  // Fallback title (shown if scene selector not yet initialized)
   const title = document.createElement('span');
   title.className = 'top-panel__title';
-  title.textContent = `Scene: ${state.sceneName}`;
+  title.textContent = state.sceneName;
+  sceneSelectorContainer.appendChild(title);
 
   const actions = document.createElement('div');
   actions.className = 'top-panel__actions';
@@ -210,14 +239,23 @@ export function createTopPanel(
     playtestCallback?.();
   });
 
-  const chevron = document.createElement('span');
+  const chevron = document.createElement('button');
   chevron.className = 'top-panel__chevron';
+  chevron.type = 'button';
   chevron.textContent = state.expanded ? '▲' : '▼';
+
+  chevron.addEventListener('click', (event) => {
+    event.stopPropagation();
+    state.expanded = !state.expanded;
+    updateExpandedState();
+    expandToggleCallback?.(state.expanded);
+    console.log(`${LOG_PREFIX} Panel ${state.expanded ? 'expanded' : 'collapsed'}`);
+  });
 
   actions.appendChild(playtestButton);
   actions.appendChild(chevron);
 
-  header.appendChild(title);
+  header.appendChild(sceneSelectorContainer);
   header.appendChild(actions);
 
   const content = document.createElement('div');
@@ -257,14 +295,6 @@ export function createTopPanel(
 
   content.appendChild(layerTabs);
 
-  // Toggle expand/collapse
-  header.addEventListener('click', () => {
-    state.expanded = !state.expanded;
-    updateExpandedState();
-    expandToggleCallback?.(state.expanded);
-    console.log(`${LOG_PREFIX} Panel ${state.expanded ? 'expanded' : 'collapsed'}`);
-  });
-
   function updateExpandedState(): void {
     panel.classList.toggle('top-panel--expanded', state.expanded);
     panel.classList.toggle('top-panel--collapsed', !state.expanded);
@@ -282,7 +312,10 @@ export function createTopPanel(
   const controller: TopPanelController = {
     setSceneName(name: string) {
       state.sceneName = name;
-      title.textContent = `Scene: ${name}`;
+      // Only update fallback title if scene selector hasn't replaced it
+      if (title.parentElement === sceneSelectorContainer) {
+        title.textContent = name;
+      }
     },
 
     setActiveLayer(layer: LayerType) {
@@ -307,6 +340,14 @@ export function createTopPanel(
 
     getActiveLayer() {
       return state.activeLayer;
+    },
+
+    getSceneSelectorContainer() {
+      return sceneSelectorContainer;
+    },
+
+    getLayerPanelContainer() {
+      return content;
     },
 
     onLayerChange(callback) {

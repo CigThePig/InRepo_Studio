@@ -359,6 +359,13 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
   function applyMove(scene: Scene): void {
     if (!selection || !selectionData || !moveOffset) return;
 
+    // Skip if layer is locked
+    const editorState = getEditorState();
+    if (editorState?.layerLocks?.[selection.layer]) {
+      applySelectionState(scene, selection, 'selected');
+      return;
+    }
+
     const previousSelection = { ...selection };
     const previousMode: SelectToolMode = previousSelection ? 'selected' : 'idle';
     const nextSelection: SelectionBounds = {
@@ -493,6 +500,12 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
           return;
         }
 
+        // Skip if layer is locked
+        if (editorState.layerLocks?.[activeLayer]) {
+          setMode(selection ? 'selected' : 'idle');
+          return;
+        }
+
         const previousSelection = selection ? { ...selection } : null;
         const previousMode: SelectToolMode = previousSelection ? 'selected' : 'idle';
         const changes = collectPasteChanges(scene, data, tile, activeLayer);
@@ -544,7 +557,10 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
 
       if (pendingFill) {
         pendingFill = false;
-        fillAt(scene, activeLayer, tile, editorState.selectedTile);
+        // Skip if layer is locked
+        if (!editorState.layerLocks?.[activeLayer]) {
+          fillAt(scene, activeLayer, tile, editorState.selectedTile);
+        }
         return;
       }
 
@@ -673,6 +689,11 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       const scene = getScene();
       const editorState = getEditorState();
       if (!scene || !editorState || !selection) {
+        return;
+      }
+
+      // Skip if layer is locked
+      if (editorState.layerLocks?.[selection.layer]) {
         return;
       }
 

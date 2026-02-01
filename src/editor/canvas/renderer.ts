@@ -25,6 +25,7 @@ import type { ViewportState } from './viewport';
 import { getVisibleTileRange, tileToScreen } from './viewport';
 import { getTile, LAYER_ORDER } from '@/types/scene';
 import type { TileImageCache } from './tileCache';
+import type { LayerVisibility, LayerLocks } from '@/storage/hot';
 
 const LOG_PREFIX = '[Renderer]';
 
@@ -95,6 +96,18 @@ export interface TilemapRenderer {
   /** Get the active layer */
   getActiveLayer(): LayerType;
 
+  /** Set layer visibility state (true = visible) */
+  setLayerVisibility(visibility: LayerVisibility): void;
+
+  /** Get layer visibility state */
+  getLayerVisibility(): LayerVisibility;
+
+  /** Set layer locks state (true = locked) */
+  setLayerLocks(locks: LayerLocks): void;
+
+  /** Get layer locks state */
+  getLayerLocks(): LayerLocks;
+
   /** Set the current tile category for rendering */
   setSelectedCategory(category: string): void;
 
@@ -139,6 +152,18 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   // Renderer state
   let scene: Scene | null = null;
   let activeLayer: LayerType = 'ground';
+  let layerVisibility: LayerVisibility = {
+    ground: true,
+    props: true,
+    collision: true,
+    triggers: true,
+  };
+  let layerLocks: LayerLocks = {
+    ground: false,
+    props: false,
+    collision: false,
+    triggers: false,
+  };
   let selectedCategory = '';
   let hoverTileX: number | null = null;
   let hoverTileY: number | null = null;
@@ -396,6 +421,34 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       return activeLayer;
     },
 
+    setLayerVisibility(visibility: LayerVisibility): void {
+      const changed = Object.keys(visibility).some(
+        (key) => layerVisibility[key as LayerType] !== visibility[key as LayerType]
+      );
+      if (changed) {
+        layerVisibility = { ...visibility };
+        dirty = true;
+      }
+    },
+
+    getLayerVisibility(): LayerVisibility {
+      return { ...layerVisibility };
+    },
+
+    setLayerLocks(locks: LayerLocks): void {
+      const changed = Object.keys(locks).some(
+        (key) => layerLocks[key as LayerType] !== locks[key as LayerType]
+      );
+      if (changed) {
+        layerLocks = { ...locks };
+        dirty = true;
+      }
+    },
+
+    getLayerLocks(): LayerLocks {
+      return { ...layerLocks };
+    },
+
     setSelectedCategory(category: string): void {
       if (selectedCategory !== category) {
         selectedCategory = category;
@@ -458,6 +511,9 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
       // Render layers in order (bottom to top)
       for (const layerType of LAYER_RENDER_ORDER) {
+        // Skip hidden layers
+        if (!layerVisibility[layerType]) continue;
+
         const layer = layers[layerType];
         if (!layer) continue;
 
