@@ -1,0 +1,286 @@
+/**
+ * SCHEMA INVENTORY (lists-of-truth)
+ * Owner: this file
+ * Purpose: In-editor asset registry for Editor V2 grouping and palettes.
+ *
+ * Defines:
+ * - AssetRegistryState — persisted asset registry state (type: schema)
+ * - AssetEntry — asset metadata stored in groups (type: schema)
+ *
+ * Canonical key set:
+ * - Keys come from: this file
+ *
+ * Apply/Rebuild semantics:
+ * - Apply mode: live (updates propagate to UI immediately)
+ */
+
+import {
+  DEFAULT_ASSET_GROUPS,
+  createAssetGroup,
+  createGroupSlug,
+  normalizeGroupName,
+  type AssetGroup,
+  type AssetGroupType,
+} from './assetGroup';
+
+export type AssetEntryType = 'tile' | 'sprite' | 'entity';
+
+export interface AssetEntry {
+  id: string;
+  name: string;
+  type: AssetEntryType;
+  dataUrl: string;
+  width: number;
+  height: number;
+  createdAt: number;
+}
+
+export interface AssetRegistryState {
+  groups: AssetGroup[];
+  selectedAssetId: string | null;
+}
+
+export interface AssetEntryInput {
+  name: string;
+  type: AssetEntryType;
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface AssetRegistry {
+  getState(): AssetRegistryState;
+  getGroups(): AssetGroup[];
+  getGroupsByType(type: AssetGroupType): AssetGroup[];
+  createGroup(type: AssetGroupType, name: string): AssetGroup;
+  deleteGroup(type: AssetGroupType, slug: string): void;
+  addAssets(options: {
+    groupType: AssetGroupType;
+    groupName: string;
+    assets: AssetEntryInput[];
+  }): AssetEntry[];
+  removeAsset(assetId: string): void;
+  getAsset(assetId: string): AssetEntry | null;
+  getSelectedAsset(): AssetEntry | null;
+  setSelectedAsset(assetId: string | null): void;
+  onChange(callback: (state: AssetRegistryState) => void): () => void;
+}
+
+export const DEFAULT_ASSET_REGISTRY_STATE: AssetRegistryState = {
+  groups: DEFAULT_ASSET_GROUPS,
+  selectedAssetId: null,
+};
+
+function cloneGroup(group: AssetGroup): AssetGroup {
+  return {
+    type: group.type,
+    name: group.name,
+    slug: group.slug,
+    assets: group.assets.map((asset) => ({ ...asset })),
+  };
+}
+
+function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
+  return groups.map((group) => {
+    const normalizedName = normalizeGroupName(group.name);
+    return {
+      type: group.type,
+      name: normalizedName,
+      slug: group.slug ? createGroupSlug(group.slug) : createGroupSlug(normalizedName),
+      assets: (group.assets ?? []).map((asset) => ({ ...asset })),
+    };
+  });
+}
+
+function buildDefaultGroups(): AssetGroup[] {
+  return DEFAULT_ASSET_GROUPS.map((group) => cloneGroup(group));
+}
+
+function ensureDefaultGroups(groups: AssetGroup[]): AssetGroup[] {
+  const next = normalizeGroups(groups);
+  const defaults = buildDefaultGroups();
+  defaults.forEach((fallback) => {
+    const exists = next.some(
+      (group) => group.type === fallback.type && group.slug === fallback.slug
+    );
+    if (!exists) {
+      next.push(fallback);
+    }
+  });
+  return next;
+}
+
+function generateAssetId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `asset-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getUniqueSlug(groups: AssetGroup[], type: AssetGroupType, name: string): string {
+  const base = createGroupSlug(name);
+  let slug = base;
+  let index = 2;
+  while (groups.some((group) => group.type === type && group.slug === slug)) {
+    slug = `${base}-${index}`;
+    index += 1;
+  }
+  return slug;
+}
+
+export function createAssetRegistry(initialState?: Partial<AssetRegistryState>): AssetRegistry {
+  let state: AssetRegistryState = {
+    ...DEFAULT_ASSET_REGISTRY_STATE,
+    ...initialState,
+    groups: ensureDefaultGroups(initialState?.groups ?? DEFAULT_ASSET_REGISTRY_STATE.groups),
+  };
+
+  const listeners = new Set<(state: AssetRegistryState) => void>();
+
+  function emit(next: AssetRegistryState): void {
+    state = next;
+    listeners.forEach((listener) => listener(state));
+  }
+
+  function updateGroups(nextGroups: AssetGroup[]): void {
+    emit({
+      ...state,
+      groups: nextGroups,
+    });
+  }
+
+  function findGroupIndex(type: AssetGroupType, slug: string): number {
+    return state.groups.findIndex(
+      (group) => group.type === type && group.slug === slug
+    );
+  }
+
+  function createGroup(type: AssetGroupType, name: string): AssetGroup {
+    const normalizedName = normalizeGroupName(name);
+    const slug = getUniqueSlug(state.groups, type, normalizedName);
+    const group: AssetGroup = {
+      ...createAssetGroup(type, normalizedName),
+      slug,
+    };
+
+    updateGroups([...state.groups, group]);
+    return group;
+  }
+
+  function deleteGroup(type: AssetGroupType, slug: string): void {
+    const filtered = state.groups.filter(
+      (group) => !(group.type === type && group.slug === slug)
+    );
+    updateGroups(filtered);
+    if (state.selectedAssetId) {
+      const stillExists = filtered.some((group) =>
+        group.assets.some((asset) => asset.id === state.selectedAssetId)
+      );
+      if (!stillExists) {
+        emit({
+          ...state,
+          groups: filtered,
+          selectedAssetId: null,
+        });
+      }
+    }
+  }
+
+  function addAssets(options: {
+    groupType: AssetGroupType;
+    groupName: string;
+    assets: AssetEntryInput[];
+  }): AssetEntry[] {
+    const normalizedName = normalizeGroupName(options.groupName);
+    const groupSlug = createGroupSlug(normalizedName);
+    let groupIndex = findGroupIndex(options.groupType, groupSlug);
+    let groups = state.groups.map((group) => cloneGroup(group));
+
+    if (groupIndex === -1) {
+      const slug = getUniqueSlug(state.groups, options.groupType, normalizedName);
+      const newGroup: AssetGroup = {
+        ...createAssetGroup(options.groupType, normalizedName),
+        slug,
+      };
+      groups = [...groups, newGroup];
+      groupIndex = groups.length - 1;
+    }
+
+    const createdAssets: AssetEntry[] = options.assets.map((asset) => ({
+      ...asset,
+      id: generateAssetId(),
+      createdAt: Date.now(),
+    }));
+
+    const updatedGroup: AssetGroup = {
+      ...groups[groupIndex],
+      assets: [...groups[groupIndex].assets, ...createdAssets],
+    };
+
+    const nextGroups = groups.map((group, index) =>
+      index === groupIndex ? updatedGroup : group
+    );
+
+    emit({
+      ...state,
+      groups: nextGroups,
+      selectedAssetId: createdAssets[0]?.id ?? state.selectedAssetId,
+    });
+
+    return createdAssets;
+  }
+
+  function removeAsset(assetId: string): void {
+    const nextGroups = state.groups.map((group) => ({
+      ...group,
+      assets: group.assets.filter((asset) => asset.id !== assetId),
+    }));
+
+    const selectedAssetId = state.selectedAssetId === assetId ? null : state.selectedAssetId;
+    emit({
+      ...state,
+      groups: nextGroups,
+      selectedAssetId,
+    });
+  }
+
+  function getAsset(assetId: string): AssetEntry | null {
+    for (const group of state.groups) {
+      const found = group.assets.find((asset) => asset.id === assetId);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function setSelectedAsset(assetId: string | null): void {
+    if (assetId && !getAsset(assetId)) {
+      emit({
+        ...state,
+        selectedAssetId: null,
+      });
+      return;
+    }
+    emit({
+      ...state,
+      selectedAssetId: assetId,
+    });
+  }
+
+  return {
+    getState: () => state,
+    getGroups: () => state.groups.map((group) => cloneGroup(group)),
+    getGroupsByType: (type) =>
+      state.groups.filter((group) => group.type === type).map((group) => cloneGroup(group)),
+    createGroup,
+    deleteGroup,
+    addAssets,
+    removeAsset,
+    getAsset,
+    getSelectedAsset: () => (state.selectedAssetId ? getAsset(state.selectedAssetId) : null),
+    setSelectedAsset,
+    onChange: (callback) => {
+      listeners.add(callback);
+      return () => listeners.delete(callback);
+    },
+  };
+}

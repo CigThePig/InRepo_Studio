@@ -1,4 +1,4 @@
-import { sliceImage, type SliceResult } from '@/editor/assets';
+import { sliceImage, type AssetGroupType, type SliceResult } from '@/editor/assets';
 
 const STYLES = `
   .sprite-slicer {
@@ -107,7 +107,13 @@ const STYLES = `
 
 export interface SpriteSlicerTabConfig {
   container: HTMLElement;
-  onSlicesConfirmed?: (slices: SliceResult[]) => void;
+  onSlicesConfirmed?: (payload: {
+    slices: SliceResult[];
+    groupName: string;
+    groupType: AssetGroupType;
+    imageName: string | null;
+    sliceSize: { width: number; height: number };
+  }) => void;
 }
 
 type SlicePreset = '16' | '32' | 'custom';
@@ -118,6 +124,8 @@ interface SpriteSlicerState {
   imageName: string | null;
   imageWidth: number;
   imageHeight: number;
+  groupName: string;
+  groupType: AssetGroupType;
   slicePreset: SlicePreset;
   sliceWidth: number;
   sliceHeight: number;
@@ -140,6 +148,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     imageName: null,
     imageWidth: 0,
     imageHeight: 0,
+    groupName: '',
+    groupType: 'tilesets',
     slicePreset: '16',
     sliceWidth: 16,
     sliceHeight: 16,
@@ -216,6 +226,29 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   sizeHint.className = 'sprite-slicer__hint';
   sizeHint.textContent = 'Choose tile size to match your grid.';
 
+  const groupRow = document.createElement('div');
+  groupRow.className = 'sprite-slicer__row';
+
+  const groupInput = document.createElement('input');
+  groupInput.type = 'text';
+  groupInput.className = 'sprite-slicer__input';
+  groupInput.placeholder = 'Group name (e.g., Trees)';
+
+  const groupSelect = document.createElement('select');
+  groupSelect.className = 'sprite-slicer__select';
+  groupSelect.innerHTML = `
+    <option value="tilesets">Tilesets</option>
+    <option value="props">Props</option>
+    <option value="entities">Entities</option>
+  `;
+
+  const groupHint = document.createElement('div');
+  groupHint.className = 'sprite-slicer__hint';
+  groupHint.textContent = 'Choose where these slices should appear in palettes.';
+
+  groupRow.appendChild(groupInput);
+  groupRow.appendChild(groupSelect);
+
   sliceRow.appendChild(sizeSelect);
   sliceRow.appendChild(widthInput);
   sliceRow.appendChild(heightInput);
@@ -223,6 +256,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   sliceSection.appendChild(sliceTitle);
   sliceSection.appendChild(sliceRow);
+  sliceSection.appendChild(groupRow);
+  sliceSection.appendChild(groupHint);
 
   const previewSection = document.createElement('section');
   previewSection.className = 'sprite-slicer__section';
@@ -388,6 +423,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.imageBlob = file;
     state.imageName = file.name;
     state.imageUrl = URL.createObjectURL(file);
+    state.groupName = file.name.replace(/\.[^/.]+$/, '');
+    groupInput.value = state.groupName;
 
     const img = new Image();
     img.onload = () => {
@@ -436,12 +473,24 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   sizeSelect.addEventListener('change', handlePresetChange);
   widthInput.addEventListener('input', handleCustomSizeChange);
   heightInput.addEventListener('input', handleCustomSizeChange);
+  groupInput.addEventListener('input', () => {
+    state.groupName = groupInput.value;
+  });
+  groupSelect.addEventListener('change', () => {
+    state.groupType = groupSelect.value as AssetGroupType;
+  });
 
   confirmButton.addEventListener('click', async () => {
     if (!state.imageBlob) return;
     const slices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight);
     state.slices = slices;
-    onSlicesConfirmed?.(slices);
+    onSlicesConfirmed?.({
+      slices,
+      groupName: state.groupName,
+      groupType: state.groupType,
+      imageName: state.imageName,
+      sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
+    });
   });
 
   updateSliceInputs();
