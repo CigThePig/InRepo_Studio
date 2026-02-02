@@ -1,4 +1,16 @@
-Active track: (none — ready for next track)
+Active track: Track 23 — Bottom Interaction Strip (Editor V2 Migration)
+
+Current phase: Phase 1 — V2 Foundation + Feature Flags
+Next task: Create `src/editor/v2/` directory and foundation files
+
+Track planning documents:
+- Spec: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/spec.md`
+- Blueprint: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/blueprint.md`
+- Plan: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/plan.md`
+
+Authority: `/context/editor-v2-architecture.md` (source of truth for all Editor V2 design decisions)
+
+---
 
 Completed tracks:
 - Phase 0 (Foundation Architecture): Tracks 1-4 (Data Structures, Hot Storage, Cold Storage, Boot System)
@@ -14,14 +26,24 @@ Completed tracks:
 - Phase 4 (Entity System): Tracks 19-22 (Entity Palette, Entity Placement, Entity Manipulation, Property Inspector)
 
 Prepared tracks (planning artifacts created):
-- (none pending)
+- Tracks 23-30: Editor V2 Migration (spec/blueprint/plan complete)
 
-Next tracks to implement (in order):
-1. Track 23: Export Functions — Backup hot storage data
-2. Track 24: Import Functions — Restore from backup
+Next tracks to implement (Editor V2 Migration):
+1. Track 23: Bottom Interaction Strip — Replace floating selection bars with bottom bar context strip
+2. Track 24: Top Bar Globalization — Make top bar global-only (Undo/Redo/Settings/Play)
+3. Track 25: Right Berry Shell + Mode State — Introduce mode-driven architecture
+4. Track 26: Entities Mode + Move-First Behavior — No popup inspector, immediate move on select
+5. Track 27: Left Berry Shell + Sprite Slicing MVP — Asset pipeline entry point
+6. Track 28: Asset Library + Grouping System — First-class asset grouping
+7. Track 29: GitHub Folder ↔ Group Mirroring — UI groups map to repo folders
+8. Track 30: Asset Upload + Editor V2 Completion — Complete asset pipeline, finalize V2
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
+Phase 4 Entity System is now complete.
+
+Editor V2 Migration transforms the editor from a layer+tool dual-state system to a mode-driven architecture.
+All implementation must follow `/context/editor-v2-architecture.md`.
 
 Last updated: 2026-02-02
 
