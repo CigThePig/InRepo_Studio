@@ -31,7 +31,7 @@ export type EditorV2Flag = (typeof EDITOR_V2_FLAGS)[keyof typeof EDITOR_V2_FLAGS
 
 const DEFAULT_V2_FLAGS: Record<EditorV2Flag, boolean> = {
   [EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP]: true,
-  [EDITOR_V2_FLAGS.TOP_BAR_GLOBAL]: false,
+  [EDITOR_V2_FLAGS.TOP_BAR_GLOBAL]: true,
   [EDITOR_V2_FLAGS.RIGHT_BERRY]: false,
   [EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST]: false,
   [EDITOR_V2_FLAGS.LEFT_BERRY]: false,

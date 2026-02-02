@@ -23,8 +23,10 @@ import { createCanvas, type CanvasController } from '@/editor/canvas';
 import { tileToScreen, worldToScreen } from '@/editor/canvas/viewport';
 import {
   createTopPanel,
+  createTopBarV2,
   createBottomPanel,
   type TopPanelController,
+  type TopBarV2Controller,
   type BottomPanelController,
   createBottomContextStrip,
   type BottomContextStripController,
@@ -79,7 +81,7 @@ const ASSET_BASE_PATH = import.meta.env.BASE_URL + 'game';
 let editorState: EditorState | null = null;
 let currentProject: Project | null = null;
 let canvasController: CanvasController | null = null;
-let topPanelController: TopPanelController | null = null;
+let topPanelController: TopPanelController | TopBarV2Controller | null = null;
 let bottomPanelController: BottomPanelController | null = null;
 let bottomContextStrip: BottomContextStripController | null = null;
 let currentScene: Scene | null = null;
@@ -197,6 +199,16 @@ function updateEntitySelectionUI(): void {
   updateBottomContextStrip();
 }
 
+function updateUndoRedoUI(canUndo: boolean, canRedo: boolean): void {
+  if (topPanelController && 'setUndoRedoState' in topPanelController) {
+    topPanelController.setUndoRedoState(canUndo, canRedo);
+  }
+}
+
+function openSettingsPlaceholder(): void {
+  window.alert('Settings are coming soon.');
+}
+
 export function getEditorState(): EditorState | null {
   return editorState;
 }
@@ -205,7 +217,7 @@ export function getCanvas(): CanvasController | null {
   return canvasController;
 }
 
-export function getTopPanel(): TopPanelController | null {
+export function getTopPanel(): TopPanelController | TopBarV2Controller | null {
   return topPanelController;
 }
 
@@ -280,7 +292,7 @@ export async function initEditor(): Promise<void> {
   historyManager = createHistoryManager({
     maxSize: 50,
     onStateChange: (canUndo, canRedo) => {
-      bottomPanelController?.setUndoRedoState(canUndo, canRedo);
+      updateUndoRedoUI(canUndo, canRedo);
     },
   });
 
@@ -688,11 +700,24 @@ async function initPanels(): Promise<void> {
   // Initialize top panel
   const topPanelContainer = document.getElementById('top-panel-container');
   if (topPanelContainer) {
-    topPanelController = createTopPanel(topPanelContainer, {
-      expanded: editorState.panelStates.topExpanded,
-      sceneName: currentScene?.name ?? 'No Scene',
-      activeLayer: editorState.activeLayer,
-    });
+    const useTopBarV2 = isV2Enabled(EDITOR_V2_FLAGS.TOP_BAR_GLOBAL);
+    const topExpanded = useTopBarV2 ? true : editorState.panelStates.topExpanded;
+
+    topPanelController = useTopBarV2
+      ? createTopBarV2(topPanelContainer, {
+          expanded: topExpanded,
+          sceneName: currentScene?.name ?? 'No Scene',
+        })
+      : createTopPanel(topPanelContainer, {
+          expanded: topExpanded,
+          sceneName: currentScene?.name ?? 'No Scene',
+          activeLayer: editorState.activeLayer,
+        });
+
+    if (useTopBarV2 && editorState.panelStates.topExpanded !== topExpanded) {
+      editorState.panelStates.topExpanded = topExpanded;
+      scheduleSave();
+    }
 
     // Wire up persistence
     topPanelController.onExpandToggle((expanded) => {
@@ -702,14 +727,16 @@ async function initPanels(): Promise<void> {
       }
     });
 
-    topPanelController.onLayerChange((layer) => {
-      if (editorState) {
-        editorState.activeLayer = layer;
-        scheduleSave();
-      }
-      // Update canvas active layer for dimming
-      canvasController?.setActiveLayer(layer);
-    });
+    if (!useTopBarV2 && 'onLayerChange' in topPanelController) {
+      topPanelController.onLayerChange((layer) => {
+        if (editorState) {
+          editorState.activeLayer = layer;
+          scheduleSave();
+        }
+        // Update canvas active layer for dimming
+        canvasController?.setActiveLayer(layer);
+      });
+    }
 
     topPanelController.onPlaytest(() => {
       startPlaytest().catch((error) => {
@@ -717,8 +744,31 @@ async function initPanels(): Promise<void> {
       });
     });
 
+    if ('onUndo' in topPanelController) {
+      topPanelController.onUndo(() => {
+        historyManager?.undo();
+      });
+    }
+
+    if ('onRedo' in topPanelController) {
+      topPanelController.onRedo(() => {
+        historyManager?.redo();
+      });
+    }
+
+    if ('onSettings' in topPanelController) {
+      topPanelController.onSettings(() => {
+        openSettingsPlaceholder();
+      });
+    }
+
     // Initialize scene manager and selector
     await initSceneManagement();
+
+    if (!topPanelController) {
+      return;
+    }
+    const currentTopPanel = topPanelController;
 
     // Initialize layer panel
     const layerPanelContainer = topPanelController.getLayerPanelContainer();
@@ -736,7 +786,9 @@ async function initPanels(): Promise<void> {
         }
         // Update layer panel UI
         layerPanelController?.setActiveLayer(layer);
-        topPanelController?.setActiveLayer(layer);
+        if (!useTopBarV2 && 'setActiveLayer' in currentTopPanel) {
+          currentTopPanel.setActiveLayer(layer);
+        }
         canvasController?.setActiveLayer(layer);
       },
       onVisibilityChange: (visibility) => {
@@ -893,15 +945,7 @@ async function initPanels(): Promise<void> {
       }
     });
 
-    bottomPanelController.onUndo(() => {
-      historyManager?.undo();
-    });
-
-    bottomPanelController.onRedo(() => {
-      historyManager?.redo();
-    });
-
-    bottomPanelController.setUndoRedoState(
+    updateUndoRedoUI(
       historyManager?.canUndo() ?? false,
       historyManager?.canRedo() ?? false
     );

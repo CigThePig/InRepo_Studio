@@ -323,6 +323,10 @@ Micro-format (copy/paste):
   - Role: Top panel with scene info and layer tabs.
   - Lists of truth: none
 
+- `src/editor/panels/topBarV2.ts`
+  - Role: Global-only top bar (Undo/Redo/Settings/Play).
+  - Lists of truth: none
+
 - `src/editor/panels/bottomPanel.ts`
   - Role: Bottom panel with toolbar and tile picker.
   - Lists of truth: ToolType

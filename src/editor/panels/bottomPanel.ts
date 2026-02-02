@@ -81,15 +81,6 @@ export interface BottomPanelController {
   /** Get entity snap toggle */
   getEntitySnapToGrid(): boolean;
 
-  /** Register callback for undo */
-  onUndo(callback: () => void): void;
-
-  /** Register callback for redo */
-  onRedo(callback: () => void): void;
-
-  /** Update undo/redo button state */
-  setUndoRedoState(canUndo: boolean, canRedo: boolean): void;
-
   /** Get the content container */
   getContentContainer(): HTMLElement;
 
@@ -381,8 +372,6 @@ export function createBottomPanel(
   let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
   let brushSizeChangeCallback: ((size: BrushSize) => void) | null = null;
   let entitySnapChangeCallback: ((enabled: boolean) => void) | null = null;
-  let undoCallback: (() => void) | null = null;
-  let redoCallback: (() => void) | null = null;
   let tilePickerController: TilePickerController | null = null;
   let deployPanelController: DeployPanelController | null = null;
   let activePanel: BottomPanelSection = 'tiles';
@@ -410,32 +399,7 @@ export function createBottomPanel(
   const toolbar = document.createElement('div');
   toolbar.className = 'bottom-panel__toolbar';
 
-  const undoButton = document.createElement('button');
-  undoButton.className = 'tool-button tool-button--disabled';
-  undoButton.textContent = '↶';
-  undoButton.setAttribute('aria-label', 'Undo');
-  undoButton.setAttribute('title', 'Undo');
-  undoButton.disabled = true;
-
-  const redoButton = document.createElement('button');
-  redoButton.className = 'tool-button tool-button--disabled';
-  redoButton.textContent = '↷';
-  redoButton.setAttribute('aria-label', 'Redo');
-  redoButton.setAttribute('title', 'Redo');
-  redoButton.disabled = true;
-
-  undoButton.addEventListener('click', () => {
-    undoCallback?.();
-  });
-
-  redoButton.addEventListener('click', () => {
-    redoCallback?.();
-  });
-
   const toolButtons: Map<ToolType, HTMLButtonElement> = new Map();
-
-  toolbar.appendChild(undoButton);
-  toolbar.appendChild(redoButton);
 
   for (const toolType of TOOL_ORDER) {
     const config = TOOLS[toolType];
@@ -912,21 +876,6 @@ export function createBottomPanel(
 
     getEntitySnapToGrid() {
       return state.entitySnapToGrid;
-    },
-
-    onUndo(callback) {
-      undoCallback = callback;
-    },
-
-    onRedo(callback) {
-      redoCallback = callback;
-    },
-
-    setUndoRedoState(canUndo: boolean, canRedo: boolean) {
-      undoButton.disabled = !canUndo;
-      redoButton.disabled = !canRedo;
-      undoButton.classList.toggle('tool-button--disabled', !canUndo);
-      redoButton.classList.toggle('tool-button--disabled', !canRedo);
     },
 
     getContentContainer() {
