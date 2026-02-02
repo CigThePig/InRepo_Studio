@@ -13,6 +13,10 @@ export type { TopPanelController, TopPanelState } from './topPanel';
 export { createBottomPanel } from './bottomPanel';
 export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';
 
+// Bottom Context Strip
+export { createBottomContextStrip } from './bottomContextStrip';
+export type { BottomContextStripController, BottomContextSelection } from './bottomContextStrip';
+
 // Deploy Panel
 export { createDeployPanel } from './deployPanel';
 export type { DeployPanelController } from './deployPanel';

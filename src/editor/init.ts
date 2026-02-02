@@ -26,6 +26,8 @@ import {
   createBottomPanel,
   type TopPanelController,
   type BottomPanelController,
+  createBottomContextStrip,
+  type BottomContextStripController,
   createSelectionBar,
   type SelectionBarController,
   createEntitySelectionBar,
@@ -63,6 +65,7 @@ import {
 } from '@/editor/scenes';
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
+import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
 
 import { downloadJson } from '@/utils/download';
 
@@ -78,6 +81,7 @@ let currentProject: Project | null = null;
 let canvasController: CanvasController | null = null;
 let topPanelController: TopPanelController | null = null;
 let bottomPanelController: BottomPanelController | null = null;
+let bottomContextStrip: BottomContextStripController | null = null;
 let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
 let eraseTool: EraseTool | null = null;
@@ -97,6 +101,7 @@ let entityManager: EntityManager | null = null;
 let entitySelection: EntitySelection | null = null;
 let entitySelectionBar: EntitySelectionBarController | null = null;
 let propertyInspector: PropertyInspectorController | null = null;
+let tileSelectionActive = false;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -120,6 +125,29 @@ function updateHoverPreview(tool: EditorState['currentTool']): void {
   }
 }
 
+function updateBottomContextStrip(): void {
+  if (!bottomContextStrip || !editorState) return;
+  if (editorState.currentTool !== 'select') {
+    bottomContextStrip.setSelectionType('none');
+    return;
+  }
+
+  const selectedIds = editorState.selectedEntityIds ?? [];
+  if (selectedIds.length > 0) {
+    bottomContextStrip.setSelectionType('entities');
+    bottomContextStrip.setSelectionCount(selectedIds.length);
+    return;
+  }
+
+  if (tileSelectionActive) {
+    bottomContextStrip.setSelectionType('tiles');
+    bottomContextStrip.setPasteEnabled(clipboard?.hasData() ?? false);
+    return;
+  }
+
+  bottomContextStrip.setSelectionType('none');
+}
+
 function updateEntitySelectionUI(): void {
   if (!editorState || !canvasController || !currentScene || !entitySelection) return;
   const renderer = canvasController.getRenderer();
@@ -130,6 +158,7 @@ function updateEntitySelectionUI(): void {
     canvasController.invalidateScene();
     entitySelectionBar?.hide();
     propertyInspector?.hide();
+    updateBottomContextStrip();
     return;
   }
 
@@ -142,6 +171,7 @@ function updateEntitySelectionUI(): void {
     canvasController.invalidateScene();
     entitySelectionBar?.hide();
     propertyInspector?.hide();
+    updateBottomContextStrip();
     return;
   }
 
@@ -164,6 +194,7 @@ function updateEntitySelectionUI(): void {
   entitySelectionBar?.setPosition(centerX, topY);
   entitySelectionBar?.show();
   propertyInspector?.setSelection(selectedIds);
+  updateBottomContextStrip();
 }
 
 export function getEditorState(): EditorState | null {
@@ -531,6 +562,9 @@ async function initCanvas(tileSize: number): Promise<void> {
           selectionBar.hide();
         }
       }
+
+      tileSelectionActive = Boolean(state.selection && state.mode === 'selected');
+      updateBottomContextStrip();
     },
     clipboard,
     onFillResult: (result) => {
@@ -761,6 +795,48 @@ async function initPanels(): Promise<void> {
         }
     );
 
+    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+      bottomContextStrip = createBottomContextStrip(
+        bottomPanelController.getContextStripContainer(),
+        {
+          onMove: () => {
+            selectTool?.armMove();
+          },
+          onCopy: () => {
+            selectTool?.copySelection();
+            updateBottomContextStrip();
+          },
+          onPaste: () => {
+            selectTool?.armPaste();
+            updateBottomContextStrip();
+          },
+          onDelete: () => {
+            if ((editorState?.selectedEntityIds ?? []).length > 0) {
+              selectTool?.deleteEntities();
+              updateEntitySelectionUI();
+            } else {
+              selectTool?.deleteSelection();
+            }
+          },
+          onFill: () => {
+            selectTool?.armFill();
+          },
+          onCancel: () => {
+            selectTool?.clearSelection();
+          },
+          onDuplicate: () => {
+            selectTool?.duplicateEntities();
+            updateEntitySelectionUI();
+          },
+          onClear: () => {
+            entitySelection?.clear();
+            updateEntitySelectionUI();
+          },
+        }
+      );
+      updateBottomContextStrip();
+    }
+
     // Wire up persistence
     bottomPanelController.onExpandToggle((expanded) => {
       if (editorState) {
@@ -778,6 +854,7 @@ async function initPanels(): Promise<void> {
       if (tool !== 'select') {
         selectTool?.clearSelection();
         entitySelection?.clear();
+        tileSelectionActive = false;
         updateEntitySelectionUI();
       }
       if (tool !== 'entity') {
@@ -785,6 +862,7 @@ async function initPanels(): Promise<void> {
         canvasController?.getRenderer().setEntityHighlightId(null);
         canvasController?.invalidateScene();
       }
+      updateBottomContextStrip();
     });
 
     bottomPanelController.onTileSelect((selection) => {

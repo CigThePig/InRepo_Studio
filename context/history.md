@@ -330,6 +330,21 @@ Purpose:
 - **Follow-up**:
   - Box selection for entities (optional UX enhancement)
 
+### Track 23 — Bottom Interaction Strip
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Added Editor V2 foundation modules with feature flags and introduced a bottom context strip to replace floating selection popups for tile/entity actions.
+- **Shipped**:
+  - Editor V2 feature flags, editor mode state, and legacy mode mapping utilities
+  - Bottom context strip UI integrated into the bottom panel
+  - Feature-flagged hiding of legacy floating selection bars
+  - Editor state now stores editorMode for V2 migration
+- **Verification**: `npm run build`, `npm run lint`
+- **Learned**: Feature flag defaults make it safer to swap selection UI without ripping out legacy behavior immediately.
+- **Follow-up**:
+  - Track 24: Top Bar Globalization
+  - Track 25: Right Berry Shell + Mode State
+
 ---
 
 ## Stalled / Abandoned Tracks

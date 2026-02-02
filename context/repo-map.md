@@ -104,6 +104,8 @@ Local instruction files (present):
   - Role: scene selector, layer switcher, deploy button
 - `panels/bottomPanel.ts`
   - Role: toolbar, tile picker, entity palette, inspector
+- `panels/bottomContextStrip.ts`
+  - Role: bottom bar context actions for selection
 - `tools/paint.ts`
   - Role: tile painting logic
 - `tools/erase.ts`
@@ -114,6 +116,8 @@ Local instruction files (present):
   - Role: entity placement and editing
 - `panels/propertyInspector.ts`
   - Role: entity property editing UI
+- `v2/`
+  - Role: Editor V2 state + feature flags
 - `settings/editorSettings.ts`
   - Role: user preferences
   - Owns: EditorSettingsSchema

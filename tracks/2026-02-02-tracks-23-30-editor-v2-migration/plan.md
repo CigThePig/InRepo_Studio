@@ -107,28 +107,28 @@ This plan organizes the Editor V2 Migration into phases aligned with each track.
 
 ### Tasks
 
-- [ ] Create `src/editor/v2/` directory
-- [ ] Create `src/editor/v2/index.ts`
-  - [ ] Export V2 public API
-- [ ] Create `src/editor/v2/featureFlags.ts`
-  - [ ] Define EDITOR_V2_FLAGS constant
-  - [ ] `isV2Enabled(flag)` function
-  - [ ] `setV2Flag(flag, value)` function
-  - [ ] Persist flags to localStorage
-- [ ] Create `src/editor/v2/editorMode.ts`
-  - [ ] Define EditorMode type
-  - [ ] `getEditorMode()` function
-  - [ ] `setEditorMode(mode)` function
-  - [ ] `onEditorModeChange(callback)` subscription
-- [ ] Create `src/editor/v2/modeMapping.ts`
-  - [ ] MODE_TO_LAYER mapping
-  - [ ] MODE_TO_TOOL mapping
-  - [ ] `getLegacyState(mode)` helper
-- [ ] Update `src/storage/hot.ts`
-  - [ ] Add `editorMode: EditorMode` to EditorState
-  - [ ] Add migration for missing field
-- [ ] Update `INDEX.md` with new files
-- [ ] Update `context/schema-registry.md` with EditorMode
+- [x] Create `src/editor/v2/` directory
+- [x] Create `src/editor/v2/index.ts`
+  - [x] Export V2 public API
+- [x] Create `src/editor/v2/featureFlags.ts`
+  - [x] Define EDITOR_V2_FLAGS constant
+  - [x] `isV2Enabled(flag)` function
+  - [x] `setV2Flag(flag, value)` function
+  - [x] Persist flags to localStorage
+- [x] Create `src/editor/v2/editorMode.ts`
+  - [x] Define EditorMode type
+  - [x] `getEditorMode()` function
+  - [x] `setEditorMode(mode)` function
+  - [x] `onEditorModeChange(callback)` subscription
+- [x] Create `src/editor/v2/modeMapping.ts`
+  - [x] MODE_TO_LAYER mapping
+  - [x] MODE_TO_TOOL mapping
+  - [x] `getLegacyState(mode)` helper
+- [x] Update `src/storage/hot.ts`
+  - [x] Add `editorMode: EditorMode` to EditorState
+  - [x] Add migration for missing field
+- [x] Update `INDEX.md` with new files
+- [x] Update `context/schema-registry.md` with EditorMode
 
 ### Files Touched
 
@@ -146,8 +146,8 @@ This plan organizes the Editor V2 Migration into phases aligned with each track.
 - [ ] Feature flags can be toggled
 - [ ] EditorMode state persists
 - [ ] Mode mapping returns correct legacy values
-- [ ] TypeScript compiles without errors
-- [ ] `npm run build` succeeds
+- [x] TypeScript compiles without errors
+- [x] `npm run build` succeeds
 
 ### Stop Point
 
@@ -161,28 +161,28 @@ Pause for review. V2 foundation ready.
 
 ### Tasks
 
-- [ ] Create `src/editor/panels/bottomContextStrip.ts`
-  - [ ] BottomContextStripConfig interface
-  - [ ] `createBottomContextStrip(container, config)` factory
-  - [ ] Tile selection actions: Copy, Paste, Delete, Fill, Cancel
-  - [ ] Entity selection actions: Duplicate, Delete, Clear
-  - [ ] Touch-friendly button sizing (44×44px minimum)
-  - [ ] Horizontal scrollable if overflow
-- [ ] Update `src/editor/panels/bottomPanel.ts`
-  - [ ] Add context strip container area
-  - [ ] Wire context strip creation
-  - [ ] Listen to selection changes
-  - [ ] Update strip based on selection type
-- [ ] Update `src/editor/panels/selectionBar.ts`
-  - [ ] Add feature flag check
-  - [ ] Hide when V2 enabled
-- [ ] Update `src/editor/panels/entitySelectionBar.ts`
-  - [ ] Add feature flag check
-  - [ ] Hide when V2 enabled
-- [ ] Update `src/editor/init.ts`
-  - [ ] Wire context strip to selection state
-  - [ ] Pass action handlers
-- [ ] Enable `EDITOR_V2_BOTTOM_STRIP` flag by default
+- [x] Create `src/editor/panels/bottomContextStrip.ts`
+  - [x] BottomContextStripConfig interface
+  - [x] `createBottomContextStrip(container, config)` factory
+  - [x] Tile selection actions: Copy, Paste, Delete, Fill, Cancel
+  - [x] Entity selection actions: Duplicate, Delete, Clear
+  - [x] Touch-friendly button sizing (44×44px minimum)
+  - [x] Horizontal scrollable if overflow
+- [x] Update `src/editor/panels/bottomPanel.ts`
+  - [x] Add context strip container area
+  - [x] Wire context strip creation
+  - [x] Listen to selection changes
+  - [x] Update strip based on selection type
+- [x] Update `src/editor/panels/selectionBar.ts`
+  - [x] Add feature flag check
+  - [x] Hide when V2 enabled
+- [x] Update `src/editor/panels/entitySelectionBar.ts`
+  - [x] Add feature flag check
+  - [x] Hide when V2 enabled
+- [x] Update `src/editor/init.ts`
+  - [x] Wire context strip to selection state
+  - [x] Pass action handlers
+- [x] Enable `EDITOR_V2_BOTTOM_STRIP` flag by default
 
 ### Files Touched
 
@@ -203,8 +203,8 @@ Pause for review. V2 foundation ready.
 - [ ] Touch targets are 44×44px minimum
 - [ ] Actions execute correctly
 - [ ] Manual test on mobile device
-- [ ] `npm run build` succeeds
-- [ ] `npm run lint` passes
+- [x] `npm run build` succeeds
+- [x] `npm run lint` passes
 
 ### Stop Point
 

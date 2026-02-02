@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, editorMode, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)
@@ -92,6 +92,23 @@ Rules:
   - `ToolList` — available tools
     - Values: select, paint, erase, entity
     - Invariant: exactly one tool active at a time
+
+### Editor V2 (Track 23)
+
+- `/src/editor/v2/editorMode.ts`
+  - `EditorMode` — primary editing state
+    - Values: select, ground, props, entities, collision, triggers
+    - Invariant: single source of truth for editing context
+
+- `/src/editor/v2/featureFlags.ts`
+  - `EDITOR_V2_FLAGS` — feature flag registry for V2 rollout
+    - Invariant: keys are stable across releases
+
+- `/src/editor/v2/modeMapping.ts`
+  - `MODE_TO_LAYER` — V2 mode to legacy layer mapping
+    - Invariant: select/entities map to null layer
+  - `MODE_TO_TOOL` — V2 mode to legacy tool mapping
+    - Invariant: select -> select, entities -> entity
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

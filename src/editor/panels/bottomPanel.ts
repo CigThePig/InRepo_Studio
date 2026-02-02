@@ -93,6 +93,9 @@ export interface BottomPanelController {
   /** Get the content container */
   getContentContainer(): HTMLElement;
 
+  /** Get the context strip container */
+  getContextStripContainer(): HTMLElement;
+
   /** Clean up resources */
   destroy(): void;
 }
@@ -134,11 +137,11 @@ const STYLES = `
   }
 
   .bottom-panel--collapsed {
-    max-height: 60px;
+    max-height: 120px;
   }
 
   .bottom-panel--expanded {
-    max-height: 280px;
+    max-height: 320px;
   }
 
   .bottom-panel__header {
@@ -164,6 +167,10 @@ const STYLES = `
     padding: 8px 12px;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .bottom-panel__context-strip {
+    padding: 2px 0 0;
   }
 
   .tool-button {
@@ -494,6 +501,9 @@ export function createBottomPanel(
 
   toolbar.appendChild(dataButton);
 
+  const contextStripContainer = document.createElement('div');
+  contextStripContainer.className = 'bottom-panel__context-strip';
+
   // Content area (for tile picker)
   const content = document.createElement('div');
   content.className = 'bottom-panel__content';
@@ -802,6 +812,7 @@ export function createBottomPanel(
 
   panel.appendChild(header);
   panel.appendChild(toolbar);
+  panel.appendChild(contextStripContainer);
   panel.appendChild(content);
   container.appendChild(panel);
 
@@ -920,6 +931,10 @@ export function createBottomPanel(
 
     getContentContainer() {
       return content;
+    },
+
+    getContextStripContainer() {
+      return contextStripContainer;
     },
 
     destroy() {

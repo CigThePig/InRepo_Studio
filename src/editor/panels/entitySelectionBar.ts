@@ -4,6 +4,8 @@
  * Floating action bar for entity manipulation actions.
  */
 
+import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
+
 const LOG_PREFIX = '[EntitySelectionBar]';
 
 export interface EntitySelectionBarConfig {
@@ -130,6 +132,10 @@ export function createEntitySelectionBar(
   container.appendChild(bar);
 
   function show(): void {
+    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+      hide();
+      return;
+    }
     bar.classList.remove('entity-selection-bar--hidden');
   }
 
@@ -138,6 +144,9 @@ export function createEntitySelectionBar(
   }
 
   function setPosition(x: number, y: number): void {
+    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+      return;
+    }
     const containerRect = container.getBoundingClientRect();
     const barRect = bar.getBoundingClientRect();
     const padding = 8;
