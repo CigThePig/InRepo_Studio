@@ -307,6 +307,10 @@ Micro-format (copy/paste):
   - Role: Tilemap rendering with layer support, culling, and dimming.
   - Lists of truth: LAYER_RENDER_ORDER, LAYER_COLORS
 
+- `src/editor/canvas/entityRenderer.ts`
+  - Role: Entity rendering on canvas (sprites, placeholders, preview).
+  - Lists of truth: EntityRendererConfig, EntityPreview
+
 - `src/editor/panels/index.ts`
   - Role: Public exports for panels module.
   - Lists of truth: none

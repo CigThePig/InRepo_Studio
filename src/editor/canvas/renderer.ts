@@ -20,12 +20,13 @@
  * - [ ] Inactive layers are dimmed
  */
 
-import { resolveTileGid, type Scene, type LayerType, type TileLayer } from '@/types';
+import { resolveTileGid, type Scene, type LayerType, type TileLayer, type EntityType } from '@/types';
 import type { ViewportState } from './viewport';
 import { getVisibleTileRange, tileToScreen } from './viewport';
 import { getTile, LAYER_ORDER } from '@/types/scene';
 import type { TileImageCache } from './tileCache';
 import type { LayerVisibility, LayerLocks } from '@/storage/hot';
+import { createEntityRenderer, type EntityPreview } from './entityRenderer';
 
 const LOG_PREFIX = '[Renderer]';
 
@@ -64,6 +65,8 @@ export interface TilemapRendererConfig {
   tileCache: TileImageCache;
   /** Base path for asset loading */
   assetBasePath: string;
+  /** Callback when entity sprites load */
+  onSpriteLoad?: () => void;
 }
 
 export interface HoverStyle {
@@ -135,6 +138,15 @@ export interface TilemapRenderer {
   /** Set selection overlay state */
   setSelectionOverlay(state: SelectionOverlayState): void;
 
+  /** Set entity types used for rendering */
+  setEntityTypes(types: EntityType[]): void;
+
+  /** Set entity placement preview */
+  setEntityPreview(preview: EntityPreview | null): void;
+
+  /** Highlight a recently placed entity */
+  setEntityHighlightId(id: string | null): void;
+
   /** Render the tilemap to the canvas context */
   render(
     ctx: CanvasRenderingContext2D,
@@ -184,7 +196,15 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     moveOffset: null,
     previewTiles: null,
   };
+  let entityPreview: EntityPreview | null = null;
   let dirty = true;
+  const entityRenderer = createEntityRenderer({
+    assetBasePath: config.assetBasePath,
+    onSpriteLoad: () => {
+      dirty = true;
+      config.onSpriteLoad?.();
+    },
+  });
 
   function getHoverFootprint(
     tileX: number,
@@ -520,6 +540,22 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       dirty = true;
     },
 
+    setEntityTypes(types: EntityType[]): void {
+      entityRenderer.setEntityTypes(types);
+      dirty = true;
+    },
+
+    setEntityPreview(preview: EntityPreview | null): void {
+      entityPreview = preview;
+      entityRenderer.setPreview(preview);
+      dirty = true;
+    },
+
+    setEntityHighlightId(id: string | null): void {
+      entityRenderer.setHighlightId(id);
+      dirty = true;
+    },
+
     render(
       ctx: CanvasRenderingContext2D,
       viewport: ViewportState,
@@ -552,6 +588,17 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           sceneWidth,
           sceneHeight,
           layerType === activeLayer
+        );
+      }
+
+      if (scene.entities?.length || entityPreview) {
+        entityRenderer.render(
+          ctx,
+          viewport,
+          scene.entities ?? [],
+          tileSize,
+          canvasWidth,
+          canvasHeight
         );
       }
 
