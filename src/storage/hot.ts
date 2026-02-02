@@ -62,7 +62,11 @@ export interface EditorState {
   /** Custom layer render order (bottom to top) */
   layerOrder: LayerType[];
   selectedTile: SelectedTile | null;
+  /** Selected entity type name for placement */
+  selectedEntityType: string | null;
   brushSize: BrushSize;
+  /** Snap entity placement to grid */
+  entitySnapToGrid: boolean;
   viewport: ViewportState;
   panelStates: PanelStates;
   recentTiles: number[];
@@ -257,7 +261,9 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   activeLayer: 'ground',
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
+  selectedEntityType: null,
   brushSize: 1,
+  entitySnapToGrid: true,
   viewport: {
     panX: 0,
     panY: 0,
