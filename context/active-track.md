@@ -1,14 +1,12 @@
-Active track: Track 23 — Bottom Interaction Strip (Editor V2 Migration)
+Active track: (none)
 
-Current phase: Phase 1 — V2 Foundation + Feature Flags
-Next task: Create `src/editor/v2/` directory and foundation files
+Current phase: (none)
+Next task: (none)
 
 Track planning documents:
-- Spec: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/spec.md`
-- Blueprint: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/blueprint.md`
-- Plan: `/tracks/2026-02-02-tracks-23-30-editor-v2-migration/plan.md`
+- (none)
 
-Authority: `/context/editor-v2-architecture.md` (source of truth for all Editor V2 design decisions)
+Authority: (none)
 
 ---
 

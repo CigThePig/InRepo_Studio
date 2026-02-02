@@ -4,6 +4,8 @@
  * Floating action bar for selection operations.
  */
 
+import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
+
 const LOG_PREFIX = '[SelectionBar]';
 
 export interface SelectionBarConfig {
@@ -161,6 +163,10 @@ export function createSelectionBar(
   container.appendChild(bar);
 
   function show(): void {
+    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+      hide();
+      return;
+    }
     bar.classList.remove('selection-bar--hidden');
   }
 
@@ -169,6 +175,9 @@ export function createSelectionBar(
   }
 
   function setPosition(x: number, y: number): void {
+    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+      return;
+    }
     const containerRect = container.getBoundingClientRect();
     const barRect = bar.getBoundingClientRect();
     const padding = 8;

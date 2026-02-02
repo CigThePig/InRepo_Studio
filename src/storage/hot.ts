@@ -24,6 +24,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Project, Scene, LayerType } from '@/types';
+import type { EditorMode } from '@/editor/v2/editorMode';
 
 // --- Constants ---
 
@@ -58,6 +59,7 @@ export type LayerLocks = Record<LayerType, boolean>;
 export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
+  editorMode: EditorMode;
   activeLayer: LayerType;
   /** Custom layer render order (bottom to top) */
   layerOrder: LayerType[];
@@ -260,6 +262,7 @@ export async function getAllSceneIds(): Promise<string[]> {
 const DEFAULT_EDITOR_STATE: EditorState = {
   currentSceneId: null,
   currentTool: 'select',
+  editorMode: 'select',
   activeLayer: 'ground',
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,

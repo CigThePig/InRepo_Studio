@@ -327,6 +327,10 @@ Micro-format (copy/paste):
   - Role: Bottom panel with toolbar and tile picker.
   - Lists of truth: ToolType
 
+- `src/editor/panels/bottomContextStrip.ts`
+  - Role: Bottom bar context strip for selection actions.
+  - Lists of truth: none
+
 - `src/editor/panels/deployPanel.ts`
   - Role: Deploy panel with authentication status.
   - Lists of truth: none
@@ -350,6 +354,22 @@ Micro-format (copy/paste):
 - `src/editor/panels/layerPanel.ts`
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
+
+- `src/editor/v2/index.ts`
+  - Role: Editor V2 public exports.
+  - Lists of truth: none
+
+- `src/editor/v2/featureFlags.ts`
+  - Role: Editor V2 feature flag management.
+  - Lists of truth: EDITOR_V2_FLAGS
+
+- `src/editor/v2/editorMode.ts`
+  - Role: Editor V2 mode state management.
+  - Lists of truth: EditorMode
+
+- `src/editor/v2/modeMapping.ts`
+  - Role: Legacy tool/layer to mode mapping.
+  - Lists of truth: MODE_TO_LAYER, MODE_TO_TOOL
 
 ### Scene Management (Track 17)
 - `src/editor/scenes/AGENTS.md`
