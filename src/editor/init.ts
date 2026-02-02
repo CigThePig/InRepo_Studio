@@ -15,6 +15,7 @@ import {
   checkStorageQuota,
   checkForUpdates,
   forceRefreshFromCold,
+  scanAssetFolders,
 } from '@/storage';
 import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import type { StorageQuotaInfo } from '@/storage/hot';
@@ -51,6 +52,7 @@ import {
   type AssetRegistry,
   type AssetRegistryState,
 } from '@/editor/assets';
+import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
@@ -137,6 +139,33 @@ const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
   border: 'rgba(255, 120, 120, 0.9)',
 };
+
+function resolveRepoConfig(): { owner: string; repo: string } | null {
+  const owner = localStorage.getItem('inrepo_repo_owner');
+  const repo = localStorage.getItem('inrepo_repo_name');
+  if (owner && repo) {
+    return { owner, repo };
+  }
+
+  const baseUrl = import.meta.env.BASE_URL ?? '/';
+  const trimmed = baseUrl.replace(/^\/|\/$/g, '');
+  const inferredRepo = trimmed.split('/')[0];
+  if (!inferredRepo) {
+    return null;
+  }
+
+  const host = window.location.hostname;
+  if (!host.endsWith('.github.io')) {
+    return null;
+  }
+
+  const inferredOwner = host.replace('.github.io', '');
+  if (!inferredOwner) {
+    return null;
+  }
+
+  return { owner: inferredOwner, repo: inferredRepo };
+}
 
 function updateHoverPreview(tool: EditorState['currentTool']): void {
   const renderer = canvasController?.getRenderer();
@@ -421,6 +450,9 @@ export async function initEditor(): Promise<void> {
     editorState.assetRegistry = nextState;
     scheduleSave();
   });
+  if (editorState.repoAssetManifest) {
+    assetRegistry.refreshFromRepo(editorState.repoAssetManifest);
+  }
 
   historyManager = createHistoryManager({
     maxSize: 50,
@@ -491,6 +523,29 @@ export async function initEditor(): Promise<void> {
   await initCanvas(currentScene?.tileSize ?? currentProject.settings?.defaultTileSize ?? 32);
 
   authManager = createAuthManager(createTokenStorage());
+
+  void (async () => {
+    if (!editorState || !assetRegistry) return;
+    if (!isV2Enabled(EDITOR_V2_FLAGS.REPO_MIRRORING)) return;
+    if (!navigator.onLine) return;
+    const repoConfig = resolveRepoConfig();
+    if (!repoConfig) return;
+
+    try {
+      const token = await authManager?.getToken();
+      const manifest = await scanAssetFolders({
+        repoOwner: repoConfig.owner,
+        repoName: repoConfig.repo,
+        token,
+        assetPaths: ASSET_GROUP_PATHS,
+      });
+      assetRegistry.refreshFromRepo(manifest);
+      editorState.repoAssetManifest = manifest;
+      scheduleSave();
+    } catch (error) {
+      console.warn(`${LOG_PREFIX} Failed to scan repo assets:`, error);
+    }
+  })();
 
   // Initialize panels (after canvas so we can wire up canvas updates)
   await initPanels();
@@ -1149,6 +1204,7 @@ async function initPanels(): Promise<void> {
       const placeholderText: Record<EditorMode, string> = {
         ground: 'Add tiles via the left berry and use them to paint on the canvas.',
         props: 'Props mode is ready for palette wiring in a later track.',
+        entities: 'Entities mode uses the right berry palette and inline inspector.',
         collision: 'Collision mode will use the paint tool for collision tiles.',
         triggers: 'Triggers mode will be wired after entities in a later track.',
         select: 'Select mode is handled outside the right berry.',

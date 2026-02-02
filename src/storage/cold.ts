@@ -5,6 +5,7 @@
  *
  * Defines:
  * - FreshnessCheckSchema — remote file state (type: schema)
+ * - RepoAssetManifest — repo asset folder scan results (type: schema)
  *
  * Canonical key set:
  * - Keys come from: this file (authoritative source)
@@ -20,6 +21,7 @@
  */
 
 import type { Project, Scene } from '@/types';
+import type { AssetGroupType } from '@/editor/assets/assetGroup';
 import { validateProject, validateScene } from '@/types';
 
 const LOG_PREFIX = '[Storage/Cold]';
@@ -30,6 +32,18 @@ export interface FreshnessCheck {
   etag: string | null;
   lastModified: string | null;
   sha: string | null;
+}
+
+export interface RepoGroupEntry {
+  type: AssetGroupType;
+  slug: string;
+  path: string;
+  files: string[];
+}
+
+export interface RepoAssetManifest {
+  scannedAt: number;
+  groups: RepoGroupEntry[];
 }
 
 // --- Base Path ---
@@ -163,6 +177,112 @@ export async function hasRemoteChanges(
   if (!freshness.etag) return true; // Assume changed if we can't check
 
   return freshness.etag !== knownEtag;
+}
+
+// --- Asset Folder Scanning ---
+
+interface GitHubContentItem {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+}
+
+function parseRateLimitError(response: Response): string | null {
+  if (response.status !== 403) {
+    return null;
+  }
+  const remaining = response.headers.get('X-RateLimit-Remaining');
+  if (remaining === '0') {
+    return 'GitHub API rate limit exceeded. Please try again later.';
+  }
+  return null;
+}
+
+async function fetchRepoContents(options: {
+  repoOwner: string;
+  repoName: string;
+  path: string;
+  token?: string | null;
+}): Promise<GitHubContentItem[] | null> {
+  const { repoOwner, repoName, path, token } = options;
+  const cleanPath = path.replace(/^\/+/, '');
+  const response = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${cleanPath}`,
+    {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  const rateLimitError = parseRateLimitError(response);
+  if (rateLimitError) {
+    throw new Error(rateLimitError);
+  }
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) {
+    return null;
+  }
+  return data as GitHubContentItem[];
+}
+
+export async function scanAssetFolders(options: {
+  repoOwner: string;
+  repoName: string;
+  token?: string | null;
+  assetPaths: Record<AssetGroupType, string>;
+}): Promise<RepoAssetManifest> {
+  const { repoOwner, repoName, token, assetPaths } = options;
+  const groups: RepoGroupEntry[] = [];
+
+  for (const [type, basePath] of Object.entries(assetPaths) as [AssetGroupType, string][]) {
+    const rootContents = await fetchRepoContents({
+      repoOwner,
+      repoName,
+      path: basePath,
+      token,
+    });
+    if (!rootContents) {
+      continue;
+    }
+
+    const directories = rootContents.filter((entry) => entry.type === 'dir');
+    for (const dir of directories) {
+      const groupContents = await fetchRepoContents({
+        repoOwner,
+        repoName,
+        path: dir.path,
+        token,
+      });
+
+      const files = (groupContents ?? [])
+        .filter((entry) => entry.type === 'file')
+        .map((entry) => entry.name);
+
+      groups.push({
+        type,
+        slug: dir.name,
+        path: dir.path,
+        files,
+      });
+    }
+  }
+
+  return {
+    scannedAt: Date.now(),
+    groups,
+  };
 }
 
 // --- Scene List Discovery ---

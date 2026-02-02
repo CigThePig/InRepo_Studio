@@ -346,7 +346,7 @@ export function createSelectEntityController(
     handlePointerMove(viewport, screenX, screenY, tileSize): boolean {
       const editorState = getEditorState();
       const scene = getScene();
-      if (!scene || !isToolAllowed(editorState)) {
+      if (!scene || !editorState || !isToolAllowed(editorState)) {
         return false;
       }
 

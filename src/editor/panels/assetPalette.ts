@@ -128,7 +128,9 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
 
     const meta = document.createElement('div');
     meta.className = 'asset-palette__meta';
-    meta.textContent = `${asset.width}×${asset.height}`;
+    const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
+    const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
+    meta.textContent = `${sizeLabel} · ${sourceLabel}`;
 
     card.appendChild(img);
     card.appendChild(name);

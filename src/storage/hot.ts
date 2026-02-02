@@ -27,6 +27,7 @@ import type { Project, Scene, LayerType } from '@/types';
 import type { AssetRegistryState } from '@/editor/assets';
 import { DEFAULT_ASSET_REGISTRY_STATE } from '@/editor/assets';
 import type { EditorMode } from '@/editor/v2/editorMode';
+import type { RepoAssetManifest } from '@/storage/cold';
 
 // --- Constants ---
 
@@ -66,6 +67,7 @@ export interface EditorState {
   leftBerryOpen: boolean;
   activeLayer: LayerType;
   assetRegistry: AssetRegistryState;
+  repoAssetManifest: RepoAssetManifest | null;
   /** Custom layer render order (bottom to top) */
   layerOrder: LayerType[];
   selectedTile: SelectedTile | null;
@@ -90,7 +92,10 @@ function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState 
     selectedAssetId: state.selectedAssetId,
     groups: state.groups.map((group) => ({
       ...group,
-      assets: group.assets.map((asset) => ({ ...asset })),
+      assets: group.assets.map((asset) => ({
+        ...asset,
+        source: asset.source ?? 'local',
+      })),
     })),
   };
 }
@@ -282,6 +287,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   leftBerryOpen: false,
   activeLayer: 'ground',
   assetRegistry: cloneAssetRegistryState(DEFAULT_ASSET_REGISTRY_STATE),
+  repoAssetManifest: null,
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
   selectedEntityType: null,
@@ -342,6 +348,7 @@ export async function loadEditorState(): Promise<EditorState> {
     layerVisibility: { ...DEFAULT_EDITOR_STATE.layerVisibility, ...state.layerVisibility },
     layerLocks: { ...DEFAULT_EDITOR_STATE.layerLocks, ...state.layerLocks },
     assetRegistry: cloneAssetRegistryState(mergedAssetRegistry),
+    repoAssetManifest: state.repoAssetManifest ?? DEFAULT_EDITOR_STATE.repoAssetManifest,
   };
 
   console.log(`${LOG_PREFIX} Editor state loaded`);
