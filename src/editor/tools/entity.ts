@@ -7,6 +7,7 @@
 
 import { screenToWorld, type ViewportState } from '@/editor/canvas/viewport';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
+import type { EntityPreview } from '@/editor/canvas/entityRenderer';
 import type { EditorState } from '@/storage/hot';
 import type { Scene, Project } from '@/types';
 import type { EntityManager } from '@/editor/entities/entityManager';
@@ -24,6 +25,10 @@ export interface EntityToolConfig {
   getProject: () => Project | null;
   /** Entity manager for CRUD operations */
   entityManager: EntityManager;
+  /** Callback for preview updates */
+  onPreviewChange?: (preview: EntityPreview | null) => void;
+  /** Callback when entity is placed */
+  onEntityPlaced?: (entityId: string) => void;
 }
 
 export interface EntityTool {
@@ -76,7 +81,14 @@ function getPlacementPosition(
 // --- Factory ---
 
 export function createEntityTool(config: EntityToolConfig): EntityTool {
-  const { getEditorState, getScene, getProject, entityManager } = config;
+  const {
+    getEditorState,
+    getScene,
+    getProject,
+    entityManager,
+    onPreviewChange,
+    onEntityPlaced,
+  } = config;
 
   function resolveEntityType(editorState: EditorState, project: Project | null): string | null {
     if (editorState.selectedEntityType) {
@@ -90,35 +102,60 @@ export function createEntityTool(config: EntityToolConfig): EntityTool {
     return fallback;
   }
 
+  function updatePreview(
+    screenX: number,
+    screenY: number,
+    viewport: ViewportState,
+    tileSize: number,
+    scene: Scene,
+    editorState: EditorState,
+    typeName: string
+  ): void {
+    const snapEnabled = editorState.entitySnapToGrid ?? true;
+    const position = getPlacementPosition(
+      screenX,
+      screenY,
+      viewport,
+      tileSize,
+      scene,
+      snapEnabled
+    );
+    onPreviewChange?.({
+      x: position.x,
+      y: position.y,
+      type: typeName,
+    });
+  }
+
   const tool: EntityTool = {
     start(screenX, screenY, viewport, tileSize) {
       const editorState = getEditorState();
       if (!editorState || editorState.currentTool !== 'entity') {
+        onPreviewChange?.(null);
         return;
       }
 
       const scene = getScene();
-      if (!scene) return;
+      if (!scene) {
+        onPreviewChange?.(null);
+        return;
+      }
 
       const project = getProject();
       const entityType = resolveEntityType(editorState, project);
       if (!entityType) {
         console.warn(`${LOG_PREFIX} No entity type selected`);
+        onPreviewChange?.(null);
         return;
       }
 
+      updatePreview(screenX, screenY, viewport, tileSize, scene, editorState, entityType);
       const snapEnabled = editorState.entitySnapToGrid ?? true;
-      const position = getPlacementPosition(
-        screenX,
-        screenY,
-        viewport,
-        tileSize,
-        scene,
-        snapEnabled
-      );
+      const position = getPlacementPosition(screenX, screenY, viewport, tileSize, scene, snapEnabled);
 
       const placed = entityManager.addEntity(entityType, position.x, position.y);
       if (placed) {
+        onEntityPlaced?.(placed.id);
         console.log(
           `${LOG_PREFIX} Placed entity "${entityType}" at (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`
         );
@@ -126,14 +163,30 @@ export function createEntityTool(config: EntityToolConfig): EntityTool {
     },
 
     move(screenX, screenY, viewport, tileSize) {
-      void screenX;
-      void screenY;
-      void viewport;
-      void tileSize;
+      const editorState = getEditorState();
+      if (!editorState || editorState.currentTool !== 'entity') {
+        onPreviewChange?.(null);
+        return;
+      }
+
+      const scene = getScene();
+      if (!scene) {
+        onPreviewChange?.(null);
+        return;
+      }
+
+      const project = getProject();
+      const entityType = resolveEntityType(editorState, project);
+      if (!entityType) {
+        onPreviewChange?.(null);
+        return;
+      }
+
+      updatePreview(screenX, screenY, viewport, tileSize, scene, editorState, entityType);
     },
 
     end() {
-      // Preview state cleared on gesture end.
+      onPreviewChange?.(null);
     },
   };
 

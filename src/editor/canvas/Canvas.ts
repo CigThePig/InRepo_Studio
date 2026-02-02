@@ -160,7 +160,14 @@ export function createCanvas(
 
   // --- Tile Cache and Renderer ---
   const tileCache = createTileCache();
-  const renderer = createTilemapRenderer({ tileCache, assetBasePath });
+  const renderer = createTilemapRenderer({
+    tileCache,
+    assetBasePath,
+    onSpriteLoad: () => {
+      isDirty = true;
+      scheduleRender();
+    },
+  });
   const brushCursor: BrushCursor = createBrushCursor();
 
   // Set initial scene and active layer if provided

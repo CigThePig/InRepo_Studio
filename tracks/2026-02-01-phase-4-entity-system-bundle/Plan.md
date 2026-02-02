@@ -253,6 +253,8 @@ Pause for review. Entity Placement (Track 20) complete.
   - [ ] Implement selection state management
   - [ ] `selectEntity()`, `deselectEntity()`, `clearSelection()`
   - [ ] `isEntitySelected()` helper
+- [ ] Refactor `src/editor/canvas/renderer.ts` (file >450 lines)
+  - [ ] Extract entity rendering helpers into a dedicated module
 - [ ] Add selection state to EditorState
   - [ ] Add `selectedEntityIds: string[]`
   - [ ] Add defaults

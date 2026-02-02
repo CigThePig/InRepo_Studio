@@ -372,6 +372,7 @@ async function initCanvas(tileSize: number): Promise<void> {
 
   // Set initial selected category for rendering
   canvasController.setSelectedCategory(initialCategory);
+  canvasController.getRenderer().setEntityTypes(currentProject?.entityTypes ?? []);
 
   // Preload tile images for all categories
   if (currentProject?.tileCategories) {
@@ -481,6 +482,14 @@ async function initCanvas(tileSize: number): Promise<void> {
     getScene: () => currentScene,
     getProject: () => currentProject,
     entityManager,
+    onPreviewChange: (preview) => {
+      canvasController?.getRenderer().setEntityPreview(preview);
+      canvasController?.invalidateScene();
+    },
+    onEntityPlaced: (entityId) => {
+      canvasController?.getRenderer().setEntityHighlightId(entityId);
+      canvasController?.invalidateScene();
+    },
   });
 
   selectionBar = createSelectionBar(container, {
@@ -658,6 +667,7 @@ async function initPanels(): Promise<void> {
         currentTool: editorState.currentTool,
         selectedTile: editorState.selectedTile,
         brushSize: editorState.brushSize,
+        entitySnapToGrid: editorState.entitySnapToGrid ?? true,
       },
       currentProject ?? undefined,
       ASSET_BASE_PATH,
@@ -685,6 +695,11 @@ async function initPanels(): Promise<void> {
       if (tool !== 'select') {
         selectTool?.clearSelection();
       }
+      if (tool !== 'entity') {
+        canvasController?.getRenderer().setEntityPreview(null);
+        canvasController?.getRenderer().setEntityHighlightId(null);
+        canvasController?.invalidateScene();
+      }
     });
 
     bottomPanelController.onTileSelect((selection) => {
@@ -706,6 +721,13 @@ async function initPanels(): Promise<void> {
         scheduleSave();
       }
       updateHoverPreview(editorState?.currentTool ?? 'select');
+    });
+
+    bottomPanelController.onEntitySnapChange((enabled) => {
+      if (editorState) {
+        editorState.entitySnapToGrid = enabled;
+        scheduleSave();
+      }
     });
 
     bottomPanelController.onUndo(() => {

@@ -26,6 +26,7 @@ export interface BottomPanelState {
   currentTool: ToolType;
   selectedTile?: { category: string; index: number } | null;
   brushSize: BrushSize;
+  entitySnapToGrid: boolean;
 }
 
 export interface BottomPanelController {
@@ -70,6 +71,15 @@ export interface BottomPanelController {
 
   /** Get brush size */
   getBrushSize(): BrushSize;
+
+  /** Register callback for entity snap toggle */
+  onEntitySnapChange(callback: (enabled: boolean) => void): void;
+
+  /** Set entity snap toggle */
+  setEntitySnapToGrid(enabled: boolean): void;
+
+  /** Get entity snap toggle */
+  getEntitySnapToGrid(): boolean;
 
   /** Register callback for undo */
   onUndo(callback: () => void): void;
@@ -250,6 +260,48 @@ const STYLES = `
     display: none;
   }
 
+  .bottom-panel__entity-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 8px;
+  }
+
+  .bottom-panel__entity-options--hidden {
+    display: none;
+  }
+
+  .entity-option-label {
+    color: #8fa3d8;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .entity-toggle {
+    min-width: 88px;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: #1f2745;
+    color: #cfd8ff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .entity-toggle--active {
+    border-color: #4a9eff;
+    background: #2c3563;
+    color: #fff;
+  }
+
   .bottom-panel__brush-label {
     color: #8fa3d8;
     font-size: 12px;
@@ -314,10 +366,14 @@ export function createBottomPanel(
   options: BottomPanelOptions = {}
 ): BottomPanelController {
   const state = { ...initialState };
+  if (state.entitySnapToGrid === undefined) {
+    state.entitySnapToGrid = true;
+  }
   let toolChangeCallback: ((tool: ToolType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
   let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
   let brushSizeChangeCallback: ((size: BrushSize) => void) | null = null;
+  let entitySnapChangeCallback: ((enabled: boolean) => void) | null = null;
   let undoCallback: (() => void) | null = null;
   let redoCallback: (() => void) | null = null;
   let tilePickerController: TilePickerController | null = null;
@@ -399,6 +455,7 @@ export function createBottomPanel(
       }
       setActivePanel('tiles');
       updateBrushVisibility();
+      updateEntityOptionsVisibility();
 
       // Notify
       toolChangeCallback?.(toolType);
@@ -479,9 +536,34 @@ export function createBottomPanel(
   brushSizeRow.appendChild(brushLabel);
   brushSizeRow.appendChild(brushButtonGroup);
 
+  const entityOptionsRow = document.createElement('div');
+  entityOptionsRow.className = 'bottom-panel__entity-options';
+
+  const entityOptionsLabel = document.createElement('span');
+  entityOptionsLabel.className = 'entity-option-label';
+  entityOptionsLabel.textContent = 'Entity Snap';
+
+  const entitySnapToggle = document.createElement('button');
+  entitySnapToggle.className = `entity-toggle ${state.entitySnapToGrid ? 'entity-toggle--active' : ''}`;
+  entitySnapToggle.textContent = state.entitySnapToGrid ? 'On' : 'Off';
+  entitySnapToggle.setAttribute('aria-label', 'Toggle entity grid snap');
+  entitySnapToggle.setAttribute('title', 'Toggle entity grid snap');
+
+  entitySnapToggle.addEventListener('click', () => {
+    state.entitySnapToGrid = !state.entitySnapToGrid;
+    entitySnapToggle.classList.toggle('entity-toggle--active', state.entitySnapToGrid);
+    entitySnapToggle.textContent = state.entitySnapToGrid ? 'On' : 'Off';
+    entitySnapChangeCallback?.(state.entitySnapToGrid);
+    console.log(`${LOG_PREFIX} Entity snap ${state.entitySnapToGrid ? 'enabled' : 'disabled'}`);
+  });
+
+  entityOptionsRow.appendChild(entityOptionsLabel);
+  entityOptionsRow.appendChild(entitySnapToggle);
+
   const tilePickerSection = document.createElement('div');
   tilePickerSection.className = 'bottom-panel__section';
   tilePickerSection.appendChild(brushSizeRow);
+  tilePickerSection.appendChild(entityOptionsRow);
   content.appendChild(tilePickerSection);
 
   const deploySection = document.createElement('div');
@@ -705,11 +787,17 @@ export function createBottomPanel(
     }
 
     updateBrushVisibility();
+    updateEntityOptionsVisibility();
   }
 
   function updateBrushVisibility(): void {
     const shouldShow = activePanel === 'tiles' && state.currentTool === 'erase';
     brushSizeRow.classList.toggle('bottom-panel__brush--hidden', !shouldShow);
+  }
+
+  function updateEntityOptionsVisibility(): void {
+    const shouldShow = activePanel === 'tiles' && state.currentTool === 'entity';
+    entityOptionsRow.classList.toggle('bottom-panel__entity-options--hidden', !shouldShow);
   }
 
   panel.appendChild(header);
@@ -718,6 +806,7 @@ export function createBottomPanel(
   container.appendChild(panel);
 
   updateBrushVisibility();
+  updateEntityOptionsVisibility();
 
   console.log(`${LOG_PREFIX} Bottom panel created`);
 
@@ -737,6 +826,7 @@ export function createBottomPanel(
         tilePickerController?.setVisible(toolShowsTilePicker(tool));
       }
       updateBrushVisibility();
+      updateEntityOptionsVisibility();
     },
 
     getCurrentTool() {
@@ -797,6 +887,20 @@ export function createBottomPanel(
 
     getBrushSize() {
       return state.brushSize;
+    },
+
+    onEntitySnapChange(callback) {
+      entitySnapChangeCallback = callback;
+    },
+
+    setEntitySnapToGrid(enabled: boolean) {
+      state.entitySnapToGrid = enabled;
+      entitySnapToggle.classList.toggle('entity-toggle--active', enabled);
+      entitySnapToggle.textContent = enabled ? 'On' : 'Off';
+    },
+
+    getEntitySnapToGrid() {
+      return state.entitySnapToGrid;
     },
 
     onUndo(callback) {
