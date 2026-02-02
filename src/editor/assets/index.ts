@@ -5,6 +5,7 @@ export type {
   AssetEntry,
   AssetEntryInput,
   AssetEntryType,
+  AssetEntrySource,
   AssetRegistry,
   AssetRegistryState,
 } from './assetRegistry';

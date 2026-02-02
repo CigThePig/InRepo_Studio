@@ -256,11 +256,11 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks
+  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks, RepoAssetManifest
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
-  - Lists of truth: FreshnessCheckSchema
+  - Lists of truth: FreshnessCheckSchema, RepoAssetManifest
 
 - `src/storage/migration.ts`
   - Role: Cold-to-hot migration on first load.
@@ -498,11 +498,15 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetGroup.ts`
   - Role: Asset group types and defaults for the asset library.
-  - Lists of truth: AssetGroupType, DEFAULT_ASSET_GROUPS
+  - Lists of truth: AssetGroupType, DEFAULT_ASSET_GROUPS, ASSET_GROUP_PATHS
+
+- `src/editor/assets/groupSlugify.ts`
+  - Role: Group name slug normalization helper.
+  - Lists of truth: none
 
 - `src/editor/assets/assetRegistry.ts`
   - Role: In-editor asset registry with grouped assets and selection state.
-  - Lists of truth: AssetRegistryState
+  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource
 
 - `src/editor/assets/spriteSlider.ts`
   - Role: Sprite sheet slicing logic for asset prep.

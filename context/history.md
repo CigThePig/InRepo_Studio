@@ -401,6 +401,21 @@ Purpose:
 - **Learned**: Group metadata from sprite slicing reduces manual setup.
 - **Follow-up**: Track 29 will slugify group names and mirror GitHub folder structure.
 
+### Track 29 — GitHub Folder ↔ Group Mirroring
+- **Dates**: 2026-02-02 → 2026-02-02
+- **Status**: Completed
+- **Summary**: Added group slugification, canonical asset paths, and repo folder scanning to mirror GitHub asset folders into the editor asset registry with repo/local source tags. Asset palettes now surface the asset source metadata. 
+- **Shipped**:
+  - Group slugify helper and canonical asset path constants for repo mirroring.
+  - Repo folder scan via GitHub API with stored manifest in editor state.
+  - Asset registry refresh merges repo groups and labels assets by source.
+  - Asset library/palettes display asset source and size status.
+- **Verification**: `npm run build` (chunk size warning reported by Vite build). 
+- **Learned**: Repo scanning can populate group structure without blocking editor boot when run asynchronously.
+- **Follow-up**:
+  - Manual scan test against a real repo to validate folder parsing and public/private handling.
+  - Add asset upload wiring in Track 30 to convert local assets to repo sources.
+
 ---
 
 ## Stalled / Abandoned Tracks

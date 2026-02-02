@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)
@@ -88,6 +88,8 @@ Rules:
 - `/src/storage/cold.ts`
   - `FreshnessCheckSchema` — remote file state
     - Keys: etag, lastModified, sha
+  - `RepoAssetManifest` — scanned repo asset folders
+    - Keys: scannedAt, groups[]
 
 ### Editor UI Schemas (Tracks 5-9)
 
@@ -125,12 +127,18 @@ Rules:
   - `AssetRegistryState` — grouped asset library state
     - Keys: groups[], selectedAssetId
     - Apply mode: live
+  - `AssetEntry` — asset metadata stored in groups
+    - Keys: id, name, type, source, dataUrl, width, height, createdAt
+  - `AssetEntrySource` — asset origin
+    - Values: local, repo
 
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets
     - Values: tilesets, props, entities
   - `DEFAULT_ASSET_GROUPS` — baseline asset groups per type
     - Apply mode: live
+  - `ASSET_GROUP_PATHS` — canonical repo asset roots
+    - Keys: tilesets, props, entities
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

@@ -296,7 +296,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     const meta = document.createElement('div');
     meta.className = 'asset-library__asset-meta';
-    meta.textContent = `${asset.width}×${asset.height}`;
+    const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
+    const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
+    meta.textContent = `${sizeLabel} · ${sourceLabel}`;
 
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';

@@ -3,8 +3,6 @@ import { createSpriteSlicerTab } from './spriteSlicerTab';
 import { createAssetLibraryTab, type AssetLibraryTabController } from './assetLibraryTab';
 import type { AssetEntryInput, AssetRegistry } from '@/editor/assets';
 
-const LOG_PREFIX = '[LeftBerry]';
-
 export interface LeftBerryConfig {
   initialOpen?: boolean;
   initialTab?: LeftBerryTabId;
@@ -305,6 +303,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
           dataUrl: slice.dataUrl,
           width: sliceSize.width,
           height: sliceSize.height,
+          source: 'local',
         }));
         assetRegistry.addAssets({
           groupType,

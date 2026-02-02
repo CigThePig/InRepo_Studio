@@ -6,6 +6,7 @@
  * Defines:
  * - AssetGroupType — asset grouping buckets (type: lookup)
  * - DEFAULT_ASSET_GROUPS — baseline groups per asset type (type: list)
+ * - ASSET_GROUP_PATHS — canonical repo folder roots (type: lookup)
  *
  * Canonical key set:
  * - Keys come from: this file
@@ -15,6 +16,7 @@
  */
 
 import type { AssetEntry } from './assetRegistry';
+import { slugifyGroupName } from './groupSlugify';
 
 export type AssetGroupType = 'tilesets' | 'props' | 'entities';
 
@@ -24,6 +26,12 @@ export interface AssetGroup {
   slug: string;
   assets: AssetEntry[];
 }
+
+export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {
+  tilesets: 'game/assets/tilesets',
+  props: 'game/assets/props',
+  entities: 'game/assets/entities',
+};
 
 export const DEFAULT_ASSET_GROUPS: AssetGroup[] = [
   {
@@ -52,14 +60,7 @@ export function normalizeGroupName(name: string): string {
 }
 
 export function createGroupSlug(name: string): string {
-  const cleaned = name
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return cleaned.length > 0 ? cleaned : 'ungrouped';
+  return slugifyGroupName(name);
 }
 
 export function createAssetGroup(type: AssetGroupType, name: string): AssetGroup {

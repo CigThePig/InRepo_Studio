@@ -49,11 +49,12 @@ export {
   resolveAssetPath,
   checkFreshness,
   hasRemoteChanges,
+  scanAssetFolders,
   discoverScenes,
   preloadTileAssets,
 } from './cold';
 
-export type { FreshnessCheck, AssetPreloadResult } from './cold';
+export type { FreshnessCheck, AssetPreloadResult, RepoAssetManifest } from './cold';
 
 // Migration
 export {

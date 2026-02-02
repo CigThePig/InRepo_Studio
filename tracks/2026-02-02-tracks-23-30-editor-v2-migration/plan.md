@@ -652,21 +652,21 @@ Pause for review. Track 28 complete.
 
 ### Tasks
 
-- [ ] Create `src/editor/assets/groupSlugify.ts`
-  - [ ] `slugifyGroupName(name)` function
-  - [ ] Lowercase conversion
-  - [ ] Space to hyphen
-  - [ ] Remove unsafe characters
-  - [ ] Collapse multiple hyphens
-  - [ ] Trim hyphens
-  - [ ] Prevent empty names
-- [ ] Update `src/editor/assets/assetGroup.ts`
-  - [ ] Use slugify when creating groups
-  - [ ] Store both name and slug
-- [ ] Add canonical path constants
-  - [ ] ASSET_PATHS.tilesets = 'game/assets/tilesets'
-  - [ ] ASSET_PATHS.props = 'game/assets/props'
-  - [ ] ASSET_PATHS.entities = 'game/assets/entities'
+- [x] Create `src/editor/assets/groupSlugify.ts`
+  - [x] `slugifyGroupName(name)` function
+  - [x] Lowercase conversion
+  - [x] Space to hyphen
+  - [x] Remove unsafe characters
+  - [x] Collapse multiple hyphens
+  - [x] Trim hyphens
+  - [x] Prevent empty names
+- [x] Update `src/editor/assets/assetGroup.ts`
+  - [x] Use slugify when creating groups
+  - [x] Store both name and slug
+- [x] Add canonical path constants
+  - [x] ASSET_PATHS.tilesets = 'game/assets/tilesets'
+  - [x] ASSET_PATHS.props = 'game/assets/props'
+  - [x] ASSET_PATHS.entities = 'game/assets/entities'
 
 ### Files Touched
 
@@ -679,7 +679,7 @@ Pause for review. Track 28 complete.
 - [ ] "Goblins & Orcs" → "goblins-orcs"
 - [ ] Edge cases handled (empty, special chars)
 - [ ] Group creation uses slugified name
-- [ ] `npm run build` succeeds
+- [x] `npm run build` succeeds
 
 ### Stop Point
 
@@ -693,22 +693,22 @@ Pause for review. Slugification ready.
 
 ### Tasks
 
-- [ ] Update `src/storage/cold.ts`
-  - [ ] Add `scanAssetFolders()` function
-  - [ ] Fetch folder contents via GitHub API
-  - [ ] Parse into RepoAssetManifest
-- [ ] Update `src/editor/assets/assetRegistry.ts`
-  - [ ] `refreshFromRepo()` method
-  - [ ] Merge repo groups with local groups
-  - [ ] Mark assets as 'repo' or 'local' source
-- [ ] Update `src/storage/hot.ts`
-  - [ ] Add `repoAssetManifest: RepoAssetManifest` to EditorState
-- [ ] Update `src/editor/init.ts`
-  - [ ] Scan repo on startup (if online)
-  - [ ] Update asset registry from repo
-- [ ] Enable `EDITOR_V2_REPO_MIRRORING` flag by default
-- [ ] Update `context/schema-registry.md`
-  - [ ] Add RepoAssetManifest schema
+- [x] Update `src/storage/cold.ts`
+  - [x] Add `scanAssetFolders()` function
+  - [x] Fetch folder contents via GitHub API
+  - [x] Parse into RepoAssetManifest
+- [x] Update `src/editor/assets/assetRegistry.ts`
+  - [x] `refreshFromRepo()` method
+  - [x] Merge repo groups with local groups
+  - [x] Mark assets as 'repo' or 'local' source
+- [x] Update `src/storage/hot.ts`
+  - [x] Add `repoAssetManifest: RepoAssetManifest` to EditorState
+- [x] Update `src/editor/init.ts`
+  - [x] Scan repo on startup (if online)
+  - [x] Update asset registry from repo
+- [x] Enable `EDITOR_V2_REPO_MIRRORING` flag by default
+- [x] Update `context/schema-registry.md`
+  - [x] Add RepoAssetManifest schema
 
 ### Files Touched
 
@@ -725,7 +725,7 @@ Pause for review. Slugification ready.
 - [ ] Local and repo groups merged
 - [ ] Assets show correct source
 - [ ] Manual test with real repo
-- [ ] `npm run build` succeeds
+- [x] `npm run build` succeeds
 - [ ] `npm run lint` passes
 
 ### Stop Point
