@@ -200,6 +200,10 @@ Micro-format (copy/paste):
   - Role: Track 18 planning artifacts (Layer System).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-02-tracks-23-30-editor-v2-migration/`
+  - Role: Tracks 23-30 planning artifacts (Editor V2 Migration: UI + Workflow Overhaul).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
