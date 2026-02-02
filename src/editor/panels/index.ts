@@ -18,6 +18,8 @@ export { createRightBerry, createRightBerryPlaceholder } from './rightBerry';
 export type { RightBerryController, RightBerryConfig } from './rightBerry';
 export { RIGHT_BERRY_TABS } from './rightBerryTabs';
 export type { RightBerryTab } from './rightBerryTabs';
+export { createEntitiesTab } from './entitiesTab';
+export type { EntitiesTabController, EntitiesTabConfig } from './entitiesTab';
 
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';

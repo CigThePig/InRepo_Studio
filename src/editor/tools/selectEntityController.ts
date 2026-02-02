@@ -21,6 +21,7 @@ export interface SelectEntityControllerConfig {
   entityManager: EntityManager;
   entitySelection: EntitySelection;
   history: HistoryManager;
+  allowedTools?: Array<EditorState['currentTool']>;
 }
 
 export interface SelectEntityController {
@@ -124,7 +125,15 @@ export function createSelectEntityController(
     entityManager,
     entitySelection,
     history,
+    allowedTools,
   } = config;
+
+  const allowedToolSet = new Set<EditorState['currentTool']>(allowedTools ?? ['select']);
+
+  function isToolAllowed(editorState: EditorState | null): boolean {
+    if (!editorState) return false;
+    return allowedToolSet.has(editorState.currentTool);
+  }
 
   let entityDrag: EntityDragState | null = null;
 
@@ -316,7 +325,7 @@ export function createSelectEntityController(
       const editorState = getEditorState();
       const scene = getScene();
 
-      if (!editorState || !scene || editorState.currentTool !== 'select') {
+      if (!scene || !isToolAllowed(editorState)) {
         return false;
       }
 
@@ -337,7 +346,7 @@ export function createSelectEntityController(
     handlePointerMove(viewport, screenX, screenY, tileSize): boolean {
       const editorState = getEditorState();
       const scene = getScene();
-      if (!editorState || !scene || editorState.currentTool !== 'select') {
+      if (!scene || !isToolAllowed(editorState)) {
         return false;
       }
 
@@ -360,7 +369,7 @@ export function createSelectEntityController(
     handleLongPress(viewport, screenX, screenY, tileSize): boolean {
       const editorState = getEditorState();
       const scene = getScene();
-      if (!editorState || !scene || editorState.currentTool !== 'select') {
+      if (!scene || !isToolAllowed(editorState)) {
         return false;
       }
 

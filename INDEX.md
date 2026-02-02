@@ -367,6 +367,10 @@ Micro-format (copy/paste):
   - Role: Right berry mode tab definitions.
   - Lists of truth: RIGHT_BERRY_TABS
 
+- `src/editor/panels/entitiesTab.ts`
+  - Role: Entities mode tab UI for palette, selection, and inline property editing.
+  - Lists of truth: none
+
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none
