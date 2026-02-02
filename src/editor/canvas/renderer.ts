@@ -147,6 +147,9 @@ export interface TilemapRenderer {
   /** Highlight a recently placed entity */
   setEntityHighlightId(id: string | null): void;
 
+  /** Highlight selected entities */
+  setEntitySelectionIds(ids: string[]): void;
+
   /** Render the tilemap to the canvas context */
   render(
     ctx: CanvasRenderingContext2D,
@@ -197,6 +200,7 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     previewTiles: null,
   };
   let entityPreview: EntityPreview | null = null;
+  let entitySelectionIds: string[] = [];
   let dirty = true;
   const entityRenderer = createEntityRenderer({
     assetBasePath: config.assetBasePath,
@@ -553,6 +557,12 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
     setEntityHighlightId(id: string | null): void {
       entityRenderer.setHighlightId(id);
+      dirty = true;
+    },
+
+    setEntitySelectionIds(ids: string[]): void {
+      entitySelectionIds = ids;
+      entityRenderer.setSelectedIds(ids);
       dirty = true;
     },
 

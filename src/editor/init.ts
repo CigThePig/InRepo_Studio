@@ -20,7 +20,7 @@ import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import type { StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
-import { tileToScreen } from '@/editor/canvas/viewport';
+import { tileToScreen, worldToScreen } from '@/editor/canvas/viewport';
 import {
   createTopPanel,
   createBottomPanel,
@@ -28,6 +28,8 @@ import {
   type BottomPanelController,
   createSelectionBar,
   type SelectionBarController,
+  createEntitySelectionBar,
+  type EntitySelectionBarController,
   createLayerPanel,
   type LayerPanelController,
 } from '@/editor/panels';
@@ -58,6 +60,7 @@ import {
   type SceneAction,
 } from '@/editor/scenes';
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
+import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
 
 import { downloadJson } from '@/utils/download';
 
@@ -89,6 +92,8 @@ let sceneManager: SceneManager | null = null;
 let sceneSelector: SceneSelector | null = null;
 let layerPanelController: LayerPanelController | null = null;
 let entityManager: EntityManager | null = null;
+let entitySelection: EntitySelection | null = null;
+let entitySelectionBar: EntitySelectionBarController | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -370,6 +375,49 @@ async function initCanvas(tileSize: number): Promise<void> {
     assetBasePath: ASSET_BASE_PATH,
   });
 
+  function updateEntitySelectionUI(): void {
+    if (!editorState || !canvasController || !currentScene || !entitySelection) return;
+    const renderer = canvasController.getRenderer();
+    const selectedIds = editorState.selectedEntityIds ?? [];
+
+    if (editorState.currentTool !== 'select' || selectedIds.length === 0) {
+      renderer.setEntitySelectionIds([]);
+      canvasController.invalidateScene();
+      entitySelectionBar?.hide();
+      return;
+    }
+
+    const selectedEntities = currentScene.entities.filter((entity) =>
+      selectedIds.includes(entity.id)
+    );
+
+    if (selectedEntities.length === 0) {
+      renderer.setEntitySelectionIds([]);
+      canvasController.invalidateScene();
+      entitySelectionBar?.hide();
+      return;
+    }
+
+    renderer.setEntitySelectionIds(selectedIds);
+    canvasController.invalidateScene();
+
+    const viewport = canvasController.getViewport();
+    const screenPositions = selectedEntities.map((entity) =>
+      worldToScreen(viewport, entity.x, entity.y)
+    );
+
+    const minX = Math.min(...screenPositions.map((pos) => pos.x));
+    const maxX = Math.max(...screenPositions.map((pos) => pos.x));
+    const minY = Math.min(...screenPositions.map((pos) => pos.y));
+
+    const centerX = (minX + maxX) / 2;
+    const topY = minY - 12;
+
+    entitySelectionBar?.setSelectionCount(selectedEntities.length);
+    entitySelectionBar?.setPosition(centerX, topY);
+    entitySelectionBar?.show();
+  }
+
   // Set initial selected category for rendering
   canvasController.setSelectedCategory(initialCategory);
   canvasController.getRenderer().setEntityTypes(currentProject?.entityTypes ?? []);
@@ -389,6 +437,7 @@ async function initCanvas(tileSize: number): Promise<void> {
       editorState.viewport = viewport;
       scheduleSave();
     }
+    updateEntitySelectionUI();
   });
 
   if (!historyManager) {
@@ -417,6 +466,23 @@ async function initCanvas(tileSize: number): Promise<void> {
   });
 
   clipboard = createClipboard();
+
+  entityManager = createEntityManager({
+    getScene: () => currentScene,
+    getProject: () => currentProject,
+    onSceneChange: (scene) => {
+      handleSceneChange(scene);
+      updateEntitySelectionUI();
+    },
+  });
+
+  entitySelection = createEntitySelection({
+    getEditorState: () => editorState,
+    onSelectionChange: () => {
+      scheduleSave();
+      updateEntitySelectionUI();
+    },
+  });
 
   selectTool = createSelectTool({
     getEditorState: () => editorState,
@@ -467,13 +533,10 @@ async function initCanvas(tileSize: number): Promise<void> {
       }
     },
     history: historyManager,
-  });
-
-  entityManager = createEntityManager({
-    getScene: () => currentScene,
-    getProject: () => currentProject,
-    onSceneChange: (scene) => {
-      handleSceneChange(scene);
+    entityManager,
+    entitySelection,
+    onEntitySelectionChange: () => {
+      updateEntitySelectionUI();
     },
   });
 
@@ -482,6 +545,7 @@ async function initCanvas(tileSize: number): Promise<void> {
     getScene: () => currentScene,
     getProject: () => currentProject,
     entityManager,
+    history: historyManager,
     onPreviewChange: (preview) => {
       canvasController?.getRenderer().setEntityPreview(preview);
       canvasController?.invalidateScene();
@@ -510,6 +574,19 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
     onCancel: () => {
       selectTool?.clearSelection();
+    },
+  });
+
+  entitySelectionBar = createEntitySelectionBar(container, {
+    onDuplicate: () => {
+      selectTool?.duplicateEntities();
+    },
+    onDelete: () => {
+      selectTool?.deleteEntities();
+    },
+    onClear: () => {
+      entitySelection?.clear();
+      updateEntitySelectionUI();
     },
   });
 
@@ -553,7 +630,7 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
     onLongPress: (x, y) => {
       if (editorState?.currentTool === 'select' && selectTool) {
-        selectTool.startMove(x, y, canvasController!.getViewport(), tileSize);
+        selectTool.handleLongPress(x, y, canvasController!.getViewport(), tileSize);
       }
     },
   });
@@ -694,6 +771,8 @@ async function initPanels(): Promise<void> {
       updateHoverPreview(tool);
       if (tool !== 'select') {
         selectTool?.clearSelection();
+        entitySelection?.clear();
+        updateEntitySelectionUI();
       }
       if (tool !== 'entity') {
         canvasController?.getRenderer().setEntityPreview(null);
@@ -820,6 +899,7 @@ function handleSceneSwitch(scene: Scene): void {
 
   // Update state
   setCurrentScene(scene, { clearHistory: true });
+  entitySelection?.clear();
 
   if (editorState) {
     editorState.currentSceneId = scene.id;
@@ -829,6 +909,7 @@ function handleSceneSwitch(scene: Scene): void {
   // Update canvas
   canvasController?.setScene(scene);
   canvasController?.invalidateScene();
+  updateEntitySelectionUI();
 
   // Update UI
   topPanelController?.setSceneName(scene.name);

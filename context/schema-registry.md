@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, selectedEntityType, brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)
@@ -101,14 +101,19 @@ Rules:
 
 - `/src/editor/entities/entityManager.ts`
   - `EntityManager` — entity CRUD operations interface
-    - Methods: addEntity, getEntity
+    - Methods: addEntity, addEntityInstance, getEntity, getEntities, removeEntities, moveEntities, duplicateEntities
     - Invariant: entity IDs unique within scene
+
+- `/src/editor/entities/entitySelection.ts`
+  - `EntitySelectionState` — entity selection tracking
+    - Keys: selectedIds[]
+    - Apply mode: live
 
 ### Editor History (Track 16)
 
 - `/src/editor/history/operations.ts`
   - `OperationType` — undo/redo operation categories
-    - Values: paint, erase, move, delete, paste, fill, composite
+    - Values: paint, erase, move, delete, paste, fill, composite, entity_add, entity_delete, entity_move, entity_duplicate
 
 - `/src/editor/canvas/viewport.ts`
   - `ViewportState` — pan/zoom state (re-exported from storage/hot.ts)

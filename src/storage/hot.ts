@@ -64,6 +64,8 @@ export interface EditorState {
   selectedTile: SelectedTile | null;
   /** Selected entity type name for placement */
   selectedEntityType: string | null;
+  /** Selected entity IDs for manipulation */
+  selectedEntityIds: string[];
   brushSize: BrushSize;
   /** Snap entity placement to grid */
   entitySnapToGrid: boolean;
@@ -262,6 +264,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
   selectedEntityType: null,
+  selectedEntityIds: [],
   brushSize: 1,
   entitySnapToGrid: true,
   viewport: {
