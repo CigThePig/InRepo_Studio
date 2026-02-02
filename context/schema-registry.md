@@ -76,6 +76,7 @@ Rules:
     - Keys: currentSceneId, currentTool, editorMode, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
+    - `rightBerryOpen`: boolean (default: false)
     - `selectedTile`: { category: string, index: number } | null (default: null)
     - `layerVisibility`: Record<LayerType, boolean> (default: all true)
     - `layerLocks`: Record<LayerType, boolean> (default: all false)
@@ -109,6 +110,10 @@ Rules:
     - Invariant: select/entities map to null layer
   - `MODE_TO_TOOL` — V2 mode to legacy tool mapping
     - Invariant: select -> select, entities -> entity
+
+- `/src/editor/panels/rightBerryTabs.ts`
+  - `RIGHT_BERRY_TABS` — right berry mode tab definitions
+    - Invariant: order matches Editor V2 mode order
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

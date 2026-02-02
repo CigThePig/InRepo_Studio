@@ -18,7 +18,7 @@ import {
 } from '@/storage';
 import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import type { StorageQuotaInfo } from '@/storage/hot';
-import { ensureSceneTilesets, type Scene, type Project } from '@/types';
+import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import { tileToScreen, worldToScreen } from '@/editor/canvas/viewport';
 import {
@@ -30,6 +30,9 @@ import {
   type BottomPanelController,
   createBottomContextStrip,
   type BottomContextStripController,
+  createRightBerry,
+  createRightBerryPlaceholder,
+  type RightBerryController,
   createSelectionBar,
   type SelectionBarController,
   createEntitySelectionBar,
@@ -68,6 +71,13 @@ import {
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
 import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
+import {
+  getEditorMode,
+  setEditorMode,
+  setInitialEditorMode,
+  type EditorMode,
+} from '@/editor/v2/editorMode';
+import { getLegacyState } from '@/editor/v2/modeMapping';
 
 import { downloadJson } from '@/utils/download';
 
@@ -104,6 +114,7 @@ let entitySelection: EntitySelection | null = null;
 let entitySelectionBar: EntitySelectionBarController | null = null;
 let propertyInspector: PropertyInspectorController | null = null;
 let tileSelectionActive = false;
+let rightBerryController: RightBerryController | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -125,6 +136,89 @@ function updateHoverPreview(tool: EditorState['currentTool']): void {
     canvasController?.setBrushCursorSize(1);
     canvasController?.setBrushCursorColor('rgba(255, 255, 255, 0.9)');
   }
+}
+
+function applyActiveLayer(layer: LayerType): void {
+  if (!editorState) return;
+  if (editorState.activeLayer === layer) {
+    return;
+  }
+  editorState.activeLayer = layer;
+  scheduleSave();
+  layerPanelController?.setActiveLayer(layer);
+  if (topPanelController && 'setActiveLayer' in topPanelController) {
+    topPanelController.setActiveLayer(layer);
+  }
+  canvasController?.setActiveLayer(layer);
+}
+
+function applyToolChange(tool: EditorState['currentTool'], updateUI = false): void {
+  if (!editorState) return;
+  editorState.currentTool = tool;
+  scheduleSave();
+  if (updateUI) {
+    bottomPanelController?.setCurrentTool(tool);
+  }
+  updateHoverPreview(tool);
+  if (tool !== 'select') {
+    selectTool?.clearSelection();
+    entitySelection?.clear();
+    tileSelectionActive = false;
+    updateEntitySelectionUI();
+  }
+  if (tool !== 'entity') {
+    canvasController?.getRenderer().setEntityPreview(null);
+    canvasController?.getRenderer().setEntityHighlightId(null);
+    canvasController?.invalidateScene();
+  }
+  updateBottomContextStrip();
+}
+
+function updateEditorMode(mode: EditorMode, syncLegacy = true): void {
+  if (!editorState) return;
+  if (editorState.editorMode === mode && getEditorMode() === mode) {
+    if (syncLegacy) {
+      const legacy = getLegacyState(mode);
+      if (legacy.layer) {
+        applyActiveLayer(legacy.layer);
+      }
+      applyToolChange(legacy.tool, true);
+    }
+    if (mode !== 'select') {
+      rightBerryController?.setActiveTab(mode, { silent: true });
+    }
+    return;
+  }
+  editorState.editorMode = mode;
+  scheduleSave();
+
+  if (getEditorMode() !== mode) {
+    setEditorMode(mode);
+  }
+
+  if (syncLegacy) {
+    const legacy = getLegacyState(mode);
+    if (legacy.layer) {
+      applyActiveLayer(legacy.layer);
+    }
+    applyToolChange(legacy.tool, true);
+  }
+
+  if (mode !== 'select') {
+    rightBerryController?.setActiveTab(mode, { silent: true });
+  }
+}
+
+function inferModeFromTool(tool: EditorState['currentTool']): EditorMode {
+  if (!editorState) return 'select';
+  if (tool === 'select') return 'select';
+  if (tool === 'entity') return 'entities';
+  const layer = editorState.activeLayer;
+  if (layer === 'ground') return 'ground';
+  if (layer === 'props') return 'props';
+  if (layer === 'collision') return 'collision';
+  if (layer === 'triggers') return 'triggers';
+  return 'ground';
 }
 
 function updateBottomContextStrip(): void {
@@ -288,6 +382,7 @@ export async function initEditor(): Promise<void> {
   editorState = restoreEditorStateFromPlaytest(editorState);
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
   currentBrushSize = editorState.brushSize ?? 1;
+  setInitialEditorMode(editorState.editorMode);
 
   historyManager = createHistoryManager({
     maxSize: 50,
@@ -768,7 +863,6 @@ async function initPanels(): Promise<void> {
     if (!topPanelController) {
       return;
     }
-    const currentTopPanel = topPanelController;
 
     // Initialize layer panel
     const layerPanelContainer = topPanelController.getLayerPanelContainer();
@@ -780,16 +874,12 @@ async function initPanels(): Promise<void> {
       visibility: editorState.layerVisibility,
       locks: editorState.layerLocks,
       onLayerSelect: (layer) => {
-        if (editorState) {
-          editorState.activeLayer = layer;
-          scheduleSave();
+        applyActiveLayer(layer);
+        if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
+          if (editorState?.currentTool === 'paint' || editorState?.currentTool === 'erase') {
+            updateEditorMode(inferModeFromTool(editorState.currentTool), false);
+          }
         }
-        // Update layer panel UI
-        layerPanelController?.setActiveLayer(layer);
-        if (!useTopBarV2 && 'setActiveLayer' in currentTopPanel) {
-          currentTopPanel.setActiveLayer(layer);
-        }
-        canvasController?.setActiveLayer(layer);
       },
       onVisibilityChange: (visibility) => {
         if (editorState) {
@@ -898,23 +988,10 @@ async function initPanels(): Promise<void> {
     });
 
     bottomPanelController.onToolChange((tool) => {
-      if (editorState) {
-        editorState.currentTool = tool;
-        scheduleSave();
+      applyToolChange(tool);
+      if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
+        updateEditorMode(inferModeFromTool(tool), false);
       }
-      updateHoverPreview(tool);
-      if (tool !== 'select') {
-        selectTool?.clearSelection();
-        entitySelection?.clear();
-        tileSelectionActive = false;
-        updateEntitySelectionUI();
-      }
-      if (tool !== 'entity') {
-        canvasController?.getRenderer().setEntityPreview(null);
-        canvasController?.getRenderer().setEntityHighlightId(null);
-        canvasController?.invalidateScene();
-      }
-      updateBottomContextStrip();
     });
 
     bottomPanelController.onTileSelect((selection) => {
@@ -949,6 +1026,60 @@ async function initPanels(): Promise<void> {
       historyManager?.canUndo() ?? false,
       historyManager?.canRedo() ?? false
     );
+  }
+
+  if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer && editorState) {
+      const initialTab =
+        editorState.editorMode !== 'select' ? editorState.editorMode : 'ground';
+      rightBerryController = createRightBerry(canvasContainer, {
+        initialOpen: editorState.rightBerryOpen,
+        initialTab,
+      });
+
+      const placeholderText: Record<EditorMode, string> = {
+        ground: 'Choose tiles in the bottom panel, then paint on the canvas.',
+        props: 'Props mode is ready for palette wiring in a later track.',
+        entities: 'Entities mode will show the entity palette in Track 26.',
+        collision: 'Collision mode will use the paint tool for collision tiles.',
+        triggers: 'Triggers mode will be wired after entities in a later track.',
+        select: 'Select mode is handled outside the right berry.',
+      };
+
+      (['ground', 'props', 'entities', 'collision', 'triggers'] as EditorMode[]).forEach(
+        (mode) => {
+          const container = rightBerryController?.getTabContentContainer(mode);
+          if (container) {
+            container.appendChild(
+              createRightBerryPlaceholder(placeholderText[mode])
+            );
+          }
+        }
+      );
+
+      rightBerryController.onTabChange((mode) => {
+        updateEditorMode(mode, true);
+      });
+
+      rightBerryController.onOpenChange((open) => {
+        if (!editorState) return;
+        editorState.rightBerryOpen = open;
+        scheduleSave();
+        if (open) {
+          const activeTab = rightBerryController?.getActiveTab() ?? 'ground';
+          updateEditorMode(activeTab, true);
+        } else {
+          updateEditorMode('select', true);
+        }
+      });
+
+      if (editorState.rightBerryOpen) {
+        updateEditorMode(initialTab, true);
+      } else {
+        updateEditorMode('select', true);
+      }
+    }
   }
 
   const canvasContainer = document.getElementById('canvas-container');
