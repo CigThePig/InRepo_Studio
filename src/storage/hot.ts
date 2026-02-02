@@ -24,6 +24,8 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Project, Scene, LayerType } from '@/types';
+import type { AssetRegistryState } from '@/editor/assets';
+import { DEFAULT_ASSET_REGISTRY_STATE } from '@/editor/assets';
 import type { EditorMode } from '@/editor/v2/editorMode';
 
 // --- Constants ---
@@ -63,6 +65,7 @@ export interface EditorState {
   rightBerryOpen: boolean;
   leftBerryOpen: boolean;
   activeLayer: LayerType;
+  assetRegistry: AssetRegistryState;
   /** Custom layer render order (bottom to top) */
   layerOrder: LayerType[];
   selectedTile: SelectedTile | null;
@@ -80,6 +83,16 @@ export interface EditorState {
   layerVisibility: LayerVisibility;
   /** Per-layer lock toggle (true = locked, cannot edit) */
   layerLocks: LayerLocks;
+}
+
+function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState {
+  return {
+    selectedAssetId: state.selectedAssetId,
+    groups: state.groups.map((group) => ({
+      ...group,
+      assets: group.assets.map((asset) => ({ ...asset })),
+    })),
+  };
 }
 
 // --- Hot Project Schema ---
@@ -268,6 +281,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   rightBerryOpen: false,
   leftBerryOpen: false,
   activeLayer: 'ground',
+  assetRegistry: cloneAssetRegistryState(DEFAULT_ASSET_REGISTRY_STATE),
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
   selectedEntityType: null,
@@ -314,6 +328,12 @@ export async function loadEditorState(): Promise<EditorState> {
   }
 
   // Merge with defaults to handle missing fields from older versions
+  const mergedAssetRegistry: AssetRegistryState = {
+    ...DEFAULT_EDITOR_STATE.assetRegistry,
+    ...state.assetRegistry,
+    groups: state.assetRegistry?.groups ?? DEFAULT_EDITOR_STATE.assetRegistry.groups,
+  };
+
   const mergedState: EditorState = {
     ...DEFAULT_EDITOR_STATE,
     ...state,
@@ -321,6 +341,7 @@ export async function loadEditorState(): Promise<EditorState> {
     panelStates: { ...DEFAULT_EDITOR_STATE.panelStates, ...state.panelStates },
     layerVisibility: { ...DEFAULT_EDITOR_STATE.layerVisibility, ...state.layerVisibility },
     layerLocks: { ...DEFAULT_EDITOR_STATE.layerLocks, ...state.layerLocks },
+    assetRegistry: cloneAssetRegistryState(mergedAssetRegistry),
   };
 
   console.log(`${LOG_PREFIX} Editor state loaded`);

@@ -379,6 +379,14 @@ Micro-format (copy/paste):
   - Role: Sprite sheet slicing UI for the left berry.
   - Lists of truth: none
 
+- `src/editor/panels/assetLibraryTab.ts`
+  - Role: Left berry Assets Library tab UI for grouped assets.
+  - Lists of truth: none
+
+- `src/editor/panels/assetPalette.ts`
+  - Role: Asset palette UI for right berry modes.
+  - Lists of truth: none
+
 - `src/editor/panels/entitiesTab.ts`
   - Role: Entities mode tab UI for palette, selection, and inline property editing.
   - Lists of truth: none
@@ -487,6 +495,14 @@ Micro-format (copy/paste):
 - `src/editor/assets/index.ts`
   - Role: Asset pipeline module exports.
   - Lists of truth: none
+
+- `src/editor/assets/assetGroup.ts`
+  - Role: Asset group types and defaults for the asset library.
+  - Lists of truth: AssetGroupType, DEFAULT_ASSET_GROUPS
+
+- `src/editor/assets/assetRegistry.ts`
+  - Role: In-editor asset registry with grouped assets and selection state.
+  - Lists of truth: AssetRegistryState
 
 - `src/editor/assets/spriteSlider.ts`
   - Role: Sprite sheet slicing logic for asset prep.

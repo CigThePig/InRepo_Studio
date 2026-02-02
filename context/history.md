@@ -388,6 +388,19 @@ Purpose:
 - **Follow-up**:
   - Track 28: Asset Library + Grouping System
 
+### Track 28 — Asset Library + Grouping System
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Added an in-editor asset registry with grouped assets, a left berry Assets Library tab, and right berry palettes that read from asset groupings.
+- **Shipped**:
+  - Asset registry data model with default groups and persistence in editor state
+  - Asset Library tab for creating groups, selecting assets, and deleting local entries
+  - Sprite slicer now tags slices with group name/type for palette use
+  - Right berry palettes and Entities tab wired to asset groups
+- **Verification**: Not run (not requested).
+- **Learned**: Group metadata from sprite slicing reduces manual setup.
+- **Follow-up**: Track 29 will slugify group names and mirror GitHub folder structure.
+
 ---
 
 ## Stalled / Abandoned Tracks

@@ -36,6 +36,7 @@ import {
   createLeftBerry,
   createEntitiesTab,
   type EntitiesTabController,
+  createAssetPalette,
   createSelectionBar,
   type SelectionBarController,
   createEntitySelectionBar,
@@ -45,6 +46,11 @@ import {
   createPropertyInspector,
   type PropertyInspectorController,
 } from '@/editor/panels';
+import {
+  createAssetRegistry,
+  type AssetRegistry,
+  type AssetRegistryState,
+} from '@/editor/assets';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
@@ -125,6 +131,7 @@ let rightBerryController: RightBerryController | null = null;
 let entitiesTab: EntitiesTabController | null = null;
 let entityMoveController: SelectEntityController | null = null;
 let entityMoveActive = false;
+let assetRegistry: AssetRegistry | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -408,6 +415,12 @@ export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
   currentBrushSize = editorState.brushSize ?? 1;
   setInitialEditorMode(editorState.editorMode);
+  assetRegistry = createAssetRegistry(editorState.assetRegistry as AssetRegistryState | undefined);
+  assetRegistry.onChange((nextState) => {
+    if (!editorState) return;
+    editorState.assetRegistry = nextState;
+    scheduleSave();
+  });
 
   historyManager = createHistoryManager({
     maxSize: 50,
@@ -1111,6 +1124,8 @@ async function initPanels(): Promise<void> {
       const leftBerryController = createLeftBerry(canvasContainer, {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
+        assetRegistry: assetRegistry ?? undefined,
+        assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
       });
 
       leftBerryController.onOpenChange((open) => {
@@ -1132,14 +1147,35 @@ async function initPanels(): Promise<void> {
       });
 
       const placeholderText: Record<EditorMode, string> = {
-        ground: 'Choose tiles in the bottom panel, then paint on the canvas.',
+        ground: 'Add tiles via the left berry and use them to paint on the canvas.',
         props: 'Props mode is ready for palette wiring in a later track.',
         collision: 'Collision mode will use the paint tool for collision tiles.',
         triggers: 'Triggers mode will be wired after entities in a later track.',
         select: 'Select mode is handled outside the right berry.',
       };
 
-      (['ground', 'props', 'collision', 'triggers'] as EditorMode[]).forEach((mode) => {
+      const paletteModes: Array<{ mode: EditorMode; type: 'tilesets' | 'props'; title: string }> =
+        [
+          { mode: 'ground', type: 'tilesets', title: 'Paint Palette' },
+          { mode: 'props', type: 'props', title: 'Props Palette' },
+        ];
+
+      paletteModes.forEach(({ mode, type, title }) => {
+        const container = rightBerryController?.getTabContentContainer(mode);
+        if (!container) return;
+        if (assetRegistry) {
+          createAssetPalette({
+            container,
+            assetRegistry,
+            groupType: type,
+            title,
+          });
+        } else {
+          container.appendChild(createRightBerryPlaceholder(placeholderText[mode]));
+        }
+      });
+
+      (['collision', 'triggers'] as EditorMode[]).forEach((mode) => {
         const container = rightBerryController?.getTabContentContainer(mode);
         if (container) {
           container.appendChild(createRightBerryPlaceholder(placeholderText[mode]));
@@ -1154,6 +1190,7 @@ async function initPanels(): Promise<void> {
           getEditorState: () => editorState,
           entityManager,
           history: historyManager,
+          assetRegistry: assetRegistry ?? undefined,
           onEntityTypeSelect: (typeName) => {
             if (!editorState) return;
             editorState.selectedEntityType = typeName;

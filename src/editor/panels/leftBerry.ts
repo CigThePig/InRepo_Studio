@@ -1,6 +1,7 @@
 import { LEFT_BERRY_TABS, type LeftBerryTab, type LeftBerryTabId } from './leftBerryTabs';
 import { createSpriteSlicerTab } from './spriteSlicerTab';
-import type { SliceResult } from '@/editor/assets';
+import { createAssetLibraryTab, type AssetLibraryTabController } from './assetLibraryTab';
+import type { AssetEntryInput, AssetRegistry } from '@/editor/assets';
 
 const LOG_PREFIX = '[LeftBerry]';
 
@@ -8,6 +9,8 @@ export interface LeftBerryConfig {
   initialOpen?: boolean;
   initialTab?: LeftBerryTabId;
   tabs?: LeftBerryTab[];
+  assetRegistry?: AssetRegistry;
+  assetLibraryEnabled?: boolean;
 }
 
 export interface LeftBerryController {
@@ -20,13 +23,6 @@ export interface LeftBerryController {
   onTabChange(callback: (tab: LeftBerryTabId) => void): void;
   onOpenChange(callback: (open: boolean) => void): void;
   destroy(): void;
-}
-
-interface LibraryAsset {
-  id: string;
-  dataUrl: string;
-  width: number;
-  height: number;
 }
 
 const STYLES = `
@@ -209,33 +205,6 @@ const STYLES = `
     pointer-events: none;
   }
 
-  .left-berry__asset-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
-    gap: 10px;
-  }
-
-  .left-berry__asset {
-    border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    color: #cfd8ff;
-    font-size: 11px;
-  }
-
-  .left-berry__asset img {
-    width: 100%;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-
-  .left-berry__asset-meta {
-    color: #93a1d8;
-  }
 `;
 
 function ensureStyles(): void {
@@ -255,7 +224,9 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   let currentTab: LeftBerryTabId = activeTabId;
   const tabChangeCallbacks: Array<(tab: LeftBerryTabId) => void> = [];
   const openChangeCallbacks: Array<(open: boolean) => void> = [];
-  const assets: LibraryAsset[] = [];
+  const assetRegistry = config.assetRegistry;
+  const assetLibraryEnabled = config.assetLibraryEnabled ?? true;
+  let assetLibraryController: AssetLibraryTabController | null = null;
 
   const shell = document.createElement('div');
   shell.className = 'left-berry-shell';
@@ -320,64 +291,44 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
 
   container.appendChild(shell);
 
-  function renderAssetsTab(): void {
-    const assetsContainer = tabContentMap.get('assets');
-    if (!assetsContainer) return;
-
-    assetsContainer.innerHTML = '';
-    if (assets.length === 0) {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'left-berry__placeholder';
-      placeholder.textContent =
-        'No assets yet. Slice a sprite sheet in the Sprites tab to populate this library.';
-      assetsContainer.appendChild(placeholder);
-      return;
-    }
-
-    const grid = document.createElement('div');
-    grid.className = 'left-berry__asset-grid';
-    assets.forEach((asset) => {
-      const card = document.createElement('div');
-      card.className = 'left-berry__asset';
-
-      const img = document.createElement('img');
-      img.src = asset.dataUrl;
-      img.alt = 'Asset slice';
-
-      const meta = document.createElement('div');
-      meta.className = 'left-berry__asset-meta';
-      meta.textContent = `${asset.width}×${asset.height}`;
-
-      card.appendChild(img);
-      card.appendChild(meta);
-      grid.appendChild(card);
-    });
-    assetsContainer.appendChild(grid);
-  }
-
-  function handleSlicesConfirmed(slices: SliceResult[]): void {
-    assets.length = 0;
-    slices.slice(0, 48).forEach((slice, index) => {
-      assets.push({
-        id: `${Date.now()}-${index}`,
-        dataUrl: slice.dataUrl,
-        width: slice.width,
-        height: slice.height,
-      });
-    });
-    renderAssetsTab();
-    setActiveTab('assets');
-  }
-
   const spritesContainer = tabContentMap.get('sprites');
   if (spritesContainer) {
     createSpriteSlicerTab({
       container: spritesContainer,
-      onSlicesConfirmed: handleSlicesConfirmed,
+      onSlicesConfirmed: (payload) => {
+        if (!assetRegistry) return;
+        const { slices, groupName, groupType, imageName, sliceSize } = payload;
+        const baseName = groupName || imageName || 'Asset Group';
+        const assetsToAdd: AssetEntryInput[] = slices.map((slice, index) => ({
+          name: `${baseName} ${index + 1}`,
+          type: groupType === 'entities' ? 'entity' : groupType === 'props' ? 'sprite' : 'tile',
+          dataUrl: slice.dataUrl,
+          width: sliceSize.width,
+          height: sliceSize.height,
+        }));
+        assetRegistry.addAssets({
+          groupType,
+          groupName: baseName,
+          assets: assetsToAdd,
+        });
+        setActiveTab('assets');
+      },
     });
   }
 
-  renderAssetsTab();
+  const assetsContainer = tabContentMap.get('assets');
+  if (assetsContainer) {
+    if (assetLibraryEnabled && assetRegistry) {
+      assetLibraryController = createAssetLibraryTab({
+        container: assetsContainer,
+        assetRegistry,
+      });
+    } else {
+      assetsContainer.appendChild(
+        createLeftBerryPlaceholder('Asset library is disabled for this session.')
+      );
+    }
+  }
 
   function updateOpenState(nextOpen: boolean): void {
     isOpen = nextOpen;
@@ -443,6 +394,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     destroy: () => {
       panel.removeEventListener('touchstart', onTouchStart);
       panel.removeEventListener('touchend', onTouchEnd);
+      assetLibraryController?.destroy();
       container.removeChild(shell);
     },
   };

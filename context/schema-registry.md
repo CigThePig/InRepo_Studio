@@ -73,11 +73,12 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)
     - `leftBerryOpen`: boolean (default: false)
+    - `assetRegistry`: AssetRegistryState (default: groups + empty selection)
     - `selectedTile`: { category: string, index: number } | null (default: null)
     - `layerVisibility`: Record<LayerType, boolean> (default: all true)
     - `layerLocks`: Record<LayerType, boolean> (default: all false)
@@ -119,6 +120,17 @@ Rules:
 - `/src/editor/panels/leftBerryTabs.ts`
   - `LEFT_BERRY_TABS` — left berry asset workflow tabs
     - Invariant: order matches left berry navigation (Sprites, Assets)
+
+- `/src/editor/assets/assetRegistry.ts`
+  - `AssetRegistryState` — grouped asset library state
+    - Keys: groups[], selectedAssetId
+    - Apply mode: live
+
+- `/src/editor/assets/assetGroup.ts`
+  - `AssetGroupType` — asset grouping buckets
+    - Values: tilesets, props, entities
+  - `DEFAULT_ASSET_GROUPS` — baseline asset groups per type
+    - Apply mode: live
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

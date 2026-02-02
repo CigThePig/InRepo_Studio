@@ -1,8 +1,10 @@
 import type { EditorState } from '@/storage/hot';
+import type { AssetRegistry } from '@/editor/assets';
 import type { EntityInstance, Project } from '@/types';
 import { validatePropertyValue, type PropertyDefinition } from '@/types/entity';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import { generateOperationId, type HistoryManager, type Operation } from '@/editor/history';
+import { createAssetPalette, type AssetPaletteController } from './assetPalette';
 
 const STYLES = `
   .entities-tab {
@@ -152,6 +154,7 @@ export interface EntitiesTabConfig {
   getEditorState: () => EditorState | null;
   entityManager: EntityManager;
   history: HistoryManager;
+  assetRegistry?: AssetRegistry;
   onEntityTypeSelect?: (typeName: string | null) => void;
 }
 
@@ -208,7 +211,15 @@ function getEntityTypeLabel(entityType: Project['entityTypes'][number] | undefin
 }
 
 export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabController {
-  const { container, getProject, getEditorState, entityManager, history, onEntityTypeSelect } = config;
+  const {
+    container,
+    getProject,
+    getEditorState,
+    entityManager,
+    history,
+    assetRegistry,
+    onEntityTypeSelect,
+  } = config;
 
   const styleEl = document.createElement('style');
   styleEl.textContent = STYLES;
@@ -229,6 +240,17 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
   paletteSection.appendChild(paletteTitle);
   paletteSection.appendChild(paletteList);
+
+  let assetPaletteController: AssetPaletteController | null = null;
+  const assetPaletteContainer = document.createElement('div');
+  if (assetRegistry) {
+    assetPaletteController = createAssetPalette({
+      container: assetPaletteContainer,
+      assetRegistry,
+      groupType: 'entities',
+      title: 'Entity Asset Groups',
+    });
+  }
 
   const selectionSection = document.createElement('section');
   selectionSection.className = 'entities-tab__section';
@@ -256,6 +278,9 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
   propertiesSection.appendChild(propertiesBody);
 
   root.appendChild(paletteSection);
+  if (assetRegistry) {
+    root.appendChild(assetPaletteContainer);
+  }
   root.appendChild(selectionSection);
   root.appendChild(propertiesSection);
   container.appendChild(root);
@@ -556,6 +581,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     },
     refresh,
     destroy(): void {
+      assetPaletteController?.destroy();
       root.remove();
       styleEl.remove();
       assetList?.remove();
