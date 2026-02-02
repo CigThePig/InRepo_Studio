@@ -22,7 +22,11 @@ export type OperationType =
   | 'delete'
   | 'paste'
   | 'fill'
-  | 'composite';
+  | 'composite'
+  | 'entity_add'
+  | 'entity_delete'
+  | 'entity_move'
+  | 'entity_duplicate';
 
 export interface Operation {
   id: string;

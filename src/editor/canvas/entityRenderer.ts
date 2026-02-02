@@ -85,6 +85,7 @@ export interface EntityRenderer {
   setEntityTypes(types: EntityType[]): void;
   setPreview(preview: EntityPreview | null): void;
   setHighlightId(id: string | null): void;
+  setSelectedIds(ids: string[]): void;
   render(
     ctx: CanvasRenderingContext2D,
     viewport: ViewportState,
@@ -99,6 +100,7 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
   let entityTypes: EntityType[] = [];
   let preview: EntityPreview | null = null;
   let highlightId: string | null = null;
+  let selectedIds = new Set<string>();
   const spriteCache = createSpriteCache(config);
 
   function getEntityType(typeName: string): EntityType | null {
@@ -207,6 +209,9 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     setHighlightId(id: string | null): void {
       highlightId = id;
     },
+    setSelectedIds(ids: string[]): void {
+      selectedIds = new Set(ids);
+    },
     render(
       ctx: CanvasRenderingContext2D,
       viewport: ViewportState,
@@ -218,7 +223,7 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
       if (!entities?.length && !preview) return;
 
       for (const entity of entities) {
-        const isHighlighted = highlightId === entity.id;
+        const isHighlighted = highlightId === entity.id || selectedIds.has(entity.id);
         drawEntity(
           ctx,
           viewport,

@@ -300,6 +300,21 @@ Purpose:
 - **Follow-up**:
   - Track 19: Entity Tool (place and edit entities)
 
+### Track 21 — Entity Manipulation
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Implemented entity selection, multi-entity manipulation, and undo/redo integration for placement edits.
+- **Shipped**:
+  - Entity selection state with touch-friendly hit testing and selection highlights
+  - Drag-to-move with grid snapping, delete/duplicate actions, and multi-select via long-press
+  - Entity manipulation operations wired into undo/redo history
+- **Verification**: Not run (not requested).
+- **Learned**: Entity selection benefits from a dedicated action bar to keep touch targets large and discoverable.
+- **Follow-up**:
+  - Track 22: Property Inspector (entity property editing UI)
+  - Add box selection for entities (optional UX enhancement)
+  - Refactor `src/editor/tools/select.ts` (size >450 lines)
+
 ---
 
 ## Stalled / Abandoned Tracks

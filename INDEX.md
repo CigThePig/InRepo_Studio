@@ -335,6 +335,10 @@ Micro-format (copy/paste):
   - Role: Floating action bar for selection operations.
   - Lists of truth: none
 
+- `src/editor/panels/entitySelectionBar.ts`
+  - Role: Floating action bar for entity selection actions.
+  - Lists of truth: none
+
 - `src/editor/panels/layerPanel.ts`
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
@@ -407,6 +411,10 @@ Micro-format (copy/paste):
 - `src/editor/entities/entityManager.ts`
   - Role: Entity CRUD operations for scenes.
   - Lists of truth: EntityManager, EntityManagerConfig
+
+- `src/editor/entities/entitySelection.ts`
+  - Role: Entity selection tracking for manipulation workflows.
+  - Lists of truth: EntitySelectionState
 
 - `src/editor/inspectors/propertyInspector.ts` (planned — Track 22)
   - Role: Entity property editing UI.

@@ -11,6 +11,7 @@ import type { EntityPreview } from '@/editor/canvas/entityRenderer';
 import type { EditorState } from '@/storage/hot';
 import type { Scene, Project } from '@/types';
 import type { EntityManager } from '@/editor/entities/entityManager';
+import { generateOperationId, type HistoryManager, type Operation } from '@/editor/history';
 
 const LOG_PREFIX = '[EntityTool]';
 
@@ -25,6 +26,8 @@ export interface EntityToolConfig {
   getProject: () => Project | null;
   /** Entity manager for CRUD operations */
   entityManager: EntityManager;
+  /** History manager for undo/redo */
+  history: HistoryManager;
   /** Callback for preview updates */
   onPreviewChange?: (preview: EntityPreview | null) => void;
   /** Callback when entity is placed */
@@ -86,6 +89,7 @@ export function createEntityTool(config: EntityToolConfig): EntityTool {
     getScene,
     getProject,
     entityManager,
+    history,
     onPreviewChange,
     onEntityPlaced,
   } = config;
@@ -156,6 +160,19 @@ export function createEntityTool(config: EntityToolConfig): EntityTool {
       const placed = entityManager.addEntity(entityType, position.x, position.y);
       if (placed) {
         onEntityPlaced?.(placed.id);
+        const placedEntity = { ...placed, properties: { ...placed.properties } };
+        const operation: Operation = {
+          id: generateOperationId(),
+          type: 'entity_add',
+          description: 'Place entity',
+          execute: () => {
+            entityManager.addEntityInstance(placedEntity);
+          },
+          undo: () => {
+            entityManager.removeEntities([placedEntity.id]);
+          },
+        };
+        history.push(operation);
         console.log(
           `${LOG_PREFIX} Placed entity "${entityType}" at (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`
         );

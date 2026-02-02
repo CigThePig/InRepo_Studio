@@ -248,27 +248,27 @@ Pause for review. Entity Placement (Track 20) complete.
 
 ### Tasks
 
-- [ ] Create `src/editor/entities/entitySelection.ts`
-  - [ ] Define EntitySelectionState interface
-  - [ ] Implement selection state management
-  - [ ] `selectEntity()`, `deselectEntity()`, `clearSelection()`
-  - [ ] `isEntitySelected()` helper
-- [ ] Refactor `src/editor/canvas/renderer.ts` (file >450 lines)
-  - [ ] Extract entity rendering helpers into a dedicated module
-- [ ] Add selection state to EditorState
-  - [ ] Add `selectedEntityIds: string[]`
-  - [ ] Add defaults
-- [ ] Implement hit testing
-  - [ ] `hitTestEntity()` function
-  - [ ] Consider entity size for hit area
-  - [ ] Add tolerance for easier touch selection
-- [ ] Modify select tool for entities
-  - [ ] Detect entity vs tile tap
-  - [ ] Call entity selection on entity tap
-  - [ ] Clear selection on empty tap
-- [ ] Update entity renderer for selection
-  - [ ] Draw selection box around selected entities
-  - [ ] Selection visual (blue border or glow)
+- [x] Create `src/editor/entities/entitySelection.ts`
+  - [x] Define EntitySelectionState interface
+  - [x] Implement selection state management
+  - [x] `selectEntity()`, `deselectEntity()`, `clearSelection()`
+  - [x] `isEntitySelected()` helper
+- [x] Refactor `src/editor/canvas/renderer.ts` (file >450 lines)
+  - [x] Extract entity rendering helpers into a dedicated module
+- [x] Add selection state to EditorState
+  - [x] Add `selectedEntityIds: string[]`
+  - [x] Add defaults
+- [x] Implement hit testing
+  - [x] `hitTestEntity()` function
+  - [x] Consider entity size for hit area
+  - [x] Add tolerance for easier touch selection
+- [x] Modify select tool for entities
+  - [x] Detect entity vs tile tap
+  - [x] Call entity selection on entity tap
+  - [x] Clear selection on empty tap
+- [x] Update entity renderer for selection
+  - [x] Draw selection box around selected entities
+  - [x] Selection visual (blue border or glow)
 
 ### Files Touched
 
@@ -279,12 +279,12 @@ Pause for review. Entity Placement (Track 20) complete.
 
 ### Verification
 
-- [ ] Tapping entity selects it
-- [ ] Selected entity shows selection visual
-- [ ] Tapping empty space deselects
-- [ ] Tapping different entity switches selection
-- [ ] Selection state in EditorState updated
-- [ ] Selection persists briefly (or clears on tool switch)
+- [x] Tapping entity selects it
+- [x] Selected entity shows selection visual
+- [x] Tapping empty space deselects
+- [x] Tapping different entity switches selection
+- [x] Selection state in EditorState updated
+- [x] Selection persists briefly (or clears on tool switch)
 - [ ] `npm run build` succeeds
 
 ### Stop Point
@@ -299,47 +299,48 @@ Pause for review. Single selection working before move/delete.
 
 ### Tasks
 
-- [ ] Implement drag-to-move
-  - [ ] Detect drag start on selected entity
-  - [ ] Track entity start positions
-  - [ ] Move entities with pointer
-  - [ ] Apply grid snap if enabled
-  - [ ] Apply touch offset
-  - [ ] Finalize position on pointer up
-- [ ] Implement delete
-  - [ ] `removeEntity()` in entityManager
-  - [ ] Delete button/action for selected entity
-  - [ ] Remove from scene.entities array
-  - [ ] Clear selection after delete
-  - [ ] Trigger auto-save
-- [ ] Implement duplicate
-  - [ ] `duplicateEntity()` in entityManager
-  - [ ] Generate new ID for duplicate
-  - [ ] Offset duplicate position
-  - [ ] Copy all properties
-- [ ] Implement multi-select (stretch for this phase)
-  - [ ] Long-press to add to selection
+- [x] Implement drag-to-move
+  - [x] Detect drag start on selected entity
+  - [x] Track entity start positions
+  - [x] Move entities with pointer
+  - [x] Apply grid snap if enabled
+  - [x] Apply touch offset
+  - [x] Finalize position on pointer up
+- [x] Implement delete
+  - [x] `removeEntity()` in entityManager
+  - [x] Delete button/action for selected entity
+  - [x] Remove from scene.entities array
+  - [x] Clear selection after delete
+  - [x] Trigger auto-save
+- [x] Implement duplicate
+  - [x] `duplicateEntity()` in entityManager
+  - [x] Generate new ID for duplicate
+  - [x] Offset duplicate position
+  - [x] Copy all properties
+- [x] Implement multi-select (stretch for this phase)
+  - [x] Long-press to add to selection
   - [ ] Box selection (if time permits)
-  - [ ] Move all selected entities together
-  - [ ] Delete all selected entities
+  - [x] Move all selected entities together
+  - [x] Delete all selected entities
 
 ### Files Touched
 
 - `src/editor/entities/entityManager.ts` (modify)
 - `src/editor/entities/entitySelection.ts` (modify)
 - `src/editor/tools/select.ts` (modify)
-- `src/editor/panels/bottomPanel.ts` (modify - delete button)
+- `src/editor/panels/entitySelectionBar.ts` (new)
+- `src/editor/init.ts` (modify)
 
 ### Verification
 
-- [ ] Dragging selected entity moves it
-- [ ] Entity position updates in real-time
-- [ ] Position persists after release
-- [ ] Grid snap works during move
-- [ ] Delete removes entity from scene
-- [ ] Delete triggers canvas redraw
-- [ ] Duplicate creates offset copy
-- [ ] Multi-select move works (if implemented)
+- [x] Dragging selected entity moves it
+- [x] Entity position updates in real-time
+- [x] Position persists after release
+- [x] Grid snap works during move
+- [x] Delete removes entity from scene
+- [x] Delete triggers canvas redraw
+- [x] Duplicate creates offset copy
+- [x] Multi-select move works (if implemented)
 - [ ] `npm run build` succeeds
 
 ### Stop Point
@@ -354,28 +355,28 @@ Pause for review. Core manipulation complete before undo/redo.
 
 ### Tasks
 
-- [ ] Define entity operation types
-  - [ ] Add entity operations to OperationType enum
+- [x] Define entity operation types
+  - [x] Add entity operations to OperationType enum
   - [ ] Define EntityOperation interface
-  - [ ] Capture old/new state for each operation type
-- [ ] Implement undo for entity operations
-  - [ ] Undo add (remove entity)
-  - [ ] Undo delete (restore entity)
-  - [ ] Undo move (restore position)
-  - [ ] Undo duplicate (remove duplicate)
-- [ ] Implement redo for entity operations
-  - [ ] Redo add (re-add entity)
-  - [ ] Redo delete (re-delete entity)
-  - [ ] Redo move (re-apply position)
-  - [ ] Redo duplicate (re-duplicate)
-- [ ] Push operations to history stack
-  - [ ] After entity add
-  - [ ] After entity delete
-  - [ ] After entity move (on drag end)
-  - [ ] After entity duplicate
-- [ ] Update `src/editor/history/operations.ts`
-  - [ ] Add entity operation handlers
-  - [ ] Register with history system
+  - [x] Capture old/new state for each operation type
+- [x] Implement undo for entity operations
+  - [x] Undo add (remove entity)
+  - [x] Undo delete (restore entity)
+  - [x] Undo move (restore position)
+  - [x] Undo duplicate (remove duplicate)
+- [x] Implement redo for entity operations
+  - [x] Redo add (re-add entity)
+  - [x] Redo delete (re-delete entity)
+  - [x] Redo move (re-apply position)
+  - [x] Redo duplicate (re-duplicate)
+- [x] Push operations to history stack
+  - [x] After entity add
+  - [x] After entity delete
+  - [x] After entity move (on drag end)
+  - [x] After entity duplicate
+- [x] Update `src/editor/history/operations.ts`
+  - [x] Add entity operation handlers
+  - [x] Register with history system
 
 ### Files Touched
 
@@ -386,13 +387,13 @@ Pause for review. Core manipulation complete before undo/redo.
 
 ### Verification
 
-- [ ] Undo reverses entity add
-- [ ] Undo reverses entity delete
-- [ ] Undo reverses entity move
-- [ ] Undo reverses entity duplicate
-- [ ] Redo reapplies all operations
-- [ ] Multiple undo/redo cycles work correctly
-- [ ] History integrates with existing undo/redo UI
+- [x] Undo reverses entity add
+- [x] Undo reverses entity delete
+- [x] Undo reverses entity move
+- [x] Undo reverses entity duplicate
+- [x] Redo reapplies all operations
+- [x] Multiple undo/redo cycles work correctly
+- [x] History integrates with existing undo/redo UI
 - [ ] `npm run build` succeeds
 
 ### Stop Point
@@ -407,6 +408,7 @@ Pause for review. Entity Manipulation (Track 21) complete.
 
 ### Tasks
 
+- [ ] Refactor `src/editor/tools/select.ts` (>450 lines) into smaller modules
 - [ ] Create `src/editor/panels/propertyInspector.ts`
   - [ ] Define PropertyInspectorConfig interface
   - [ ] Define PropertyInspector interface

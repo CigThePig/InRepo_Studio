@@ -14,13 +14,17 @@
  */
 
 import { getGidForTile, type LayerType, type Scene } from '@/types';
-import type { ViewportState } from '@/editor/canvas/viewport';
+import { screenToWorld, type ViewportState } from '@/editor/canvas/viewport';
 import type { EditorState, SelectedTile } from '@/storage/hot';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import { screenToTileWithOffset, type TilePoint } from '@/editor/tools/common';
 import { floodFill, type FloodFillResult } from '@/editor/tools/floodFill';
+import type { EntityInstance } from '@/types';
+import type { EntityManager } from '@/editor/entities/entityManager';
+import type { EntitySelection } from '@/editor/entities/entitySelection';
 import {
   createTileChangeOperation,
+  generateOperationId,
   type HistoryManager,
   type Operation,
   type TileChange,
@@ -64,15 +68,19 @@ export interface SelectToolConfig {
   getScene: () => Scene | null;
   onSceneChange: (scene: Scene) => void;
   onSelectionChange: (state: SelectionOverlayState) => void;
+  onEntitySelectionChange?: (selectedIds: string[]) => void;
   clipboard: SelectClipboard;
   onFillResult?: (result: FloodFillResult) => void;
   history: HistoryManager;
+  entityManager: EntityManager;
+  entitySelection: EntitySelection;
 }
 
 export interface SelectTool {
   start(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void;
   move(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void;
   end(): void;
+  handleLongPress(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void;
   getSelection(): SelectionBounds | null;
   clearSelection(): void;
   startMove(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void;
@@ -81,6 +89,8 @@ export interface SelectTool {
   copySelection(): void;
   armPaste(): void;
   armFill(): void;
+  deleteEntities(): void;
+  duplicateEntities(): void;
   isSelecting(): boolean;
   isMoving(): boolean;
 }
@@ -109,6 +119,70 @@ function getTileValue(scene: Scene, layer: LayerType, selectedTile: SelectedTile
   }
 
   return gid;
+}
+
+function screenToWorldWithOffset(
+  viewport: ViewportState,
+  screenX: number,
+  screenY: number
+): { x: number; y: number } {
+  return screenToWorld(viewport, screenX, screenY + TOUCH_OFFSET_Y);
+}
+
+function getEntityHitTolerance(tileSize: number): number {
+  return Math.max(8, tileSize * 0.2);
+}
+
+function hitTestEntity(
+  scene: Scene,
+  viewport: ViewportState,
+  screenX: number,
+  screenY: number,
+  tileSize: number
+): EntityInstance | null {
+  const world = screenToWorldWithOffset(viewport, screenX, screenY);
+  const halfSize = tileSize / 2 + getEntityHitTolerance(tileSize);
+  let bestMatch: EntityInstance | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const entity of scene.entities) {
+    const dx = Math.abs(world.x - entity.x);
+    const dy = Math.abs(world.y - entity.y);
+    if (dx <= halfSize && dy <= halfSize) {
+      const distance = Math.hypot(dx, dy);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = entity;
+      }
+    }
+  }
+
+  return bestMatch;
+}
+
+function snapEntityPosition(
+  position: { x: number; y: number },
+  tileSize: number,
+  snapToGridEnabled: boolean
+): { x: number; y: number } {
+  if (!snapToGridEnabled) return position;
+  return {
+    x: Math.floor(position.x / tileSize) * tileSize,
+    y: Math.floor(position.y / tileSize) * tileSize,
+  };
+}
+
+function clampEntityPosition(
+  scene: Scene,
+  position: { x: number; y: number },
+  tileSize: number
+): { x: number; y: number } {
+  const maxX = scene.width * tileSize;
+  const maxY = scene.height * tileSize;
+  return {
+    x: Math.max(0, Math.min(position.x, maxX)),
+    y: Math.max(0, Math.min(position.y, maxY)),
+  };
 }
 
 function createSelectionBounds(
@@ -252,9 +326,12 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
     getScene,
     onSceneChange,
     onSelectionChange,
+    onEntitySelectionChange,
     clipboard,
     onFillResult,
     history,
+    entityManager,
+    entitySelection,
   } =
     config;
 
@@ -268,6 +345,13 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
   let pendingFill = false;
   let selectingMoved = false;
   let selectionStartedFromExisting = false;
+  let entityDrag:
+    | {
+        startWorld: { x: number; y: number };
+        startPositions: Map<string, { x: number; y: number }>;
+        moved: boolean;
+      }
+    | null = null;
 
   function notifySelectionChange(): void {
     onSelectionChange({
@@ -300,6 +384,121 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
   function clearSelection(): void {
     clearSelectionState();
     setMode('idle');
+  }
+
+  function notifyEntitySelection(): void {
+    onEntitySelectionChange?.(entitySelection.getSelectedIds());
+  }
+
+  function setEntitySelection(ids: string[]): void {
+    entitySelection.setSelection(ids);
+    notifyEntitySelection();
+  }
+
+  function clearEntitySelection(): void {
+    if (entitySelection.getSelectedIds().length === 0) return;
+    entitySelection.clear();
+    entityDrag = null;
+    notifyEntitySelection();
+  }
+
+  function beginEntityDrag(
+    scene: Scene,
+    viewport: ViewportState,
+    screenX: number,
+    screenY: number
+  ): void {
+    const selectedIds = entitySelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const startPositions = new Map<string, { x: number; y: number }>();
+    for (const entity of scene.entities) {
+      if (!selectedIds.includes(entity.id)) continue;
+      startPositions.set(entity.id, { x: entity.x, y: entity.y });
+    }
+
+    entityDrag = {
+      startWorld: screenToWorldWithOffset(viewport, screenX, screenY),
+      startPositions,
+      moved: false,
+    };
+  }
+
+  function updateEntityDrag(
+    scene: Scene,
+    viewport: ViewportState,
+    screenX: number,
+    screenY: number,
+    tileSize: number,
+    editorState: EditorState
+  ): void {
+    if (!entityDrag) return;
+
+    const world = screenToWorldWithOffset(viewport, screenX, screenY);
+    const deltaX = world.x - entityDrag.startWorld.x;
+    const deltaY = world.y - entityDrag.startWorld.y;
+    const snapEnabled = editorState.entitySnapToGrid ?? true;
+
+    const updates = Array.from(entityDrag.startPositions.entries()).map(([id, start]) => {
+      const offsetPosition = { x: start.x + deltaX, y: start.y + deltaY };
+      const snapped = snapEntityPosition(offsetPosition, tileSize, snapEnabled);
+      const clamped = clampEntityPosition(scene, snapped, tileSize);
+      return { id, x: clamped.x, y: clamped.y };
+    });
+
+    const changed = updates.some((update) => {
+      const start = entityDrag?.startPositions.get(update.id);
+      return start ? start.x !== update.x || start.y !== update.y : false;
+    });
+
+    if (changed) {
+      entityDrag.moved = true;
+    }
+
+    entityManager.moveEntities(updates);
+    notifyEntitySelection();
+  }
+
+  function finalizeEntityDrag(scene: Scene): void {
+    if (!entityDrag) return;
+
+    const startPositions = entityDrag.startPositions;
+    const updatedPositions: Array<{ id: string; x: number; y: number }> = [];
+    const originalPositions: Array<{ id: string; x: number; y: number }> = [];
+
+    for (const [id, start] of startPositions.entries()) {
+      const entity = entityManager.getEntity(id);
+      if (!entity) continue;
+      originalPositions.push({ id, x: start.x, y: start.y });
+      updatedPositions.push({ id, x: entity.x, y: entity.y });
+    }
+
+    const changed = updatedPositions.some((update, index) => {
+      const original = originalPositions[index];
+      return !original || original.x !== update.x || original.y !== update.y;
+    });
+
+    if (entityDrag.moved && changed && updatedPositions.length > 0) {
+      const description =
+        updatedPositions.length > 1 ? 'Move entities' : 'Move entity';
+      const operation: Operation = {
+        id: generateOperationId(),
+        type: 'entity_move',
+        description,
+        execute: () => {
+          entityManager.moveEntities(updatedPositions);
+          notifyEntitySelection();
+        },
+        undo: () => {
+          entityManager.moveEntities(originalPositions);
+          notifyEntitySelection();
+        },
+      };
+
+      history.push(operation);
+    }
+
+    entityDrag = null;
   }
 
   function finalizeSelection(scene: Scene, newSelection: SelectionBounds | null): void {
@@ -480,12 +679,97 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
     onFillResult?.(result);
   }
 
+  function deleteSelectedEntities(): void {
+    const scene = getScene();
+    if (!scene) return;
+    const selectedIds = entitySelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const removed = entityManager.removeEntities(selectedIds);
+    if (removed.length === 0) return;
+
+    const previousSelection = [...selectedIds];
+    clearEntitySelection();
+
+    const description = removed.length > 1 ? 'Delete entities' : 'Delete entity';
+    const operation: Operation = {
+      id: generateOperationId(),
+      type: 'entity_delete',
+      description,
+      execute: () => {
+        entityManager.removeEntities(removed.map((entity) => entity.id));
+        clearEntitySelection();
+      },
+      undo: () => {
+        for (const entity of removed) {
+          entityManager.addEntityInstance(entity);
+        }
+        setEntitySelection(previousSelection);
+      },
+    };
+
+    history.push(operation);
+  }
+
+  function duplicateSelectedEntities(tileSize: number): void {
+    const scene = getScene();
+    if (!scene) return;
+    const selectedIds = entitySelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const duplicates = entityManager.duplicateEntities(selectedIds, {
+      x: tileSize,
+      y: tileSize,
+    });
+
+    if (duplicates.length === 0) return;
+
+    const previousSelection = [...selectedIds];
+    const duplicateIds = duplicates.map((entity) => entity.id);
+    setEntitySelection(duplicateIds);
+
+    const description = duplicates.length > 1 ? 'Duplicate entities' : 'Duplicate entity';
+    const operation: Operation = {
+      id: generateOperationId(),
+      type: 'entity_duplicate',
+      description,
+      execute: () => {
+        for (const entity of duplicates) {
+          entityManager.addEntityInstance(entity);
+        }
+        setEntitySelection(duplicateIds);
+      },
+      undo: () => {
+        entityManager.removeEntities(duplicateIds);
+        setEntitySelection(previousSelection);
+      },
+    };
+
+    history.push(operation);
+  }
+
   const tool: SelectTool = {
     start(screenX: number, screenY: number, viewport: ViewportState, tileSize: number): void {
       const editorState = getEditorState();
       const scene = getScene();
 
       if (!editorState || !scene || editorState.currentTool !== 'select') {
+        return;
+      }
+
+      const hitEntity = hitTestEntity(scene, viewport, screenX, screenY, tileSize);
+      if (hitEntity) {
+        clearSelection();
+        if (!entitySelection.isSelected(hitEntity.id)) {
+          entitySelection.setSelection([hitEntity.id]);
+        }
+        beginEntityDrag(scene, viewport, screenX, screenY);
+        notifyEntitySelection();
+        return;
+      }
+
+      if (entitySelection.getSelectedIds().length > 0) {
+        clearEntitySelection();
         return;
       }
 
@@ -599,6 +883,11 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
         return;
       }
 
+      if (entityDrag) {
+        updateEntityDrag(scene, viewport, screenX, screenY, tileSize, editorState);
+        return;
+      }
+
       const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
 
       if (mode === 'moving') {
@@ -624,6 +913,11 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
         return;
       }
 
+      if (entityDrag) {
+        finalizeEntityDrag(scene);
+        return;
+      }
+
       if (mode === 'moving') {
         applyMove(scene);
         return;
@@ -643,6 +937,33 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       }
 
       finalizeSelection(scene, selection);
+    },
+
+    handleLongPress(
+      screenX: number,
+      screenY: number,
+      viewport: ViewportState,
+      tileSize: number
+    ): void {
+      const editorState = getEditorState();
+      const scene = getScene();
+      if (!editorState || !scene || editorState.currentTool !== 'select') {
+        return;
+      }
+
+      const hitEntity = hitTestEntity(scene, viewport, screenX, screenY, tileSize);
+      if (hitEntity) {
+        clearSelection();
+        if (!entitySelection.isSelected(hitEntity.id)) {
+          entitySelection.addToSelection(hitEntity.id);
+        }
+        notifyEntitySelection();
+        return;
+      }
+
+      if (selection) {
+        tool.startMove(screenX, screenY, viewport, tileSize);
+      }
     },
 
     getSelection(): SelectionBounds | null {
@@ -759,6 +1080,16 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       pendingFill = true;
       pendingPaste = false;
       setMode('idle');
+    },
+
+    deleteEntities(): void {
+      deleteSelectedEntities();
+    },
+
+    duplicateEntities(): void {
+      const scene = getScene();
+      if (!scene) return;
+      duplicateSelectedEntities(scene.tileSize);
     },
 
     isSelecting(): boolean {
