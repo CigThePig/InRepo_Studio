@@ -73,10 +73,11 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, editorMode, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)
+    - `leftBerryOpen`: boolean (default: false)
     - `selectedTile`: { category: string, index: number } | null (default: null)
     - `layerVisibility`: Record<LayerType, boolean> (default: all true)
     - `layerLocks`: Record<LayerType, boolean> (default: all false)
@@ -114,6 +115,10 @@ Rules:
 - `/src/editor/panels/rightBerryTabs.ts`
   - `RIGHT_BERRY_TABS` — right berry mode tab definitions
     - Invariant: order matches Editor V2 mode order
+
+- `/src/editor/panels/leftBerryTabs.ts`
+  - `LEFT_BERRY_TABS` — left berry asset workflow tabs
+    - Invariant: order matches left berry navigation (Sprites, Assets)
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

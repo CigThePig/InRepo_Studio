@@ -33,6 +33,7 @@ import {
   createRightBerry,
   createRightBerryPlaceholder,
   type RightBerryController,
+  createLeftBerry,
   createEntitiesTab,
   type EntitiesTabController,
   createSelectionBar,
@@ -1102,6 +1103,22 @@ async function initPanels(): Promise<void> {
       historyManager?.canUndo() ?? false,
       historyManager?.canRedo() ?? false
     );
+  }
+
+  if (isV2Enabled(EDITOR_V2_FLAGS.LEFT_BERRY)) {
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer && editorState) {
+      const leftBerryController = createLeftBerry(canvasContainer, {
+        initialOpen: editorState.leftBerryOpen,
+        initialTab: 'sprites',
+      });
+
+      leftBerryController.onOpenChange((open) => {
+        if (!editorState) return;
+        editorState.leftBerryOpen = open;
+        scheduleSave();
+      });
+    }
   }
 
   if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {

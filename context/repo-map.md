@@ -106,6 +106,10 @@ Local instruction files (present):
   - Role: toolbar, tile picker, entity palette, inspector
 - `panels/bottomContextStrip.ts`
   - Role: bottom bar context actions for selection
+- `panels/leftBerry.ts`
+  - Role: left berry slide-out panel shell for asset workflows
+- `panels/spriteSlicerTab.ts`
+  - Role: sprite sheet slicing UI for left berry
 - `tools/paint.ts`
   - Role: tile painting logic
 - `tools/erase.ts`
@@ -116,6 +120,8 @@ Local instruction files (present):
   - Role: entity placement and editing
 - `panels/propertyInspector.ts`
   - Role: entity property editing UI
+- `assets/spriteSlider.ts`
+  - Role: sprite sheet slicing logic for asset prep
 - `v2/`
   - Role: Editor V2 state + feature flags
 - `settings/editorSettings.ts`
