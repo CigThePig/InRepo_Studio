@@ -339,6 +339,10 @@ Micro-format (copy/paste):
   - Role: Floating action bar for entity selection actions.
   - Lists of truth: none
 
+- `src/editor/panels/propertyInspector.ts`
+  - Role: Entity property inspector panel for editing instance properties.
+  - Lists of truth: PropertyInspectorConfig
+
 - `src/editor/panels/layerPanel.ts`
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
@@ -378,7 +382,19 @@ Micro-format (copy/paste):
 
 - `src/editor/tools/select.ts`
   - Role: Selection and manipulation tool.
+  - Lists of truth: none
+
+- `src/editor/tools/selectTypes.ts`
+  - Role: Shared selection tool types for tile selection.
   - Lists of truth: SelectToolMode
+
+- `src/editor/tools/selectTileController.ts`
+  - Role: Tile selection controller (move, paste, fill, delete) for select tool.
+  - Lists of truth: none
+
+- `src/editor/tools/selectEntityController.ts`
+  - Role: Entity selection/move/delete controller for select tool.
+  - Lists of truth: none
 
 - `src/editor/history/index.ts`
   - Role: Public exports for history module.
@@ -416,9 +432,6 @@ Micro-format (copy/paste):
   - Role: Entity selection tracking for manipulation workflows.
   - Lists of truth: EntitySelectionState
 
-- `src/editor/inspectors/propertyInspector.ts` (planned — Track 22)
-  - Role: Entity property editing UI.
-  - Lists of truth: none
 
 - `src/editor/settings/editorSettings.ts` (planned — Track 28)
   - Role: User preferences.

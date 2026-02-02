@@ -315,6 +315,21 @@ Purpose:
   - Add box selection for entities (optional UX enhancement)
   - Refactor `src/editor/tools/select.ts` (size >450 lines)
 
+### Track 22 — Property Inspector
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Added an entity property inspector with validation, multi-select editing, and undo/redo support, plus select tool refactors to reduce file size.
+- **Shipped**:
+  - Property inspector panel with string, number, boolean, and asset reference editors
+  - Validation feedback and constraint hints for entity properties
+  - Multi-select editing for shared property definitions with mixed value handling
+  - Undo/redo support for property edits (entity_property_change)
+  - Select tool refactor into tile/entity controllers to keep file sizes manageable
+- **Verification**: `npm run build`, `npm run lint`
+- **Learned**: Datalist-backed asset suggestions provide lightweight asset picking without schema changes.
+- **Follow-up**:
+  - Box selection for entities (optional UX enhancement)
+
 ---
 
 ## Stalled / Abandoned Tracks

@@ -32,6 +32,8 @@ import {
   type EntitySelectionBarController,
   createLayerPanel,
   type LayerPanelController,
+  createPropertyInspector,
+  type PropertyInspectorController,
 } from '@/editor/panels';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
@@ -94,6 +96,7 @@ let layerPanelController: LayerPanelController | null = null;
 let entityManager: EntityManager | null = null;
 let entitySelection: EntitySelection | null = null;
 let entitySelectionBar: EntitySelectionBarController | null = null;
+let propertyInspector: PropertyInspectorController | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -115,6 +118,52 @@ function updateHoverPreview(tool: EditorState['currentTool']): void {
     canvasController?.setBrushCursorSize(1);
     canvasController?.setBrushCursorColor('rgba(255, 255, 255, 0.9)');
   }
+}
+
+function updateEntitySelectionUI(): void {
+  if (!editorState || !canvasController || !currentScene || !entitySelection) return;
+  const renderer = canvasController.getRenderer();
+  const selectedIds = editorState.selectedEntityIds ?? [];
+
+  if (editorState.currentTool !== 'select' || selectedIds.length === 0) {
+    renderer.setEntitySelectionIds([]);
+    canvasController.invalidateScene();
+    entitySelectionBar?.hide();
+    propertyInspector?.hide();
+    return;
+  }
+
+  const selectedEntities = currentScene.entities.filter((entity) =>
+    selectedIds.includes(entity.id)
+  );
+
+  if (selectedEntities.length === 0) {
+    renderer.setEntitySelectionIds([]);
+    canvasController.invalidateScene();
+    entitySelectionBar?.hide();
+    propertyInspector?.hide();
+    return;
+  }
+
+  renderer.setEntitySelectionIds(selectedIds);
+  canvasController.invalidateScene();
+
+  const viewport = canvasController.getViewport();
+  const screenPositions = selectedEntities.map((entity) =>
+    worldToScreen(viewport, entity.x, entity.y)
+  );
+
+  const minX = Math.min(...screenPositions.map((pos) => pos.x));
+  const maxX = Math.max(...screenPositions.map((pos) => pos.x));
+  const minY = Math.min(...screenPositions.map((pos) => pos.y));
+
+  const centerX = (minX + maxX) / 2;
+  const topY = minY - 12;
+
+  entitySelectionBar?.setSelectionCount(selectedEntities.length);
+  entitySelectionBar?.setPosition(centerX, topY);
+  entitySelectionBar?.show();
+  propertyInspector?.setSelection(selectedIds);
 }
 
 export function getEditorState(): EditorState | null {
@@ -374,49 +423,6 @@ async function initCanvas(tileSize: number): Promise<void> {
     activeLayer: editorState?.activeLayer,
     assetBasePath: ASSET_BASE_PATH,
   });
-
-  function updateEntitySelectionUI(): void {
-    if (!editorState || !canvasController || !currentScene || !entitySelection) return;
-    const renderer = canvasController.getRenderer();
-    const selectedIds = editorState.selectedEntityIds ?? [];
-
-    if (editorState.currentTool !== 'select' || selectedIds.length === 0) {
-      renderer.setEntitySelectionIds([]);
-      canvasController.invalidateScene();
-      entitySelectionBar?.hide();
-      return;
-    }
-
-    const selectedEntities = currentScene.entities.filter((entity) =>
-      selectedIds.includes(entity.id)
-    );
-
-    if (selectedEntities.length === 0) {
-      renderer.setEntitySelectionIds([]);
-      canvasController.invalidateScene();
-      entitySelectionBar?.hide();
-      return;
-    }
-
-    renderer.setEntitySelectionIds(selectedIds);
-    canvasController.invalidateScene();
-
-    const viewport = canvasController.getViewport();
-    const screenPositions = selectedEntities.map((entity) =>
-      worldToScreen(viewport, entity.x, entity.y)
-    );
-
-    const minX = Math.min(...screenPositions.map((pos) => pos.x));
-    const maxX = Math.max(...screenPositions.map((pos) => pos.x));
-    const minY = Math.min(...screenPositions.map((pos) => pos.y));
-
-    const centerX = (minX + maxX) / 2;
-    const topY = minY - 12;
-
-    entitySelectionBar?.setSelectionCount(selectedEntities.length);
-    entitySelectionBar?.setPosition(centerX, topY);
-    entitySelectionBar?.show();
-  }
 
   // Set initial selected category for rendering
   canvasController.setSelectedCategory(initialCategory);
@@ -821,6 +827,21 @@ async function initPanels(): Promise<void> {
       historyManager?.canUndo() ?? false,
       historyManager?.canRedo() ?? false
     );
+  }
+
+  const canvasContainer = document.getElementById('canvas-container');
+  if (canvasContainer && entityManager && historyManager) {
+    propertyInspector = createPropertyInspector({
+      container: canvasContainer,
+      getProject: () => currentProject,
+      entityManager,
+      history: historyManager,
+      onClose: () => {
+        entitySelection?.clear();
+        updateEntitySelectionUI();
+      },
+    });
+    updateEntitySelectionUI();
   }
 
   console.log(`${LOG_PREFIX} Panels initialized`);

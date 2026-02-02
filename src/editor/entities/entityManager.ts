@@ -41,6 +41,13 @@ export interface EntityManager {
   removeEntities(ids: string[]): EntityInstance[];
   /** Update positions for one or more entities */
   moveEntities(updates: Array<{ id: string; x: number; y: number }>): void;
+  /** Update properties for one or more entities */
+  updateEntityProperties(
+    updates: Array<{
+      id: string;
+      properties: Record<string, string | number | boolean | undefined>;
+    }>
+  ): void;
   /** Duplicate entities with an offset */
   duplicateEntities(ids: string[], offset: { x: number; y: number }): EntityInstance[];
 }
@@ -148,6 +155,43 @@ export function createEntityManager(config: EntityManagerConfig): EntityManager 
     }
   }
 
+  function updateEntityProperties(
+    updates: Array<{ id: string; properties: Record<string, string | number | boolean | undefined> }>
+  ): void {
+    const scene = getScene();
+    if (!scene || updates.length === 0) return;
+
+    const updateMap = new Map(updates.map((update) => [update.id, update.properties]));
+    let changed = false;
+
+    for (const entity of scene.entities) {
+      const properties = updateMap.get(entity.id);
+      if (!properties) continue;
+      if (!entity.properties) {
+        entity.properties = {};
+      }
+
+      for (const [key, value] of Object.entries(properties)) {
+        if (value === undefined) {
+          if (key in entity.properties) {
+            delete entity.properties[key];
+            changed = true;
+          }
+          continue;
+        }
+
+        if (entity.properties[key] !== value) {
+          entity.properties[key] = value;
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      onSceneChange(scene);
+    }
+  }
+
   function duplicateEntities(
     ids: string[],
     offset: { x: number; y: number }
@@ -184,6 +228,7 @@ export function createEntityManager(config: EntityManagerConfig): EntityManager 
     getEntities,
     removeEntities,
     moveEntities,
+    updateEntityProperties,
     duplicateEntities,
   };
 }

@@ -250,7 +250,8 @@ export function createLayerPanel(
   container: HTMLElement,
   config: LayerPanelConfig
 ): LayerPanelController {
-  let { activeLayer, visibility, locks, order, onLayerSelect, onVisibilityChange, onLocksChange, onOrderChange } = config;
+  let { activeLayer, visibility, locks } = config;
+  const { order, onLayerSelect, onVisibilityChange, onLocksChange, onOrderChange } = config;
   let layerOrder: LayerType[] = order ? [...order] : [...LAYER_ORDER];
   const emitOrderChange = onOrderChange ?? (() => {});
 

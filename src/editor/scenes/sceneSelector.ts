@@ -246,7 +246,8 @@ export function createSceneSelector(
   container: HTMLElement,
   config: SceneSelectorConfig
 ): SceneSelector {
-  let { scenes, currentSceneId, onSceneSelect, onSceneAction, onCreateScene } = config;
+  let { scenes, currentSceneId } = config;
+  const { onSceneSelect, onSceneAction, onCreateScene } = config;
   let isDropdownOpen = false;
   let activeMenuSceneId: string | null = null;
 

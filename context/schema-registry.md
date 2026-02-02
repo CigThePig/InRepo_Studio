@@ -93,7 +93,7 @@ Rules:
     - Values: select, paint, erase, entity
     - Invariant: exactly one tool active at a time
 
-- `/src/editor/tools/select.ts`
+- `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states
     - Values: idle, selecting, selected, moving, pasting
 
@@ -101,7 +101,7 @@ Rules:
 
 - `/src/editor/entities/entityManager.ts`
   - `EntityManager` — entity CRUD operations interface
-    - Methods: addEntity, addEntityInstance, getEntity, getEntities, removeEntities, moveEntities, duplicateEntities
+    - Methods: addEntity, addEntityInstance, getEntity, getEntities, removeEntities, moveEntities, updateEntityProperties, duplicateEntities
     - Invariant: entity IDs unique within scene
 
 - `/src/editor/entities/entitySelection.ts`
@@ -109,11 +109,15 @@ Rules:
     - Keys: selectedIds[]
     - Apply mode: live
 
+- `/src/editor/panels/propertyInspector.ts`
+  - `PropertyInspectorConfig` — property inspector wiring for entity edits
+    - Apply mode: live
+
 ### Editor History (Track 16)
 
 - `/src/editor/history/operations.ts`
   - `OperationType` — undo/redo operation categories
-    - Values: paint, erase, move, delete, paste, fill, composite, entity_add, entity_delete, entity_move, entity_duplicate
+    - Values: paint, erase, move, delete, paste, fill, composite, entity_add, entity_delete, entity_move, entity_duplicate, entity_property_change
 
 - `/src/editor/canvas/viewport.ts`
   - `ViewportState` — pan/zoom state (re-exported from storage/hot.ts)

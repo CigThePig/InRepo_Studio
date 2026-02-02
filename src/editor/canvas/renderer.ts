@@ -200,7 +200,6 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     previewTiles: null,
   };
   let entityPreview: EntityPreview | null = null;
-  let entitySelectionIds: string[] = [];
   let dirty = true;
   const entityRenderer = createEntityRenderer({
     assetBasePath: config.assetBasePath,
@@ -561,7 +560,6 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     },
 
     setEntitySelectionIds(ids: string[]): void {
-      entitySelectionIds = ids;
       entityRenderer.setSelectedIds(ids);
       dirty = true;
     },

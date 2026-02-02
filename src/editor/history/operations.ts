@@ -26,7 +26,8 @@ export type OperationType =
   | 'entity_add'
   | 'entity_delete'
   | 'entity_move'
-  | 'entity_duplicate';
+  | 'entity_duplicate'
+  | 'entity_property_change';
 
 export interface Operation {
   id: string;
