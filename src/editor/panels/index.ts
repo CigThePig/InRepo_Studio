@@ -32,3 +32,7 @@ export type { EntitySelectionBarController } from './entitySelectionBar';
 // Layer Panel
 export { createLayerPanel } from './layerPanel';
 export type { LayerPanelController, LayerPanelConfig } from './layerPanel';
+
+// Property Inspector
+export { createPropertyInspector } from './propertyInspector';
+export type { PropertyInspectorController, PropertyInspectorConfig } from './propertyInspector';

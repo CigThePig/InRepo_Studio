@@ -112,7 +112,7 @@ Local instruction files (present):
   - Role: selection and manipulation
 - `tools/entity.ts`
   - Role: entity placement and editing
-- `inspectors/propertyInspector.ts`
+- `panels/propertyInspector.ts`
   - Role: entity property editing UI
 - `settings/editorSettings.ts`
   - Role: user preferences

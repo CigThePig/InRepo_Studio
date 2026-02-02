@@ -5,7 +5,7 @@
  * In-memory only (session scoped).
  */
 
-import type { SelectionData } from '@/editor/tools/select';
+import type { SelectionData } from '@/editor/tools/selectTypes';
 
 export interface Clipboard {
   copy(data: SelectionData): void;

@@ -11,18 +11,19 @@ Completed tracks:
 - Phase 3 (Full Tilemap Editing): Track 16 (Undo/Redo System)
 - Phase 3 (Full Tilemap Editing): Track 17 (Scene Management)
 - Phase 3 (Full Tilemap Editing): Track 18 (Layer System)
+- Phase 4 (Entity System): Tracks 19-22 (Entity Palette, Entity Placement, Entity Manipulation, Property Inspector)
 
 Prepared tracks (planning artifacts created):
 - (none pending)
 
 Next tracks to implement (in order):
-1. Track 19: Entity Tool — Place and edit entities
-2. Track 20: Entity Inspector — Property editing panel
+1. Track 23: Export Functions — Backup hot storage data
+2. Track 24: Import Functions — Restore from backup
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 
-Last updated: 2026-02-01
+Last updated: 2026-02-02
 
 ---
 
