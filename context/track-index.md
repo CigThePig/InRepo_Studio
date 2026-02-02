@@ -438,144 +438,332 @@ Verification:
 
 ---
 
-## Phase 5: Export/Backup
+---
 
-### Track 23 — Export Functions (6.1)
-Goal: Get data out of the browser.
-Includes:
-1. JSON export (project, scenes)
-2. Full project export
-3. ZIP export
-4. Clipboard export
-5. Export reminder system
-Acceptance:
-- Can export full project as download
-- Reminder appears if not exported recently
-Verification:
-- Manual: Export and verify file contents
+🔷 Editor V2 Migration (UI + Workflow Overhaul)
 
-### Track 24 — Import Functions (6.2)
-Goal: Restore from backups.
-Includes:
-1. JSON import with validation
-2. Merge vs replace option
-3. Import preview
-4. ZIP import
-5. Import validation errors
-Acceptance:
-- Import restores project state
-- Invalid files show clear errors
-Verification:
-- Manual: Export → import round-trip
+Global Rule for All Tracks Below
+
+All implementation must follow:
+
+context/editor-v2-architecture.md
+
+If any existing system conflicts with that spec, the spec wins.
+
+Do not keep duplicate legacy systems alive unless the track explicitly says it is temporary.
+
 
 ---
 
-## Phase 6: Mobile UX Polish
+🟦 Track 23 — Bottom Interaction Strip (Replace Floating Selection Bars)
 
-### Track 25 — Touch Refinements (7.1)
-Goal: Make interactions feel native.
-Includes:
-1. Touch offset calibration UI
-2. Loupe/magnifier mode
-3. Gesture tuning (sensitivity)
-4. Haptic feedback
-5. Edge panning
-Acceptance:
-- Touch offset feels natural
-- Optional haptics work
-Verification:
-- Manual: Extended editing session
+Activates Editor V2 Bottom Bar Behavior
 
-### Track 26 — Responsive Layout (7.2)
-Goal: Adapt to different screens.
-Includes:
-1. Orientation detection
-2. Landscape layout adjustment
-3. Tablet layout
-4. Safe area handling
-5. Keyboard avoidance
-Acceptance:
-- UI works in portrait and landscape
-- No content hidden by notches
-Verification:
-- Manual: Test various devices
+Goal
 
-### Track 27 — Performance (7.3)
-Goal: Keep it smooth on mobile.
-Includes:
-1. Tile render batching
-2. Lazy asset loading
-3. Canvas resolution scaling
-4. Throttled auto-save
-5. Large scene handling
-Acceptance:
-- 60fps during normal editing
-- Memory stays bounded
-Verification:
-- Manual: Performance profiling
+Move all selection action UI from floating popups into the bottom bar interaction strip.
 
----
+Legacy Systems Being Replaced
 
-## Phase 7: Settings
+selectionBar.ts (tile selection popup)
 
-### Track 28 — Editor Settings (8.1)
-Goal: User configuration.
-Includes:
-1. Settings panel
-2. Grid settings
-3. Touch settings
-4. Display settings (theme, scale)
-5. Workflow settings (auto-save, confirms)
-6. Settings persistence
-Acceptance:
-- All settings work and persist
-Verification:
-- Manual: Change settings, verify effect
+entitySelectionBar.ts (entity selection popup)
+
+
+New System Authority
+
+Bottom bar becomes the single source of contextual selection actions.
+
+
+Includes
+
+1. Add a bottom context strip area to the bottom bar.
+
+
+2. When tiles are selected, show tile selection actions in the strip.
+
+
+3. When entities are selected, show entity selection actions in the strip.
+
+
+4. Keep old floating bars only as a temporary fallback behind a feature flag.
+
+
+
+Completion Criteria
+
+No selection actions appear as floating popups during normal use.
+
+Bottom strip dynamically changes based on current selection.
+
+
 
 ---
 
-## Phase 8: Asset Upload (Stretch)
+🟦 Track 24 — Top Bar Globalization (Undo/Redo/Settings/Play)
 
-### Track 29 — Asset Upload (5.3)
-Goal: Add new images to the repository.
-Includes:
-1. File picker
-2. Image preview
-3. Resize option
-4. Category selection
-5. Upload to GitHub
-6. Update project.json
-7. Progress feedback
-Acceptance:
-- Can upload new tiles to repo
-- project.json updated correctly
-Verification:
-- Manual: Upload and use new tile
+Activates Editor V2 Top Bar Behavior
+
+Goal
+
+Make the top bar global-only and remove tool/layer responsibilities from it.
+
+Legacy Systems Being Replaced
+
+Undo/Redo UI in bottom panel
+
+Layer control elements in top panel
+
+
+New System Authority
+
+Top bar only contains:
+
+Undo
+
+Redo
+
+Settings
+
+Test/Play
+
+
+
+Includes
+
+1. Move Undo/Redo into top bar.
+
+
+2. Remove layer UI from top bar.
+
+
+3. Ensure no editing tools depend on top bar.
+
+
+
+Completion Criteria
+
+Top bar never changes based on editing mode.
+
 
 ---
 
-## Dependency Summary
+🟦 Track 25 — Right Berry Shell + Mode State
 
-Critical path tracks marked with ★
+Activates Editor V2 Mode System
 
-```
-Track 1:  Data Structures (no deps) ★
-Track 2:  Hot Storage (← 1) ★
-Track 3:  Cold Storage (← 1) ★
-Track 4:  Boot System (← 2, 3) ★
-Track 5:  Canvas System (← 4) ★
-Track 6:  Panels + Tile Picker (← 5) ★
-Track 7:  Tilemap Rendering (← 5, 6) ★
-Track 8:  Paint Tool (← 6, 7) ★
-Track 9:  Touch Foundation (← 5) — not on critical path, but recommended before Track 10
-Track 10: Playtest Bridge (← 2, 8) ★
-Track 11: Runtime Loader (← 1, 2, 3) ★
-Track 12: Authentication (← 6) ★
-Track 13: Deploy Flow (← 2, 12) ★
-Track 14-18: Full Editing (← 8)
-Track 19-22: Entities (← 8)
-Track 23-24: Export/Import (← 2)
-Track 25-27: Polish (← Phase 3)
-Track 28: Settings (← Phase 6)
-Track 29: Asset Upload (← 13)
-```
+Goal
+
+Introduce the right berry and convert the editor to a mode-driven architecture.
+
+Legacy Systems Being Replaced
+
+Tool + layer dual-state system
+
+
+New System Authority
+
+Single state variable:
+
+editorMode = select | ground | props | entities | collision | triggers
+
+Includes
+
+1. Add right berry slide-out.
+
+
+2. Add tabs: Ground, Props, Entities, Collision, Triggers.
+
+
+3. Switching tabs sets editorMode.
+
+
+4. Map existing tools internally to match each mode.
+
+
+
+Completion Criteria
+
+User can edit ground/props/collision/triggers using berry tabs without using the layer panel.
+
+
+---
+
+🟦 Track 26 — Entities Mode + Move-First Behavior
+
+Activates Editor V2 Entity Rules
+
+Goal
+
+Make entity interaction consistent with the Editor V2 model.
+
+Legacy Systems Being Replaced
+
+Popup entity inspector on selection
+
+
+New System Authority
+
+Entity editing happens inside Entities tab in right berry
+
+Selection = move-first behavior
+
+
+Includes
+
+1. Add formal “Entities mode”.
+
+
+2. Selecting an entity allows immediate movement.
+
+
+3. Remove popup inspector.
+
+
+4. Show entity parameters inside Entities berry tab.
+
+
+
+Completion Criteria
+
+No modal popups appear when selecting entities.
+
+
+---
+
+🟦 Track 27 — Left Berry Shell + Sprite Slicing MVP
+
+Activates Editor V2 Asset Pipeline
+
+Goal
+
+Introduce the left berry and implement sprite slicing as the first asset prep tool.
+
+New System Authority
+
+Left berry handles all asset preparation workflows.
+
+Includes
+
+1. Add left berry slide-out.
+
+
+2. Add Sprites/Slices tab:
+
+Import image
+
+Slice grid (16×16, 32×32)
+
+Preview overlay
+
+
+
+3. Output sprites to in-editor asset library.
+
+
+
+Completion Criteria
+
+User can slice a sprite sheet and see tiles available for painting.
+
+
+---
+
+🟦 Track 28 — Asset Library + Grouping System
+
+Activates Editor V2 Grouping Model
+
+Goal
+
+Make asset grouping a first-class concept before GitHub integration.
+
+Includes
+
+1. Add Assets Library tab in left berry.
+
+
+2. Assets are grouped by name (trees, goblin, etc.).
+
+
+3. Right berry palettes pull from these groupings.
+
+
+
+Completion Criteria
+
+Props, entities, and paint palettes are driven by asset groups.
+
+
+---
+
+🟦 Track 29 — GitHub Folder ↔ Group Mirroring
+
+Activates Editor V2 Repo Structure Rules
+
+Goal
+
+Make UI groupings map directly to GitHub folder structure.
+
+Includes
+
+1. Define canonical asset paths:
+
+props/<group>/
+
+entities/<group>/
+
+tilesets/<group>/
+
+
+
+2. Scan repo folders → build group list.
+
+
+3. Slugify group names for safe folder creation.
+
+
+
+Completion Criteria
+
+Folder structure in GitHub is mirrored in editor groupings.
+
+
+---
+
+🟦 Track 30 — Asset Upload + Editor V2 Completion
+
+Activates Full Editor V2 Workflow
+
+Goal
+
+Complete the loop from asset import → slice → group → upload → use.
+
+Includes
+
+1. Upload grouped assets to GitHub via existing auth system.
+
+
+2. Commit files to correct folders.
+
+
+3. Refresh editor asset registry from repo.
+
+
+4. Layer panel becomes optional and hidden by default.
+
+
+
+Completion Criteria
+
+A user can:
+
+Import sprite sheet
+
+Slice it
+
+Assign it to a group
+
+Upload to GitHub
+
+Use it in the world
+All without touching legacy UI.
