@@ -358,6 +358,21 @@ Purpose:
 - **Learned**: Keeping scene selection adjacent to global actions preserves workflow without mode-dependent UI.
 - **Follow-up**:
   - Track 25: Right Berry Shell + Mode State
+  - Track 26: Entities Mode + Move-First Behavior
+
+### Track 26 — Entities Mode + Move-First Behavior
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Added the Entities right berry tab for palette/selection/property editing and enabled move-first entity selection without popup inspectors in Editor V2.
+- **Shipped**:
+  - Entities tab UI with palette selection, selection summary, and inline property editor
+  - Move-first entity selection/dragging in Entities mode
+  - Property inspector popup now hides when move-first is enabled
+  - Editor V2 entity move-first flag enabled by default
+- **Verification**: Not run (manual testing recommended).
+- **Learned**: Keeping property editing in the right berry simplifies entity selection workflows.
+- **Follow-up**:
+  - Track 27: Left Berry Shell + Sprite Slicing MVP
 
 ---
 

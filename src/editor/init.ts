@@ -33,6 +33,8 @@ import {
   createRightBerry,
   createRightBerryPlaceholder,
   type RightBerryController,
+  createEntitiesTab,
+  type EntitiesTabController,
   createSelectionBar,
   type SelectionBarController,
   createEntitySelectionBar,
@@ -45,6 +47,10 @@ import {
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
+import {
+  createSelectEntityController,
+  type SelectEntityController,
+} from '@/editor/tools/selectEntityController';
 import { createEntityTool, type EntityTool } from '@/editor/tools/entity';
 import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
 import { createHistoryManager, type HistoryManager } from '@/editor/history';
@@ -115,6 +121,9 @@ let entitySelectionBar: EntitySelectionBarController | null = null;
 let propertyInspector: PropertyInspectorController | null = null;
 let tileSelectionActive = false;
 let rightBerryController: RightBerryController | null = null;
+let entitiesTab: EntitiesTabController | null = null;
+let entityMoveController: SelectEntityController | null = null;
+let entityMoveActive = false;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -223,15 +232,20 @@ function inferModeFromTool(tool: EditorState['currentTool']): EditorMode {
 
 function updateBottomContextStrip(): void {
   if (!bottomContextStrip || !editorState) return;
-  if (editorState.currentTool !== 'select') {
-    bottomContextStrip.setSelectionType('none');
+  const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+  const toolAllowsEntitySelection =
+    editorState.currentTool === 'select' ||
+    (moveFirstEnabled && editorState.currentTool === 'entity');
+
+  const selectedIds = editorState.selectedEntityIds ?? [];
+  if (selectedIds.length > 0 && toolAllowsEntitySelection) {
+    bottomContextStrip.setSelectionType('entities');
+    bottomContextStrip.setSelectionCount(selectedIds.length);
     return;
   }
 
-  const selectedIds = editorState.selectedEntityIds ?? [];
-  if (selectedIds.length > 0) {
-    bottomContextStrip.setSelectionType('entities');
-    bottomContextStrip.setSelectionCount(selectedIds.length);
+  if (editorState.currentTool !== 'select') {
+    bottomContextStrip.setSelectionType('none');
     return;
   }
 
@@ -248,8 +262,14 @@ function updateEntitySelectionUI(): void {
   if (!editorState || !canvasController || !currentScene || !entitySelection) return;
   const renderer = canvasController.getRenderer();
   const selectedIds = editorState.selectedEntityIds ?? [];
+  entitiesTab?.setSelection(selectedIds);
 
-  if (editorState.currentTool !== 'select' || selectedIds.length === 0) {
+  const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+  const allowEntitySelection =
+    editorState.currentTool === 'select' ||
+    (moveFirstEnabled && editorState.currentTool === 'entity');
+
+  if (!allowEntitySelection || selectedIds.length === 0) {
     renderer.setEntitySelectionIds([]);
     canvasController.invalidateScene();
     entitySelectionBar?.hide();
@@ -289,7 +309,11 @@ function updateEntitySelectionUI(): void {
   entitySelectionBar?.setSelectionCount(selectedEntities.length);
   entitySelectionBar?.setPosition(centerX, topY);
   entitySelectionBar?.show();
-  propertyInspector?.setSelection(selectedIds);
+  if (isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST)) {
+    propertyInspector?.hide();
+  } else {
+    propertyInspector?.setSelection(selectedIds);
+  }
   updateBottomContextStrip();
 }
 
@@ -687,6 +711,18 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
   });
 
+  entityMoveController = createSelectEntityController({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    onSelectionChange: () => {
+      updateEntitySelectionUI();
+    },
+    entityManager,
+    entitySelection,
+    history: historyManager,
+    allowedTools: ['select', 'entity'],
+  });
+
   entityTool = createEntityTool({
     getEditorState: () => editorState,
     getScene: () => currentScene,
@@ -747,6 +783,18 @@ async function initCanvas(tileSize: number): Promise<void> {
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
+        const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+        if (moveFirstEnabled && entityMoveController) {
+          entityMoveActive = entityMoveController.handlePointerStart(
+            canvasController!.getViewport(),
+            x,
+            y,
+            tileSize
+          );
+          if (entityMoveActive) {
+            return;
+          }
+        }
         entityTool.start(x, y, canvasController!.getViewport(), tileSize);
       }
     },
@@ -758,10 +806,27 @@ async function initCanvas(tileSize: number): Promise<void> {
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
+        const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+        if (moveFirstEnabled && entityMoveActive && entityMoveController) {
+          if (
+            entityMoveController.handlePointerMove(
+              canvasController!.getViewport(),
+              x,
+              y,
+              tileSize
+            )
+          ) {
+            return;
+          }
+        }
         entityTool.move(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onEnd: () => {
+      if (entityMoveActive && entityMoveController) {
+        entityMoveController.handlePointerEnd();
+        entityMoveActive = false;
+      }
       if (selectTool) {
         selectTool.end();
       }
@@ -778,6 +843,17 @@ async function initCanvas(tileSize: number): Promise<void> {
     onLongPress: (x, y) => {
       if (editorState?.currentTool === 'select' && selectTool) {
         selectTool.handleLongPress(x, y, canvasController!.getViewport(), tileSize);
+      } else if (
+        editorState?.currentTool === 'entity' &&
+        isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST) &&
+        entityMoveController
+      ) {
+        entityMoveController.handleLongPress(
+          canvasController!.getViewport(),
+          x,
+          y,
+          tileSize
+        );
       }
     },
   });
@@ -1041,22 +1117,34 @@ async function initPanels(): Promise<void> {
       const placeholderText: Record<EditorMode, string> = {
         ground: 'Choose tiles in the bottom panel, then paint on the canvas.',
         props: 'Props mode is ready for palette wiring in a later track.',
-        entities: 'Entities mode will show the entity palette in Track 26.',
         collision: 'Collision mode will use the paint tool for collision tiles.',
         triggers: 'Triggers mode will be wired after entities in a later track.',
         select: 'Select mode is handled outside the right berry.',
       };
 
-      (['ground', 'props', 'entities', 'collision', 'triggers'] as EditorMode[]).forEach(
-        (mode) => {
-          const container = rightBerryController?.getTabContentContainer(mode);
-          if (container) {
-            container.appendChild(
-              createRightBerryPlaceholder(placeholderText[mode])
-            );
-          }
+      (['ground', 'props', 'collision', 'triggers'] as EditorMode[]).forEach((mode) => {
+        const container = rightBerryController?.getTabContentContainer(mode);
+        if (container) {
+          container.appendChild(createRightBerryPlaceholder(placeholderText[mode]));
         }
-      );
+      });
+
+      const entitiesContainer = rightBerryController.getTabContentContainer('entities');
+      if (entitiesContainer && editorState && entityManager && historyManager) {
+        entitiesTab = createEntitiesTab({
+          container: entitiesContainer,
+          getProject: () => currentProject,
+          getEditorState: () => editorState,
+          entityManager,
+          history: historyManager,
+          onEntityTypeSelect: (typeName) => {
+            if (!editorState) return;
+            editorState.selectedEntityType = typeName;
+            scheduleSave();
+          },
+        });
+        entitiesTab.setSelection(editorState.selectedEntityIds ?? []);
+      }
 
       rightBerryController.onTabChange((mode) => {
         updateEditorMode(mode, true);

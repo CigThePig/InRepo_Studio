@@ -18,6 +18,7 @@ import type { EntityInstance, Project } from '@/types';
 import { validatePropertyValue, type PropertyDefinition } from '@/types/entity';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import { generateOperationId, type HistoryManager, type Operation } from '@/editor/history';
+import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
 
 const LOG_PREFIX = '[PropertyInspector]';
 
@@ -319,7 +320,15 @@ export function createPropertyInspector(config: PropertyInspectorConfig): Proper
 
   let selectedIds: string[] = [];
 
+  function isMoveFirstEnabled(): boolean {
+    return isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+  }
+
   function show(): void {
+    if (isMoveFirstEnabled()) {
+      hide();
+      return;
+    }
     panel.classList.remove('property-inspector--hidden');
   }
 
@@ -336,6 +345,10 @@ export function createPropertyInspector(config: PropertyInspectorConfig): Proper
   }
 
   function refreshSelection(): void {
+    if (isMoveFirstEnabled()) {
+      hide();
+      return;
+    }
     if (selectedIds.length === 0) {
       hide();
       return;
