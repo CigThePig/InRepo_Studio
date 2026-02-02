@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, brushSize, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, activeLayer, selectedTile{}, selectedEntityType, brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `selectedTile`: { category: string, index: number } | null (default: null)
@@ -96,6 +96,13 @@ Rules:
 - `/src/editor/tools/select.ts`
   - `SelectToolMode` — selection tool sub-states
     - Values: idle, selecting, selected, moving, pasting
+
+### Entity System (Track 20)
+
+- `/src/editor/entities/entityManager.ts`
+  - `EntityManager` — entity CRUD operations interface
+    - Methods: addEntity, getEntity
+    - Invariant: entity IDs unique within scene
 
 ### Editor History (Track 16)
 

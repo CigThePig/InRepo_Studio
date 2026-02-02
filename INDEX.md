@@ -396,9 +396,13 @@ Micro-format (copy/paste):
   - Role: Flood fill algorithm for selection fill.
   - Lists of truth: none
 
-- `src/editor/tools/entity.ts` (planned — Track 20)
-  - Role: Entity placement and editing.
+- `src/editor/tools/entity.ts`
+  - Role: Entity placement tool handling.
   - Lists of truth: none
+
+- `src/editor/entities/entityManager.ts`
+  - Role: Entity CRUD operations for scenes.
+  - Lists of truth: EntityManager, EntityManagerConfig
 
 - `src/editor/inspectors/propertyInspector.ts` (planned — Track 22)
   - Role: Entity property editing UI.

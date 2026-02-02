@@ -34,6 +34,7 @@ import {
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
+import { createEntityTool, type EntityTool } from '@/editor/tools/entity';
 import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
 import { createHistoryManager, type HistoryManager } from '@/editor/history';
 import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
@@ -56,6 +57,7 @@ import {
   type SceneSelector,
   type SceneAction,
 } from '@/editor/scenes';
+import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 
 import { downloadJson } from '@/utils/download';
 
@@ -75,6 +77,7 @@ let currentScene: Scene | null = null;
 let paintTool: PaintTool | null = null;
 let eraseTool: EraseTool | null = null;
 let selectTool: SelectTool | null = null;
+let entityTool: EntityTool | null = null;
 let selectionBar: SelectionBarController | null = null;
 let clipboard: Clipboard | null = null;
 let currentBrushSize: BrushSize = 1;
@@ -85,6 +88,7 @@ let assetCacheBust: string | null = null;
 let sceneManager: SceneManager | null = null;
 let sceneSelector: SceneSelector | null = null;
 let layerPanelController: LayerPanelController | null = null;
+let entityManager: EntityManager | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -201,6 +205,10 @@ export async function initEditor(): Promise<void> {
     throw new Error('No project data available');
   }
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
+  if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
+    editorState.selectedEntityType = currentProject.entityTypes[0].name;
+    scheduleSave();
+  }
 
   // Check if the published (cold) project has changed since this hot snapshot was created.
   // This is non-destructive: we only surface a banner so the user can choose to refresh.
@@ -460,6 +468,21 @@ async function initCanvas(tileSize: number): Promise<void> {
     history: historyManager,
   });
 
+  entityManager = createEntityManager({
+    getScene: () => currentScene,
+    getProject: () => currentProject,
+    onSceneChange: (scene) => {
+      handleSceneChange(scene);
+    },
+  });
+
+  entityTool = createEntityTool({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    getProject: () => currentProject,
+    entityManager,
+  });
+
   selectionBar = createSelectionBar(container, {
     onMove: () => {
       selectTool?.armMove();
@@ -490,6 +513,8 @@ async function initCanvas(tileSize: number): Promise<void> {
         paintTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'entity' && entityTool) {
+        entityTool.start(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onMove: (x, y) => {
@@ -499,6 +524,8 @@ async function initCanvas(tileSize: number): Promise<void> {
         paintTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'entity' && entityTool) {
+        entityTool.move(x, y, canvasController!.getViewport(), tileSize);
       }
     },
     onEnd: () => {
@@ -510,6 +537,9 @@ async function initCanvas(tileSize: number): Promise<void> {
       }
       if (eraseTool) {
         eraseTool.end();
+      }
+      if (entityTool) {
+        entityTool.end();
       }
     },
     onLongPress: (x, y) => {
