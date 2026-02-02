@@ -374,6 +374,20 @@ Purpose:
 - **Follow-up**:
   - Track 27: Left Berry Shell + Sprite Slicing MVP
 
+### Track 27 — Left Berry Shell + Sprite Slicing MVP
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Introduced the left berry asset pipeline panel with sprite sheet slicing and a starter in-editor asset library view.
+- **Shipped**:
+  - Left berry slide-out panel with Sprites/Assets tabs and persisted open state
+  - Sprite slicer UI for importing, previewing, and slicing sprite sheets at 16×16, 32×32, or custom sizes
+  - Inline asset library grid populated from sliced sprite previews
+  - Left berry feature flag enabled by default
+- **Verification**: Not run (manual testing recommended).
+- **Learned**: Keeping slicing previews lightweight avoids heavy UI work before the asset registry lands.
+- **Follow-up**:
+  - Track 28: Asset Library + Grouping System
+
 ---
 
 ## Stalled / Abandoned Tracks

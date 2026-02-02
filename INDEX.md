@@ -367,6 +367,18 @@ Micro-format (copy/paste):
   - Role: Right berry mode tab definitions.
   - Lists of truth: RIGHT_BERRY_TABS
 
+- `src/editor/panels/leftBerry.ts`
+  - Role: Left berry slide-out panel shell for asset workflows.
+  - Lists of truth: none
+
+- `src/editor/panels/leftBerryTabs.ts`
+  - Role: Left berry asset workflow tab definitions.
+  - Lists of truth: LEFT_BERRY_TABS
+
+- `src/editor/panels/spriteSlicerTab.ts`
+  - Role: Sprite sheet slicing UI for the left berry.
+  - Lists of truth: none
+
 - `src/editor/panels/entitiesTab.ts`
   - Role: Entities mode tab UI for palette, selection, and inline property editing.
   - Lists of truth: none
@@ -472,6 +484,13 @@ Micro-format (copy/paste):
   - Role: Entity selection tracking for manipulation workflows.
   - Lists of truth: EntitySelectionState
 
+- `src/editor/assets/index.ts`
+  - Role: Asset pipeline module exports.
+  - Lists of truth: none
+
+- `src/editor/assets/spriteSlider.ts`
+  - Role: Sprite sheet slicing logic for asset prep.
+  - Lists of truth: none
 
 - `src/editor/settings/editorSettings.ts` (planned — Track 28)
   - Role: User preferences.

@@ -21,6 +21,13 @@ export type { RightBerryTab } from './rightBerryTabs';
 export { createEntitiesTab } from './entitiesTab';
 export type { EntitiesTabController, EntitiesTabConfig } from './entitiesTab';
 
+// Left Berry
+export { createLeftBerry, createLeftBerryPlaceholder } from './leftBerry';
+export type { LeftBerryController, LeftBerryConfig } from './leftBerry';
+export { LEFT_BERRY_TABS } from './leftBerryTabs';
+export type { LeftBerryTab, LeftBerryTabId } from './leftBerryTabs';
+export { createSpriteSlicerTab } from './spriteSlicerTab';
+
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';
 export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';

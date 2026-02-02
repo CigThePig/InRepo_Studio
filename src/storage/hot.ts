@@ -61,6 +61,7 @@ export interface EditorState {
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
   editorMode: EditorMode;
   rightBerryOpen: boolean;
+  leftBerryOpen: boolean;
   activeLayer: LayerType;
   /** Custom layer render order (bottom to top) */
   layerOrder: LayerType[];
@@ -265,6 +266,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   currentTool: 'select',
   editorMode: 'select',
   rightBerryOpen: false,
+  leftBerryOpen: false,
   activeLayer: 'ground',
   layerOrder: ['ground', 'props', 'collision', 'triggers'],
   selectedTile: null,
