@@ -13,6 +13,12 @@ export type { TopPanelController, TopPanelState } from './topPanel';
 export { createTopBarV2 } from './topBarV2';
 export type { TopBarV2Controller, TopBarV2State } from './topBarV2';
 
+// Right Berry
+export { createRightBerry, createRightBerryPlaceholder } from './rightBerry';
+export type { RightBerryController, RightBerryConfig } from './rightBerry';
+export { RIGHT_BERRY_TABS } from './rightBerryTabs';
+export type { RightBerryTab } from './rightBerryTabs';
+
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';
 export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';

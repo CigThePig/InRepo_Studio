@@ -359,6 +359,14 @@ Micro-format (copy/paste):
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
 
+- `src/editor/panels/rightBerry.ts`
+  - Role: Right berry slide-out panel shell for Editor V2 modes.
+  - Lists of truth: none
+
+- `src/editor/panels/rightBerryTabs.ts`
+  - Role: Right berry mode tab definitions.
+  - Lists of truth: RIGHT_BERRY_TABS
+
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none
