@@ -345,6 +345,20 @@ Purpose:
   - Track 24: Top Bar Globalization
   - Track 25: Right Berry Shell + Mode State
 
+### Track 24 — Top Bar Globalization
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Promoted Undo/Redo/Settings/Play into a new global top bar and removed undo/redo controls from the bottom toolbar for Editor V2.
+- **Shipped**:
+  - New TopBarV2 component with global action buttons and scene selector support
+  - Undo/redo wiring moved to the top bar with history state updates
+  - Bottom toolbar no longer includes undo/redo buttons
+  - Editor V2 top bar flag enabled by default
+- **Verification**: `npm run build`, `npm run lint`
+- **Learned**: Keeping scene selection adjacent to global actions preserves workflow without mode-dependent UI.
+- **Follow-up**:
+  - Track 25: Right Berry Shell + Mode State
+
 ---
 
 ## Stalled / Abandoned Tracks

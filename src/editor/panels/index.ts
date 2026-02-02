@@ -9,6 +9,10 @@
 export { createTopPanel } from './topPanel';
 export type { TopPanelController, TopPanelState } from './topPanel';
 
+// Top Bar V2
+export { createTopBarV2 } from './topBarV2';
+export type { TopBarV2Controller, TopBarV2State } from './topBarV2';
+
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';
 export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';

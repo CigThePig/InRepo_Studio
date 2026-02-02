@@ -218,45 +218,46 @@ Pause for review. Track 23 complete.
 
 ### Tasks
 
-- [ ] Create `src/editor/panels/topBarV2.ts`
-  - [ ] TopBarV2Config interface
-  - [ ] `createTopBarV2(container, config)` factory
-  - [ ] Undo button with disabled state
-  - [ ] Redo button with disabled state
-  - [ ] Settings button
-  - [ ] Play/Test button
-  - [ ] Scene name display (read-only)
-  - [ ] Touch-friendly sizing
-- [ ] Update `src/editor/panels/topPanel.ts`
-  - [ ] Add feature flag check
-  - [ ] Delegate to V2 when enabled
-  - [ ] Remove layer tabs from V2 path
-- [ ] Update `src/editor/init.ts`
-  - [ ] Wire Undo to historyManager.undo()
-  - [ ] Wire Redo to historyManager.redo()
-  - [ ] Wire Settings to settings panel
-  - [ ] Wire Play to playtest trigger
-  - [ ] Subscribe to history changes for button states
-- [ ] Enable `EDITOR_V2_TOP_BAR` flag by default
+- [x] Create `src/editor/panels/topBarV2.ts`
+  - [x] TopBarV2State interface
+  - [x] `createTopBarV2(container, config)` factory
+  - [x] Undo button with disabled state
+  - [x] Redo button with disabled state
+  - [x] Settings button
+  - [x] Play/Test button
+  - [x] Scene name display (read-only)
+  - [x] Touch-friendly sizing
+- [x] Update `src/editor/panels/index.ts`
+  - [x] Export TopBarV2 module
+- [x] Update `src/editor/init.ts`
+  - [x] Wire Undo to historyManager.undo()
+  - [x] Wire Redo to historyManager.redo()
+  - [x] Wire Settings to settings panel
+  - [x] Wire Play to playtest trigger
+  - [x] Subscribe to history changes for button states
+- [x] Update `src/editor/panels/bottomPanel.ts`
+  - [x] Remove Undo/Redo buttons from bottom toolbar
+- [x] Enable `EDITOR_V2_TOP_BAR` flag by default
 
 ### Files Touched
 
 - `src/editor/panels/topBarV2.ts` (new)
-- `src/editor/panels/topPanel.ts` (modify)
+- `src/editor/panels/index.ts` (modify)
+- `src/editor/panels/bottomPanel.ts` (modify)
 - `src/editor/init.ts` (modify)
 
 ### Verification
 
-- [ ] Top bar shows Undo, Redo, Settings, Play
-- [ ] Top bar does NOT show layer controls
-- [ ] Undo/Redo buttons reflect history state
-- [ ] Undo/Redo execute correctly
-- [ ] Settings opens settings (or placeholder)
-- [ ] Play triggers playtest
-- [ ] Top bar never changes based on mode
+- [x] Top bar shows Undo, Redo, Settings, Play
+- [x] Top bar does NOT show layer controls
+- [x] Undo/Redo buttons reflect history state
+- [x] Undo/Redo execute correctly
+- [x] Settings opens settings (or placeholder)
+- [x] Play triggers playtest
+- [x] Top bar never changes based on mode
 - [ ] Manual test on mobile device
-- [ ] `npm run build` succeeds
-- [ ] `npm run lint` passes
+- [x] `npm run build` succeeds
+- [x] `npm run lint` passes
 
 ### Stop Point
 
