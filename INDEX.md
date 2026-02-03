@@ -328,7 +328,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/bottomPanel.ts`
-  - Role: Bottom panel with toolbar and tile picker.
+  - Role: Bottom panel with selection button, context strip slot, and utilities.
   - Lists of truth: ToolType
 
 - `src/editor/panels/bottomContextStrip.ts`
@@ -343,18 +343,6 @@ Micro-format (copy/paste):
   - Role: Tile category tabs and tile grid for selection.
   - Lists of truth: none (uses TileCategory from types/project.ts)
 
-- `src/editor/panels/selectionBar.ts`
-  - Role: Floating action bar for selection operations.
-  - Lists of truth: none
-
-- `src/editor/panels/entitySelectionBar.ts`
-  - Role: Floating action bar for entity selection actions.
-  - Lists of truth: none
-
-- `src/editor/panels/propertyInspector.ts`
-  - Role: Entity property inspector panel for editing instance properties.
-  - Lists of truth: PropertyInspectorConfig
-
 - `src/editor/panels/layerPanel.ts`
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
@@ -366,6 +354,10 @@ Micro-format (copy/paste):
 - `src/editor/panels/rightBerryTabs.ts`
   - Role: Right berry mode tab definitions.
   - Lists of truth: RIGHT_BERRY_TABS
+
+- `src/editor/panels/berryControls.ts`
+  - Role: Shared berry UI controls (brush size, hints).
+  - Lists of truth: none
 
 - `src/editor/panels/leftBerry.ts`
   - Role: Left berry slide-out panel shell for asset workflows.

@@ -181,10 +181,10 @@ const STYLES = `
 
   .left-berry__handle {
     position: absolute;
-    left: 0;
+    left: 12px;
     top: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 44px;
+    transform: translate(0, -50%);
+    min-width: 88px;
     min-height: 64px;
     border-radius: 16px;
     border: 2px solid #2b3a66;

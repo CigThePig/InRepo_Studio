@@ -33,7 +33,7 @@ export const MODE_TO_TOOL: Record<EditorMode, ToolType> = {
   props: 'paint',
   entities: 'entity',
   collision: 'paint',
-  triggers: 'entity',
+  triggers: 'paint',
 };
 
 export function getLegacyState(mode: EditorMode): { tool: ToolType; layer: LayerType | null } {
