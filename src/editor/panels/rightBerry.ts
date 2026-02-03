@@ -177,29 +177,44 @@ const STYLES = `
   }
 
   .right-berry__handle {
-    position: absolute;
-    right: 12px;
+    position: fixed;
     top: 50%;
-    transform: translate(0, -50%);
-    min-width: 88px;
-    min-height: 64px;
-    border-radius: 16px;
+    right: max(24px, env(safe-area-inset-right));
+    transform: translateY(-50%);
+    width: 88px;
+    height: 64px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .right-berry__handle-inner {
+    width: 36px;
+    height: 56px;
+    border-radius: 999px;
     border: 2px solid #2b3a66;
     background: #1b2444;
     color: #cfd8ff;
     font-size: 16px;
     font-weight: 700;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
   }
 
-  .right-berry-shell--open .right-berry__handle {
+  .right-berry__handle--hidden {
     opacity: 0;
     pointer-events: none;
   }
+
+  
 `;
 
 export function createRightBerry(container: HTMLElement, config: RightBerryConfig = {}): RightBerryController {
@@ -242,7 +257,10 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
   const handle = document.createElement('button');
   handle.type = 'button';
   handle.className = 'right-berry__handle';
-  handle.textContent = '≡';
+  const handleInner = document.createElement('span');
+  handleInner.className = 'right-berry__handle-inner';
+  handleInner.textContent = '≡';
+  handle.appendChild(handleInner);
   handle.setAttribute('aria-label', 'Open mode panel');
 
   panel.appendChild(header);
@@ -251,8 +269,8 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
 
   shell.appendChild(overlay);
   shell.appendChild(panel);
-  shell.appendChild(handle);
   container.appendChild(shell);
+  container.appendChild(handle);
 
   let tabChangeCallback: ((tab: EditorMode) => void) | null = null;
   let openChangeCallback: ((open: boolean) => void) | null = null;
@@ -298,6 +316,7 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     if (isOpen === nextOpen) return;
     isOpen = nextOpen;
     shell.classList.toggle('right-berry-shell--open', isOpen);
+    handle.classList.toggle('right-berry__handle--hidden', isOpen);
     openChangeCallback?.(isOpen);
   }
 
@@ -317,6 +336,7 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
 
   function applyInitialState(): void {
     shell.classList.toggle('right-berry-shell--open', isOpen);
+    handle.classList.toggle('right-berry__handle--hidden', isOpen);
     if (activeTab) {
       setActiveTab(activeTab);
     }
@@ -399,6 +419,7 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     },
     destroy() {
       shell.remove();
+      handle.remove();
       styleEl.remove();
     },
   };

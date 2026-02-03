@@ -180,29 +180,44 @@ const STYLES = `
   }
 
   .left-berry__handle {
-    position: absolute;
-    left: 12px;
+    position: fixed;
     top: 50%;
-    transform: translate(0, -50%);
-    min-width: 88px;
-    min-height: 64px;
-    border-radius: 16px;
+    left: max(24px, env(safe-area-inset-left));
+    transform: translateY(-50%);
+    width: 88px;
+    height: 64px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .left-berry__handle-inner {
+    width: 36px;
+    height: 56px;
+    border-radius: 999px;
     border: 2px solid #2b3a66;
     background: #1b2444;
     color: #cfd8ff;
     font-size: 16px;
     font-weight: 700;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
   }
 
-  .left-berry-shell--open .left-berry__handle {
+  .left-berry__handle--hidden {
     opacity: 0;
     pointer-events: none;
   }
+
+  
 
 `;
 
@@ -283,13 +298,16 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const handle = document.createElement('button');
   handle.type = 'button';
   handle.className = 'left-berry__handle';
-  handle.textContent = '▶';
+  const handleInner = document.createElement('span');
+  handleInner.className = 'left-berry__handle-inner';
+  handleInner.textContent = '▶';
+  handle.appendChild(handleInner);
 
   shell.appendChild(overlay);
   shell.appendChild(panel);
-  shell.appendChild(handle);
-
   container.appendChild(shell);
+  container.appendChild(handle);
+
 
   const spritesContainer = tabContentMap.get('sprites');
   if (spritesContainer) {
@@ -335,6 +353,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   function updateOpenState(nextOpen: boolean): void {
     isOpen = nextOpen;
     shell.classList.toggle('left-berry-shell--open', isOpen);
+    handle.classList.toggle('left-berry__handle--hidden', isOpen);
     openChangeCallbacks.forEach((callback) => callback(isOpen));
   }
 
@@ -398,6 +417,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       panel.removeEventListener('touchend', onTouchEnd);
       assetLibraryController?.destroy();
       container.removeChild(shell);
+      handle.remove();
     },
   };
 }
