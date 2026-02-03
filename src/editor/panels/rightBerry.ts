@@ -177,44 +177,58 @@ const STYLES = `
   }
 
   .right-berry__handle {
-    position: fixed;
+    position: absolute;
+    right: max(20px, env(safe-area-inset-right));
     top: 50%;
-    right: max(24px, env(safe-area-inset-right));
-    transform: translateY(-50%);
-    width: 88px;
-    height: 64px;
+    transform: translate(0, -50%);
+    width: 96px;
+    height: 92px;
     padding: 0;
+    border: 0;
     background: transparent;
-    border: none;
     cursor: pointer;
-    z-index: 30;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .right-berry__handle-inner {
-    width: 36px;
-    height: 56px;
+  /* Visible "berry" pill sits inside a larger invisible hit target. */
+  .right-berry__handle-pill {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 86px;
     border-radius: 999px;
-    border: 2px solid #2b3a66;
-    background: #1b2444;
-    color: #cfd8ff;
-    font-size: 16px;
-    font-weight: 700;
+    border: 1px solid #2b3a66;
+    background: linear-gradient(180deg, rgba(34, 43, 79, 0.95), rgba(20, 28, 52, 0.95));
+    box-shadow: -6px 0 18px rgba(0, 0, 0, 0.28);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
   }
 
-  .right-berry__handle--hidden {
+  .right-berry__handle-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(74, 158, 255, 0.18);
+    color: #dbe4ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  .right-berry__handle:active .right-berry__handle-pill {
+    background: linear-gradient(180deg, rgba(47, 59, 102, 0.98), rgba(20, 28, 52, 0.98));
+  }
+
+  .right-berry-shell--open .right-berry__handle {
     opacity: 0;
     pointer-events: none;
   }
-
-  
 `;
 
 export function createRightBerry(container: HTMLElement, config: RightBerryConfig = {}): RightBerryController {
@@ -257,11 +271,17 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
   const handle = document.createElement('button');
   handle.type = 'button';
   handle.className = 'right-berry__handle';
-  const handleInner = document.createElement('span');
-  handleInner.className = 'right-berry__handle-inner';
-  handleInner.textContent = '≡';
-  handle.appendChild(handleInner);
   handle.setAttribute('aria-label', 'Open mode panel');
+
+  const handlePill = document.createElement('div');
+  handlePill.className = 'right-berry__handle-pill';
+
+  const handleIcon = document.createElement('div');
+  handleIcon.className = 'right-berry__handle-icon';
+  handleIcon.textContent = '≡';
+
+  handlePill.appendChild(handleIcon);
+  handle.appendChild(handlePill);
 
   panel.appendChild(header);
   panel.appendChild(tabBar);
@@ -269,8 +289,8 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
 
   shell.appendChild(overlay);
   shell.appendChild(panel);
+  shell.appendChild(handle);
   container.appendChild(shell);
-  container.appendChild(handle);
 
   let tabChangeCallback: ((tab: EditorMode) => void) | null = null;
   let openChangeCallback: ((open: boolean) => void) | null = null;
@@ -316,7 +336,6 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     if (isOpen === nextOpen) return;
     isOpen = nextOpen;
     shell.classList.toggle('right-berry-shell--open', isOpen);
-    handle.classList.toggle('right-berry__handle--hidden', isOpen);
     openChangeCallback?.(isOpen);
   }
 
@@ -336,9 +355,11 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
 
   function applyInitialState(): void {
     shell.classList.toggle('right-berry-shell--open', isOpen);
-    handle.classList.toggle('right-berry__handle--hidden', isOpen);
+    // Force initial tab UI state even when activeTab is already set.
     if (activeTab) {
-      setActiveTab(activeTab);
+      const initial = activeTab;
+      activeTab = null;
+      setActiveTab(initial);
     }
   }
 
@@ -419,7 +440,6 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     },
     destroy() {
       shell.remove();
-      handle.remove();
       styleEl.remove();
     },
   };

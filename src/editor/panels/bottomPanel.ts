@@ -77,23 +77,27 @@ const STYLES = `
   }
 
   .bottom-panel--collapsed {
-    max-height: 150px;
+    max-height: 96px;
+  }
+
+  .bottom-panel--collapsed .bottom-panel__content {
+    display: none;
   }
 
   .bottom-panel--expanded {
-    max-height: 360px;
+    max-height: 320px;
   }
 
   .bottom-panel__header {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 16px;
-    min-height: 16px;
+    height: 12px;
+    min-height: 12px;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    padding: 4px 0;
+    padding: 2px 0;
   }
 
   .bottom-panel__chevron {
@@ -105,7 +109,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px 0;
+    padding: 4px 10px 6px;
   }
 
   .bottom-panel__selection-button {
@@ -141,7 +145,7 @@ const STYLES = `
 
   .bottom-panel__content {
     flex: 1;
-    padding: 0 12px 12px;
+    padding: 0 10px 10px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -150,7 +154,7 @@ const STYLES = `
   .bottom-panel__utilities {
     display: flex;
     gap: 8px;
-    padding: 8px 0 4px;
+    padding: 6px 0 4px;
   }
 
   .bottom-panel__utility-button {
