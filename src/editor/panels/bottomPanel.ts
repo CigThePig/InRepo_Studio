@@ -1,16 +1,12 @@
 /**
  * Bottom Panel Component
  *
- * Contains the toolbar (tool buttons) and tile picker.
- * Expandable/collapsible with tap on header.
+ * Holds the persistent selection button, context actions, and utilities.
  */
 
-import type { Project } from '@/types';
 import type { AuthManager } from '@/deploy';
-import type { BrushSize, StorageQuotaInfo } from '@/storage/hot';
+import type { StorageQuotaInfo } from '@/storage/hot';
 import { exportAllData, importAllData, checkStorageQuota } from '@/storage';
-import type { TileImageCache } from '@/editor/canvas/tileCache';
-import { createTilePicker, type TilePickerController, type TileSelection } from './tilePicker';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
 const LOG_PREFIX = '[BottomPanel]';
@@ -19,14 +15,11 @@ const LOG_PREFIX = '[BottomPanel]';
 
 export type ToolType = 'select' | 'paint' | 'erase' | 'entity';
 
-export type BottomPanelSection = 'tiles' | 'deploy' | 'data';
+export type BottomPanelSection = 'deploy' | 'data';
 
 export interface BottomPanelState {
   expanded: boolean;
   currentTool: ToolType;
-  selectedTile?: { category: string; index: number } | null;
-  brushSize: BrushSize;
-  entitySnapToGrid: boolean;
 }
 
 export interface BottomPanelController {
@@ -48,38 +41,14 @@ export interface BottomPanelController {
   /** Get which content section is active */
   getActivePanel(): BottomPanelSection;
 
-  /** Get the selected tile */
-  getSelectedTile(): TileSelection | null;
-
-  /** Set the selected tile */
-  setSelectedTile(category: string, index: number): void;
-
-  /** Register callback for tool changes */
-  onToolChange(callback: (tool: ToolType) => void): void;
-
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
 
-  /** Register callback for tile selection */
-  onTileSelect(callback: (selection: TileSelection) => void): void;
+  /** Register callback for selection button */
+  onSelectionClick(callback: () => void): void;
 
-  /** Register callback for brush size changes */
-  onBrushSizeChange(callback: (size: BrushSize) => void): void;
-
-  /** Set brush size */
-  setBrushSize(size: BrushSize): void;
-
-  /** Get brush size */
-  getBrushSize(): BrushSize;
-
-  /** Register callback for entity snap toggle */
-  onEntitySnapChange(callback: (enabled: boolean) => void): void;
-
-  /** Set entity snap toggle */
-  setEntitySnapToGrid(enabled: boolean): void;
-
-  /** Get entity snap toggle */
-  getEntitySnapToGrid(): boolean;
+  /** Toggle selection button active state */
+  setSelectionActive(active: boolean): void;
 
   /** Get the content container */
   getContentContainer(): HTMLElement;
@@ -93,27 +62,7 @@ export interface BottomPanelController {
 
 export interface BottomPanelOptions {
   authManager?: AuthManager;
-  /** Optional shared tile cache (from canvas) so the tile picker doesn't re-fetch assets. */
-  tileCache?: TileImageCache;
-  /** Optional cache-bust token for tile picker fallback loading. */
-  cacheBust?: string | null;
 }
-
-// --- Tool Configuration ---
-
-interface ToolConfig {
-  icon: string;
-  label: string;
-}
-
-const TOOLS: Record<ToolType, ToolConfig> = {
-  select: { icon: '⬚', label: 'Select' },
-  paint: { icon: '✎', label: 'Paint' },
-  erase: { icon: '⌫', label: 'Erase' },
-  entity: { icon: '◆', label: 'Entity' },
-};
-
-const TOOL_ORDER: ToolType[] = ['select', 'paint', 'erase', 'entity'];
 
 // --- Styles ---
 
@@ -128,11 +77,11 @@ const STYLES = `
   }
 
   .bottom-panel--collapsed {
-    max-height: 120px;
+    max-height: 150px;
   }
 
   .bottom-panel--expanded {
-    max-height: 320px;
+    max-height: 360px;
   }
 
   .bottom-panel__header {
@@ -152,79 +101,42 @@ const STYLES = `
     font-size: 10px;
   }
 
-  .bottom-panel__toolbar {
-    display: flex;
-    gap: 8px;
-    padding: 8px 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bottom-panel__context-strip {
-    padding: 2px 0 0;
-  }
-
-  .tool-button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 8px;
-    border: 2px solid transparent;
-    background: #2a2a4e;
-    color: #ccc;
-    font-size: 18px;
-    cursor: pointer;
+  .bottom-panel__context-row {
     display: flex;
     align-items: center;
+    gap: 8px;
+    padding: 6px 12px 0;
+  }
+
+  .bottom-panel__selection-button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #1f2745;
+    color: #cfd8ff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .tool-button:active {
-    background: #3a3a6e;
+  .bottom-panel__selection-button:active {
+    background: #2c3563;
   }
 
-  .tool-button:disabled,
-  .tool-button--disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .tool-button--active {
+  .bottom-panel__selection-button--active {
     border-color: #4a9eff;
-    background: #3a3a6e;
-    color: #fff;
+    background: #2c3563;
+    color: #ffffff;
   }
 
-  .tool-button--deploy {
-    min-width: 72px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .tool-button--deploy-active {
-    border-color: #4a9eff;
-    background: #3a3a6e;
-    color: #fff;
-  }
-
-  .tool-button--data {
-    min-width: 60px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .tool-button--data-active {
-    border-color: #4a9eff;
-    background: #3a3a6e;
-    color: #fff;
-  }
-
-  .tool-button--data-action {
-    font-size: 13px;
-    font-weight: 600;
+  .bottom-panel__context-strip {
+    flex: 1;
+    min-width: 0;
   }
 
   .bottom-panel__content {
@@ -233,6 +145,31 @@ const STYLES = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .bottom-panel__utilities {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0 4px;
+  }
+
+  .bottom-panel__utility-button {
+    min-width: 88px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #2a2a4e;
+    color: #ccc;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-panel__utility-button--active {
+    border-color: #4a9eff;
+    background: #3a3a6e;
+    color: #fff;
   }
 
   .bottom-panel__section {
@@ -246,96 +183,6 @@ const STYLES = `
     display: none;
   }
 
-  .bottom-panel__brush {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 4px 0 8px;
-  }
-
-  .bottom-panel__brush--hidden {
-    display: none;
-  }
-
-  .bottom-panel__entity-options {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 0 8px;
-  }
-
-  .bottom-panel__entity-options--hidden {
-    display: none;
-  }
-
-  .entity-option-label {
-    color: #8fa3d8;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-
-  .entity-toggle {
-    min-width: 88px;
-    height: 44px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    background: #1f2745;
-    color: #cfd8ff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 0 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .entity-toggle--active {
-    border-color: #4a9eff;
-    background: #2c3563;
-    color: #fff;
-  }
-
-  .bottom-panel__brush-label {
-    color: #8fa3d8;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-
-  .brush-size-button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #1f2745;
-    color: #cfd8ff;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .brush-size-button:active {
-    background: #2c3563;
-  }
-
-  .brush-size-button--active {
-    border-color: #4a9eff;
-    background: #2c3563;
-    color: #fff;
-  }
-
   .bottom-panel__placeholder {
     display: flex;
     align-items: center;
@@ -346,35 +193,33 @@ const STYLES = `
     text-align: center;
     padding: 12px;
   }
+
+  .bottom-panel__data-action {
+    min-width: 96px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #2a2a4e;
+    color: #ccc;
+    padding: 10px 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
 `;
-
-// --- Helper: Check if tool shows tile picker ---
-
-function toolShowsTilePicker(tool: ToolType): boolean {
-  return tool === 'paint' || tool === 'erase';
-}
 
 // --- Factory ---
 
 export function createBottomPanel(
   container: HTMLElement,
   initialState: BottomPanelState,
-  project?: Project,
-  assetBasePath: string = '',
   options: BottomPanelOptions = {}
 ): BottomPanelController {
   const state = { ...initialState };
-  if (state.entitySnapToGrid === undefined) {
-    state.entitySnapToGrid = true;
-  }
-  let toolChangeCallback: ((tool: ToolType) => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
-  let tileSelectCallback: ((selection: TileSelection) => void) | null = null;
-  let brushSizeChangeCallback: ((size: BrushSize) => void) | null = null;
-  let entitySnapChangeCallback: ((enabled: boolean) => void) | null = null;
-  let tilePickerController: TilePickerController | null = null;
+  let selectionClickCallback: (() => void) | null = null;
   let deployPanelController: DeployPanelController | null = null;
-  let activePanel: BottomPanelSection = 'tiles';
+  let activePanel: BottomPanelSection = 'data';
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -395,50 +240,35 @@ export function createBottomPanel(
 
   header.appendChild(chevron);
 
-  // Toolbar
-  const toolbar = document.createElement('div');
-  toolbar.className = 'bottom-panel__toolbar';
+  const contextRow = document.createElement('div');
+  contextRow.className = 'bottom-panel__context-row';
 
-  const toolButtons: Map<ToolType, HTMLButtonElement> = new Map();
+  const selectionButton = document.createElement('button');
+  selectionButton.type = 'button';
+  selectionButton.className = 'bottom-panel__selection-button';
+  selectionButton.textContent = 'Select';
+  selectionButton.setAttribute('aria-label', 'Selection mode');
+  selectionButton.setAttribute('title', 'Selection mode');
 
-  for (const toolType of TOOL_ORDER) {
-    const config = TOOLS[toolType];
-    const button = document.createElement('button');
-    button.className = `tool-button ${state.currentTool === toolType ? 'tool-button--active' : ''}`;
-    button.textContent = config.icon;
-    button.setAttribute('aria-label', config.label);
-    button.setAttribute('title', config.label);
+  selectionButton.addEventListener('click', () => {
+    selectionClickCallback?.();
+  });
 
-    button.addEventListener('click', () => {
-      if (state.currentTool === toolType) return;
+  const contextStripContainer = document.createElement('div');
+  contextStripContainer.className = 'bottom-panel__context-strip';
 
-      // Update state
-      state.currentTool = toolType;
+  contextRow.appendChild(selectionButton);
+  contextRow.appendChild(contextStripContainer);
 
-      // Update UI
-      toolButtons.forEach((btn, type) => {
-        btn.classList.toggle('tool-button--active', type === toolType);
-      });
+  // Content area (for utilities)
+  const content = document.createElement('div');
+  content.className = 'bottom-panel__content';
 
-      // Show/hide tile picker based on tool
-      if (activePanel === 'tiles') {
-        tilePickerController?.setVisible(toolShowsTilePicker(toolType));
-      }
-      setActivePanel('tiles');
-      updateBrushVisibility();
-      updateEntityOptionsVisibility();
-
-      // Notify
-      toolChangeCallback?.(toolType);
-      console.log(`${LOG_PREFIX} Tool changed to "${toolType}"`);
-    });
-
-    toolButtons.set(toolType, button);
-    toolbar.appendChild(button);
-  }
+  const utilitiesBar = document.createElement('div');
+  utilitiesBar.className = 'bottom-panel__utilities';
 
   const deployButton = document.createElement('button');
-  deployButton.className = 'tool-button tool-button--deploy';
+  deployButton.className = 'bottom-panel__utility-button';
   deployButton.textContent = 'Deploy';
   deployButton.setAttribute('aria-label', 'Deploy');
   deployButton.setAttribute('title', 'Deploy');
@@ -451,10 +281,8 @@ export function createBottomPanel(
     setActivePanel('deploy');
   });
 
-  toolbar.appendChild(deployButton);
-
   const dataButton = document.createElement('button');
-  dataButton.className = 'tool-button tool-button--data';
+  dataButton.className = 'bottom-panel__utility-button';
   dataButton.textContent = 'Data';
   dataButton.setAttribute('aria-label', 'Data Tools');
   dataButton.setAttribute('title', 'Data Tools');
@@ -463,85 +291,12 @@ export function createBottomPanel(
     setActivePanel('data');
   });
 
-  toolbar.appendChild(dataButton);
-
-  const contextStripContainer = document.createElement('div');
-  contextStripContainer.className = 'bottom-panel__context-strip';
-
-  // Content area (for tile picker)
-  const content = document.createElement('div');
-  content.className = 'bottom-panel__content';
-
-  const brushSizeRow = document.createElement('div');
-  brushSizeRow.className = 'bottom-panel__brush';
-
-  const brushLabel = document.createElement('span');
-  brushLabel.className = 'bottom-panel__brush-label';
-  brushLabel.textContent = 'Brush';
-
-  const brushButtons: Map<BrushSize, HTMLButtonElement> = new Map();
-  const brushSizes: BrushSize[] = [1, 2, 3];
-
-  const brushButtonGroup = document.createElement('div');
-  brushButtonGroup.style.display = 'flex';
-  brushButtonGroup.style.gap = '8px';
-
-  for (const size of brushSizes) {
-    const button = document.createElement('button');
-    button.className = `brush-size-button ${state.brushSize === size ? 'brush-size-button--active' : ''}`;
-    button.textContent = String(size);
-    button.setAttribute('aria-label', `Brush size ${size}`);
-    button.setAttribute('title', `Brush size ${size}`);
-
-    button.addEventListener('click', () => {
-      if (state.brushSize === size) return;
-      state.brushSize = size;
-      brushButtons.forEach((btn, value) => {
-        btn.classList.toggle('brush-size-button--active', value === size);
-      });
-      brushSizeChangeCallback?.(size);
-      console.log(`${LOG_PREFIX} Brush size changed to ${size}`);
-    });
-
-    brushButtons.set(size, button);
-    brushButtonGroup.appendChild(button);
-  }
-
-  brushSizeRow.appendChild(brushLabel);
-  brushSizeRow.appendChild(brushButtonGroup);
-
-  const entityOptionsRow = document.createElement('div');
-  entityOptionsRow.className = 'bottom-panel__entity-options';
-
-  const entityOptionsLabel = document.createElement('span');
-  entityOptionsLabel.className = 'entity-option-label';
-  entityOptionsLabel.textContent = 'Entity Snap';
-
-  const entitySnapToggle = document.createElement('button');
-  entitySnapToggle.className = `entity-toggle ${state.entitySnapToGrid ? 'entity-toggle--active' : ''}`;
-  entitySnapToggle.textContent = state.entitySnapToGrid ? 'On' : 'Off';
-  entitySnapToggle.setAttribute('aria-label', 'Toggle entity grid snap');
-  entitySnapToggle.setAttribute('title', 'Toggle entity grid snap');
-
-  entitySnapToggle.addEventListener('click', () => {
-    state.entitySnapToGrid = !state.entitySnapToGrid;
-    entitySnapToggle.classList.toggle('entity-toggle--active', state.entitySnapToGrid);
-    entitySnapToggle.textContent = state.entitySnapToGrid ? 'On' : 'Off';
-    entitySnapChangeCallback?.(state.entitySnapToGrid);
-    console.log(`${LOG_PREFIX} Entity snap ${state.entitySnapToGrid ? 'enabled' : 'disabled'}`);
-  });
-
-  entityOptionsRow.appendChild(entityOptionsLabel);
-  entityOptionsRow.appendChild(entitySnapToggle);
-
-  const tilePickerSection = document.createElement('div');
-  tilePickerSection.className = 'bottom-panel__section';
-  tilePickerSection.appendChild(brushSizeRow);
-  tilePickerSection.appendChild(entityOptionsRow);
-  content.appendChild(tilePickerSection);
+  utilitiesBar.appendChild(deployButton);
+  utilitiesBar.appendChild(dataButton);
 
   const deploySection = document.createElement('div');
   deploySection.className = 'bottom-panel__section bottom-panel__section--hidden';
+  content.appendChild(utilitiesBar);
   content.appendChild(deploySection);
 
   const dataSection = document.createElement('div');
@@ -588,7 +343,7 @@ export function createBottomPanel(
   }
 
   const btnCheck = document.createElement('button');
-  btnCheck.className = 'tool-button tool-button--data-action';
+  btnCheck.className = 'bottom-panel__data-action';
   btnCheck.textContent = 'Check Storage';
   btnCheck.addEventListener('click', async () => {
     try {
@@ -608,7 +363,7 @@ export function createBottomPanel(
   });
 
   const btnExport = document.createElement('button');
-  btnExport.className = 'tool-button tool-button--data-action';
+  btnExport.className = 'bottom-panel__data-action';
   btnExport.textContent = 'Export JSON';
   btnExport.addEventListener('click', async () => {
     try {
@@ -624,7 +379,7 @@ export function createBottomPanel(
   });
 
   const btnCopy = document.createElement('button');
-  btnCopy.className = 'tool-button tool-button--data-action';
+  btnCopy.className = 'bottom-panel__data-action';
   btnCopy.textContent = 'Copy JSON';
   btnCopy.addEventListener('click', async () => {
     try {
@@ -650,7 +405,7 @@ export function createBottomPanel(
   importInput.style.display = 'none';
 
   const btnImport = document.createElement('button');
-  btnImport.className = 'tool-button tool-button--data-action';
+  btnImport.className = 'bottom-panel__data-action';
   btnImport.textContent = 'Import JSON';
   btnImport.addEventListener('click', () => {
     importInput.value = '';
@@ -684,37 +439,6 @@ export function createBottomPanel(
   dataSection.appendChild(importInput);
   dataSection.appendChild(dataStatus);
 
-
-  // Create tile picker if project has tile categories
-  if (project && project.tileCategories.length > 0) {
-    tilePickerController = createTilePicker(
-      tilePickerSection,
-      project.tileCategories,
-      assetBasePath,
-      state.selectedTile
-        ? { category: state.selectedTile.category, tileIndex: state.selectedTile.index }
-        : undefined,
-      {
-        tileCache: options.tileCache,
-        cacheBust: options.cacheBust,
-      }
-    );
-
-    // Wire up tile selection callback
-    tilePickerController.onTileSelect((selection) => {
-      tileSelectCallback?.(selection);
-    });
-
-    // Set initial visibility based on current tool
-    tilePickerController.setVisible(toolShowsTilePicker(state.currentTool));
-  } else {
-    // No project or no tile categories - show placeholder
-    const placeholder = document.createElement('div');
-    placeholder.className = 'bottom-panel__placeholder';
-    placeholder.textContent = project ? 'No tile categories defined' : 'No project loaded';
-    tilePickerSection.appendChild(placeholder);
-  }
-
   if (options.authManager) {
     deployPanelController = createDeployPanel({
       container: deploySection,
@@ -741,47 +465,29 @@ export function createBottomPanel(
     chevron.textContent = state.expanded ? '▼' : '▲';
   }
 
+  function updateSelectionButton(): void {
+    selectionButton.classList.toggle('bottom-panel__selection-button--active', state.currentTool === 'select');
+  }
+
   function setActivePanel(panelName: BottomPanelSection): void {
     activePanel = panelName;
-    const isTiles = activePanel === 'tiles';
     const isDeploy = activePanel === 'deploy';
     const isData = activePanel === 'data';
 
-    tilePickerSection.classList.toggle('bottom-panel__section--hidden', !isTiles);
     deploySection.classList.toggle('bottom-panel__section--hidden', !isDeploy);
     dataSection.classList.toggle('bottom-panel__section--hidden', !isData);
 
-    deployButton.classList.toggle('tool-button--deploy-active', isDeploy);
-    dataButton.classList.toggle('tool-button--data-active', isData);
-
-    if (!isTiles) {
-      tilePickerController?.setVisible(false);
-    } else {
-      tilePickerController?.setVisible(toolShowsTilePicker(state.currentTool));
-    }
-
-    updateBrushVisibility();
-    updateEntityOptionsVisibility();
-  }
-
-  function updateBrushVisibility(): void {
-    const shouldShow = activePanel === 'tiles' && state.currentTool === 'erase';
-    brushSizeRow.classList.toggle('bottom-panel__brush--hidden', !shouldShow);
-  }
-
-  function updateEntityOptionsVisibility(): void {
-    const shouldShow = activePanel === 'tiles' && state.currentTool === 'entity';
-    entityOptionsRow.classList.toggle('bottom-panel__entity-options--hidden', !shouldShow);
+    deployButton.classList.toggle('bottom-panel__utility-button--active', isDeploy);
+    dataButton.classList.toggle('bottom-panel__utility-button--active', isData);
   }
 
   panel.appendChild(header);
-  panel.appendChild(toolbar);
-  panel.appendChild(contextStripContainer);
+  panel.appendChild(contextRow);
   panel.appendChild(content);
   container.appendChild(panel);
 
-  updateBrushVisibility();
-  updateEntityOptionsVisibility();
+  updateSelectionButton();
+  setActivePanel(activePanel);
 
   console.log(`${LOG_PREFIX} Bottom panel created`);
 
@@ -790,18 +496,8 @@ export function createBottomPanel(
   const controller: BottomPanelController = {
     setCurrentTool(tool: ToolType) {
       if (state.currentTool === tool) return;
-
       state.currentTool = tool;
-      toolButtons.forEach((btn, type) => {
-        btn.classList.toggle('tool-button--active', type === tool);
-      });
-
-      // Show/hide tile picker based on tool
-      if (activePanel === 'tiles') {
-        tilePickerController?.setVisible(toolShowsTilePicker(tool));
-      }
-      updateBrushVisibility();
-      updateEntityOptionsVisibility();
+      updateSelectionButton();
     },
 
     getCurrentTool() {
@@ -827,55 +523,16 @@ export function createBottomPanel(
       return activePanel;
     },
 
-    getSelectedTile() {
-      return tilePickerController?.getSelectedTile() ?? null;
-    },
-
-    setSelectedTile(category: string, index: number) {
-      tilePickerController?.setSelectedCategory(category);
-      tilePickerController?.setSelectedTile(index);
-    },
-
-    onToolChange(callback) {
-      toolChangeCallback = callback;
-    },
-
     onExpandToggle(callback) {
       expandToggleCallback = callback;
     },
 
-    onTileSelect(callback) {
-      tileSelectCallback = callback;
+    onSelectionClick(callback) {
+      selectionClickCallback = callback;
     },
 
-    onBrushSizeChange(callback) {
-      brushSizeChangeCallback = callback;
-    },
-
-    setBrushSize(size: BrushSize) {
-      if (state.brushSize === size) return;
-      state.brushSize = size;
-      brushButtons.forEach((btn, value) => {
-        btn.classList.toggle('brush-size-button--active', value === size);
-      });
-    },
-
-    getBrushSize() {
-      return state.brushSize;
-    },
-
-    onEntitySnapChange(callback) {
-      entitySnapChangeCallback = callback;
-    },
-
-    setEntitySnapToGrid(enabled: boolean) {
-      state.entitySnapToGrid = enabled;
-      entitySnapToggle.classList.toggle('entity-toggle--active', enabled);
-      entitySnapToggle.textContent = enabled ? 'On' : 'Off';
-    },
-
-    getEntitySnapToGrid() {
-      return state.entitySnapToGrid;
+    setSelectionActive(active: boolean) {
+      selectionButton.classList.toggle('bottom-panel__selection-button--active', active);
     },
 
     getContentContainer() {
@@ -887,7 +544,6 @@ export function createBottomPanel(
     },
 
     destroy() {
-      tilePickerController?.destroy();
       deployPanelController?.destroy();
       container.removeChild(panel);
       document.head.removeChild(styleEl);

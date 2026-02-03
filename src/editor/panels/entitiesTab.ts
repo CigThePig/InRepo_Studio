@@ -146,6 +146,13 @@ const STYLES = `
   .entities-tab__property-row--error .entities-tab__toggle {
     border-color: rgba(255, 124, 152, 0.8);
   }
+
+  .entities-tab__toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
 `;
 
 export interface EntitiesTabConfig {
@@ -156,6 +163,7 @@ export interface EntitiesTabConfig {
   history: HistoryManager;
   assetRegistry?: AssetRegistry;
   onEntityTypeSelect?: (typeName: string | null) => void;
+  onEntitySnapChange?: (enabled: boolean) => void;
 }
 
 export interface EntitiesTabController {
@@ -241,6 +249,31 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
   paletteSection.appendChild(paletteTitle);
   paletteSection.appendChild(paletteList);
 
+  const placementSection = document.createElement('section');
+  placementSection.className = 'entities-tab__section';
+
+  const placementTitle = document.createElement('div');
+  placementTitle.className = 'entities-tab__section-title';
+  placementTitle.textContent = 'Placement';
+
+  const placementRow = document.createElement('div');
+  placementRow.className = 'entities-tab__toggle-row';
+
+  const placementLabel = document.createElement('div');
+  placementLabel.className = 'entities-tab__label';
+  placementLabel.textContent = 'Snap to Grid';
+
+  const snapToggle = document.createElement('button');
+  snapToggle.type = 'button';
+  snapToggle.className = 'entities-tab__toggle';
+  snapToggle.setAttribute('aria-label', 'Toggle entity grid snap');
+  snapToggle.setAttribute('title', 'Toggle entity grid snap');
+
+  placementRow.appendChild(placementLabel);
+  placementRow.appendChild(snapToggle);
+  placementSection.appendChild(placementTitle);
+  placementSection.appendChild(placementRow);
+
   let assetPaletteController: AssetPaletteController | null = null;
   const assetPaletteContainer = document.createElement('div');
   if (assetRegistry) {
@@ -281,6 +314,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
   if (assetRegistry) {
     root.appendChild(assetPaletteContainer);
   }
+  root.appendChild(placementSection);
   root.appendChild(selectionSection);
   root.appendChild(propertiesSection);
   container.appendChild(root);
@@ -567,9 +601,28 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     renderProperties(entities);
   }
 
+  function updateSnapToggle(nextValue?: boolean): void {
+    const editorState = getEditorState();
+    const isEnabled = nextValue ?? editorState?.entitySnapToGrid ?? true;
+    snapToggle.textContent = isEnabled ? 'On' : 'Off';
+    snapToggle.classList.toggle('entities-tab__toggle--active', isEnabled);
+  }
+
+  snapToggle.addEventListener('click', () => {
+    const editorState = getEditorState();
+    const nextValue = !(editorState?.entitySnapToGrid ?? true);
+    if (config.onEntitySnapChange) {
+      config.onEntitySnapChange(nextValue);
+    } else if (editorState) {
+      editorState.entitySnapToGrid = nextValue;
+    }
+    updateSnapToggle(nextValue);
+  });
+
   function refresh(): void {
     renderPalette();
     renderSelection();
+    updateSnapToggle();
   }
 
   refresh();

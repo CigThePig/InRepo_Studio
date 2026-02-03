@@ -31,12 +31,12 @@ import {
   createBottomContextStrip,
   type BottomContextStripController,
   createRightBerry,
-  createRightBerryPlaceholder,
   type RightBerryController,
   createLeftBerry,
   createEntitiesTab,
   type EntitiesTabController,
   createAssetPalette,
+  createBrushSizeControl,
   createLayerPanel,
   type LayerPanelController,
 } from '@/editor/panels';
@@ -1043,17 +1043,10 @@ async function initPanels(): Promise<void> {
       {
         expanded: editorState.panelStates.bottomExpanded,
         currentTool: editorState.currentTool,
-        selectedTile: editorState.selectedTile,
-        brushSize: editorState.brushSize,
-        entitySnapToGrid: editorState.entitySnapToGrid ?? true,
       },
-      currentProject ?? undefined,
-      ASSET_BASE_PATH,
-        {
-          authManager: authManager ?? undefined,
-          tileCache: canvasController?.getTileCache() ?? undefined,
-          cacheBust: assetCacheBust,
-        }
+      {
+        authManager: authManager ?? undefined,
+      }
     );
 
     if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
@@ -1121,39 +1114,9 @@ async function initPanels(): Promise<void> {
       }
     });
 
-    bottomPanelController.onToolChange((tool) => {
-      applyToolChange(tool);
-      if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
-        updateEditorMode(inferModeFromTool(tool), false);
-      }
-    });
-
-    bottomPanelController.onTileSelect((selection) => {
-      if (editorState) {
-        editorState.selectedTile = {
-          category: selection.category,
-          index: selection.index,
-        };
-        scheduleSave();
-      }
-      // Update canvas selected category for rendering
-      canvasController?.setSelectedCategory(selection.category);
-    });
-
-    bottomPanelController.onBrushSizeChange((size) => {
-      currentBrushSize = size;
-      if (editorState) {
-        editorState.brushSize = size;
-        scheduleSave();
-      }
-      updateHoverPreview(editorState?.currentTool ?? 'select');
-    });
-
-    bottomPanelController.onEntitySnapChange((enabled) => {
-      if (editorState) {
-        editorState.entitySnapToGrid = enabled;
-        scheduleSave();
-      }
+    bottomPanelController.onSelectionClick(() => {
+      rightBerryController?.close();
+      updateEditorMode('select', true);
     });
 
     updateUndoRedoUI(
@@ -1191,13 +1154,26 @@ async function initPanels(): Promise<void> {
         initialTab,
       });
 
-      const placeholderText: Record<EditorMode, string> = {
-        ground: 'Add tiles via the left berry and use them to paint on the canvas.',
-        props: 'Props mode is ready for palette wiring in a later track.',
-        entities: 'Entities mode uses the right berry palette and inline inspector.',
-        collision: 'Collision mode will use the paint tool for collision tiles.',
-        triggers: 'Triggers mode will be wired after entities in a later track.',
-        select: 'Select mode is handled outside the right berry.',
+      const brushControls: Array<ReturnType<typeof createBrushSizeControl>> = [];
+
+      const handleBrushSizeChange = (size: BrushSize): void => {
+        currentBrushSize = size;
+        if (editorState) {
+          editorState.brushSize = size;
+          scheduleSave();
+        }
+        brushControls.forEach((control) => control.setSize(size));
+        updateHoverPreview(editorState?.currentTool ?? 'select');
+      };
+
+      const addBrushControl = (container: HTMLElement, hint: string): void => {
+        const control = createBrushSizeControl({
+          container,
+          initialSize: currentBrushSize,
+          hint,
+          onChange: handleBrushSizeChange,
+        });
+        brushControls.push(control);
       };
 
       const paletteModes: Array<{ mode: EditorMode; type: 'tilesets' | 'props'; title: string }> =
@@ -1216,17 +1192,23 @@ async function initPanels(): Promise<void> {
             groupType: type,
             title,
           });
-        } else {
-          container.appendChild(createRightBerryPlaceholder(placeholderText[mode]));
         }
+        const hint =
+          mode === 'ground'
+            ? 'Select a tileset and paint it onto the grid.'
+            : 'Pick a prop and paint it into the scene.';
+        addBrushControl(container, hint);
       });
 
-      (['collision', 'triggers'] as EditorMode[]).forEach((mode) => {
-        const container = rightBerryController?.getTabContentContainer(mode);
-        if (container) {
-          container.appendChild(createRightBerryPlaceholder(placeholderText[mode]));
-        }
-      });
+      const collisionContainer = rightBerryController?.getTabContentContainer('collision');
+      if (collisionContainer) {
+        addBrushControl(collisionContainer, 'Paint collision tiles to block movement.');
+      }
+
+      const triggersContainer = rightBerryController?.getTabContentContainer('triggers');
+      if (triggersContainer) {
+        addBrushControl(triggersContainer, 'Paint trigger zones (binary) for event areas.');
+      }
 
       const entitiesContainer = rightBerryController.getTabContentContainer('entities');
       if (entitiesContainer && editorState && entityManager && historyManager) {
@@ -1240,6 +1222,11 @@ async function initPanels(): Promise<void> {
           onEntityTypeSelect: (typeName) => {
             if (!editorState) return;
             editorState.selectedEntityType = typeName;
+            scheduleSave();
+          },
+          onEntitySnapChange: (enabled) => {
+            if (!editorState) return;
+            editorState.entitySnapToGrid = enabled;
             scheduleSave();
           },
         });

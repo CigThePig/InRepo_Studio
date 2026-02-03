@@ -20,6 +20,8 @@ export { RIGHT_BERRY_TABS } from './rightBerryTabs';
 export type { RightBerryTab } from './rightBerryTabs';
 export { createEntitiesTab } from './entitiesTab';
 export type { EntitiesTabController, EntitiesTabConfig } from './entitiesTab';
+export { createBrushSizeControl } from './berryControls';
+export type { BrushSizeControlController, BrushSizeControlConfig } from './berryControls';
 
 // Left Berry
 export { createLeftBerry, createLeftBerryPlaceholder } from './leftBerry';
