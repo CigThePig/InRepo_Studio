@@ -31,6 +31,7 @@ export interface FileChange {
   content: string | null;
   contentHash: string | null;
   localSha: string | null;
+  encoding?: 'utf-8' | 'base64';
 }
 
 export interface ChangeDetectorConfig {

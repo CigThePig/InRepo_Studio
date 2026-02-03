@@ -501,7 +501,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         updateToggle(currentValue);
 
         toggle.addEventListener('click', () => {
-          const nextValue = !Boolean(entity.properties?.[definition.name]);
+          const nextValue = !entity.properties?.[definition.name];
           if (!validatePropertyValue(nextValue, definition)) {
             setError('Invalid value.');
             return;

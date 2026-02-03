@@ -9,6 +9,7 @@ export interface LeftBerryConfig {
   tabs?: LeftBerryTab[];
   assetRegistry?: AssetRegistry;
   assetLibraryEnabled?: boolean;
+  assetUploadEnabled?: boolean;
 }
 
 export interface LeftBerryController {
@@ -224,6 +225,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const openChangeCallbacks: Array<(open: boolean) => void> = [];
   const assetRegistry = config.assetRegistry;
   const assetLibraryEnabled = config.assetLibraryEnabled ?? true;
+  const assetUploadEnabled = config.assetUploadEnabled ?? false;
   let assetLibraryController: AssetLibraryTabController | null = null;
 
   const shell = document.createElement('div');
@@ -321,6 +323,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       assetLibraryController = createAssetLibraryTab({
         container: assetsContainer,
         assetRegistry,
+        uploadEnabled: assetUploadEnabled,
       });
     } else {
       assetsContainer.appendChild(

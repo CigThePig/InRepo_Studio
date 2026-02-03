@@ -48,18 +48,6 @@ export type { DeployPanelController } from './deployPanel';
 export { createTilePicker } from './tilePicker';
 export type { TilePickerController, TilePickerState, TileSelection } from './tilePicker';
 
-// Selection Bar
-export { createSelectionBar } from './selectionBar';
-export type { SelectionBarController } from './selectionBar';
-
-// Entity Selection Bar
-export { createEntitySelectionBar } from './entitySelectionBar';
-export type { EntitySelectionBarController } from './entitySelectionBar';
-
 // Layer Panel
 export { createLayerPanel } from './layerPanel';
 export type { LayerPanelController, LayerPanelConfig } from './layerPanel';
-
-// Property Inspector
-export { createPropertyInspector } from './propertyInspector';
-export type { PropertyInspectorController, PropertyInspectorConfig } from './propertyInspector';

@@ -202,7 +202,7 @@ Rules:
 
 - `/src/deploy/changeDetector.ts`
   - `FileChangeSchema` — detected change
-    - Keys: path, status (added|modified|deleted), content, contentHash, localSha
+    - Keys: path, status (added|modified|deleted), content, contentHash, localSha, encoding? (utf-8|base64)
   - `ConflictSchema` — remote conflict
     - Keys: path, localSha, remoteSha, hasConflict
 

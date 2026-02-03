@@ -416,6 +416,21 @@ Purpose:
   - Manual scan test against a real repo to validate folder parsing and public/private handling.
   - Add asset upload wiring in Track 30 to convert local assets to repo sources.
 
+### Track 30 — Asset Upload + Editor V2 Completion
+- **Dates**: 2026-02-02 → 2026-02-02
+- **Status**: Completed
+- **Summary**: Completed the asset pipeline by uploading grouped assets to GitHub, refreshed asset sources to repo-backed URLs, and hid legacy Editor V2 UI elements by default. 
+- **Shipped**:
+  - Asset upload module with size checks, conflict-safe commits, and per-file results.
+  - Asset library upload controls with progress messaging and error handling per group.
+  - Editor asset registry upload wiring that re-tags uploaded assets as repo sources.
+  - Layer panel now hidden by default with a settings toggle for advanced access.
+  - Removed legacy selection popups and property inspector wiring from active editor flow.
+- **Verification**: Not run (manual end-to-end workflow recommended).
+- **Learned**: Consolidating upload logic in the deploy module keeps GitHub API usage consistent across editor workflows.
+- **Follow-up**:
+  - Run a full asset upload workflow against a real repo to validate folder placement and refresh behavior.
+
 ---
 
 ## Stalled / Abandoned Tracks

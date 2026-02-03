@@ -79,6 +79,13 @@ function encodeContent(content: string): string {
   return btoa(binary);
 }
 
+function resolveContent(change: FileChange): string {
+  if (change.encoding === 'base64') {
+    return change.content ?? '';
+  }
+  return encodeContent(change.content ?? '');
+}
+
 async function hashContent(content: string): Promise<string> {
   if (crypto?.subtle) {
     const data = new TextEncoder().encode(content);
@@ -159,10 +166,9 @@ export function createCommitter(config: CommitConfig): Committer {
         return { success: true, path: change.path };
       }
 
-      const content = change.content ?? '';
       const body: Record<string, unknown> = {
         message,
-        content: encodeContent(content),
+        content: resolveContent(change),
       };
 
       if (remoteSha) {

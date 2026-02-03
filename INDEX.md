@@ -594,6 +594,6 @@ Micro-format (copy/paste):
   - Role: GitHub commit operations and deploy orchestration.
   - Lists of truth: CommitResultSchema
 
-- `src/deploy/assetUpload.ts` (planned — Track 29)
-  - Role: Upload new images to repository.
+- `src/deploy/assetUpload.ts`
+  - Role: Upload grouped asset images to GitHub with size checks and conflict safety.
   - Lists of truth: none
