@@ -360,6 +360,22 @@ Purpose:
   - Track 25: Right Berry Shell + Mode State
   - Track 26: Entities Mode + Move-First Behavior
 
+### Track 25 — Right Berry Shell + Mode State
+- **Dates**: 2026-02-02
+- **Status**: Completed
+- **Summary**: Introduced the right berry slide-out panel with mode tabs and converted the editor to mode-driven architecture with a single editorMode state variable.
+- **Shipped**:
+  - Right berry slide-out panel with overlay, swipe-to-close, and handle
+  - Five mode tabs: Ground, Props, Entities, Collision, Triggers
+  - EditorMode state management replacing layer+tool dual-state system
+  - Mode-to-legacy mapping for gradual migration
+  - Berry open/close wiring to editorMode (closing returns to select mode)
+  - Right berry state persistence (rightBerryOpen in EditorState)
+- **Verification**: `npm run build`
+- **Learned**: Mode-driven architecture simplifies UI state by removing the need to coordinate separate layer and tool selections.
+- **Follow-up**:
+  - Track 26: Entities Mode + Move-First Behavior
+
 ### Track 26 — Entities Mode + Move-First Behavior
 - **Dates**: 2026-02-02
 - **Status**: Completed
