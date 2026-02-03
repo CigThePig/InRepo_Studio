@@ -24,26 +24,19 @@ Completed tracks:
 - Phase 4 (Entity System): Tracks 19-22 (Entity Palette, Entity Placement, Entity Manipulation, Property Inspector)
 - Editor V2 Migration: Track 23 (Bottom Interaction Strip)
 - Editor V2 Migration: Track 24 (Top Bar Globalization)
-
-Prepared tracks (planning artifacts created):
-- Tracks 23-30: Editor V2 Migration (spec/blueprint/plan complete)
-
-Next tracks to implement (Editor V2 Migration):
-1. Track 25: Right Berry Shell + Mode State — Introduce mode-driven architecture
-2. Track 26: Entities Mode + Move-First Behavior — No popup inspector, immediate move on select
-3. Track 27: Left Berry Shell + Sprite Slicing MVP — Asset pipeline entry point
-4. Track 28: Asset Library + Grouping System — First-class asset grouping
-5. Track 29: GitHub Folder ↔ Group Mirroring — UI groups map to repo folders
-6. Track 30: Asset Upload + Editor V2 Completion — Complete asset pipeline, finalize V2
+- Editor V2 Migration: Track 25 (Right Berry Shell + Mode State)
+- Editor V2 Migration: Track 26 (Entities Mode + Move-First Behavior)
+- Editor V2 Migration: Track 27 (Left Berry Shell + Sprite Slicing MVP)
+- Editor V2 Migration: Track 28 (Asset Library + Grouping System)
+- Editor V2 Migration: Track 29 (GitHub Folder ↔ Group Mirroring)
+- Editor V2 Migration: Track 30 (Asset Upload + Editor V2 Completion)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 Phase 4 Entity System is now complete.
+Editor V2 Migration is now complete. The editor uses mode-driven architecture per `/context/editor-v2-architecture.md`.
 
-Editor V2 Migration transforms the editor from a layer+tool dual-state system to a mode-driven architecture.
-All implementation must follow `/context/editor-v2-architecture.md`.
-
-Last updated: 2026-02-02
+Last updated: 2026-02-03
 
 ---
 
