@@ -4,7 +4,7 @@
  * Contextual selection actions rendered inside the bottom bar.
  */
 
-export type BottomContextSelection = 'none' | 'tiles' | 'entities';
+export type BottomContextSelection = 'none' | 'tiles' | 'entities' | 'triggers';
 
 export interface BottomContextStripConfig {
   onMove: () => void;
@@ -13,6 +13,7 @@ export interface BottomContextStripConfig {
   onDelete: () => void;
   onFill: () => void;
   onCancel: () => void;
+  onResize: () => void;
   onDuplicate: () => void;
   onClear: () => void;
 }
@@ -135,9 +136,21 @@ export function createBottomContextStrip(
   entityGroup.appendChild(entityDeleteButton);
   entityGroup.appendChild(clearButton);
 
+  const triggerGroup = document.createElement('div');
+  triggerGroup.className = 'bottom-context-strip__group';
+
+  const resizeButton = buildButton('Resize', () => config.onResize());
+  const triggerDuplicateButton = buildButton('Duplicate', () => config.onDuplicate());
+  const triggerDeleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
+
+  triggerGroup.appendChild(resizeButton);
+  triggerGroup.appendChild(triggerDuplicateButton);
+  triggerGroup.appendChild(triggerDeleteButton);
+
   container.appendChild(label);
   container.appendChild(tileGroup);
   container.appendChild(entityGroup);
+  container.appendChild(triggerGroup);
 
   let selectionType: BottomContextSelection = 'none';
   let selectionCount = 0;
@@ -150,14 +163,22 @@ export function createBottomContextStrip(
       label.textContent = 'Tile selection';
       tileGroup.style.display = 'flex';
       entityGroup.style.display = 'none';
+      triggerGroup.style.display = 'none';
     } else if (selectionType === 'entities') {
       label.textContent = `${selectionCount || 1} selected`;
       tileGroup.style.display = 'none';
       entityGroup.style.display = 'flex';
+      triggerGroup.style.display = 'none';
+    } else if (selectionType === 'triggers') {
+      label.textContent = 'Trigger selection';
+      tileGroup.style.display = 'none';
+      entityGroup.style.display = 'none';
+      triggerGroup.style.display = 'flex';
     } else {
       label.textContent = '';
       tileGroup.style.display = 'none';
       entityGroup.style.display = 'none';
+      triggerGroup.style.display = 'none';
     }
   }
 

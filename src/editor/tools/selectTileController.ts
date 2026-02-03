@@ -43,6 +43,7 @@ export interface SelectTileController {
   copySelection(): void;
   armPaste(): void;
   armFill(): void;
+  armResize(): void;
   isSelecting(): boolean;
   isMoving(): boolean;
 }
@@ -223,6 +224,7 @@ export function createSelectTileController(config: SelectTileControllerConfig): 
   let moveAnchor: { x: number; y: number } | null = null;
   let pendingPaste = false;
   let pendingFill = false;
+  let pendingResize = false;
   let selectingMoved = false;
   let selectionStartedFromExisting = false;
 
@@ -250,6 +252,7 @@ export function createSelectTileController(config: SelectTileControllerConfig): 
     moveAnchor = null;
     pendingPaste = false;
     pendingFill = false;
+    pendingResize = false;
     selectingMoved = false;
     selectionStartedFromExisting = false;
   }
@@ -477,6 +480,24 @@ export function createSelectTileController(config: SelectTileControllerConfig): 
 
       const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
       const activeLayer = editorState.activeLayer;
+
+      if (pendingResize) {
+        pendingResize = false;
+        if (!selection) {
+          return;
+        }
+
+        // Anchor resize from the current selection's top-left.
+        selectionStart = { x: selection.startX, y: selection.startY };
+        selectingMoved = false;
+        selectionStartedFromExisting = false;
+
+        const nextSelection = createSelectionBounds(scene, selection.layer, selectionStart, tile);
+        selection = nextSelection;
+        selectionData = nextSelection ? extractSelectionData(scene, nextSelection) : null;
+        setMode('selecting');
+        return;
+      }
 
       if (pendingPaste) {
         const data = clipboard.paste();
@@ -735,6 +756,7 @@ export function createSelectTileController(config: SelectTileControllerConfig): 
       if (!clipboard.hasData()) return;
       pendingPaste = true;
       pendingFill = false;
+      pendingResize = false;
       setMode('pasting');
     },
 
@@ -742,7 +764,16 @@ export function createSelectTileController(config: SelectTileControllerConfig): 
       clearSelectionState();
       pendingFill = true;
       pendingPaste = false;
+      pendingResize = false;
       setMode('idle');
+    },
+
+    armResize(): void {
+      if (!selection) return;
+      pendingResize = true;
+      pendingPaste = false;
+      pendingFill = false;
+      // Keep current selection visible until the next drag begins.
     },
 
     isSelecting(): boolean {

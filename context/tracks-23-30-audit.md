@@ -16,32 +16,37 @@ Tracks 23-30 (Editor V2 Migration) implementation is **largely complete** but co
 
 ### 1. CRITICAL: Bottom Context Strip Missing Trigger Selection Type
 
-**Status**: NOT FIXED (implementation gap)
+**Status**: FIXED (2026-02-03)
 
-**Location**: `src/editor/panels/bottomContextStrip.ts:7`
+**Location**: `src/editor/panels/bottomContextStrip.ts` (selection type + UI group)
 
 **Problem**: The architecture spec (section 2.2) defines trigger selection actions:
 ```
 Trigger selection actions: Resize, Delete, Duplicate
 ```
 
-However, the implementation only supports:
+Previously, the implementation only supported:
 ```typescript
 export type BottomContextSelection = 'none' | 'tiles' | 'entities';
 ```
 
-The `'triggers'` type is missing entirely.
+The `'triggers'` type was missing entirely.
 
 **Spec Reference**:
 - `editor-v2-architecture.md` line 79: "Trigger selection actions: edit, duplicate, delete, etc."
 - `editor-v2-architecture.md` lines 357-361: Table showing Triggers should have "Resize, Delete, Duplicate" actions
 
-**Impact**: When users select triggers, they get no contextual actions in the bottom strip.
+**Impact**: When users select triggers, they got no contextual actions in the bottom strip.
 
-**Fix Required**:
-1. Add `'triggers'` to `BottomContextSelection` type
-2. Add trigger action buttons (Resize, Delete, Duplicate)
-3. Wire trigger selection state to context strip
+**Fix Implemented**:
+1. Added `'triggers'` to `BottomContextSelection`
+2. Added a Trigger action group (Resize, Duplicate, Delete)
+3. Wired trigger layer selections to show the Trigger action group
+
+**Implementation Notes**:
+- Trigger selection is treated as a tile selection on the `triggers` layer.
+- The **Resize** button arms a lightweight resize workflow: press Resize, then drag on the canvas to redefine the selection bounds anchored from the current selection's top-left.
+- **Duplicate** copies the current trigger selection and arms Paste to place the duplicate.
 
 ---
 
@@ -154,7 +159,7 @@ These are identical but defined in two places, creating potential for drift.
 - [x] V2 state persistence in EditorState (`src/storage/hot.ts`)
 
 ### Missing or Incomplete:
-- [ ] Trigger selection actions in bottom context strip
+- [x] Trigger selection actions in bottom context strip
 - [ ] Full verification of all acceptance criteria
 
 ---
@@ -169,11 +174,15 @@ Added missing Track 25 entry to `context/history.md` between Track 24 and Track 
 
 Updated `context/active-track.md` to show tracks 25-30 as completed.
 
+### Fix 3: Implemented Trigger selection actions in bottom context strip
+
+Added a `triggers` selection type, trigger action buttons (Resize, Duplicate, Delete), and wiring to surface these actions when selecting on the trigger layer.
+
 ---
 
 ## Recommendations
 
-1. **Implement trigger context strip actions** - This is the only functional gap. Add 'triggers' selection type with Resize, Delete, Duplicate buttons.
+1. **Verify trigger selection UX** - Ensure Resize/Duplicate/Delete feel correct in Triggers mode on both desktop and mobile.
 
 2. **Run through acceptance criteria manually** - The spec.md has comprehensive acceptance criteria that should be verified and checked off.
 
@@ -188,3 +197,7 @@ Updated `context/active-track.md` to show tracks 25-30 as completed.
 1. `context/tracks-23-30-audit.md` - This file (NEW)
 2. `context/history.md` - Added Track 25 entry (FIXED)
 3. `context/active-track.md` - Updated to show tracks 25-30 complete (FIXED)
+4. `src/editor/panels/bottomContextStrip.ts` - Added triggers selection type + UI group
+5. `src/editor/init.ts` - Wires trigger selection state and duplicate/resize actions
+6. `src/editor/tools/select.ts` - Exposes tile resize arming for bottom strip
+7. `src/editor/tools/selectTileController.ts` - Implements a lightweight resize workflow for selections

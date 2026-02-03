@@ -285,8 +285,13 @@ function updateBottomContextStrip(): void {
   }
 
   if (tileSelectionActive) {
-    bottomContextStrip.setSelectionType('tiles');
-    bottomContextStrip.setPasteEnabled(clipboard?.hasData() ?? false);
+    const selectionLayer = selectTool?.getSelection()?.layer;
+    if (selectionLayer === 'triggers') {
+      bottomContextStrip.setSelectionType('triggers');
+    } else {
+      bottomContextStrip.setSelectionType('tiles');
+      bottomContextStrip.setPasteEnabled(clipboard?.hasData() ?? false);
+    }
     return;
   }
 
@@ -1080,9 +1085,24 @@ async function initPanels(): Promise<void> {
           onCancel: () => {
             selectTool?.clearSelection();
           },
+          onResize: () => {
+            selectTool?.armResize();
+            updateBottomContextStrip();
+          },
           onDuplicate: () => {
-            selectTool?.duplicateEntities();
-            updateEntitySelectionUI();
+            const entityIds = editorState?.selectedEntityIds ?? [];
+            if (entityIds.length > 0) {
+              selectTool?.duplicateEntities();
+              updateEntitySelectionUI();
+              return;
+            }
+
+            const selectionLayer = selectTool?.getSelection()?.layer;
+            if (selectionLayer === 'triggers') {
+              selectTool?.copySelection();
+              selectTool?.armPaste();
+              updateBottomContextStrip();
+            }
           },
           onClear: () => {
             entitySelection?.clear();

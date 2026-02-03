@@ -60,6 +60,7 @@ export interface SelectTool {
   copySelection(): void;
   armPaste(): void;
   armFill(): void;
+  armResize(): void;
   deleteEntities(): void;
   duplicateEntities(): void;
   isSelecting(): boolean;
@@ -193,6 +194,10 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
 
     armFill(): void {
       tileController.armFill();
+    },
+
+    armResize(): void {
+      tileController.armResize();
     },
 
     deleteEntities(): void {
