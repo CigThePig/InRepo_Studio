@@ -69,6 +69,10 @@ const STYLES = `
     min-height: 0;
   }
 
+  .layer-panel--hidden {
+    display: none;
+  }
+
   .layer-panel__list {
     display: flex;
     flex-direction: column;

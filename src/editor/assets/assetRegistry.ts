@@ -16,6 +16,12 @@
  */
 
 import { resolveAssetPath, type RepoAssetManifest } from '@/storage/cold';
+import type {
+  AssetUploadResult,
+  AssetUploadProgress,
+  AssetUploadItem,
+  AssetUploadGroup,
+} from '@/deploy/assetUpload';
 import {
   DEFAULT_ASSET_GROUPS,
   createAssetGroup,
@@ -69,6 +75,11 @@ export interface AssetRegistry {
   getSelectedAsset(): AssetEntry | null;
   setSelectedAsset(assetId: string | null): void;
   refreshFromRepo(manifest: RepoAssetManifest): void;
+  uploadGroup(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    onProgress?: (progress: AssetUploadProgress) => void;
+  }): Promise<AssetUploadResult>;
   onChange(callback: (state: AssetRegistryState) => void): () => void;
 }
 
@@ -76,6 +87,17 @@ export const DEFAULT_ASSET_REGISTRY_STATE: AssetRegistryState = {
   groups: DEFAULT_ASSET_GROUPS,
   selectedAssetId: null,
 };
+
+export type AssetGroupUploadHandler = (options: {
+  group: AssetUploadGroup;
+  assets: AssetUploadItem[];
+  onProgress?: (progress: AssetUploadProgress) => void;
+}) => Promise<AssetUploadResult>;
+
+export interface AssetRegistryOptions {
+  initialState?: Partial<AssetRegistryState>;
+  uploadHandler?: AssetGroupUploadHandler;
+}
 
 function cloneGroup(group: AssetGroup): AssetGroup {
   return {
@@ -169,7 +191,9 @@ function syncSelectedAssetId(groups: AssetGroup[], selectedAssetId: string | nul
   return exists ? selectedAssetId : null;
 }
 
-export function createAssetRegistry(initialState?: Partial<AssetRegistryState>): AssetRegistry {
+export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegistry {
+  const initialState = options?.initialState;
+  const uploadHandler = options?.uploadHandler;
   let state: AssetRegistryState = {
     ...DEFAULT_ASSET_REGISTRY_STATE,
     ...initialState,
@@ -360,6 +384,118 @@ export function createAssetRegistry(initialState?: Partial<AssetRegistryState>):
     });
   }
 
+  function buildUploadError(group: AssetGroup, message: string): AssetUploadResult {
+    return {
+      group: {
+        type: group.type,
+        slug: group.slug,
+        name: group.name,
+      },
+      results: [],
+      error: message,
+    };
+  }
+
+  async function uploadGroup(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    onProgress?: (progress: AssetUploadProgress) => void;
+  }): Promise<AssetUploadResult> {
+    if (!uploadHandler) {
+      return {
+        group: {
+          type: options.groupType,
+          slug: options.groupSlug,
+          name: options.groupSlug,
+        },
+        results: [],
+        error: 'Asset upload is not available in this session.',
+      };
+    }
+
+    const group = state.groups.find(
+      (entry) => entry.type === options.groupType && entry.slug === options.groupSlug
+    );
+    if (!group) {
+      return {
+        group: {
+          type: options.groupType,
+          slug: options.groupSlug,
+          name: options.groupSlug,
+        },
+        results: [],
+        error: 'Asset group not found.',
+      };
+    }
+
+    const localAssets = group.assets.filter((asset) => asset.source !== 'repo');
+    if (localAssets.length === 0) {
+      return buildUploadError(group, 'No local assets to upload.');
+    }
+
+    const result = await uploadHandler({
+      group: {
+        type: group.type,
+        slug: group.slug,
+        name: group.name,
+      },
+      assets: localAssets.map((asset) => ({
+        id: asset.id,
+        name: asset.name,
+        dataUrl: asset.dataUrl,
+        width: asset.width,
+        height: asset.height,
+      })),
+      onProgress: options.onProgress,
+    });
+
+    const updatedAssets = new Map<string, { id: string; dataUrl: string }>();
+    result.results.forEach((entry) => {
+      if (!entry.success) return;
+      const fileName = entry.fileName;
+      const newId = buildRepoAssetId(group.type, group.slug, fileName);
+      const assetPath = entry.path.replace(/^game\//, '');
+      updatedAssets.set(entry.assetId, {
+        id: newId,
+        dataUrl: resolveAssetPath(assetPath),
+      });
+    });
+
+    if (updatedAssets.size > 0) {
+      const repoSource: AssetEntrySource = 'repo';
+      const nextGroups = state.groups.map((entry) => {
+        if (entry.type !== group.type || entry.slug !== group.slug) {
+          return entry;
+        }
+        return {
+          ...entry,
+          assets: entry.assets.map((asset) => {
+            const update = updatedAssets.get(asset.id);
+            if (!update) return asset;
+            return {
+              ...asset,
+              id: update.id,
+              dataUrl: update.dataUrl,
+              source: repoSource,
+            };
+          }),
+        };
+      });
+
+      const nextSelectedAssetId = state.selectedAssetId
+        ? updatedAssets.get(state.selectedAssetId)?.id ?? state.selectedAssetId
+        : null;
+
+      emit({
+        ...state,
+        groups: nextGroups,
+        selectedAssetId: nextSelectedAssetId,
+      });
+    }
+
+    return result;
+  }
+
   return {
     getState: () => state,
     getGroups: () => state.groups.map((group) => cloneGroup(group)),
@@ -373,6 +509,7 @@ export function createAssetRegistry(initialState?: Partial<AssetRegistryState>):
     getSelectedAsset: () => (state.selectedAssetId ? getAsset(state.selectedAssetId) : null),
     setSelectedAsset,
     refreshFromRepo,
+    uploadGroup,
     onChange: (callback) => {
       listeners.add(callback);
       return () => listeners.delete(callback);

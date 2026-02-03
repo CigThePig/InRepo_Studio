@@ -21,7 +21,6 @@ import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
 import type { StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
-import { tileToScreen, worldToScreen } from '@/editor/canvas/viewport';
 import {
   createTopPanel,
   createTopBarV2,
@@ -38,14 +37,8 @@ import {
   createEntitiesTab,
   type EntitiesTabController,
   createAssetPalette,
-  createSelectionBar,
-  type SelectionBarController,
-  createEntitySelectionBar,
-  type EntitySelectionBarController,
   createLayerPanel,
   type LayerPanelController,
-  createPropertyInspector,
-  type PropertyInspectorController,
 } from '@/editor/panels';
 import {
   createAssetRegistry,
@@ -63,7 +56,15 @@ import {
 import { createEntityTool, type EntityTool } from '@/editor/tools/entity';
 import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
 import { createHistoryManager, type HistoryManager } from '@/editor/history';
-import { createAuthManager, createTokenStorage, type AuthManager } from '@/deploy';
+import {
+  createAuthManager,
+  createTokenStorage,
+  uploadAssetGroup,
+  type AssetUploadGroup,
+  type AssetUploadItem,
+  type AssetUploadProgress,
+  type AuthManager,
+} from '@/deploy';
 import {
   preparePlaytest,
   setEditorStateBackup,
@@ -85,7 +86,7 @@ import {
 } from '@/editor/scenes';
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
-import { EDITOR_V2_FLAGS, isV2Enabled } from '@/editor/v2/featureFlags';
+import { EDITOR_V2_FLAGS, isV2Enabled, setV2Flag } from '@/editor/v2/featureFlags';
 import {
   getEditorMode,
   setEditorMode,
@@ -114,7 +115,6 @@ let paintTool: PaintTool | null = null;
 let eraseTool: EraseTool | null = null;
 let selectTool: SelectTool | null = null;
 let entityTool: EntityTool | null = null;
-let selectionBar: SelectionBarController | null = null;
 let clipboard: Clipboard | null = null;
 let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
@@ -126,8 +126,6 @@ let sceneSelector: SceneSelector | null = null;
 let layerPanelController: LayerPanelController | null = null;
 let entityManager: EntityManager | null = null;
 let entitySelection: EntitySelection | null = null;
-let entitySelectionBar: EntitySelectionBarController | null = null;
-let propertyInspector: PropertyInspectorController | null = null;
 let tileSelectionActive = false;
 let rightBerryController: RightBerryController | null = null;
 let entitiesTab: EntitiesTabController | null = null;
@@ -309,8 +307,6 @@ function updateEntitySelectionUI(): void {
   if (!allowEntitySelection || selectedIds.length === 0) {
     renderer.setEntitySelectionIds([]);
     canvasController.invalidateScene();
-    entitySelectionBar?.hide();
-    propertyInspector?.hide();
     updateBottomContextStrip();
     return;
   }
@@ -322,8 +318,6 @@ function updateEntitySelectionUI(): void {
   if (selectedEntities.length === 0) {
     renderer.setEntitySelectionIds([]);
     canvasController.invalidateScene();
-    entitySelectionBar?.hide();
-    propertyInspector?.hide();
     updateBottomContextStrip();
     return;
   }
@@ -331,26 +325,6 @@ function updateEntitySelectionUI(): void {
   renderer.setEntitySelectionIds(selectedIds);
   canvasController.invalidateScene();
 
-  const viewport = canvasController.getViewport();
-  const screenPositions = selectedEntities.map((entity) =>
-    worldToScreen(viewport, entity.x, entity.y)
-  );
-
-  const minX = Math.min(...screenPositions.map((pos) => pos.x));
-  const maxX = Math.max(...screenPositions.map((pos) => pos.x));
-  const minY = Math.min(...screenPositions.map((pos) => pos.y));
-
-  const centerX = (minX + maxX) / 2;
-  const topY = minY - 12;
-
-  entitySelectionBar?.setSelectionCount(selectedEntities.length);
-  entitySelectionBar?.setPosition(centerX, topY);
-  entitySelectionBar?.show();
-  if (isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST)) {
-    propertyInspector?.hide();
-  } else {
-    propertyInspector?.setSelection(selectedIds);
-  }
   updateBottomContextStrip();
 }
 
@@ -360,8 +334,24 @@ function updateUndoRedoUI(canUndo: boolean, canRedo: boolean): void {
   }
 }
 
+function setLayerPanelVisibility(visible: boolean): void {
+  const element = layerPanelController?.getElement();
+  if (!element) return;
+  element.classList.toggle('layer-panel--hidden', !visible);
+  element.setAttribute('aria-hidden', String(!visible));
+}
+
 function openSettingsPlaceholder(): void {
-  window.alert('Settings are coming soon.');
+  const isHidden = isV2Enabled(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL);
+  const prompt = isHidden
+    ? 'Show Layer Panel? (Advanced)'
+    : 'Hide Layer Panel? (Advanced)';
+  const confirm = window.confirm(`Settings (Preview)\n\n${prompt}`);
+  if (!confirm) {
+    return;
+  }
+  setV2Flag(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL, !isHidden);
+  setLayerPanelVisibility(isHidden);
 }
 
 export function getEditorState(): EditorState | null {
@@ -444,7 +434,45 @@ export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
   currentBrushSize = editorState.brushSize ?? 1;
   setInitialEditorMode(editorState.editorMode);
-  assetRegistry = createAssetRegistry(editorState.assetRegistry as AssetRegistryState | undefined);
+  const assetUploadHandler = async ({
+    group,
+    assets,
+    onProgress,
+  }: {
+    group: AssetUploadGroup;
+    assets: AssetUploadItem[];
+    onProgress?: (progress: AssetUploadProgress) => void;
+  }) => {
+    const repoConfig = resolveRepoConfig();
+    if (!repoConfig) {
+      return {
+        group,
+        results: [],
+        error: 'Repo configuration not found. Set the repo in Deploy first.',
+      };
+    }
+    if (!authManager) {
+      return {
+        group,
+        results: [],
+        error: 'Not authenticated. Add a GitHub token first.',
+      };
+    }
+    return uploadAssetGroup({
+      authManager,
+      repoOwner: repoConfig.owner,
+      repoName: repoConfig.repo,
+      group,
+      assets,
+      assetPaths: ASSET_GROUP_PATHS,
+      onProgress,
+    });
+  };
+
+  assetRegistry = createAssetRegistry({
+    initialState: editorState.assetRegistry as AssetRegistryState | undefined,
+    uploadHandler: assetUploadHandler,
+  });
   assetRegistry.onChange((nextState) => {
     if (!editorState) return;
     editorState.assetRegistry = nextState;
@@ -736,33 +764,6 @@ async function initCanvas(tileSize: number): Promise<void> {
       });
       canvasController?.invalidateScene();
 
-      if (selectionBar) {
-        selectionBar.setPasteEnabled(clipboard?.hasData() ?? false);
-        if (state.selection && state.mode === 'selected') {
-          selectionBar.show();
-          const viewport = canvasController?.getViewport();
-          if (viewport && currentScene) {
-            const start = tileToScreen(
-              viewport,
-              state.selection.startX,
-              state.selection.startY,
-              currentScene.tileSize
-            );
-            const end = tileToScreen(
-              viewport,
-              state.selection.startX + state.selection.width,
-              state.selection.startY + state.selection.height,
-              currentScene.tileSize
-            );
-            const centerX = (start.x + end.x) / 2;
-            const topY = Math.min(start.y, end.y) - 8;
-            selectionBar.setPosition(centerX, topY);
-          }
-        } else {
-          selectionBar.hide();
-        }
-      }
-
       tileSelectionActive = Boolean(state.selection && state.mode === 'selected');
       updateBottomContextStrip();
     },
@@ -805,40 +806,6 @@ async function initCanvas(tileSize: number): Promise<void> {
     onEntityPlaced: (entityId) => {
       canvasController?.getRenderer().setEntityHighlightId(entityId);
       canvasController?.invalidateScene();
-    },
-  });
-
-  selectionBar = createSelectionBar(container, {
-    onMove: () => {
-      selectTool?.armMove();
-    },
-    onCopy: () => {
-      selectTool?.copySelection();
-    },
-    onPaste: () => {
-      selectTool?.armPaste();
-    },
-    onDelete: () => {
-      selectTool?.deleteSelection();
-    },
-    onFill: () => {
-      selectTool?.armFill();
-    },
-    onCancel: () => {
-      selectTool?.clearSelection();
-    },
-  });
-
-  entitySelectionBar = createEntitySelectionBar(container, {
-    onDuplicate: () => {
-      selectTool?.duplicateEntities();
-    },
-    onDelete: () => {
-      selectTool?.deleteEntities();
-    },
-    onClear: () => {
-      entitySelection?.clear();
-      updateEntitySelectionUI();
     },
   });
 
@@ -1052,6 +1019,8 @@ async function initPanels(): Promise<void> {
       },
     });
 
+    setLayerPanelVisibility(!isV2Enabled(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL));
+
     // Initialize renderer with current visibility and locks
     const renderer = canvasController?.getRenderer();
     if (renderer) {
@@ -1181,6 +1150,7 @@ async function initPanels(): Promise<void> {
         initialTab: 'sprites',
         assetRegistry: assetRegistry ?? undefined,
         assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
+        assetUploadEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_UPLOAD),
       });
 
       leftBerryController.onOpenChange((open) => {
@@ -1280,20 +1250,7 @@ async function initPanels(): Promise<void> {
     }
   }
 
-  const canvasContainer = document.getElementById('canvas-container');
-  if (canvasContainer && entityManager && historyManager) {
-    propertyInspector = createPropertyInspector({
-      container: canvasContainer,
-      getProject: () => currentProject,
-      entityManager,
-      history: historyManager,
-      onClose: () => {
-        entitySelection?.clear();
-        updateEntitySelectionUI();
-      },
-    });
-    updateEntitySelectionUI();
-  }
+  updateEntitySelectionUI();
 
   console.log(`${LOG_PREFIX} Panels initialized`);
 }

@@ -107,6 +107,27 @@ const STYLES = `
     color: #9aa7d6;
   }
 
+  .asset-library__group-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .asset-library__upload-status {
+    font-size: 11px;
+    color: #9aa7d6;
+    max-width: 160px;
+    text-align: right;
+  }
+
+  .asset-library__upload-status--error {
+    color: #ffb6c1;
+  }
+
+  .asset-library__upload-status--success {
+    color: #9fe8b1;
+  }
+
   .asset-library__assets {
     margin-top: 10px;
     display: none;
@@ -177,6 +198,7 @@ const STYLES = `
 export interface AssetLibraryTabConfig {
   container: HTMLElement;
   assetRegistry: AssetRegistry;
+  uploadEnabled?: boolean;
 }
 
 export interface AssetLibraryTabController {
@@ -191,7 +213,7 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
 };
 
 export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibraryTabController {
-  const { container, assetRegistry } = config;
+  const { container, assetRegistry, uploadEnabled = false } = config;
 
   if (!document.getElementById('asset-library-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -201,6 +223,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   const expandedGroups = new Set<string>();
+  const uploadStatus = new Map<
+    string,
+    { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
+  >();
 
   const root = document.createElement('div');
   root.className = 'asset-library';
@@ -379,6 +405,90 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         });
 
         header.appendChild(toggle);
+
+        if (uploadEnabled) {
+          const actions = document.createElement('div');
+          actions.className = 'asset-library__group-actions';
+
+          const status = document.createElement('div');
+          status.className = 'asset-library__upload-status';
+
+          const statusKey = groupKey(group);
+          const currentStatus = uploadStatus.get(statusKey);
+          if (currentStatus) {
+            status.textContent = currentStatus.message;
+            status.classList.toggle(
+              'asset-library__upload-status--error',
+              currentStatus.state === 'error'
+            );
+            status.classList.toggle(
+              'asset-library__upload-status--success',
+              currentStatus.state === 'success'
+            );
+          }
+
+          const uploadButton = document.createElement('button');
+          uploadButton.type = 'button';
+          uploadButton.className = 'asset-library__button';
+          uploadButton.textContent = 'Upload';
+
+          const hasLocalAssets = group.assets.some((asset) => asset.source === 'local');
+          const isUploading = currentStatus?.state === 'uploading';
+          if (!hasLocalAssets) {
+            uploadButton.disabled = true;
+            status.textContent = status.textContent || 'No local assets';
+          }
+          if (isUploading) {
+            uploadButton.disabled = true;
+          }
+
+          uploadButton.addEventListener('click', async () => {
+            uploadStatus.set(statusKey, {
+              state: 'uploading',
+              message: 'Preparing upload...',
+            });
+            refresh();
+
+            try {
+              const result = await assetRegistry.uploadGroup({
+                groupType: group.type,
+                groupSlug: group.slug,
+                onProgress: (progress) => {
+                  uploadStatus.set(statusKey, {
+                    state: 'uploading',
+                    message: `Uploading ${progress.current}/${progress.total}…`,
+                  });
+                  refresh();
+                },
+              });
+
+              const successCount = result.results.filter((entry) => entry.success).length;
+              const failCount = result.results.filter((entry) => !entry.success).length;
+              const message = result.error
+                ? result.error
+                : failCount === 0
+                  ? `Uploaded ${successCount} files`
+                  : `Uploaded ${successCount}, ${failCount} failed`;
+
+              uploadStatus.set(statusKey, {
+                state: failCount === 0 && !result.error ? 'success' : 'error',
+                message,
+              });
+            } catch (error) {
+              uploadStatus.set(statusKey, {
+                state: 'error',
+                message: error instanceof Error ? error.message : 'Upload failed.',
+              });
+            }
+
+            refresh();
+          });
+
+          actions.appendChild(status);
+          actions.appendChild(uploadButton);
+          header.appendChild(actions);
+        }
+
         groupWrapper.appendChild(header);
         groupWrapper.appendChild(assetsContainer);
         librarySection.appendChild(groupWrapper);

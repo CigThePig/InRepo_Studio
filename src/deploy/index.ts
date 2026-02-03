@@ -11,6 +11,15 @@ export type {
 } from './changeDetector';
 export { createCommitter, deployChanges } from './commit';
 export type { CommitConfig, CommitProgress, CommitResult, Committer } from './commit';
+export { uploadAssetGroup } from './assetUpload';
+export type {
+  AssetUploadGroup,
+  AssetUploadGroupType,
+  AssetUploadItem,
+  AssetUploadProgress,
+  AssetUploadFileResult,
+  AssetUploadResult,
+} from './assetUpload';
 export { createConflictResolver } from './conflictResolver';
 export type { ConflictResolverUI, ConflictResolution, ResolvedConflict } from './conflictResolver';
 export { createDeployUI } from './deployUI';

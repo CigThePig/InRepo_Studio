@@ -37,8 +37,8 @@ const DEFAULT_V2_FLAGS: Record<EditorV2Flag, boolean> = {
   [EDITOR_V2_FLAGS.LEFT_BERRY]: true,
   [EDITOR_V2_FLAGS.ASSET_LIBRARY]: true,
   [EDITOR_V2_FLAGS.REPO_MIRRORING]: true,
-  [EDITOR_V2_FLAGS.ASSET_UPLOAD]: false,
-  [EDITOR_V2_FLAGS.HIDE_LAYER_PANEL]: false,
+  [EDITOR_V2_FLAGS.ASSET_UPLOAD]: true,
+  [EDITOR_V2_FLAGS.HIDE_LAYER_PANEL]: true,
 };
 
 function readStoredFlags(): Partial<Record<EditorV2Flag, boolean>> {
