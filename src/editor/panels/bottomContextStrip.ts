@@ -29,11 +29,17 @@ const STYLES = `
   .bottom-context-strip {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px 8px;
+    gap: 10px;
+    padding: 8px 14px 10px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-top: 1px solid #0f3460;
+    border-top: 1px solid rgba(74, 158, 255, 0.15);
+    background: linear-gradient(0deg, rgba(74, 158, 255, 0.04) 0%, transparent 100%);
+    scrollbar-width: none;
+  }
+
+  .bottom-context-strip::-webkit-scrollbar {
+    display: none;
   }
 
   .bottom-context-strip--hidden {
@@ -41,56 +47,77 @@ const STYLES = `
   }
 
   .bottom-context-strip__label {
-    color: #9fb2e6;
-    font-size: 12px;
+    color: #8899c4;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     white-space: nowrap;
+    padding: 6px 10px;
+    background: rgba(74, 158, 255, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(74, 158, 255, 0.15);
   }
 
   .bottom-context-strip__group {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
   }
 
   .bottom-context-strip__button {
     min-width: 44px;
     min-height: 44px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 2px solid transparent;
-    background: #25305c;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
     color: #e6ecff;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
   }
 
   .bottom-context-strip__button:active {
-    background: #33407a;
+    background: rgba(74, 158, 255, 0.2);
+    border-color: rgba(74, 158, 255, 0.3);
+    transform: scale(0.95);
   }
 
   .bottom-context-strip__button--danger {
-    background: #4b1f2c;
-    border-color: #73283d;
-    color: #ffd6e2;
+    background: linear-gradient(180deg, rgba(255, 82, 82, 0.2) 0%, rgba(255, 82, 82, 0.1) 100%);
+    border-color: rgba(255, 82, 82, 0.3);
+    color: #ffb8b8;
+  }
+
+  .bottom-context-strip__button--danger:active {
+    background: rgba(255, 82, 82, 0.35);
+    border-color: rgba(255, 82, 82, 0.5);
   }
 
   .bottom-context-strip__button--ghost {
-    min-width: 36px;
-    min-height: 36px;
-    padding: 4px 8px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 6px 10px;
     background: transparent;
-    border: 1px solid #33407a;
-    color: #b8c4ff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #b8c4e6;
+  }
+
+  .bottom-context-strip__button--ghost:active {
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .bottom-context-strip__button:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .bottom-context-strip__button:disabled:active {
+    transform: none;
   }
 `;
 
@@ -98,9 +125,13 @@ export function createBottomContextStrip(
   container: HTMLElement,
   config: BottomContextStripConfig
 ): BottomContextStripController {
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  // Ensure styles are only added once
+  if (!document.getElementById('bottom-context-strip-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'bottom-context-strip-styles';
+    styleEl.textContent = STYLES;
+    document.head.appendChild(styleEl);
+  }
 
   container.classList.add('bottom-context-strip', 'bottom-context-strip--hidden');
 
@@ -201,7 +232,8 @@ export function createBottomContextStrip(
   function destroy(): void {
     container.innerHTML = '';
     container.classList.remove('bottom-context-strip', 'bottom-context-strip--hidden');
-    styleEl.remove();
+    const styleEl = document.getElementById('bottom-context-strip-styles');
+    if (styleEl) styleEl.remove();
   }
 
   function buildButton(

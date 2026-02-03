@@ -18,10 +18,10 @@ const STYLE_ID = 'berry-controls-styles';
 
 const STYLES = `
   .berry-section {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
-    border-radius: 14px;
-    padding: 12px;
+    background: linear-gradient(180deg, rgba(74, 158, 255, 0.08) 0%, rgba(74, 158, 255, 0.03) 100%);
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 16px;
+    padding: 16px;
     color: #e6ecff;
   }
 
@@ -32,27 +32,29 @@ const STYLES = `
   .berry-section__title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
-    margin-bottom: 8px;
+    color: #e6ecff;
+    margin-bottom: 12px;
+    letter-spacing: 0.3px;
   }
 
   .berry-brush-control {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .berry-brush-control__row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
   }
 
   .berry-brush-control__label {
     font-size: 11px;
-    color: #9fb2e6;
-    letter-spacing: 0.4px;
+    color: #8899c4;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
+    font-weight: 600;
   }
 
   .berry-brush-control__buttons {
@@ -61,36 +63,42 @@ const STYLES = `
   }
 
   .berry-brush-control__button {
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #1f2745;
-    color: #cfd8ff;
-    font-size: 14px;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    color: #b8c4e6;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent;
   }
 
   .berry-brush-control__button:active {
-    background: #2c3563;
+    background: rgba(74, 158, 255, 0.15);
+    transform: scale(0.95);
   }
 
   .berry-brush-control__button--active {
-    border-color: #4a9eff;
-    background: #2c3563;
+    background: linear-gradient(180deg, rgba(74, 158, 255, 0.25) 0%, rgba(74, 158, 255, 0.15) 100%);
+    border-color: rgba(74, 158, 255, 0.5);
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(74, 158, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .berry-brush-control__hint {
     font-size: 12px;
-    color: #9aa7d6;
-    line-height: 1.4;
+    color: #8899c4;
+    line-height: 1.5;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 `;
 

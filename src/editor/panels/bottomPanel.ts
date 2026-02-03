@@ -70,10 +70,11 @@ const STYLES = `
   .bottom-panel {
     display: flex;
     flex-direction: column;
-    background: #16213e;
-    border-top: 1px solid #0f3460;
+    background: linear-gradient(0deg, #0f1629 0%, #141d38 100%);
+    border-top: 1px solid rgba(74, 158, 255, 0.15);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    transition: max-height 0.2s ease-out;
+    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .bottom-panel--collapsed {
@@ -85,40 +86,45 @@ const STYLES = `
   }
 
   .bottom-panel--expanded {
-    max-height: 320px;
+    max-height: 340px;
   }
 
   .bottom-panel__header {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 12px;
-    min-height: 12px;
+    height: 16px;
+    min-height: 16px;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    padding: 2px 0;
+    padding: 4px 0;
   }
 
   .bottom-panel__chevron {
-    color: #666;
+    color: #5a6a94;
     font-size: 10px;
+    transition: transform 0.2s ease;
+  }
+
+  .bottom-panel--expanded .bottom-panel__chevron {
+    transform: rotate(180deg);
   }
 
   .bottom-panel__context-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 10px 6px;
+    gap: 10px;
+    padding: 6px 12px 8px;
   }
 
   .bottom-panel__selection-button {
     min-width: 44px;
     min-height: 44px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #1f2745;
-    color: #cfd8ff;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    color: #b8c4e6;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -126,16 +132,19 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
   }
 
   .bottom-panel__selection-button:active {
-    background: #2c3563;
+    background: rgba(74, 158, 255, 0.2);
+    transform: scale(0.95);
   }
 
   .bottom-panel__selection-button--active {
-    border-color: #4a9eff;
-    background: #2c3563;
+    background: linear-gradient(180deg, rgba(74, 158, 255, 0.25) 0%, rgba(74, 158, 255, 0.15) 100%);
+    border-color: rgba(74, 158, 255, 0.5);
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(74, 158, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .bottom-panel__context-strip {
@@ -145,7 +154,7 @@ const STYLES = `
 
   .bottom-panel__content {
     flex: 1;
-    padding: 0 10px 10px;
+    padding: 0 12px 12px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -154,26 +163,32 @@ const STYLES = `
   .bottom-panel__utilities {
     display: flex;
     gap: 8px;
-    padding: 6px 0 4px;
+    padding: 8px 0 6px;
   }
 
   .bottom-panel__utility-button {
     min-width: 88px;
     min-height: 44px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #2a2a4e;
-    color: #ccc;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    color: #b8c4e6;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+  }
+
+  .bottom-panel__utility-button:active {
+    background: rgba(74, 158, 255, 0.15);
   }
 
   .bottom-panel__utility-button--active {
-    border-color: #4a9eff;
-    background: #3a3a6e;
+    background: linear-gradient(180deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%);
+    border-color: rgba(74, 158, 255, 0.4);
     color: #fff;
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.2);
   }
 
   .bottom-panel__section {
@@ -192,10 +207,14 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #666;
+    color: #5a6a94;
     font-size: 13px;
     text-align: center;
-    padding: 12px;
+    padding: 16px;
+    background: rgba(74, 158, 255, 0.04);
+    border: 1px dashed rgba(74, 158, 255, 0.15);
+    border-radius: 12px;
+    margin-top: 8px;
   }
 
   .bottom-panel__data-action {
@@ -203,12 +222,18 @@ const STYLES = `
     font-size: 13px;
     font-weight: 600;
     border-radius: 10px;
-    border: 2px solid transparent;
-    background: #2a2a4e;
-    color: #ccc;
-    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    color: #b8c4e6;
+    padding: 10px 14px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+  }
+
+  .bottom-panel__data-action:active {
+    background: rgba(74, 158, 255, 0.15);
+    transform: scale(0.98);
   }
 `;
 
@@ -225,10 +250,13 @@ export function createBottomPanel(
   let deployPanelController: DeployPanelController | null = null;
   let activePanel: BottomPanelSection = 'data';
 
-  // Inject styles
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  // Ensure styles are only added once
+  if (!document.getElementById('bottom-panel-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'bottom-panel-styles';
+    styleEl.textContent = STYLES;
+    document.head.appendChild(styleEl);
+  }
 
   // Create DOM
   const panel = document.createElement('div');
@@ -240,7 +268,7 @@ export function createBottomPanel(
 
   const chevron = document.createElement('span');
   chevron.className = 'bottom-panel__chevron';
-  chevron.textContent = state.expanded ? '▼' : '▲';
+  chevron.textContent = '▲';
 
   header.appendChild(chevron);
 
@@ -309,18 +337,18 @@ export function createBottomPanel(
 
   // --- Data Tools panel (Track 2: export/import + quota warning) ---
   const dataTitle = document.createElement('div');
-  dataTitle.style.cssText = 'font-size: 13px; font-weight: 700; color: #e6e6e6; margin-bottom: 8px;';
+  dataTitle.style.cssText = 'font-size: 14px; font-weight: 700; color: #e6ecff; margin-bottom: 8px; letter-spacing: 0.3px;';
   dataTitle.textContent = 'Data Tools';
 
   const dataDesc = document.createElement('div');
-  dataDesc.style.cssText = 'font-size: 12px; color: #aab0d4; margin-bottom: 10px; line-height: 1.35;';
+  dataDesc.style.cssText = 'font-size: 12px; color: #8899c4; margin-bottom: 12px; line-height: 1.4;';
   dataDesc.textContent = 'Export or import hot storage data (projects, scenes, editor state).';
 
   const dataActions = document.createElement('div');
   dataActions.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
 
   const dataStatus = document.createElement('div');
-  dataStatus.style.cssText = 'font-size: 12px; color: #aab0d4; margin-top: 10px;';
+  dataStatus.style.cssText = 'font-size: 12px; color: #8899c4; margin-top: 12px; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px;';
   dataStatus.textContent = '';
 
   function formatBytes(bytes: number): string {
@@ -466,7 +494,6 @@ export function createBottomPanel(
   function updateExpandedState(): void {
     panel.classList.toggle('bottom-panel--expanded', state.expanded);
     panel.classList.toggle('bottom-panel--collapsed', !state.expanded);
-    chevron.textContent = state.expanded ? '▼' : '▲';
   }
 
   function updateSelectionButton(): void {
@@ -550,7 +577,8 @@ export function createBottomPanel(
     destroy() {
       deployPanelController?.destroy();
       container.removeChild(panel);
-      document.head.removeChild(styleEl);
+      const styleEl = document.getElementById('bottom-panel-styles');
+      if (styleEl) styleEl.remove();
       console.log(`${LOG_PREFIX} Bottom panel destroyed`);
     },
   };

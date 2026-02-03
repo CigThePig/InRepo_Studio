@@ -54,55 +54,70 @@ const STYLES = `
   .top-bar-v2 {
     display: flex;
     flex-direction: column;
-    background: #16213e;
-    border-bottom: 1px solid #0f3460;
+    background: linear-gradient(180deg, #141d38 0%, #0f1629 100%);
+    border-bottom: 1px solid rgba(74, 158, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
   .top-bar-v2__main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 10px;
-    gap: 10px;
+    padding: 6px 12px;
+    gap: 12px;
   }
 
   .top-bar-v2__group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .top-bar-v2__button {
     min-width: 44px;
     min-height: 44px;
-    padding: 4px 8px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #2a2a4e;
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
     color: #e6ecff;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .top-bar-v2__button:active {
-    background: #3a3a6e;
+    background: rgba(74, 158, 255, 0.2);
+    border-color: rgba(74, 158, 255, 0.3);
+    transform: scale(0.95);
   }
 
   .top-bar-v2__button--disabled,
   .top-bar-v2__button:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
   }
 
+  .top-bar-v2__button--disabled:active,
+  .top-bar-v2__button:disabled:active {
+    transform: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+  }
+
   .top-bar-v2__button--play {
-    background: #4a9eff;
+    background: linear-gradient(180deg, #4a9eff 0%, #2d7ee0 100%);
+    border-color: rgba(74, 158, 255, 0.5);
     color: #fff;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .top-bar-v2__button--play:active {
-    background: #3a7fd6;
+    background: linear-gradient(180deg, #3d8be6 0%, #2570cc 100%);
   }
 
   .top-bar-v2__secondary {
@@ -110,7 +125,7 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 2px 10px 4px;
+    padding: 4px 12px 8px;
   }
 
   .top-bar-v2__scene-selector {
@@ -121,7 +136,7 @@ const STYLES = `
   .top-bar-v2__scene-title {
     color: #fff;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     padding: 0 8px;
     white-space: nowrap;
     overflow: hidden;
@@ -152,9 +167,13 @@ export function createTopBarV2(
   let playtestCallback: (() => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
 
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  // Ensure styles are only added once
+  if (!document.getElementById('top-bar-v2-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'top-bar-v2-styles';
+    styleEl.textContent = STYLES;
+    document.head.appendChild(styleEl);
+  }
 
   const panel = document.createElement('div');
   panel.className = `top-bar-v2 ${state.expanded ? 'top-bar-v2--expanded' : 'top-bar-v2--collapsed'}`;
@@ -302,7 +321,8 @@ export function createTopBarV2(
 
     destroy() {
       container.removeChild(panel);
-      document.head.removeChild(styleEl);
+      const styleEl = document.getElementById('top-bar-v2-styles');
+      if (styleEl) styleEl.remove();
       console.log(`${LOG_PREFIX} Top bar destroyed`);
     },
   };
