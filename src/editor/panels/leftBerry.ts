@@ -39,7 +39,7 @@ const STYLES = `
   .left-berry__overlay {
     position: absolute;
     inset: 0;
-    background: rgba(5, 10, 24, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     opacity: 0;
@@ -57,10 +57,10 @@ const STYLES = `
     top: 0;
     left: 0;
     height: 100%;
-    width: min(340px, 88vw);
-    background: linear-gradient(180deg, #141d38 0%, #0f1629 100%);
-    border-right: 1px solid rgba(74, 158, 255, 0.15);
-    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5), 0 0 1px rgba(74, 158, 255, 0.3);
+    width: min(320px, 85vw);
+    background: #0d1220;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -77,45 +77,46 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(74, 158, 255, 0.12);
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.06) 0%, transparent 100%);
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
 
   .left-berry__title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #e6ecff;
-    letter-spacing: 0.3px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
   }
 
   .left-berry__close {
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-    color: #e6ecff;
-    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 18px;
     font-weight: 300;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .left-berry__close:active {
-    background: rgba(74, 158, 255, 0.15);
-    border-color: rgba(74, 158, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 
   .left-berry__tabs {
     display: flex;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 6px;
+    padding: 12px 16px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid rgba(74, 158, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     scrollbar-width: none;
     flex-shrink: 0;
   }
@@ -128,45 +129,41 @@ const STYLES = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-height: 44px;
-    min-width: 44px;
-    padding: 8px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-    color: #b8c4e6;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .left-berry__tab:active {
-    background: rgba(74, 158, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .left-berry__tab--active {
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%);
-    border-color: rgba(74, 158, 255, 0.4);
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
-    box-shadow: 0 0 12px rgba(74, 158, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .left-berry__tab-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 8px;
-    background: rgba(74, 158, 255, 0.15);
+    width: 20px;
+    height: 20px;
     font-size: 12px;
+    opacity: 0.7;
   }
 
   .left-berry__tab--active .left-berry__tab-icon {
-    background: rgba(74, 158, 255, 0.3);
+    opacity: 1;
   }
 
   .left-berry__content {
@@ -187,17 +184,16 @@ const STYLES = `
   }
 
   .left-berry__tab-content::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 
   .left-berry__tab-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
+    background: transparent;
   }
 
   .left-berry__tab-content::-webkit-scrollbar-thumb {
-    background: rgba(74, 158, 255, 0.3);
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
   }
 
   .left-berry__tab-content--active {
@@ -206,68 +202,61 @@ const STYLES = `
   }
 
   .left-berry__placeholder {
-    color: #8899c4;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 13px;
     line-height: 1.5;
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.06) 0%, rgba(74, 158, 255, 0.02) 100%);
-    border: 1px dashed rgba(74, 158, 255, 0.2);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     padding: 16px;
   }
 
-  /* Berry Handle - Matching size with right berry */
+  /* Slim edge handle */
   .left-berry__handle {
     position: absolute;
-    left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+    left: 0;
     top: 50%;
-    transform: translate(0, -50%);
-    width: 72px;
-    height: 72px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 64px;
     padding: 0;
     border: none;
     background: transparent;
-    color: #cfd8ff;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     pointer-events: auto;
     -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
   }
 
-  .left-berry__handle-pill {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    border: 1px solid rgba(74, 158, 255, 0.2);
-    background: linear-gradient(180deg, rgba(30, 42, 74, 0.95) 0%, rgba(15, 22, 41, 0.95) 100%);
-    box-shadow: 
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      0 0 1px rgba(74, 158, 255, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  .left-berry__handle-tab {
+    width: 20px;
+    height: 56px;
+    background: rgba(30, 40, 60, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
   }
 
-  .left-berry__handle:active .left-berry__handle-pill {
-    background: linear-gradient(180deg, rgba(40, 55, 94, 0.98) 0%, rgba(20, 28, 52, 0.98) 100%);
-    border-color: rgba(74, 158, 255, 0.4);
-    transform: scale(0.95);
+  .left-berry__handle:active .left-berry__handle-tab {
+    background: rgba(40, 55, 80, 0.95);
+    width: 24px;
   }
 
   .left-berry__handle-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.25) 0%, rgba(74, 158, 255, 0.15) 100%);
-    color: #dbe4ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    transition: color 0.2s;
+  }
+
+  .left-berry__handle:active .left-berry__handle-icon {
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .left-berry-shell--open .left-berry__handle {
@@ -350,20 +339,21 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   panel.appendChild(tabBar);
   panel.appendChild(content);
 
+  // Slim edge-hugging handle
   const handle = document.createElement('button');
   handle.type = 'button';
   handle.className = 'left-berry__handle';
   handle.setAttribute('aria-label', 'Open asset panel');
 
-  const handlePill = document.createElement('div');
-  handlePill.className = 'left-berry__handle-pill';
+  const handleTab = document.createElement('div');
+  handleTab.className = 'left-berry__handle-tab';
 
   const handleIcon = document.createElement('div');
   handleIcon.className = 'left-berry__handle-icon';
-  handleIcon.textContent = '⧉';
+  handleIcon.textContent = '›';
 
-  handlePill.appendChild(handleIcon);
-  handle.appendChild(handlePill);
+  handleTab.appendChild(handleIcon);
+  handle.appendChild(handleTab);
 
   shell.appendChild(overlay);
   shell.appendChild(panel);

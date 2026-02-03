@@ -70,15 +70,14 @@ const STYLES = `
   .bottom-panel {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(0deg, #0f1629 0%, #141d38 100%);
-    border-top: 1px solid rgba(74, 158, 255, 0.15);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+    background: #0d1220;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
-    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.25s ease-out;
   }
 
   .bottom-panel--collapsed {
-    max-height: 96px;
+    max-height: 80px;
   }
 
   .bottom-panel--collapsed .bottom-panel__content {
@@ -86,7 +85,7 @@ const STYLES = `
   }
 
   .bottom-panel--expanded {
-    max-height: 340px;
+    max-height: 320px;
   }
 
   .bottom-panel__header {
@@ -98,12 +97,11 @@ const STYLES = `
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    padding: 4px 0;
   }
 
   .bottom-panel__chevron {
-    color: #5a6a94;
-    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 8px;
     transition: transform 0.2s ease;
   }
 
@@ -114,37 +112,36 @@ const STYLES = `
   .bottom-panel__context-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 12px 8px;
+    gap: 8px;
+    padding: 4px 12px 8px;
   }
 
   .bottom-panel__selection-button {
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-    color: #b8c4e6;
-    font-size: 12px;
-    font-weight: 700;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .bottom-panel__selection-button:active {
-    background: rgba(74, 158, 255, 0.2);
-    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.97);
   }
 
   .bottom-panel__selection-button--active {
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.25) 0%, rgba(74, 158, 255, 0.15) 100%);
-    border-color: rgba(74, 158, 255, 0.5);
-    color: #ffffff;
-    box-shadow: 0 0 12px rgba(74, 158, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(74, 158, 255, 0.2);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.4);
   }
 
   .bottom-panel__context-strip {
@@ -162,33 +159,32 @@ const STYLES = `
 
   .bottom-panel__utilities {
     display: flex;
-    gap: 8px;
-    padding: 8px 0 6px;
+    gap: 6px;
+    padding: 8px 0;
   }
 
   .bottom-panel__utility-button {
-    min-width: 88px;
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    color: #b8c4e6;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .bottom-panel__utility-button:active {
-    background: rgba(74, 158, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .bottom-panel__utility-button--active {
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%);
-    border-color: rgba(74, 158, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
-    box-shadow: 0 0 8px rgba(74, 158, 255, 0.2);
+    font-weight: 600;
   }
 
   .bottom-panel__section {
@@ -207,32 +203,32 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #5a6a94;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 13px;
     text-align: center;
     padding: 16px;
-    background: rgba(74, 158, 255, 0.04);
-    border: 1px dashed rgba(74, 158, 255, 0.15);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
     margin-top: 8px;
   }
 
   .bottom-panel__data-action {
-    min-width: 96px;
+    height: 40px;
+    padding: 0 14px;
     font-size: 13px;
-    font-weight: 600;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    color: #b8c4e6;
-    padding: 10px 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .bottom-panel__data-action:active {
-    background: rgba(74, 158, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     transform: scale(0.98);
   }
 `;
@@ -335,20 +331,20 @@ export function createBottomPanel(
   dataSection.className = 'bottom-panel__section bottom-panel__section--hidden';
   content.appendChild(dataSection);
 
-  // --- Data Tools panel (Track 2: export/import + quota warning) ---
+  // --- Data Tools panel ---
   const dataTitle = document.createElement('div');
-  dataTitle.style.cssText = 'font-size: 14px; font-weight: 700; color: #e6ecff; margin-bottom: 8px; letter-spacing: 0.3px;';
+  dataTitle.style.cssText = 'font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 8px;';
   dataTitle.textContent = 'Data Tools';
 
   const dataDesc = document.createElement('div');
-  dataDesc.style.cssText = 'font-size: 12px; color: #8899c4; margin-bottom: 12px; line-height: 1.4;';
+  dataDesc.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 12px; line-height: 1.4;';
   dataDesc.textContent = 'Export or import hot storage data (projects, scenes, editor state).';
 
   const dataActions = document.createElement('div');
   dataActions.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
 
   const dataStatus = document.createElement('div');
-  dataStatus.style.cssText = 'font-size: 12px; color: #8899c4; margin-top: 12px; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px;';
+  dataStatus.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 12px; padding: 8px 10px; background: rgba(0,0,0,0.2); border-radius: 6px;';
   dataStatus.textContent = '';
 
   function formatBytes(bytes: number): string {

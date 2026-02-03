@@ -54,16 +54,15 @@ const STYLES = `
   .top-bar-v2 {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, #141d38 0%, #0f1629 100%);
-    border-bottom: 1px solid rgba(74, 158, 255, 0.15);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    background: #0d1220;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .top-bar-v2__main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
+    padding: 8px 12px;
     gap: 12px;
   }
 
@@ -74,50 +73,45 @@ const STYLES = `
   }
 
   .top-bar-v2__button {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 6px 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-    color: #e6ecff;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 17px;
-    font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .top-bar-v2__button:active {
-    background: rgba(74, 158, 255, 0.2);
-    border-color: rgba(74, 158, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
     transform: scale(0.95);
   }
 
   .top-bar-v2__button--disabled,
   .top-bar-v2__button:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     cursor: not-allowed;
   }
 
   .top-bar-v2__button--disabled:active,
   .top-bar-v2__button:disabled:active {
     transform: none;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .top-bar-v2__button--play {
-    background: linear-gradient(180deg, #4a9eff 0%, #2d7ee0 100%);
-    border-color: rgba(74, 158, 255, 0.5);
+    background: #3b82f6;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .top-bar-v2__button--play:active {
-    background: linear-gradient(180deg, #3d8be6 0%, #2570cc 100%);
+    background: #2563eb;
   }
 
   .top-bar-v2__secondary {
@@ -137,7 +131,7 @@ const STYLES = `
     color: #fff;
     font-weight: 600;
     font-size: 14px;
-    padding: 0 8px;
+    padding: 0 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

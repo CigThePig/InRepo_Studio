@@ -18,11 +18,11 @@ const STYLE_ID = 'berry-controls-styles';
 
 const STYLES = `
   .berry-section {
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.08) 0%, rgba(74, 158, 255, 0.03) 100%);
-    border: 1px solid rgba(74, 158, 255, 0.15);
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
     padding: 16px;
-    color: #e6ecff;
+    color: #fff;
   }
 
   .berry-section + .berry-section {
@@ -30,17 +30,16 @@ const STYLES = `
   }
 
   .berry-section__title {
-    font-size: 13px;
-    font-weight: 700;
-    color: #e6ecff;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
     margin-bottom: 12px;
-    letter-spacing: 0.3px;
   }
 
   .berry-brush-control {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .berry-brush-control__row {
@@ -50,11 +49,12 @@ const STYLES = `
   }
 
   .berry-brush-control__label {
-    font-size: 11px;
-    color: #8899c4;
-    letter-spacing: 0.5px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
     font-weight: 600;
+    letter-spacing: 0.5px;
+    min-width: 40px;
   }
 
   .berry-brush-control__buttons {
@@ -63,42 +63,40 @@ const STYLES = `
   }
 
   .berry-brush-control__button {
-    min-width: 48px;
-    min-height: 48px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    color: #b8c4e6;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     -webkit-tap-highlight-color: transparent;
   }
 
   .berry-brush-control__button:active {
-    background: rgba(74, 158, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     transform: scale(0.95);
   }
 
   .berry-brush-control__button--active {
-    background: linear-gradient(180deg, rgba(74, 158, 255, 0.25) 0%, rgba(74, 158, 255, 0.15) 100%);
-    border-color: rgba(74, 158, 255, 0.5);
-    color: #ffffff;
-    box-shadow: 0 0 12px rgba(74, 158, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(74, 158, 255, 0.2);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.4);
   }
 
   .berry-brush-control__hint {
     font-size: 12px;
-    color: #8899c4;
+    color: rgba(255, 255, 255, 0.4);
     line-height: 1.5;
     padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
   }
 `;
 

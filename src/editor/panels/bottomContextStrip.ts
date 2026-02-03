@@ -29,12 +29,11 @@ const STYLES = `
   .bottom-context-strip {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 14px 10px;
+    gap: 8px;
+    padding: 8px 12px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-top: 1px solid rgba(74, 158, 255, 0.15);
-    background: linear-gradient(0deg, rgba(74, 158, 255, 0.04) 0%, transparent 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
     scrollbar-width: none;
   }
 
@@ -47,72 +46,68 @@ const STYLES = `
   }
 
   .bottom-context-strip__label {
-    color: #8899c4;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
-    padding: 6px 10px;
-    background: rgba(74, 158, 255, 0.1);
-    border-radius: 8px;
-    border: 1px solid rgba(74, 158, 255, 0.15);
+    padding: 0 8px;
   }
 
   .bottom-context-strip__group {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
   }
 
   .bottom-context-strip__button {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-    color: #e6ecff;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     white-space: nowrap;
   }
 
   .bottom-context-strip__button:active {
-    background: rgba(74, 158, 255, 0.2);
-    border-color: rgba(74, 158, 255, 0.3);
-    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.97);
   }
 
   .bottom-context-strip__button--danger {
-    background: linear-gradient(180deg, rgba(255, 82, 82, 0.2) 0%, rgba(255, 82, 82, 0.1) 100%);
-    border-color: rgba(255, 82, 82, 0.3);
-    color: #ffb8b8;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
   }
 
   .bottom-context-strip__button--danger:active {
-    background: rgba(255, 82, 82, 0.35);
-    border-color: rgba(255, 82, 82, 0.5);
+    background: rgba(239, 68, 68, 0.25);
   }
 
   .bottom-context-strip__button--ghost {
-    min-width: 40px;
-    min-height: 40px;
-    padding: 6px 10px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #b8c4e6;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .bottom-context-strip__button--ghost:active {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .bottom-context-strip__button:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
   }
 
@@ -191,7 +186,7 @@ export function createBottomContextStrip(
     container.classList.toggle('bottom-context-strip--hidden', isHidden);
 
     if (selectionType === 'tiles') {
-      label.textContent = 'Tile selection';
+      label.textContent = 'Selection';
       tileGroup.style.display = 'flex';
       entityGroup.style.display = 'none';
       triggerGroup.style.display = 'none';
@@ -201,7 +196,7 @@ export function createBottomContextStrip(
       entityGroup.style.display = 'flex';
       triggerGroup.style.display = 'none';
     } else if (selectionType === 'triggers') {
-      label.textContent = 'Trigger selection';
+      label.textContent = 'Trigger';
       tileGroup.style.display = 'none';
       entityGroup.style.display = 'none';
       triggerGroup.style.display = 'flex';
