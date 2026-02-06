@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}, contentVersionToken
+    - Keys: currentSceneId, currentTool, intent, domain, payload{}, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}, contentVersionToken
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)
@@ -94,9 +94,11 @@ Rules:
 ### Editor UI Schemas (Tracks 5-9)
 
 - `/src/editor/panels/bottomPanel.ts`
-  - `ToolList` — available tools
+  - `IntentType` — primary intent list
+    - Values: place, interact, remove
+    - Invariant: exactly one intent active at a time
+  - `ToolType` — legacy tool list (for mode mapping)
     - Values: select, paint, erase, entity
-    - Invariant: exactly one tool active at a time
 
 ### Editor V2 (Track 23)
 
@@ -121,7 +123,7 @@ Rules:
 
 - `/src/editor/panels/leftBerryTabs.ts`
   - `LEFT_BERRY_TABS` — left berry asset workflow tabs
-    - Invariant: order matches left berry navigation (Sprites, Assets)
+    - Invariant: order matches left berry navigation (Sprites, Assets, Tools)
 
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state

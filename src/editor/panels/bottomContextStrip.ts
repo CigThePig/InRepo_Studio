@@ -182,10 +182,12 @@ export function createBottomContextStrip(
 
   let selectionType: BottomContextSelection = 'none';
   let selectToolActive = false;
+  let pasteEnabled = false;
 
   let selectionCount = 0;
 
   function updateVisibility(): void {
+    const hasTileSelection = selectionType === 'tiles';
     const isHidden = selectionType === 'none' && !selectToolActive;
     container.classList.toggle('bottom-context-strip--hidden', isHidden);
 
@@ -216,14 +218,13 @@ export function createBottomContextStrip(
         entityGroup.style.display = 'none';
         triggerGroup.style.display = 'none';
       }
-  
+    }
 
-    const hasTileSelection = selectionType === 'tiles';
     moveButton.disabled = !hasTileSelection;
     copyButton.disabled = !hasTileSelection;
     deleteButton.disabled = !hasTileSelection;
     fillButton.disabled = !hasTileSelection;
-  }
+    pasteButton.disabled = !hasTileSelection || !pasteEnabled;
   }
 
   function setSelectionType(type: BottomContextSelection): void {
@@ -237,7 +238,8 @@ export function createBottomContextStrip(
   }
 
   function setPasteEnabled(enabled: boolean): void {
-    pasteButton.disabled = !enabled;
+    pasteEnabled = enabled;
+    updateVisibility();
   }
 
   function setSelectionCount(count: number): void {

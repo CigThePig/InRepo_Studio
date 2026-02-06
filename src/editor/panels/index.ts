@@ -33,10 +33,12 @@ export { createAssetLibraryTab } from './assetLibraryTab';
 export type { AssetLibraryTabController, AssetLibraryTabConfig } from './assetLibraryTab';
 export { createAssetPalette } from './assetPalette';
 export type { AssetPaletteController, AssetPaletteConfig } from './assetPalette';
+export { createUtilitiesTab } from './utilitiesTab';
+export type { UtilitiesTabController, UtilitiesTabConfig } from './utilitiesTab';
 
 // Bottom Panel
 export { createBottomPanel } from './bottomPanel';
-export type { BottomPanelController, BottomPanelState, ToolType, BottomPanelSection } from './bottomPanel';
+export type { BottomPanelController, BottomPanelState, IntentType } from './bottomPanel';
 
 // Bottom Context Strip
 export { createBottomContextStrip } from './bottomContextStrip';

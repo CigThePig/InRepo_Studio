@@ -56,12 +56,22 @@ export interface SelectedTile {
 
 export type BrushSize = 1 | 2 | 3;
 
+export type EditorIntent = 'place' | 'interact' | 'remove';
+export type EditorDomain = 'ground' | 'props' | 'entities' | 'collision' | 'triggers';
+export interface EditorPayload {
+  kind: string;
+  id: string;
+}
+
 export type LayerVisibility = Record<LayerType, boolean>;
 export type LayerLocks = Record<LayerType, boolean>;
 
 export interface EditorState {
   currentSceneId: string | null;
   currentTool: 'select' | 'paint' | 'erase' | 'entity';
+  intent: EditorIntent;
+  domain: EditorDomain;
+  payload: EditorPayload | null;
   editorMode: EditorMode;
   rightBerryOpen: boolean;
   leftBerryOpen: boolean;
@@ -284,6 +294,9 @@ export async function getAllSceneIds(): Promise<string[]> {
 const DEFAULT_EDITOR_STATE: EditorState = {
   currentSceneId: null,
   currentTool: 'select',
+  intent: 'interact',
+  domain: 'ground',
+  payload: null,
   editorMode: 'select',
   rightBerryOpen: false,
   leftBerryOpen: false,
@@ -321,6 +334,26 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   contentVersionToken: null,
 };
 
+function inferIntentFromTool(tool: EditorState['currentTool'] | undefined): EditorIntent {
+  if (tool === 'paint' || tool === 'entity') return 'place';
+  if (tool === 'erase') return 'remove';
+  return 'interact';
+}
+
+function inferDomainFromLegacy(state: Partial<EditorState>): EditorDomain {
+  if (state.editorMode && state.editorMode !== 'select') {
+    return state.editorMode as EditorDomain;
+  }
+  if (state.currentTool === 'entity') {
+    return 'entities';
+  }
+  const layer = state.activeLayer;
+  if (layer === 'props') return 'props';
+  if (layer === 'collision') return 'collision';
+  if (layer === 'triggers') return 'triggers';
+  return 'ground';
+}
+
 export async function saveEditorState(state: EditorState): Promise<void> {
   const database = getDB();
   await database.put('editorState', state, 'current');
@@ -343,9 +376,15 @@ export async function loadEditorState(): Promise<EditorState> {
     groups: state.assetRegistry?.groups ?? DEFAULT_EDITOR_STATE.assetRegistry.groups,
   };
 
+  const resolvedIntent = state.intent ?? inferIntentFromTool(state.currentTool);
+  const resolvedDomain = state.domain ?? inferDomainFromLegacy(state);
+
   const mergedState: EditorState = {
     ...DEFAULT_EDITOR_STATE,
     ...state,
+    intent: resolvedIntent,
+    domain: resolvedDomain,
+    payload: state.payload ?? DEFAULT_EDITOR_STATE.payload,
     viewport: { ...DEFAULT_EDITOR_STATE.viewport, ...state.viewport },
     panelStates: { ...DEFAULT_EDITOR_STATE.panelStates, ...state.panelStates },
     layerVisibility: { ...DEFAULT_EDITOR_STATE.layerVisibility, ...state.layerVisibility },

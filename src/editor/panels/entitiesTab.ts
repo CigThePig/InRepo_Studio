@@ -34,6 +34,12 @@ const STYLES = `
     gap: 8px;
   }
 
+  .entities-tab__palette-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
   .entities-tab__palette-button {
     min-height: 44px;
     padding: 8px 12px;
@@ -48,6 +54,7 @@ const STYLES = `
     justify-content: space-between;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    flex: 1;
   }
 
   .entities-tab__palette-button:active {
@@ -63,6 +70,24 @@ const STYLES = `
   .entities-tab__palette-tag {
     font-size: 11px;
     color: #9fb2e3;
+  }
+
+  .entities-tab__place-button {
+    min-width: 64px;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(74, 158, 255, 0.18);
+    color: #eaf2ff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .entities-tab__place-button:active {
+    background: rgba(74, 158, 255, 0.28);
   }
 
   .entities-tab__selection-title {
@@ -163,6 +188,7 @@ export interface EntitiesTabConfig {
   history: HistoryManager;
   assetRegistry?: AssetRegistry;
   onEntityTypeSelect?: (typeName: string | null) => void;
+  onEntityTypePlace?: (typeName: string) => void;
   onEntitySnapChange?: (enabled: boolean) => void;
 }
 
@@ -372,6 +398,9 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     }
 
     for (const entityType of project.entityTypes) {
+      const row = document.createElement('div');
+      row.className = 'entities-tab__palette-row';
+
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'entities-tab__palette-button';
@@ -387,7 +416,18 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         setSelectedEntityType(entityType.name);
       });
 
-      paletteList.appendChild(button);
+      const placeButton = document.createElement('button');
+      placeButton.type = 'button';
+      placeButton.className = 'entities-tab__place-button';
+      placeButton.textContent = 'Place';
+      placeButton.addEventListener('click', () => {
+        setSelectedEntityType(entityType.name);
+        config.onEntityTypePlace?.(entityType.name);
+      });
+
+      row.appendChild(button);
+      row.appendChild(placeButton);
+      paletteList.appendChild(row);
     }
   }
 

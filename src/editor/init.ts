@@ -18,7 +18,14 @@ import {
   forceRefreshFromCold,
   scanAssetFolders,
 } from '@/storage';
-import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
+import type {
+  BrushSize,
+  EditorState,
+  EditorIntent,
+  EditorDomain,
+  EditorPayload,
+  UpdateCheckResult,
+} from '@/storage';
 import type { SelectedTile, StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
@@ -34,12 +41,14 @@ import {
   createRightBerry,
   type RightBerryController,
   createLeftBerry,
+  type LeftBerryController,
   createEntitiesTab,
   type EntitiesTabController,
   createAssetPalette,
   createBrushSizeControl,
   createLayerPanel,
   type LayerPanelController,
+  createUtilitiesTab,
 } from '@/editor/panels';
 import {
   createAssetRegistry,
@@ -96,7 +105,6 @@ import {
   setInitialEditorMode,
   type EditorMode,
 } from '@/editor/v2/editorMode';
-import { getLegacyState } from '@/editor/v2/modeMapping';
 
 import { downloadJson } from '@/utils/download';
 
@@ -127,6 +135,7 @@ let entityManager: EntityManager | null = null;
 let entitySelection: EntitySelection | null = null;
 let tileSelectionActive = false;
 let rightBerryController: RightBerryController | null = null;
+let leftBerryController: LeftBerryController | null = null;
 let entitiesTab: EntitiesTabController | null = null;
 let entityMoveController: SelectEntityController | null = null;
 let entityMoveActive = false;
@@ -201,7 +210,7 @@ function applyToolChange(tool: EditorState['currentTool'], updateUI = false): vo
   editorState.currentTool = tool;
   scheduleSave();
   if (updateUI) {
-    bottomPanelController?.setCurrentTool(tool);
+    bottomPanelController?.setCurrentIntent(editorState.intent);
   }
   updateHoverPreview(tool);
   if (tool !== 'select') {
@@ -218,66 +227,121 @@ function applyToolChange(tool: EditorState['currentTool'], updateUI = false): vo
   updateBottomContextStrip();
 }
 
-function updateEditorMode(mode: EditorMode, syncLegacy = true): void {
+function resolveToolForIntent(intent: EditorIntent, domain: EditorDomain): EditorState['currentTool'] {
+  if (intent === 'interact') return 'select';
+  if (intent === 'remove') {
+    return domain === 'entities' ? 'select' : 'erase';
+  }
+  return domain === 'entities' ? 'entity' : 'paint';
+}
+
+function setPayload(nextPayload: EditorPayload | null): void {
   if (!editorState) return;
-  if (editorState.editorMode === mode && getEditorMode() === mode) {
-    if (syncLegacy) {
-      const legacy = getLegacyState(mode);
-      if (legacy.layer) {
-        applyActiveLayer(legacy.layer);
-      }
-      applyToolChange(legacy.tool, true);
+  editorState.payload = nextPayload;
+  scheduleSave();
+}
+
+function buildTilePayload(domain: EditorDomain, selection: SelectedTile | null): EditorPayload | null {
+  if (!selection) return null;
+  const kind = domain === 'props' ? 'prop' : 'tile';
+  return { kind, id: `${selection.category}:${selection.index}` };
+}
+
+function buildEntityPayload(typeName: string | null): EditorPayload | null {
+  if (!typeName) return null;
+  return { kind: 'entity', id: typeName };
+}
+
+function isPayloadCompatible(domain: EditorDomain, payload: EditorPayload | null): boolean {
+  if (!payload) return true;
+  if (domain === 'ground') return payload.kind === 'tile';
+  if (domain === 'props') return payload.kind === 'prop';
+  if (domain === 'entities') return payload.kind === 'entity';
+  if (domain === 'collision') return payload.kind === 'collision';
+  return payload.kind === 'trigger';
+}
+
+function ensurePayloadForDomain(domain: EditorDomain): void {
+  if (!editorState) return;
+  if (isPayloadCompatible(domain, editorState.payload)) {
+    return;
+  }
+
+  if (domain === 'entities') {
+    const fallback = editorState.selectedEntityType ?? currentProject?.entityTypes?.[0]?.name ?? null;
+    if (fallback && editorState.selectedEntityType !== fallback) {
+      editorState.selectedEntityType = fallback;
     }
-    if (mode !== 'select') {
-      rightBerryController?.setActiveTab(mode, { silent: true });
+    setPayload(buildEntityPayload(fallback));
+    return;
+  }
+
+  if (domain === 'ground' || domain === 'props') {
+    setPayload(buildTilePayload(domain, editorState.selectedTile));
+    return;
+  }
+
+  if (domain === 'collision') {
+    setPayload({ kind: 'collision', id: 'paint' });
+    return;
+  }
+
+  setPayload({ kind: 'trigger', id: 'paint' });
+}
+
+function applyIntent(intent: EditorIntent, updateUI = false): void {
+  if (!editorState) return;
+  if (editorState.intent === intent) return;
+  editorState.intent = intent;
+  scheduleSave();
+  if (updateUI) {
+    bottomPanelController?.setCurrentIntent(intent);
+  }
+
+  const nextTool = resolveToolForIntent(intent, editorState.domain);
+  applyToolChange(nextTool, true);
+}
+
+function applyDomain(domain: EditorDomain, updateUI = false): void {
+  if (!editorState) return;
+  if (editorState.domain === domain && editorState.editorMode === domain && getEditorMode() === domain) {
+    if (updateUI) {
+      rightBerryController?.setActiveTab(domain, { silent: true });
     }
+    ensurePayloadForDomain(domain);
+    const nextTool = resolveToolForIntent(editorState.intent, domain);
+    applyToolChange(nextTool, true);
     updateBottomPanelToolContext();
     return;
   }
-  editorState.editorMode = mode;
+
+  editorState.domain = domain;
+  editorState.editorMode = domain as EditorMode;
   scheduleSave();
 
-  if (getEditorMode() !== mode) {
-    setEditorMode(mode);
+  if (getEditorMode() !== domain) {
+    setEditorMode(domain);
   }
 
-  if (syncLegacy) {
-    const legacy = getLegacyState(mode);
-    if (legacy.layer) {
-      applyActiveLayer(legacy.layer);
-    }
-    applyToolChange(legacy.tool, true);
+  if (updateUI) {
+    rightBerryController?.setActiveTab(domain, { silent: true });
   }
 
-  if (mode !== 'select') {
-    rightBerryController?.setActiveTab(mode, { silent: true });
-  }
+  if (domain === 'ground') applyActiveLayer('ground');
+  if (domain === 'props') applyActiveLayer('props');
+  if (domain === 'collision') applyActiveLayer('collision');
+  if (domain === 'triggers') applyActiveLayer('triggers');
 
+  ensurePayloadForDomain(domain);
+
+  const nextTool = resolveToolForIntent(editorState.intent, domain);
+  applyToolChange(nextTool, true);
   updateBottomPanelToolContext();
-}
-
-function inferModeFromTool(tool: EditorState['currentTool']): EditorMode {
-  if (!editorState) return 'select';
-  if (tool === 'select') return 'select';
-  if (tool === 'entity') return 'entities';
-  const layer = editorState.activeLayer;
-  if (layer === 'ground') return 'ground';
-  if (layer === 'props') return 'props';
-  if (layer === 'collision') return 'collision';
-  if (layer === 'triggers') return 'triggers';
-  return 'ground';
-}
-
-function activateTileTool(tool: 'paint' | 'erase'): void {
-  if (!editorState) return;
-  const targetMode = inferModeFromTool(tool);
-  updateEditorMode(targetMode, true);
-  applyToolChange(tool, true);
 }
 
 function updateBottomContextStrip(): void {
   if (!bottomContextStrip || !editorState) return;
-  bottomContextStrip.setSelectToolActive(editorState.currentTool === 'select');
+  bottomContextStrip.setSelectToolActive(editorState.intent === 'interact');
   const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
   const toolAllowsEntitySelection =
     editorState.currentTool === 'select' ||
@@ -290,7 +354,7 @@ function updateBottomContextStrip(): void {
     return;
   }
 
-  if (editorState.currentTool !== 'select') {
+  if (editorState.intent !== 'interact') {
     bottomContextStrip.setSelectionType('none');
     return;
   }
@@ -316,18 +380,18 @@ function formatLayerLabel(layer: LayerType | null): string {
 
 function updateBottomPanelToolContext(): void {
   if (!bottomPanelController || !editorState) return;
-  const mode = editorState.editorMode;
+  const mode = editorState.domain;
   const layer = editorState.activeLayer;
   const baseLocked = layer ? editorState.layerLocks?.[layer] ?? false : false;
   const isLocked = mode === 'entities' ? false : baseLocked;
-  const paintEnabled = mode !== 'entities' && !baseLocked;
-  const eraseEnabled = mode !== 'entities' && !baseLocked;
+  const placeEnabled = mode === 'entities' ? true : !baseLocked;
+  const removeEnabled = mode === 'entities' ? true : !baseLocked;
   const layerLabel = mode === 'entities' ? 'Entities' : formatLayerLabel(layer);
 
-  bottomPanelController.setToolContext({
+  bottomPanelController.setIntentContext({
     layerLabel,
-    paintEnabled,
-    eraseEnabled,
+    placeEnabled,
+    removeEnabled,
     isLocked,
   });
 }
@@ -359,7 +423,10 @@ function resolveSelectedTileFromAsset(asset: AssetEntry, project: Project): Sele
   return null;
 }
 
-function applySelectedTile(selection: SelectedTile, options?: { switchTool?: boolean }): void {
+function applySelectedTile(
+  selection: SelectedTile,
+  options?: { setIntent?: EditorIntent; closeRightBerry?: boolean }
+): void {
   if (!editorState) return;
 
   const previous = editorState.selectedTile;
@@ -371,14 +438,22 @@ function applySelectedTile(selection: SelectedTile, options?: { switchTool?: boo
   scheduleSave();
   canvasController?.setSelectedCategory(selection.category);
 
-  if (options?.switchTool) {
-    activateTileTool('paint');
+  if (editorState.domain === 'ground' || editorState.domain === 'props') {
+    setPayload(buildTilePayload(editorState.domain, selection));
+  }
+
+  if (options?.setIntent) {
+    applyIntent(options.setIntent, true);
+  }
+
+  if (options?.closeRightBerry) {
+    rightBerryController?.close();
   }
 }
 
 function syncSelectedAssetSelection(
   selectedAssetId: string | null,
-  options?: { switchTool?: boolean }
+  options?: { setIntent?: EditorIntent; closeRightBerry?: boolean }
 ): void {
   if (!editorState || !assetRegistry || !currentProject) return;
   if (!selectedAssetId) return;
@@ -553,6 +628,7 @@ export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
   setContentVersionToken(editorState.contentVersionToken ?? null);
   currentBrushSize = editorState.brushSize ?? 1;
+  editorState.editorMode = (editorState.domain ?? 'ground') as EditorMode;
   setInitialEditorMode(editorState.editorMode);
   const assetUploadHandler = async ({
     group,
@@ -610,7 +686,11 @@ export async function initEditor(): Promise<void> {
     editorState.assetRegistry = nextState;
     scheduleSave();
     if (previousSelectedAssetId !== nextState.selectedAssetId) {
-      syncSelectedAssetSelection(nextState.selectedAssetId, { switchTool: true });
+      const shouldPlace = editorState.domain === 'ground' || editorState.domain === 'props';
+      syncSelectedAssetSelection(nextState.selectedAssetId, {
+        setIntent: shouldPlace ? 'place' : undefined,
+        closeRightBerry: shouldPlace,
+      });
     }
   });
   if (editorState.repoAssetManifest) {
@@ -630,7 +710,7 @@ export async function initEditor(): Promise<void> {
     throw new Error('No project data available');
   }
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
-  syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null, { switchTool: true });
+  syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null);
   if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
     editorState.selectedEntityType = currentProject.entityTypes[0].name;
     scheduleSave();
@@ -943,6 +1023,36 @@ async function initCanvas(tileSize: number): Promise<void> {
   // Wire up tool gestures
   canvasController.onToolGesture({
     onStart: (x, y) => {
+      if (editorState?.intent === 'place') {
+        const needsPayload =
+          editorState.domain === 'ground' ||
+          editorState.domain === 'props' ||
+          editorState.domain === 'entities';
+        if (needsPayload && !editorState.payload) {
+          showToast('Pick something to place.');
+          rightBerryController?.open(editorState.domain as EditorMode);
+          return;
+        }
+      }
+
+      if (
+        editorState?.intent === 'remove' &&
+        editorState.domain === 'entities' &&
+        entityMoveController
+      ) {
+        const didSelect = entityMoveController.handlePointerStart(
+          canvasController!.getViewport(),
+          x,
+          y,
+          tileSize
+        );
+        if (didSelect) {
+          entityMoveController.deleteSelected();
+          updateEntitySelectionUI();
+        }
+        return;
+      }
+
       if (editorState?.currentTool === 'select' && selectTool) {
         selectTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'paint' && paintTool) {
@@ -966,6 +1076,9 @@ async function initCanvas(tileSize: number): Promise<void> {
       }
     },
     onMove: (x, y) => {
+      if (editorState?.intent === 'remove' && editorState.domain === 'entities') {
+        return;
+      }
       if (editorState?.currentTool === 'select' && selectTool) {
         selectTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'paint' && paintTool) {
@@ -1120,7 +1233,7 @@ async function initPanels(): Promise<void> {
         applyActiveLayer(layer);
         if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
           if (editorState?.currentTool === 'paint' || editorState?.currentTool === 'erase') {
-            updateEditorMode(inferModeFromTool(editorState.currentTool), false);
+            applyDomain(layer as EditorDomain, false);
           }
         }
       },
@@ -1165,16 +1278,9 @@ async function initPanels(): Promise<void> {
   // Initialize bottom panel
   const bottomPanelContainer = document.getElementById('bottom-panel-container');
   if (bottomPanelContainer) {
-    bottomPanelController = createBottomPanel(
-      bottomPanelContainer,
-      {
-        expanded: editorState.panelStates.bottomExpanded,
-        currentTool: editorState.currentTool,
-      },
-      {
-        authManager: authManager ?? undefined,
-      }
-    );
+    bottomPanelController = createBottomPanel(bottomPanelContainer, {
+      currentIntent: editorState.intent,
+    });
 
     if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
       bottomContextStrip = createBottomContextStrip(
@@ -1233,25 +1339,16 @@ async function initPanels(): Promise<void> {
       updateBottomContextStrip();
     }
 
-    // Wire up persistence
-    bottomPanelController.onExpandToggle((expanded) => {
-      if (editorState) {
-        editorState.panelStates.bottomExpanded = expanded;
-        scheduleSave();
-      }
+    bottomPanelController.onPlaceClick(() => {
+      applyIntent('place', true);
     });
 
-    bottomPanelController.onSelectionClick(() => {
-      rightBerryController?.close();
-      updateEditorMode('select', true);
+    bottomPanelController.onInteractClick(() => {
+      applyIntent('interact', true);
     });
 
-    bottomPanelController.onPaintClick(() => {
-      activateTileTool('paint');
-    });
-
-    bottomPanelController.onEraseClick(() => {
-      activateTileTool('erase');
+    bottomPanelController.onRemoveClick(() => {
+      applyIntent('remove', true);
     });
 
     updateBottomPanelToolContext();
@@ -1265,13 +1362,21 @@ async function initPanels(): Promise<void> {
   if (isV2Enabled(EDITOR_V2_FLAGS.LEFT_BERRY)) {
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer && editorState) {
-      const leftBerryController = createLeftBerry(canvasContainer, {
+      leftBerryController = createLeftBerry(canvasContainer, {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
         assetRegistry: assetRegistry ?? undefined,
         assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
         assetUploadEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_UPLOAD),
       });
+
+      const toolsContainer = leftBerryController.getTabContentContainer('tools');
+      if (toolsContainer) {
+        createUtilitiesTab({
+          container: toolsContainer,
+          authManager: authManager ?? undefined,
+        });
+      }
 
       leftBerryController.onOpenChange((open) => {
         if (!editorState) return;
@@ -1284,8 +1389,7 @@ async function initPanels(): Promise<void> {
   if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer && editorState) {
-      const initialTab =
-        editorState.editorMode !== 'select' ? editorState.editorMode : 'ground';
+      const initialTab = editorState.domain ?? 'ground';
       rightBerryController = createRightBerry(canvasContainer, {
         initialOpen: editorState.rightBerryOpen,
         initialTab,
@@ -1360,6 +1464,15 @@ async function initPanels(): Promise<void> {
             if (!editorState) return;
             editorState.selectedEntityType = typeName;
             scheduleSave();
+            setPayload(buildEntityPayload(typeName));
+          },
+          onEntityTypePlace: (typeName) => {
+            if (!editorState) return;
+            editorState.selectedEntityType = typeName;
+            scheduleSave();
+            setPayload(buildEntityPayload(typeName));
+            applyIntent('place', true);
+            rightBerryController?.close();
           },
           onEntitySnapChange: (enabled) => {
             if (!editorState) return;
@@ -1371,7 +1484,8 @@ async function initPanels(): Promise<void> {
       }
 
       rightBerryController.onTabChange((mode) => {
-        updateEditorMode(mode, true);
+        const nextDomain = mode === 'select' ? editorState?.domain ?? 'ground' : mode;
+        applyDomain(nextDomain as EditorDomain, false);
       });
 
       rightBerryController.onOpenChange((open) => {
@@ -1380,7 +1494,8 @@ async function initPanels(): Promise<void> {
         scheduleSave();
         if (open) {
           const activeTab = rightBerryController?.getActiveTab() ?? 'ground';
-          updateEditorMode(activeTab, true);
+          const nextDomain = activeTab === 'select' ? editorState.domain : activeTab;
+          applyDomain(nextDomain as EditorDomain, false);
         } else {
           // Do not force-select on close. Keep the current editing mode/tool.
           updateBottomPanelToolContext();
@@ -1388,15 +1503,15 @@ async function initPanels(): Promise<void> {
       });
 
       {
-        // Restore the last meaningful mode on boot. If we previously stored 'select',
-        // fall back to the mode implied by the current tool/layer.
-        const resolvedInitialMode =
-          editorState.editorMode !== 'select'
-            ? editorState.editorMode
-            : inferModeFromTool(editorState.currentTool);
-        updateEditorMode(resolvedInitialMode, true);
+        const resolvedInitialDomain = editorState.domain ?? 'ground';
+        applyDomain(resolvedInitialDomain, true);
       }
     }
+  }
+
+  if (editorState) {
+    applyDomain(editorState.domain ?? 'ground', false);
+    bottomPanelController?.setCurrentIntent(editorState.intent);
   }
 
   updateEntitySelectionUI();
@@ -1772,8 +1887,7 @@ function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
   `;
 
   btnOpen.addEventListener('click', () => {
-    bottomPanelController?.setExpanded(true);
-    bottomPanelController?.setActivePanel('data');
+    leftBerryController?.open('tools');
   });
 
   btnDismiss.addEventListener('click', () => {

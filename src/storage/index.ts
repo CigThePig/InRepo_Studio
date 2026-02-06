@@ -33,6 +33,9 @@ export {
 export type {
   BrushSize,
   EditorState,
+  EditorIntent,
+  EditorDomain,
+  EditorPayload,
   ViewportState,
   PanelStates,
   HotProject,
