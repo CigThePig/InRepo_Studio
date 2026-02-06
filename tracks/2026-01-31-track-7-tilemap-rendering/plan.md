@@ -164,7 +164,7 @@ Phase complete. Track 7 done. Ready for Track 8 (Paint Tool).
 
 ### Before Phase 1
 
-- Confirm asset path resolution works (e.g., `/game/assets/tiles/terrain/grass.png`)
+- Confirm asset path resolution works (e.g., `/game/assets/tilesets/base/grass.png`)
 - Verify scene data is available from hot storage
 
 ### Before Phase 2

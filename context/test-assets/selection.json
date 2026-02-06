@@ -1,36 +1,36 @@
 [
   {
-    "dest": "game/assets/tiles/terrain/grass.png",
+    "dest": "game/assets/tilesets/base/grass.png",
     "src_tile": "tile_gid0001_r00_c00.png",
     "gid": 1
   },
   {
-    "dest": "game/assets/tiles/terrain/dirt.png",
+    "dest": "game/assets/tilesets/base/dirt.png",
     "src_tile": "tile_gid0018_r01_c01.png",
     "gid": 18
   },
   {
-    "dest": "game/assets/tiles/terrain/water.png",
+    "dest": "game/assets/tilesets/base/water.png",
     "src_tile": "tile_gid0134_r08_c05.png",
     "gid": 134
   },
   {
-    "dest": "game/assets/tiles/terrain/stone.png",
+    "dest": "game/assets/tilesets/base/stone.png",
     "src_tile": "tile_gid0086_r05_c05.png",
     "gid": 86
   },
   {
-    "dest": "game/assets/tiles/props/tree.png",
+    "dest": "game/assets/props/base/tree.png",
     "src_tile": "tile_gid0027_r01_c10.png",
     "gid": 27
   },
   {
-    "dest": "game/assets/tiles/props/rock.png",
+    "dest": "game/assets/props/base/rock.png",
     "src_tile": "tile_gid0028_r01_c11.png",
     "gid": 28
   },
   {
-    "dest": "game/assets/tiles/props/bush.png",
+    "dest": "game/assets/props/base/bush.png",
     "src_tile": "tile_gid0052_r03_c03.png",
     "gid": 52
   }
