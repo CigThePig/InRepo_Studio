@@ -29,6 +29,9 @@ export interface BottomPanelController {
   /** Get the current tool */
   getCurrentTool(): ToolType;
 
+  /** Update tool context (layer + availability) */
+  setToolContext(context: { layerLabel: string; paintEnabled: boolean; eraseEnabled: boolean; isLocked: boolean }): void;
+
   /** Set expanded state */
   setExpanded(expanded: boolean): void;
 
@@ -46,6 +49,12 @@ export interface BottomPanelController {
 
   /** Register callback for selection button */
   onSelectionClick(callback: () => void): void;
+
+  /** Register callback for paint button */
+  onPaintClick(callback: () => void): void;
+
+  /** Register callback for erase button */
+  onEraseClick(callback: () => void): void;
 
   /** Toggle selection button active state */
   setSelectionActive(active: boolean): void;
@@ -116,32 +125,76 @@ const STYLES = `
     padding: 4px 12px 8px;
   }
 
-  .bottom-panel__selection-button {
+  .bottom-panel__tool-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .bottom-panel__tool-button {
     height: 44px;
-    padding: 0 16px;
+    min-width: 44px;
+    padding: 0 12px;
     border-radius: 10px;
     border: none;
     background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     -webkit-tap-highlight-color: transparent;
     transition: all 0.15s ease;
+    text-align: left;
   }
 
-  .bottom-panel__selection-button:active {
+  .bottom-panel__tool-button:active {
     background: rgba(255, 255, 255, 0.1);
     transform: scale(0.97);
   }
 
-  .bottom-panel__selection-button--active {
+  .bottom-panel__tool-button--active {
     background: rgba(74, 158, 255, 0.2);
     color: #fff;
     box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.4);
+  }
+
+  .bottom-panel__tool-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .bottom-panel__tool-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .bottom-panel__tool-labels {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .bottom-panel__tool-title {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .bottom-panel__tool-sublabel {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+  }
+
+  .bottom-panel__tool-button--locked .bottom-panel__tool-sublabel::after {
+    content: ' • Locked';
+    color: rgba(255, 179, 86, 0.9);
   }
 
   .bottom-panel__context-strip {
@@ -243,8 +296,16 @@ export function createBottomPanel(
   const state = { ...initialState };
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
   let selectionClickCallback: (() => void) | null = null;
+  let paintClickCallback: (() => void) | null = null;
+  let eraseClickCallback: (() => void) | null = null;
   let deployPanelController: DeployPanelController | null = null;
   let activePanel: BottomPanelSection = 'data';
+  let toolContext = {
+    layerLabel: 'Ground',
+    paintEnabled: true,
+    eraseEnabled: true,
+    isLocked: false,
+  };
 
   // Ensure styles are only added once
   if (!document.getElementById('bottom-panel-styles')) {
@@ -271,21 +332,65 @@ export function createBottomPanel(
   const contextRow = document.createElement('div');
   contextRow.className = 'bottom-panel__context-row';
 
+  const toolGroup = document.createElement('div');
+  toolGroup.className = 'bottom-panel__tool-group';
+
   const selectionButton = document.createElement('button');
   selectionButton.type = 'button';
-  selectionButton.className = 'bottom-panel__selection-button';
-  selectionButton.textContent = 'Select';
-  selectionButton.setAttribute('aria-label', 'Selection mode');
-  selectionButton.setAttribute('title', 'Selection mode');
+  selectionButton.className = 'bottom-panel__tool-button';
+  selectionButton.setAttribute('aria-label', 'Selection tool');
+  selectionButton.setAttribute('title', 'Selection tool');
+  selectionButton.innerHTML = `
+    <span class="bottom-panel__tool-icon">⬚</span>
+    <span class="bottom-panel__tool-title">Select</span>
+  `;
 
   selectionButton.addEventListener('click', () => {
     selectionClickCallback?.();
   });
 
+  const paintButton = document.createElement('button');
+  paintButton.type = 'button';
+  paintButton.className = 'bottom-panel__tool-button';
+  paintButton.setAttribute('aria-label', 'Paint tool');
+  paintButton.setAttribute('title', 'Paint tool');
+  paintButton.innerHTML = `
+    <span class="bottom-panel__tool-icon">✎</span>
+    <span class="bottom-panel__tool-labels">
+      <span class="bottom-panel__tool-title">Paint</span>
+      <span class="bottom-panel__tool-sublabel"></span>
+    </span>
+  `;
+
+  paintButton.addEventListener('click', () => {
+    paintClickCallback?.();
+  });
+
+  const eraseButton = document.createElement('button');
+  eraseButton.type = 'button';
+  eraseButton.className = 'bottom-panel__tool-button';
+  eraseButton.setAttribute('aria-label', 'Erase tool');
+  eraseButton.setAttribute('title', 'Erase tool');
+  eraseButton.innerHTML = `
+    <span class="bottom-panel__tool-icon">⌫</span>
+    <span class="bottom-panel__tool-labels">
+      <span class="bottom-panel__tool-title">Erase</span>
+      <span class="bottom-panel__tool-sublabel"></span>
+    </span>
+  `;
+
+  eraseButton.addEventListener('click', () => {
+    eraseClickCallback?.();
+  });
+
+  toolGroup.appendChild(selectionButton);
+  toolGroup.appendChild(paintButton);
+  toolGroup.appendChild(eraseButton);
+
   const contextStripContainer = document.createElement('div');
   contextStripContainer.className = 'bottom-panel__context-strip';
 
-  contextRow.appendChild(selectionButton);
+  contextRow.appendChild(toolGroup);
   contextRow.appendChild(contextStripContainer);
 
   // Content area (for utilities)
@@ -492,8 +597,21 @@ export function createBottomPanel(
     panel.classList.toggle('bottom-panel--collapsed', !state.expanded);
   }
 
-  function updateSelectionButton(): void {
-    selectionButton.classList.toggle('bottom-panel__selection-button--active', state.currentTool === 'select');
+  function updateToolButtons(): void {
+    selectionButton.classList.toggle('bottom-panel__tool-button--active', state.currentTool === 'select');
+    paintButton.classList.toggle('bottom-panel__tool-button--active', state.currentTool === 'paint');
+    eraseButton.classList.toggle('bottom-panel__tool-button--active', state.currentTool === 'erase');
+
+    paintButton.disabled = !toolContext.paintEnabled;
+    eraseButton.disabled = !toolContext.eraseEnabled;
+
+    paintButton.classList.toggle('bottom-panel__tool-button--locked', toolContext.isLocked);
+    eraseButton.classList.toggle('bottom-panel__tool-button--locked', toolContext.isLocked);
+
+    const paintLabel = paintButton.querySelector('.bottom-panel__tool-sublabel');
+    const eraseLabel = eraseButton.querySelector('.bottom-panel__tool-sublabel');
+    if (paintLabel) paintLabel.textContent = toolContext.layerLabel;
+    if (eraseLabel) eraseLabel.textContent = toolContext.layerLabel;
   }
 
   function setActivePanel(panelName: BottomPanelSection): void {
@@ -513,7 +631,7 @@ export function createBottomPanel(
   panel.appendChild(content);
   container.appendChild(panel);
 
-  updateSelectionButton();
+  updateToolButtons();
   setActivePanel(activePanel);
 
   console.log(`${LOG_PREFIX} Bottom panel created`);
@@ -524,11 +642,16 @@ export function createBottomPanel(
     setCurrentTool(tool: ToolType) {
       if (state.currentTool === tool) return;
       state.currentTool = tool;
-      updateSelectionButton();
+      updateToolButtons();
     },
 
     getCurrentTool() {
       return state.currentTool;
+    },
+
+    setToolContext(context) {
+      toolContext = { ...toolContext, ...context };
+      updateToolButtons();
     },
 
     setExpanded(expanded: boolean) {
@@ -558,8 +681,16 @@ export function createBottomPanel(
       selectionClickCallback = callback;
     },
 
+    onPaintClick(callback) {
+      paintClickCallback = callback;
+    },
+
+    onEraseClick(callback) {
+      eraseClickCallback = callback;
+    },
+
     setSelectionActive(active: boolean) {
-      selectionButton.classList.toggle('bottom-panel__selection-button--active', active);
+      selectionButton.classList.toggle('bottom-panel__tool-button--active', active);
     },
 
     getContentContainer() {
