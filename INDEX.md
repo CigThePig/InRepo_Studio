@@ -387,6 +387,10 @@ Micro-format (copy/paste):
   - Role: Asset palette UI for right berry modes.
   - Lists of truth: none
 
+- `src/editor/panels/utilitiesTab.ts`
+  - Role: Left berry utilities tab for deploy and data tools.
+  - Lists of truth: none
+
 - `src/editor/panels/entitiesTab.ts`
   - Role: Entities mode tab UI for palette, selection, and inline property editing.
   - Lists of truth: none

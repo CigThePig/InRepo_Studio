@@ -13,7 +13,7 @@
  * - Apply mode: live (tabs render immediately)
  */
 
-export type LeftBerryTabId = 'sprites' | 'assets';
+export type LeftBerryTabId = 'sprites' | 'assets' | 'tools';
 
 export interface LeftBerryTab {
   id: LeftBerryTabId;
@@ -24,4 +24,5 @@ export interface LeftBerryTab {
 export const LEFT_BERRY_TABS: LeftBerryTab[] = [
   { id: 'sprites', label: 'Sprites', icon: 'S' },
   { id: 'assets', label: 'Assets', icon: 'A' },
+  { id: 'tools', label: 'Tools', icon: 'T' },
 ];
