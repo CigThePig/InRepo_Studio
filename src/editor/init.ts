@@ -192,6 +192,7 @@ function applyActiveLayer(layer: LayerType): void {
     topPanelController.setActiveLayer(layer);
   }
   canvasController?.setActiveLayer(layer);
+  updateBottomPanelToolContext();
 }
 
 function applyToolChange(tool: EditorState['currentTool'], updateUI = false): void {
@@ -229,6 +230,7 @@ function updateEditorMode(mode: EditorMode, syncLegacy = true): void {
     if (mode !== 'select') {
       rightBerryController?.setActiveTab(mode, { silent: true });
     }
+    updateBottomPanelToolContext();
     return;
   }
   editorState.editorMode = mode;
@@ -249,6 +251,8 @@ function updateEditorMode(mode: EditorMode, syncLegacy = true): void {
   if (mode !== 'select') {
     rightBerryController?.setActiveTab(mode, { silent: true });
   }
+
+  updateBottomPanelToolContext();
 }
 
 function inferModeFromTool(tool: EditorState['currentTool']): EditorMode {
@@ -261,6 +265,13 @@ function inferModeFromTool(tool: EditorState['currentTool']): EditorMode {
   if (layer === 'collision') return 'collision';
   if (layer === 'triggers') return 'triggers';
   return 'ground';
+}
+
+function activateTileTool(tool: 'paint' | 'erase'): void {
+  if (!editorState) return;
+  const targetMode = inferModeFromTool(tool);
+  updateEditorMode(targetMode, true);
+  applyToolChange(tool, true);
 }
 
 function updateBottomContextStrip(): void {
@@ -294,6 +305,29 @@ function updateBottomContextStrip(): void {
   }
 
   bottomContextStrip.setSelectionType('none');
+}
+
+function formatLayerLabel(layer: LayerType | null): string {
+  if (!layer) return 'Layer';
+  return layer.charAt(0).toUpperCase() + layer.slice(1);
+}
+
+function updateBottomPanelToolContext(): void {
+  if (!bottomPanelController || !editorState) return;
+  const mode = editorState.editorMode;
+  const layer = editorState.activeLayer;
+  const baseLocked = layer ? editorState.layerLocks?.[layer] ?? false : false;
+  const isLocked = mode === 'entities' ? false : baseLocked;
+  const paintEnabled = mode !== 'entities' && !baseLocked;
+  const eraseEnabled = mode !== 'entities' && !baseLocked;
+  const layerLabel = mode === 'entities' ? 'Entities' : formatLayerLabel(layer);
+
+  bottomPanelController.setToolContext({
+    layerLabel,
+    paintEnabled,
+    eraseEnabled,
+    isLocked,
+  });
 }
 
 function updateEntitySelectionUI(): void {
@@ -1037,6 +1071,7 @@ async function initPanels(): Promise<void> {
           scheduleSave();
         }
         canvasController?.getRenderer()?.setLayerLocks(locks);
+        updateBottomPanelToolContext();
       },
       onOrderChange: (order) => {
         if (editorState) {
@@ -1143,6 +1178,16 @@ async function initPanels(): Promise<void> {
       rightBerryController?.close();
       updateEditorMode('select', true);
     });
+
+    bottomPanelController.onPaintClick(() => {
+      activateTileTool('paint');
+    });
+
+    bottomPanelController.onEraseClick(() => {
+      activateTileTool('erase');
+    });
+
+    updateBottomPanelToolContext();
 
     updateUndoRedoUI(
       historyManager?.canUndo() ?? false,
