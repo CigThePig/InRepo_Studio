@@ -45,8 +45,6 @@ export type {
 export {
   fetchProject,
   fetchScene,
-  resolveGamePath,
-  resolveAssetPath,
   checkFreshness,
   hasRemoteChanges,
   scanAssetFolders,
@@ -55,6 +53,9 @@ export {
 } from './cold';
 
 export type { FreshnessCheck, AssetPreloadResult, RepoAssetManifest } from './cold';
+
+// Shared path helpers
+export { resolveGamePath, resolveAssetUrl, PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH } from '@/shared/paths';
 
 // Migration
 export {

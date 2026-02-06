@@ -23,6 +23,13 @@
 import type { Project, Scene } from '@/types';
 import type { AssetGroupType } from '@/editor/assets/assetGroup';
 import { validateProject, validateScene } from '@/types';
+import {
+  resolveGamePath,
+  resolveAssetUrl,
+  SCENE_INDEX_JSON_PATH,
+  PROJECT_JSON_PATH,
+  SCENES_DIR,
+} from '@/shared/paths';
 
 const LOG_PREFIX = '[Storage/Cold]';
 
@@ -46,44 +53,10 @@ export interface RepoAssetManifest {
   groups: RepoGroupEntry[];
 }
 
-// --- Base Path ---
-
-/**
- * Get the base path for the application.
- * This handles GitHub Pages deployment where the app runs under /<repo>/
- */
-function getBasePath(): string {
-  // In production, use the current path as base
-  // Vite sets import.meta.env.BASE_URL during build
-  if (import.meta.env.BASE_URL) {
-    return import.meta.env.BASE_URL;
-  }
-  return './';
-}
-
-/**
- * Resolve a path relative to the game folder
- */
-export function resolveGamePath(path: string): string {
-  const base = getBasePath();
-  // Ensure path doesn't start with /
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  // Ensure base ends with /
-  const cleanBase = base.endsWith('/') ? base : `${base}/`;
-  return `${cleanBase}game/${cleanPath}`;
-}
-
-/**
- * Resolve an asset path
- */
-export function resolveAssetPath(assetPath: string): string {
-  return resolveGamePath(assetPath);
-}
-
 // --- Project Loading ---
 
 export async function fetchProject(): Promise<Project | null> {
-  const url = resolveGamePath('project.json');
+  const url = resolveGamePath(PROJECT_JSON_PATH);
   console.log(`${LOG_PREFIX} Fetching project from ${url}`);
 
   try {
@@ -115,7 +88,7 @@ export async function fetchProject(): Promise<Project | null> {
 // --- Scene Loading ---
 
 export async function fetchScene(sceneId: string): Promise<Scene | null> {
-  const url = resolveGamePath(`scenes/${sceneId}.json`);
+  const url = resolveGamePath(`${SCENES_DIR}/${sceneId}.json`);
   console.log(`${LOG_PREFIX} Fetching scene from ${url}`);
 
   try {
@@ -293,79 +266,33 @@ export async function scanAssetFolders(options: {
  * and any scene references found.
  */
 export async function discoverScenes(project: Project): Promise<string[]> {
-  const sceneIds = new Set<string>();
+  const url = resolveGamePath(SCENE_INDEX_JSON_PATH);
 
-  const addSceneId = (id: unknown): void => {
-    if (typeof id !== 'string') return;
-    const trimmed = id.trim();
-    if (!trimmed) return;
-    // Keep IDs conservative: avoid path traversal and file extensions.
-    // Scene files are expected at `game/scenes/<id>.json`.
-    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return;
-    sceneIds.add(trimmed);
-  };
-
-  // Always include the project's default scene
-  addSceneId(project.defaultScene);
-
-  /**
-   * GitHub Pages cannot provide directory listings. To support multi-scene projects
-   * (and offline-after-load), we optionally read a manifest if the game provides one.
-   *
-   * Supported optional manifests (first one found wins):
-   * - `game/scenes/index.json` (recommended)
-   * - `game/scenes/manifest.json`
-   * - `game/scenes.json`
-   *
-   * Accepted JSON shapes:
-   * - string[]: ["main", "town", ...]
-   * - { scenes: string[] }
-   * - { scenes: { id: string }[] }
-   * - { ids: string[] }
-   *
-   * If none exist, we fall back to just the default scene.
-   */
-  const candidates = ['scenes/index.json', 'scenes/manifest.json', 'scenes.json'];
-
-  for (const manifestPath of candidates) {
-    const url = resolveGamePath(manifestPath);
-    const before = sceneIds.size;
-
-    try {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) continue;
-
-      const data = await response.json();
-
-      let list: unknown[] | null = null;
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data && typeof data === 'object') {
-        const obj = data as Record<string, unknown>;
-        if (Array.isArray(obj.scenes)) list = obj.scenes as unknown[];
-        else if (Array.isArray(obj.ids)) list = obj.ids as unknown[];
-      }
-
-      if (!list) continue;
-
-      for (const entry of list) {
-        if (typeof entry === 'string') addSceneId(entry);
-        else if (entry && typeof entry === 'object') {
-          addSceneId((entry as any).id);
-        }
-      }
-
-      if (sceneIds.size > before) {
-        console.log(`${LOG_PREFIX} Discovered ${sceneIds.size} scenes via ${manifestPath}`);
-        break;
-      }
-    } catch (error) {
-      // Non-fatal: we can still run with the default scene.
-      console.warn(`${LOG_PREFIX} Failed to read scene manifest ${manifestPath}:`, error);
-    }
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`${LOG_PREFIX} Missing scene index at ${SCENE_INDEX_JSON_PATH}`);
   }
 
-  return Array.from(sceneIds);
+  const data = await response.json();
+  if (!Array.isArray(data)) {
+    throw new Error(`${LOG_PREFIX} Scene index must be a string array`);
+  }
+
+  const ids = data
+    .filter((entry) => typeof entry === 'string')
+    .map((entry) => (entry as string).trim())
+    .filter((entry) => entry.length > 0);
+
+  const invalid = ids.some((id) => !/^[a-zA-Z0-9_-]+$/.test(id));
+  if (invalid) {
+    throw new Error(`${LOG_PREFIX} Scene index contains invalid IDs`);
+  }
+
+  if (!ids.includes(project.defaultScene)) {
+    throw new Error(`${LOG_PREFIX} Scene index missing default scene "${project.defaultScene}"`);
+  }
+
+  return ids;
 }
 
 
@@ -388,7 +315,7 @@ export async function preloadTileAssets(
   for (const category of project.tileCategories) {
     for (const file of category.files) {
       const assetPath = `${category.path}/${file}`;
-      const url = resolveAssetPath(assetPath);
+      const url = resolveAssetUrl(assetPath);
 
       try {
         const img = new Image();

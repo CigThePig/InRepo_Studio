@@ -7,6 +7,7 @@
 
 import type { TileCategory } from '@/types';
 import type { TileImageCache } from '@/editor/canvas/tileCache';
+import { resolveAssetUrl } from '@/shared/paths';
 
 const LOG_PREFIX = '[TilePicker]';
 
@@ -53,8 +54,6 @@ export interface TilePickerController {
 export interface TilePickerOptions {
   /** Optional shared cache from the canvas renderer (avoids duplicate loads and keeps cache-bust consistent). */
   tileCache?: TileImageCache;
-  /** Optional cache-bust token (used when tileCache is not provided). */
-  cacheBust?: string | null;
 }
 
 // --- Styles ---
@@ -181,12 +180,6 @@ const STYLES = `
 
 const imageCache = new Map<string, HTMLImageElement>();
 
-function appendCacheBust(url: string, cacheBust?: string | null): string {
-  if (!cacheBust) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=${encodeURIComponent(cacheBust)}`;
-}
-
 function loadImage(src: string): Promise<HTMLImageElement> {
   const cached = imageCache.get(src);
   if (cached) {
@@ -211,7 +204,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export function createTilePicker(
   container: HTMLElement,
   categories: TileCategory[],
-  assetBasePath: string,
   initialState?: { category?: string; tileIndex?: number },
   options: TilePickerOptions = {}
 ): TilePickerController {
@@ -225,7 +217,6 @@ export function createTilePicker(
   let categoryChangeCallback: ((categoryName: string) => void) | null = null;
 
   const sharedTileCache = options.tileCache;
-  const cacheBust = options.cacheBust ?? null;
 
   // Inject styles
   const styleEl = document.createElement('style');
@@ -340,7 +331,7 @@ export function createTilePicker(
       return;
     }
 
-    const url = appendCacheBust(`${assetBasePath}/${categoryPath}/${filename}`, cacheBust);
+    const url = resolveAssetUrl(`${categoryPath}/${filename}`);
     loadImage(url)
       .then((img) => {
         imgEl.src = img.src;

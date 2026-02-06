@@ -17,6 +17,7 @@
 
 import type { AssetEntry } from './assetRegistry';
 import { slugifyGroupName } from './groupSlugify';
+import { TILESETS_DIR, PROPS_DIR, ENTITIES_DIR } from '@/shared/paths';
 
 export type AssetGroupType = 'tilesets' | 'props' | 'entities';
 
@@ -28,9 +29,9 @@ export interface AssetGroup {
 }
 
 export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {
-  tilesets: 'game/assets/tilesets',
-  props: 'game/assets/props',
-  entities: 'game/assets/entities',
+  tilesets: TILESETS_DIR,
+  props: PROPS_DIR,
+  entities: ENTITIES_DIR,
 };
 
 export const DEFAULT_ASSET_GROUPS: AssetGroup[] = [

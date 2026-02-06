@@ -22,6 +22,7 @@
 import type { HotProject } from '@/storage';
 import type { Scene } from '@/types';
 import type { ShaStore } from './shaManager';
+import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
 
 export type FileChangeStatus = 'added' | 'modified' | 'deleted';
 
@@ -94,7 +95,7 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
 
       const hotProject = await getProject();
       if (hotProject) {
-        const projectPath = 'game/project.json';
+        const projectPath = PROJECT_JSON_PATH;
         const projectContent = JSON.stringify(hotProject.project, null, 2);
         const contentHash = await hashContent(projectContent);
         const entry = shaStore.get(projectPath);
@@ -114,7 +115,7 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
 
       const scenes = await getScenes();
       for (const scene of scenes) {
-        const scenePath = `game/scenes/${scene.id}.json`;
+        const scenePath = `${SCENES_DIR}/${scene.id}.json`;
         const sceneContent = JSON.stringify(scene, null, 2);
         const contentHash = await hashContent(sceneContent);
         const entry = shaStore.get(scenePath);
@@ -130,6 +131,23 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
             localSha: entry?.sha ?? null,
           });
         }
+      }
+
+      const sceneIndexIds = scenes.map((scene) => scene.id);
+      const sceneIndexContent = JSON.stringify(sceneIndexIds, null, 2);
+      const sceneIndexHash = await hashContent(sceneIndexContent);
+      const indexEntry = shaStore.get(SCENE_INDEX_JSON_PATH);
+
+      currentPaths.add(SCENE_INDEX_JSON_PATH);
+
+      if (detectContentChange(indexEntry?.contentHash ?? null, sceneIndexHash)) {
+        changes.push({
+          path: SCENE_INDEX_JSON_PATH,
+          status: indexEntry ? 'modified' : 'added',
+          content: sceneIndexContent,
+          contentHash: sceneIndexHash,
+          localSha: indexEntry?.sha ?? null,
+        });
       }
 
       const storedEntries = shaStore.getAll();

@@ -73,7 +73,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}
+    - Keys: currentSceneId, currentTool, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}, contentVersionToken
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)
@@ -208,7 +208,13 @@ Rules:
 
 - `/src/deploy/commit.ts`
   - `CommitResultSchema` — deploy commit result
-    - Keys: success, path, newSha, error
+    - Keys: success, path, newSha, commitSha, error
+
+### Shared Contracts
+
+- `/src/shared/paths.ts`
+  - `ContentPathContract` — canonical repo paths for project/scenes/assets
+    - Invariant: all path literals live in this module
 
 ### Runtime (Track 10)
 

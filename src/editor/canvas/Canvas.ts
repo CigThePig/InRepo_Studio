@@ -89,7 +89,7 @@ export interface CanvasController {
   getRenderer(): TilemapRenderer;
 
   /** Preload tile images for categories */
-  preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null): Promise<void>;
+  preloadCategories(categories: TileCategory[]): Promise<void>;
 
   /** Set brush cursor size */
   setBrushCursorSize(size: number): void;
@@ -114,8 +114,6 @@ export interface CanvasOptions {
   /** Initial active layer */
   activeLayer?: LayerType;
 
-  /** Asset base path for loading tile images */
-  assetBasePath?: string;
 }
 
 // --- Constants ---
@@ -139,7 +137,6 @@ export function createCanvas(
   let viewport = createViewport(options.viewport);
   let gridConfig = createDefaultGridConfig(options.gridConfig);
   const tileSize = options.tileSize ?? DEFAULT_TILE_SIZE;
-  const assetBasePath = options.assetBasePath ?? '';
   let isDirty = true;
   let isDestroyed = false;
 
@@ -162,7 +159,6 @@ export function createCanvas(
   const tileCache = createTileCache();
   const renderer = createTilemapRenderer({
     tileCache,
-    assetBasePath,
     onSpriteLoad: () => {
       isDirty = true;
       scheduleRender();
@@ -521,9 +517,9 @@ export function createCanvas(
       scheduleRender();
     },
 
-    async preloadCategories(categories: TileCategory[], basePath: string, cacheBust?: string | null) {
+    async preloadCategories(categories: TileCategory[]) {
       for (const category of categories) {
-        await tileCache.preloadCategory(category, basePath, cacheBust);
+        await tileCache.preloadCategory(category);
       }
       isDirty = true;
       scheduleRender();

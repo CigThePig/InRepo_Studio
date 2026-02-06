@@ -144,6 +144,12 @@ Local instruction files (present):
 - `sceneManager.ts`
   - Role: scene transitions
 
+### Shared (`src/shared/`)
+- `paths.ts`
+  - Role: canonical content paths + asset URL resolution
+- `projectManifest.ts`
+  - Role: append-only project.json update helpers
+
 ### Deploy (`src/deploy/`)
 - `auth.ts`
   - Role: GitHub PAT management

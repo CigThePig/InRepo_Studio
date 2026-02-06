@@ -7,6 +7,7 @@
 
 import type { Scene } from '@/types';
 import { createDefaultProject, createScene, ensureSceneTilesets, validateProject } from '@/types';
+import { PROJECT_JSON_PATH, resolveGamePath } from '@/shared/paths';
 import * as hot from './hot';
 import * as cold from './cold';
 
@@ -102,7 +103,7 @@ export async function migrateFromCold(): Promise<MigrationResult> {
 
     // Record the cold baseline fingerprint so we can detect future repo changes without
     // silently overwriting local edits.
-    const projectFreshness = await cold.checkFreshness('project.json');
+    const projectFreshness = await cold.checkFreshness(PROJECT_JSON_PATH);
     await hot.setColdBaseline({
       project: {
         etag: projectFreshness.etag,
@@ -236,7 +237,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
   const baseline = hotProject.coldBaseline?.project ?? null;
 
   // HEAD check for freshness (no-store so we don't trust stale caches)
-  const remote = await cold.checkFreshness('project.json');
+  const remote = await cold.checkFreshness(PROJECT_JSON_PATH);
 
   const canCheckRemote = !!(remote.etag || remote.lastModified);
   const cacheBust = remote.etag ?? remote.lastModified ?? baseline?.etag ?? baseline?.lastModified ?? null;
@@ -272,7 +273,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
      */
     if (fingerprintChanged) {
       try {
-        const url = cold.resolveGamePath('project.json');
+        const url = resolveGamePath(PROJECT_JSON_PATH);
         const response = await fetch(url, { cache: 'no-store' });
 
         if (response.ok) {
@@ -338,7 +339,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
 
   // No baseline exists (older hot data). Compare cold project.json content to hot project record.
   try {
-    const url = cold.resolveGamePath('project.json');
+    const url = resolveGamePath(PROJECT_JSON_PATH);
     const response = await fetch(url, { cache: 'no-store' });
     if (response.ok) {
       const coldProject = await response.json();
