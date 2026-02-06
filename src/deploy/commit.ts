@@ -28,7 +28,8 @@ import type { ConflictResult } from './changeDetector';
 import type { ResolvedConflict } from './conflictResolver';
 import type { Project, Scene } from '@/types';
 import { validateProject, validateScene } from '@/types';
-import { saveProject, saveScene } from '@/storage';
+import { saveProject, saveScene, getAllSceneIds } from '@/storage';
+import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
 
 const LOG_PREFIX = '[Deploy/Commit]';
 
@@ -43,6 +44,7 @@ export interface CommitResult {
   success: boolean;
   path: string;
   newSha?: string;
+  commitSha?: string;
   error?: string;
 }
 
@@ -117,6 +119,68 @@ function parseRateLimitError(response: Response): string | null {
     return 'GitHub API rate limit exceeded. Please try again later.';
   }
   return null;
+}
+
+function normalizePath(path: string): string {
+  return path.startsWith('/') ? path.slice(1) : path;
+}
+
+async function fetchRemoteSha(
+  token: string,
+  repoOwner: string,
+  repoName: string,
+  path: string,
+  branch?: string
+): Promise<string | null> {
+  const cleanPath = normalizePath(path);
+  const url = new URL(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${cleanPath}`);
+  if (branch) {
+    url.searchParams.set('ref', branch);
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  const rateLimitError = parseRateLimitError(response);
+  if (rateLimitError) {
+    throw new Error(rateLimitError);
+  }
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { sha?: string };
+  return data.sha ?? null;
+}
+
+async function fetchRemoteShas(
+  token: string,
+  repoOwner: string,
+  repoName: string,
+  paths: string[],
+  branch?: string
+): Promise<Record<string, string | null>> {
+  const entries = await Promise.all(
+    paths.map(async (path) => ({
+      path,
+      sha: await fetchRemoteSha(token, repoOwner, repoName, path, branch),
+    }))
+  );
+
+  return entries.reduce<Record<string, string | null>>((acc, entry) => {
+    acc[entry.path] = entry.sha;
+    return acc;
+  }, {});
 }
 
 export function createCommitter(config: CommitConfig): Committer {
@@ -204,11 +268,12 @@ export function createCommitter(config: CommitConfig): Committer {
         };
       }
 
-      const data = (await response.json()) as { content?: { sha?: string } };
+      const data = (await response.json()) as { content?: { sha?: string }; commit?: { sha?: string } };
       return {
         success: true,
         path: change.path,
         newSha: data.content?.sha,
+        commitSha: data.commit?.sha,
       };
     } catch (error) {
       return {
@@ -245,8 +310,287 @@ export function createCommitter(config: CommitConfig): Committer {
   };
 }
 
+export interface AtomicCommitOptions {
+  authManager: AuthManager;
+  repoOwner: string;
+  repoName: string;
+  branch?: string;
+  changes: FileChange[];
+  message?: string;
+  onProgress?: (progress: CommitProgress) => void;
+  expectedShas?: Record<string, string | null>;
+}
+
+export interface AtomicCommitResult {
+  results: CommitResult[];
+  commitSha: string | null;
+}
+
+async function fetchJson<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
+async function getDefaultBranch(
+  token: string,
+  repoOwner: string,
+  repoName: string
+): Promise<string> {
+  const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+
+  const rateLimitError = parseRateLimitError(response);
+  if (rateLimitError) {
+    throw new Error(rateLimitError);
+  }
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  const data = await fetchJson<{ default_branch?: string }>(response);
+  if (!data.default_branch) {
+    throw new Error('Unable to determine default branch');
+  }
+  return data.default_branch;
+}
+
+export async function commitFilesAtomically(options: AtomicCommitOptions): Promise<AtomicCommitResult> {
+  const { authManager, repoOwner, repoName, branch, changes, message, onProgress, expectedShas } = options;
+  const token = await authManager.getToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  if (changes.some((change) => change.status === 'deleted')) {
+    throw new Error('Atomic commit does not support deletions');
+  }
+
+  const targetBranch = branch ?? (await getDefaultBranch(token, repoOwner, repoName));
+
+  if (expectedShas) {
+    const pathsToCheck = changes.map((change) => change.path);
+    const currentShas = await fetchRemoteShas(
+      token,
+      repoOwner,
+      repoName,
+      pathsToCheck,
+      targetBranch
+    );
+    const mismatches = pathsToCheck.filter(
+      (path) => (expectedShas[path] ?? null) !== (currentShas[path] ?? null)
+    );
+
+    if (mismatches.length > 0) {
+      throw new Error(`Remote files changed since last check: ${mismatches.join(', ')}`);
+    }
+  }
+  const refResponse = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/${targetBranch}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  );
+
+  const refRateLimit = parseRateLimitError(refResponse);
+  if (refRateLimit) {
+    throw new Error(refRateLimit);
+  }
+  if (!refResponse.ok) {
+    throw new Error(`GitHub API error: ${refResponse.status}`);
+  }
+
+  const refData = await fetchJson<{ object?: { sha?: string } }>(refResponse);
+  const baseCommitSha = refData.object?.sha;
+  if (!baseCommitSha) {
+    throw new Error('Unable to resolve base commit');
+  }
+
+  const commitResponse = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/git/commits/${baseCommitSha}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  );
+
+  const commitRateLimit = parseRateLimitError(commitResponse);
+  if (commitRateLimit) {
+    throw new Error(commitRateLimit);
+  }
+  if (!commitResponse.ok) {
+    throw new Error(`GitHub API error: ${commitResponse.status}`);
+  }
+
+  const commitData = await fetchJson<{ tree?: { sha?: string } }>(commitResponse);
+  const baseTreeSha = commitData.tree?.sha;
+  if (!baseTreeSha) {
+    throw new Error('Unable to resolve base tree');
+  }
+
+  const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
+  const results: CommitResult[] = [];
+
+  for (let i = 0; i < changes.length; i += 1) {
+    const change = changes[i];
+    onProgress?.({
+      current: i + 1,
+      total: changes.length,
+      currentFile: change.path,
+    });
+
+    const content = change.content ?? '';
+    const encoding = change.encoding === 'base64' ? 'base64' : 'utf-8';
+    const blobResponse = await fetch(
+      `https://api.github.com/repos/${repoOwner}/${repoName}/git/blobs`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+        body: JSON.stringify({ content, encoding }),
+      }
+    );
+
+    const blobRateLimit = parseRateLimitError(blobResponse);
+    if (blobRateLimit) {
+      throw new Error(blobRateLimit);
+    }
+    if (!blobResponse.ok) {
+      throw new Error(`GitHub API error: ${blobResponse.status}`);
+    }
+
+    const blobData = await fetchJson<{ sha?: string }>(blobResponse);
+    if (!blobData.sha) {
+      throw new Error('Failed to create blob');
+    }
+
+    treeEntries.push({
+      path: change.path,
+      mode: '100644',
+      type: 'blob',
+      sha: blobData.sha,
+    });
+
+    results.push({
+      success: true,
+      path: change.path,
+      newSha: blobData.sha,
+    });
+  }
+
+  const treeResponse = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/git/trees`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: treeEntries,
+      }),
+    }
+  );
+
+  const treeRateLimit = parseRateLimitError(treeResponse);
+  if (treeRateLimit) {
+    throw new Error(treeRateLimit);
+  }
+  if (!treeResponse.ok) {
+    throw new Error(`GitHub API error: ${treeResponse.status}`);
+  }
+
+  const treeData = await fetchJson<{ sha?: string }>(treeResponse);
+  const newTreeSha = treeData.sha;
+  if (!newTreeSha) {
+    throw new Error('Failed to create tree');
+  }
+
+  const commitMessage = message ?? formatCommitMessage();
+  const createCommitResponse = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/git/commits`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({
+        message: commitMessage,
+        tree: newTreeSha,
+        parents: [baseCommitSha],
+      }),
+    }
+  );
+
+  const createCommitRateLimit = parseRateLimitError(createCommitResponse);
+  if (createCommitRateLimit) {
+    throw new Error(createCommitRateLimit);
+  }
+  if (!createCommitResponse.ok) {
+    throw new Error(`GitHub API error: ${createCommitResponse.status}`);
+  }
+
+  const createCommitData = await fetchJson<{ sha?: string }>(createCommitResponse);
+  const newCommitSha = createCommitData.sha ?? null;
+  if (!newCommitSha) {
+    throw new Error('Failed to create commit');
+  }
+
+  const updateRefResponse = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/git/refs/heads/${targetBranch}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({ sha: newCommitSha }),
+    }
+  );
+
+  const updateRefRateLimit = parseRateLimitError(updateRefResponse);
+  if (updateRefRateLimit) {
+    throw new Error(updateRefRateLimit);
+  }
+  if (!updateRefResponse.ok) {
+    throw new Error(`GitHub API error: ${updateRefResponse.status}`);
+  }
+
+  results.forEach((result) => {
+    result.commitSha = newCommitSha;
+  });
+
+  return {
+    results,
+    commitSha: newCommitSha,
+  };
+}
+
 async function applyRemoteContent(path: string, content: string): Promise<void> {
-  if (path === 'game/project.json') {
+  if (path === PROJECT_JSON_PATH) {
     const data = JSON.parse(content) as Project;
     if (!validateProject(data)) {
       throw new Error('Remote project.json failed validation');
@@ -255,7 +599,27 @@ async function applyRemoteContent(path: string, content: string): Promise<void> 
     return;
   }
 
-  if (path.startsWith('game/scenes/')) {
+  if (path === SCENE_INDEX_JSON_PATH) {
+    const data = JSON.parse(content) as unknown;
+    if (!Array.isArray(data) || data.some((entry) => typeof entry !== 'string')) {
+      throw new Error('Remote scene index failed validation');
+    }
+
+    const ids = data.map((entry) => (entry as string).trim());
+    const invalid = ids.some((id) => !/^[a-zA-Z0-9_-]+$/.test(id));
+    if (invalid) {
+      throw new Error('Remote scene index contains invalid IDs');
+    }
+
+    const knownIds = new Set(await getAllSceneIds());
+    const missing = ids.filter((id) => !knownIds.has(id));
+    if (missing.length > 0) {
+      throw new Error(`Remote scene index references missing scenes: ${missing.join(', ')}`);
+    }
+    return;
+  }
+
+  if (path.startsWith(`${SCENES_DIR}/`)) {
     const data = JSON.parse(content) as Scene;
     if (!validateScene(data)) {
       throw new Error(`Remote scene ${path} failed validation`);

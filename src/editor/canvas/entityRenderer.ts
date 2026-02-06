@@ -16,6 +16,7 @@
 
 import type { EntityInstance, EntityType } from '@/types';
 import { worldToScreen, type ViewportState } from './viewport';
+import { resolveAssetUrl } from '@/shared/paths';
 
 const LOG_PREFIX = '[EntityRenderer]';
 
@@ -25,7 +26,6 @@ const HIGHLIGHT_STROKE = 'rgba(74, 158, 255, 0.95)';
 const HIGHLIGHT_LINE_WIDTH = 2;
 
 export interface EntityRendererConfig {
-  assetBasePath: string;
   onSpriteLoad?: () => void;
 }
 
@@ -37,16 +37,6 @@ export interface EntityPreview {
 
 interface SpriteCache {
   getSprite(path: string): HTMLImageElement | null;
-}
-
-function joinAssetPath(basePath: string, path: string): string {
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  if (!basePath) return path;
-  const cleanedBase = basePath.replace(/\/$/, '');
-  const cleanedPath = path.replace(/^\//, '');
-  return `${cleanedBase}/${cleanedPath}`;
 }
 
 function createSpriteCache(config: EntityRendererConfig): SpriteCache {
@@ -67,7 +57,7 @@ function createSpriteCache(config: EntityRendererConfig): SpriteCache {
       pending.delete(path);
       console.warn(`${LOG_PREFIX} Failed to load sprite: ${path}`);
     };
-    img.src = joinAssetPath(config.assetBasePath, path);
+    img.src = resolveAssetUrl(path);
   }
 
   return {

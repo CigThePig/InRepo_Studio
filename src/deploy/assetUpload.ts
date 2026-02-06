@@ -1,7 +1,14 @@
 import type { AuthManager } from './auth';
 import type { FileChange } from './changeDetector';
-import { createCommitter } from './commit';
+import { commitFilesAtomically, type CommitResult } from './commit';
 import { createShaManager } from './shaManager';
+import { validateProject, type Project } from '@/types';
+import {
+  ensureTileCategoryConfigured,
+  appendTileFileIfMissing,
+  ensureEntityType,
+} from '@/shared/projectManifest';
+import { PROJECT_JSON_PATH, TILESETS_PATH, PROPS_PATH, ENTITIES_PATH } from '@/shared/paths';
 
 export type AssetUploadGroupType = 'tilesets' | 'props' | 'entities';
 
@@ -37,6 +44,8 @@ export interface AssetUploadResult {
   group: AssetUploadGroup;
   results: AssetUploadFileResult[];
   error?: string;
+  commitSha?: string;
+  updatedProject?: Project;
 }
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -63,6 +72,23 @@ function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | n
 function estimateBase64Bytes(base64: string): number {
   const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
+async function hashContent(content: string): Promise<string> {
+  if (crypto?.subtle) {
+    const data = new TextEncoder().encode(content);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  let hash = 0;
+  for (let i = 0; i < content.length; i += 1) {
+    hash = (hash << 5) - hash + content.charCodeAt(i);
+    hash |= 0;
+  }
+  return `fallback-${hash}`;
 }
 
 function slugifyFileName(name: string): string {
@@ -174,18 +200,21 @@ export async function uploadAssetGroup(options: {
     });
   }
 
-  if (uploadPlans.length === 0) {
+  if (results.length > 0) {
     return {
       group,
       results,
-      error: 'No valid assets to upload.',
+      error: 'Asset validation failed. Fix the errors and retry.',
     };
   }
 
   let remoteShas: Record<string, string | null> = {};
   try {
     const shaManager = createShaManager({ authManager, repoOwner, repoName });
-    remoteShas = await shaManager.fetchRemoteShas(uploadPlans.map((plan) => plan.path));
+    remoteShas = await shaManager.fetchRemoteShas([
+      PROJECT_JSON_PATH,
+      ...uploadPlans.map((plan) => plan.path),
+    ]);
   } catch (error) {
     return {
       group,
@@ -215,25 +244,109 @@ export async function uploadAssetGroup(options: {
     pathToAsset.set(plan.path, { asset: plan.asset, fileName: plan.fileName });
   }
 
-  if (changes.length === 0) {
+  if (results.length > 0) {
     return {
       group,
       results,
-      error: 'No assets were eligible for upload.',
+      error: 'Remote conflicts detected. Resolve them before retrying.',
     };
   }
 
-  const committer = createCommitter({ authManager, repoOwner, repoName });
-  const commitResults = await committer.commitFiles(changes, remoteShas, (progress) => {
-    const fileMeta = pathToAsset.get(progress.currentFile);
-    onProgress?.({
-      current: progress.current,
-      total: progress.total,
-      currentFile: fileMeta?.fileName ?? progress.currentFile,
-    });
+  const shaManager = createShaManager({ authManager, repoOwner, repoName });
+  const remoteProject = await shaManager.fetchRemoteContent(PROJECT_JSON_PATH);
+  if (!remoteProject?.content) {
+    return {
+      group,
+      results,
+      error: 'project.json is missing in the repository.',
+    };
+  }
+  const expectedProjectSha = remoteShas[PROJECT_JSON_PATH] ?? null;
+  if (expectedProjectSha && remoteProject.sha !== expectedProjectSha) {
+    return {
+      group,
+      results,
+      error: 'project.json changed on GitHub. Refresh and retry the upload.',
+    };
+  }
+  if (!expectedProjectSha) {
+    remoteShas[PROJECT_JSON_PATH] = remoteProject.sha;
+  }
+
+  let project: Project;
+  try {
+    const parsed = JSON.parse(remoteProject.content) as Project;
+    if (!validateProject(parsed)) {
+      return {
+        group,
+        results,
+        error: 'Remote project.json failed validation.',
+      };
+    }
+    project = parsed;
+  } catch (error) {
+    return {
+      group,
+      results,
+      error: error instanceof Error ? error.message : 'Failed to parse project.json.',
+    };
+  }
+
+  if (group.type === 'tilesets') {
+    ensureTileCategoryConfigured(project, 'terrain', TILESETS_PATH);
+    for (const plan of uploadPlans) {
+      const relFile = `${group.slug}/${plan.fileName}`;
+      appendTileFileIfMissing(project, 'terrain', relFile);
+    }
+  } else if (group.type === 'props') {
+    ensureTileCategoryConfigured(project, 'props', PROPS_PATH);
+    for (const plan of uploadPlans) {
+      const relFile = `${group.slug}/${plan.fileName}`;
+      appendTileFileIfMissing(project, 'props', relFile);
+    }
+  } else {
+    for (const plan of uploadPlans) {
+      const baseName = plan.fileName.replace(/\.[^/.]+$/, '');
+      const spritePath = `${ENTITIES_PATH}/${group.slug}/${plan.fileName}`;
+      ensureEntityType(project, baseName, spritePath);
+    }
+  }
+
+  const projectContent = JSON.stringify(project, null, 2);
+  changes.push({
+    path: PROJECT_JSON_PATH,
+    status: remoteShas[PROJECT_JSON_PATH] ? 'modified' : 'added',
+    content: projectContent,
+    contentHash: await hashContent(projectContent),
+    localSha: remoteShas[PROJECT_JSON_PATH] ?? null,
   });
 
-  commitResults.forEach((result) => {
+  let commitResults: { results: CommitResult[]; commitSha: string | null };
+  try {
+    commitResults = await commitFilesAtomically({
+      authManager,
+      repoOwner,
+      repoName,
+      changes,
+      expectedShas: remoteShas,
+      onProgress: (progress) => {
+        const fileMeta = pathToAsset.get(progress.currentFile);
+        onProgress?.({
+          current: progress.current,
+          total: progress.total,
+          currentFile: fileMeta?.fileName ?? progress.currentFile,
+        });
+      },
+    });
+  } catch (error) {
+    return {
+      group,
+      results,
+      error: error instanceof Error ? error.message : 'Upload failed.',
+    };
+  }
+
+  commitResults.results.forEach((result) => {
     const meta = pathToAsset.get(result.path);
     if (!meta) return;
     results.push(
@@ -246,5 +359,29 @@ export async function uploadAssetGroup(options: {
     );
   });
 
-  return { group, results };
+  if (commitResults.commitSha) {
+    const shaStore = await shaManager.createStore();
+    for (const change of changes) {
+      if (!change.content) continue;
+      const newSha =
+        commitResults.results.find((result) => result.path === change.path)?.newSha ?? null;
+      if (!newSha) continue;
+      const contentHash =
+        change.contentHash ??
+        (await hashContent(change.encoding === 'base64' ? change.content : change.content));
+      shaStore.set(change.path, {
+        sha: newSha,
+        contentHash,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    await shaStore.save();
+  }
+
+  return {
+    group,
+    results,
+    commitSha: commitResults.commitSha ?? undefined,
+    updatedProject: project,
+  };
 }

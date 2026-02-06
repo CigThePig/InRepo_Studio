@@ -15,7 +15,8 @@
  * - Apply mode: live (updates propagate to UI immediately)
  */
 
-import { resolveAssetPath, type RepoAssetManifest } from '@/storage/cold';
+import type { RepoAssetManifest } from '@/storage/cold';
+import { GAME_ROOT } from '@/shared/paths';
 import type {
   AssetUploadResult,
   AssetUploadProgress,
@@ -117,10 +118,26 @@ function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
       slug: group.slug ? createGroupSlug(group.slug) : createGroupSlug(normalizedName),
       assets: (group.assets ?? []).map((asset) => ({
         ...asset,
+        dataUrl:
+          asset.source === 'repo'
+            ? normalizeRepoAssetPath(asset.dataUrl)
+            : asset.dataUrl,
         source: asset.source ?? 'local',
       })),
     };
   });
+}
+
+function normalizeRepoAssetPath(value: string): string {
+  if (/^(data:|https?:)/i.test(value)) {
+    const marker = `/${GAME_ROOT}/`;
+    const index = value.indexOf(marker);
+    if (index >= 0) {
+      return value.slice(index + marker.length);
+    }
+    return value;
+  }
+  return value;
 }
 
 function buildDefaultGroups(): AssetGroup[] {
@@ -177,7 +194,7 @@ function buildRepoAssets(manifest: RepoAssetManifest, group: RepoAssetManifest['
       name,
       type: group.type === 'entities' ? 'entity' : group.type === 'props' ? 'sprite' : 'tile',
       source: 'repo',
-      dataUrl: resolveAssetPath(assetPath),
+      dataUrl: assetPath,
       width: 0,
       height: 0,
       createdAt: manifest.scannedAt,
@@ -457,7 +474,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       const assetPath = entry.path.replace(/^game\//, '');
       updatedAssets.set(entry.assetId, {
         id: newId,
-        dataUrl: resolveAssetPath(assetPath),
+        dataUrl: assetPath,
       });
     });
 

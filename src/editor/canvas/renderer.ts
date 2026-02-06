@@ -63,8 +63,6 @@ export { TOUCH_OFFSET_Y } from './touchConfig';
 export interface TilemapRendererConfig {
   /** Tile image cache for loading tile images */
   tileCache: TileImageCache;
-  /** Base path for asset loading */
-  assetBasePath: string;
   /** Callback when entity sprites load */
   onSpriteLoad?: () => void;
 }
@@ -202,7 +200,6 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   let entityPreview: EntityPreview | null = null;
   let dirty = true;
   const entityRenderer = createEntityRenderer({
-    assetBasePath: config.assetBasePath,
     onSpriteLoad: () => {
       dirty = true;
       config.onSpriteLoad?.();

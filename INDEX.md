@@ -45,6 +45,14 @@ Micro-format (copy/paste):
   - Role: ESLint configuration.
   - Lists of truth: none
 
+- `.github/workflows/validate.yml`
+  - Role: CI validation workflow (lint, build, project contract).
+  - Lists of truth: none
+
+- `tools/validate-project.mjs`
+  - Role: Validate filesystem contract for project/scenes/assets.
+  - Lists of truth: none
+
 ## Scoped agent rules (local AGENTS.md)
 - `src/boot/AGENTS.md`
   - Role: Boot routing rules for editor/game mode + GitHub Pages base path notes.
@@ -507,6 +515,15 @@ Micro-format (copy/paste):
 - `src/editor/settings/editorSettings.ts` (planned — Track 28)
   - Role: User preferences.
   - Lists of truth: EditorSettingsSchema
+
+### Shared
+- `src/shared/paths.ts`
+  - Role: Centralized content path constants + URL resolver.
+  - Lists of truth: ContentPathContract
+
+- `src/shared/projectManifest.ts`
+  - Role: Append-only helpers for project.json updates.
+  - Lists of truth: none
 
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/runtime/init.ts`

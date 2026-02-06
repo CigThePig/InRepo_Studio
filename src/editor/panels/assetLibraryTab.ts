@@ -1,4 +1,5 @@
 import type { AssetRegistry, AssetEntry, AssetGroup, AssetGroupType } from '@/editor/assets';
+import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
   .asset-library {
@@ -313,7 +314,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
 
     const img = document.createElement('img');
-    img.src = asset.dataUrl;
+    img.src = resolveAssetUrl(asset.dataUrl);
     img.alt = asset.name;
 
     const name = document.createElement('div');

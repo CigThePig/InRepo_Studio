@@ -9,6 +9,7 @@ import {
   loadEditorState,
   loadProject,
   loadScene,
+  saveProject,
   saveEditorState,
   saveScene,
   exportAllData,
@@ -46,6 +47,7 @@ import {
   type AssetRegistryState,
 } from '@/editor/assets';
 import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
+import { setContentVersionToken } from '@/shared/paths';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
@@ -99,9 +101,6 @@ import { downloadJson } from '@/utils/download';
 
 const LOG_PREFIX = '[Editor]';
 
-// Asset base path for loading tile images
-const ASSET_BASE_PATH = import.meta.env.BASE_URL + 'game';
-
 // --- Editor State ---
 
 let editorState: EditorState | null = null;
@@ -120,7 +119,6 @@ let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
 let historyManager: HistoryManager | null = null;
 let updateInfo: UpdateCheckResult | null = null;
-let assetCacheBust: string | null = null;
 let sceneManager: SceneManager | null = null;
 let sceneSelector: SceneSelector | null = null;
 let layerPanelController: LayerPanelController | null = null;
@@ -428,6 +426,26 @@ function handleSceneChange(scene: Scene): void {
   scheduleSceneSave(scene);
 }
 
+async function applyProjectUpdate(updatedProject: Project, commitSha: string | null): Promise<void> {
+  currentProject = updatedProject;
+  await saveProject(updatedProject);
+
+  if (editorState && commitSha) {
+    editorState.contentVersionToken = commitSha;
+    setContentVersionToken(commitSha);
+    scheduleSave();
+  }
+
+  canvasController?.getTileCache().clear();
+  if (canvasController) {
+    await canvasController.preloadCategories(updatedProject.tileCategories ?? []);
+    canvasController.invalidateScene();
+    canvasController.getRenderer().setEntityTypes(updatedProject.entityTypes ?? []);
+  }
+
+  entitiesTab?.refresh();
+}
+
 // --- Initialization ---
 
 export async function initEditor(): Promise<void> {
@@ -437,6 +455,7 @@ export async function initEditor(): Promise<void> {
   editorState = await loadEditorState();
   editorState = restoreEditorStateFromPlaytest(editorState);
   console.log(`${LOG_PREFIX} Editor state loaded:`, editorState);
+  setContentVersionToken(editorState.contentVersionToken ?? null);
   currentBrushSize = editorState.brushSize ?? 1;
   setInitialEditorMode(editorState.editorMode);
   const assetUploadHandler = async ({
@@ -463,7 +482,7 @@ export async function initEditor(): Promise<void> {
         error: 'Not authenticated. Add a GitHub token first.',
       };
     }
-    return uploadAssetGroup({
+    const result = await uploadAssetGroup({
       authManager,
       repoOwner: repoConfig.owner,
       repoName: repoConfig.repo,
@@ -472,6 +491,17 @@ export async function initEditor(): Promise<void> {
       assetPaths: ASSET_GROUP_PATHS,
       onProgress,
     });
+
+    if (result.updatedProject) {
+      await applyProjectUpdate(result.updatedProject, result.commitSha ?? null);
+    } else if (result.commitSha && editorState) {
+      editorState.contentVersionToken = result.commitSha;
+      setContentVersionToken(result.commitSha);
+      scheduleSave();
+      canvasController?.getTileCache().clear();
+    }
+
+    return result;
   };
 
   assetRegistry = createAssetRegistry({
@@ -509,14 +539,12 @@ export async function initEditor(): Promise<void> {
   // This is non-destructive: we only surface a banner so the user can choose to refresh.
   try {
     updateInfo = await checkForUpdates();
-    assetCacheBust = updateInfo.cacheBust;
     if (updateInfo.needsUpdate) {
       console.warn(`${LOG_PREFIX} Published project appears to have changed (${updateInfo.reason})`);
     }
   } catch (e) {
     console.warn(`${LOG_PREFIX} Update check failed:`, e);
     updateInfo = null;
-    assetCacheBust = null;
   }
 
   // Load current scene or default
@@ -685,7 +713,6 @@ async function initCanvas(tileSize: number): Promise<void> {
     tileSize,
     scene: currentScene ?? undefined,
     activeLayer: editorState?.activeLayer,
-    assetBasePath: ASSET_BASE_PATH,
   });
 
   // Set initial selected category for rendering
@@ -695,9 +722,7 @@ async function initCanvas(tileSize: number): Promise<void> {
   // Preload tile images for all categories
   if (currentProject?.tileCategories) {
     await canvasController.preloadCategories(
-      currentProject.tileCategories,
-      ASSET_BASE_PATH,
-      assetCacheBust
+      currentProject.tileCategories
     );
   }
 

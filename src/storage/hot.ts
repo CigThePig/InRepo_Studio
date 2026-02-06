@@ -85,6 +85,8 @@ export interface EditorState {
   layerVisibility: LayerVisibility;
   /** Per-layer lock toggle (true = locked, cannot edit) */
   layerLocks: LayerLocks;
+  /** Cache-bust token for content assets (commit SHA) */
+  contentVersionToken: string | null;
 }
 
 function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState {
@@ -316,6 +318,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
     collision: false,
     triggers: false,
   },
+  contentVersionToken: null,
 };
 
 export async function saveEditorState(state: EditorState): Promise<void> {
@@ -349,6 +352,7 @@ export async function loadEditorState(): Promise<EditorState> {
     layerLocks: { ...DEFAULT_EDITOR_STATE.layerLocks, ...state.layerLocks },
     assetRegistry: cloneAssetRegistryState(mergedAssetRegistry),
     repoAssetManifest: state.repoAssetManifest ?? DEFAULT_EDITOR_STATE.repoAssetManifest,
+    contentVersionToken: state.contentVersionToken ?? DEFAULT_EDITOR_STATE.contentVersionToken,
   };
 
   console.log(`${LOG_PREFIX} Editor state loaded`);

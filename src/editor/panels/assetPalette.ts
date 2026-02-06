@@ -1,4 +1,5 @@
 import type { AssetRegistry, AssetGroupType, AssetEntry, AssetGroup } from '@/editor/assets';
+import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
   .asset-palette {
@@ -120,7 +121,7 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
     card.classList.toggle('asset-palette__card--selected', asset.id === selectedAssetId);
 
     const img = document.createElement('img');
-    img.src = asset.dataUrl;
+    img.src = resolveAssetUrl(asset.dataUrl);
     img.alt = asset.name;
 
     const name = document.createElement('div');
