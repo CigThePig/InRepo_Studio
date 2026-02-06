@@ -472,6 +472,9 @@ function updateEntitySelectionUI(): void {
   const renderer = canvasController.getRenderer();
   const selectedIds = editorState.selectedEntityIds ?? [];
   entitiesTab?.setSelection(selectedIds);
+  if (leftBerryController?.getActiveTab() === 'animation') {
+    leftBerryController.refreshTab('animation');
+  }
 
   const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
   const allowEntitySelection =
@@ -1368,6 +1371,9 @@ async function initPanels(): Promise<void> {
         assetRegistry: assetRegistry ?? undefined,
         assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
         assetUploadEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_UPLOAD),
+        getEditorState: () => editorState,
+        entityManager: entityManager ?? undefined,
+        history: historyManager ?? undefined,
       });
 
       const toolsContainer = leftBerryController.getTabContentContainer('tools');

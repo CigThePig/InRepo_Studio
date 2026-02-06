@@ -379,6 +379,10 @@ Micro-format (copy/paste):
   - Role: Sprite sheet slicing UI for the left berry.
   - Lists of truth: none
 
+- `src/editor/panels/animationTab.ts`
+  - Role: Left berry animation tab for sprite-sheet slicing and animation preview/editing.
+  - Lists of truth: none
+
 - `src/editor/panels/assetLibraryTab.ts`
   - Role: Left berry Assets Library tab UI for grouped assets.
   - Lists of truth: none
@@ -510,7 +514,7 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetRegistry.ts`
   - Role: In-editor asset registry with grouped assets and selection state.
-  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource
+  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode
 
 - `src/editor/assets/spriteSlider.ts`
   - Role: Sprite sheet slicing logic for asset prep.

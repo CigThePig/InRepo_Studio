@@ -6,6 +6,10 @@ export type {
   AssetEntryInput,
   AssetEntryType,
   AssetEntrySource,
+  AnimationAsset,
+  AnimationAssetInput,
+  AnimationFrameRef,
+  AnimationLoopMode,
   AssetRegistry,
   AssetRegistryState,
 } from './assetRegistry';

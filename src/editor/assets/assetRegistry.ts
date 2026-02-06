@@ -6,6 +6,9 @@
  * Defines:
  * - AssetRegistryState — persisted asset registry state (type: schema)
  * - AssetEntry — asset metadata stored in groups (type: schema)
+ * - AnimationAsset — animation metadata stored in registry (type: schema)
+ * - AnimationFrameRef — frame references for animation assets (type: schema)
+ * - AnimationLoopMode — supported loop modes for animations (type: lookup)
  * - AssetEntrySource — origin of the asset (type: lookup)
  *
  * Canonical key set:
@@ -34,6 +37,24 @@ import {
 
 export type AssetEntryType = 'tile' | 'sprite' | 'entity';
 export type AssetEntrySource = 'local' | 'repo';
+export type AnimationLoopMode = 'loop' | 'once' | 'pingpong';
+
+export interface AnimationFrameRef {
+  sourceAssetId: string;
+  rect: { x: number; y: number; w: number; h: number };
+  offset?: { x: number; y: number };
+}
+
+export interface AnimationAsset {
+  id: string;
+  name: string;
+  frames: AnimationFrameRef[];
+  fps: number;
+  loopMode: AnimationLoopMode;
+  pivot: { x: number; y: number };
+  posterDataUrl?: string;
+  createdAt: number;
+}
 
 export interface AssetEntry {
   id: string;
@@ -49,6 +70,7 @@ export interface AssetEntry {
 export interface AssetRegistryState {
   groups: AssetGroup[];
   selectedAssetId: string | null;
+  animations: AnimationAsset[];
 }
 
 export interface AssetEntryInput {
@@ -58,6 +80,15 @@ export interface AssetEntryInput {
   dataUrl: string;
   width: number;
   height: number;
+}
+
+export interface AnimationAssetInput {
+  name: string;
+  frames: AnimationFrameRef[];
+  fps: number;
+  loopMode: AnimationLoopMode;
+  pivot: { x: number; y: number };
+  posterDataUrl?: string;
 }
 
 export interface AssetRegistry {
@@ -75,6 +106,11 @@ export interface AssetRegistry {
   getAsset(assetId: string): AssetEntry | null;
   getSelectedAsset(): AssetEntry | null;
   setSelectedAsset(assetId: string | null): void;
+  getAnimations(): AnimationAsset[];
+  getAnimation(animationId: string): AnimationAsset | null;
+  addAnimation(input: AnimationAssetInput): AnimationAsset;
+  updateAnimation(animationId: string, updates: Partial<AnimationAssetInput>): AnimationAsset | null;
+  removeAnimation(animationId: string): void;
   refreshFromRepo(manifest: RepoAssetManifest): void;
   uploadGroup(options: {
     groupType: AssetGroupType;
@@ -87,6 +123,7 @@ export interface AssetRegistry {
 export const DEFAULT_ASSET_REGISTRY_STATE: AssetRegistryState = {
   groups: DEFAULT_ASSET_GROUPS,
   selectedAssetId: null,
+  animations: [],
 };
 
 export type AssetGroupUploadHandler = (options: {
@@ -106,6 +143,18 @@ function cloneGroup(group: AssetGroup): AssetGroup {
     name: group.name,
     slug: group.slug,
     assets: group.assets.map((asset) => ({ ...asset })),
+  };
+}
+
+function cloneAnimation(animation: AnimationAsset): AnimationAsset {
+  return {
+    ...animation,
+    pivot: { ...animation.pivot },
+    frames: animation.frames.map((frame) => ({
+      sourceAssetId: frame.sourceAssetId,
+      rect: { ...frame.rect },
+      offset: frame.offset ? { ...frame.offset } : undefined,
+    })),
   };
 }
 
@@ -165,6 +214,10 @@ function generateAssetId(): string {
   return `asset-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function generateAnimationId(): string {
+  return generateAssetId();
+}
+
 function buildRepoAssetId(type: AssetGroupType, slug: string, fileName: string): string {
   return `repo:${type}:${slug}:${fileName}`;
 }
@@ -215,6 +268,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     ...DEFAULT_ASSET_REGISTRY_STATE,
     ...initialState,
     groups: ensureDefaultGroups(initialState?.groups ?? DEFAULT_ASSET_REGISTRY_STATE.groups),
+    animations: initialState?.animations?.map((animation) => cloneAnimation(animation)) ?? [],
   };
 
   const listeners = new Set<(state: AssetRegistryState) => void>();
@@ -228,6 +282,13 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     emit({
       ...state,
       groups: nextGroups,
+    });
+  }
+
+  function updateAnimations(nextAnimations: AnimationAsset[]): void {
+    emit({
+      ...state,
+      animations: nextAnimations,
     });
   }
 
@@ -311,6 +372,76 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     });
 
     return createdAssets;
+  }
+
+  function getAnimations(): AnimationAsset[] {
+    return state.animations.map((animation) => cloneAnimation(animation));
+  }
+
+  function getAnimation(animationId: string): AnimationAsset | null {
+    const found = state.animations.find((animation) => animation.id === animationId);
+    return found ? cloneAnimation(found) : null;
+  }
+
+  function addAnimation(input: AnimationAssetInput): AnimationAsset {
+    const animation: AnimationAsset = {
+      id: generateAnimationId(),
+      name: input.name,
+      frames: input.frames.map((frame) => ({
+        sourceAssetId: frame.sourceAssetId,
+        rect: { ...frame.rect },
+        offset: frame.offset ? { ...frame.offset } : undefined,
+      })),
+      fps: input.fps,
+      loopMode: input.loopMode,
+      pivot: { ...input.pivot },
+      posterDataUrl: input.posterDataUrl,
+      createdAt: Date.now(),
+    };
+
+    updateAnimations([...state.animations, animation]);
+    return cloneAnimation(animation);
+  }
+
+  function updateAnimation(
+    animationId: string,
+    updates: Partial<AnimationAssetInput>
+  ): AnimationAsset | null {
+    const index = state.animations.findIndex((animation) => animation.id === animationId);
+    if (index === -1) return null;
+
+    const current = state.animations[index];
+    const next: AnimationAsset = {
+      ...current,
+      name: updates.name ?? current.name,
+      frames: updates.frames
+        ? updates.frames.map((frame) => ({
+          sourceAssetId: frame.sourceAssetId,
+          rect: { ...frame.rect },
+          offset: frame.offset ? { ...frame.offset } : undefined,
+        }))
+        : current.frames.map((frame) => ({
+          sourceAssetId: frame.sourceAssetId,
+          rect: { ...frame.rect },
+          offset: frame.offset ? { ...frame.offset } : undefined,
+        })),
+      fps: updates.fps ?? current.fps,
+      loopMode: updates.loopMode ?? current.loopMode,
+      pivot: updates.pivot ? { ...updates.pivot } : { ...current.pivot },
+      posterDataUrl: updates.posterDataUrl ?? current.posterDataUrl,
+    };
+
+    const nextAnimations = state.animations.map((animation, idx) =>
+      idx === index ? next : animation
+    );
+    updateAnimations(nextAnimations);
+    return cloneAnimation(next);
+  }
+
+  function removeAnimation(animationId: string): void {
+    const nextAnimations = state.animations.filter((animation) => animation.id !== animationId);
+    if (nextAnimations.length === state.animations.length) return;
+    updateAnimations(nextAnimations);
   }
 
   function removeAsset(assetId: string): void {
@@ -525,6 +656,11 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     getAsset,
     getSelectedAsset: () => (state.selectedAssetId ? getAsset(state.selectedAssetId) : null),
     setSelectedAsset,
+    getAnimations,
+    getAnimation,
+    addAnimation,
+    updateAnimation,
+    removeAnimation,
     refreshFromRepo,
     uploadGroup,
     onChange: (callback) => {

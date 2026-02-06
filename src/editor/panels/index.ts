@@ -29,6 +29,8 @@ export type { LeftBerryController, LeftBerryConfig } from './leftBerry';
 export { LEFT_BERRY_TABS } from './leftBerryTabs';
 export type { LeftBerryTab, LeftBerryTabId } from './leftBerryTabs';
 export { createSpriteSlicerTab } from './spriteSlicerTab';
+export { createAnimationTab } from './animationTab';
+export type { AnimationTabController, AnimationTabConfig } from './animationTab';
 export { createAssetLibraryTab } from './assetLibraryTab';
 export type { AssetLibraryTabController, AssetLibraryTabConfig } from './assetLibraryTab';
 export { createAssetPalette } from './assetPalette';

@@ -194,6 +194,51 @@ const STYLES = `
     color: #9aa7d6;
     padding: 4px 0;
   }
+
+  .asset-library__animations {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 10px;
+  }
+
+  .asset-library__animation-card {
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: rgba(22, 30, 60, 0.85);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #dbe4ff;
+    font-size: 11px;
+    position: relative;
+  }
+
+  .asset-library__animation-card img {
+    width: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .asset-library__animation-meta {
+    font-size: 10px;
+    color: #93a1d8;
+  }
+
+  .asset-library__animation-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(22, 30, 60, 0.9);
+    color: #ffb6c1;
+    font-size: 12px;
+    cursor: pointer;
+  }
 `;
 
 export interface AssetLibraryTabConfig {
@@ -497,9 +542,71 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     });
   }
 
+  function renderAnimations(): void {
+    librarySection.querySelectorAll(
+      '.asset-library__animations, .asset-library__animations-empty, .asset-library__animations-title'
+    )
+      .forEach((node) => node.remove());
+
+    const animations = assetRegistry.getAnimations();
+    const title = document.createElement('div');
+    title.className = 'asset-library__title asset-library__animations-title';
+    title.textContent = 'Animations';
+    librarySection.appendChild(title);
+
+    if (animations.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'asset-library__empty asset-library__animations-empty';
+      empty.textContent = 'No animations saved yet.';
+      librarySection.appendChild(empty);
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'asset-library__animations';
+    const fallbackPoster =
+      'data:image/svg+xml;utf8,' +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23121a30"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="%239aa7d6" font-size="12" font-family="sans-serif">Anim</text></svg>`
+      );
+
+    animations.forEach((animation) => {
+      const card = document.createElement('div');
+      card.className = 'asset-library__animation-card';
+
+      const img = document.createElement('img');
+      img.src = animation.posterDataUrl ?? fallbackPoster;
+      img.alt = animation.name;
+      card.appendChild(img);
+
+      const name = document.createElement('div');
+      name.className = 'asset-library__asset-name';
+      name.textContent = animation.name;
+      card.appendChild(name);
+
+      const meta = document.createElement('div');
+      meta.className = 'asset-library__animation-meta';
+      meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
+      card.appendChild(meta);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'asset-library__animation-delete';
+      deleteButton.textContent = '×';
+      deleteButton.addEventListener('click', () => {
+        assetRegistry.removeAnimation(animation.id);
+      });
+      card.appendChild(deleteButton);
+
+      grid.appendChild(card);
+    });
+    librarySection.appendChild(grid);
+  }
+
   function refresh(): void {
     const state = assetRegistry.getState();
     renderGroups(state.groups, state.selectedAssetId);
+    renderAnimations();
   }
 
   function handleCreateGroup(): void {

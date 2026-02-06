@@ -2,6 +2,10 @@ import { LEFT_BERRY_TABS, type LeftBerryTab, type LeftBerryTabId } from './leftB
 import { createSpriteSlicerTab } from './spriteSlicerTab';
 import { createAssetLibraryTab, type AssetLibraryTabController } from './assetLibraryTab';
 import type { AssetEntryInput, AssetRegistry } from '@/editor/assets';
+import type { EditorState } from '@/storage/hot';
+import type { EntityManager } from '@/editor/entities/entityManager';
+import type { HistoryManager } from '@/editor/history';
+import { createAnimationTab, type AnimationTabController } from './animationTab';
 
 export interface LeftBerryConfig {
   initialOpen?: boolean;
@@ -10,6 +14,9 @@ export interface LeftBerryConfig {
   assetRegistry?: AssetRegistry;
   assetLibraryEnabled?: boolean;
   assetUploadEnabled?: boolean;
+  getEditorState?: () => EditorState | null;
+  entityManager?: EntityManager;
+  history?: HistoryManager;
 }
 
 export interface LeftBerryController {
@@ -21,6 +28,7 @@ export interface LeftBerryController {
   getTabContentContainer(tab: LeftBerryTabId): HTMLElement | null;
   onTabChange(callback: (tab: LeftBerryTabId) => void): void;
   onOpenChange(callback: (open: boolean) => void): void;
+  refreshTab(tab: LeftBerryTabId): void;
   destroy(): void;
 }
 
@@ -285,7 +293,11 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const assetRegistry = config.assetRegistry;
   const assetLibraryEnabled = config.assetLibraryEnabled ?? true;
   const assetUploadEnabled = config.assetUploadEnabled ?? false;
+  const getEditorState = config.getEditorState;
+  const entityManager = config.entityManager;
+  const history = config.history;
   let assetLibraryController: AssetLibraryTabController | null = null;
+  let animationTabController: AnimationTabController | null = null;
 
   const shell = document.createElement('div');
   shell.className = 'left-berry-shell';
@@ -387,6 +399,23 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     });
   }
 
+  const animationContainer = tabContentMap.get('animation');
+  if (animationContainer) {
+    if (assetRegistry) {
+      animationTabController = createAnimationTab({
+        container: animationContainer,
+        assetRegistry,
+        getEditorState: getEditorState ?? (() => null),
+        entityManager,
+        history,
+      });
+    } else {
+      animationContainer.appendChild(
+        createLeftBerryPlaceholder('Animation tools need an asset registry to run.')
+      );
+    }
+  }
+
   const assetsContainer = tabContentMap.get('assets');
   if (assetsContainer) {
     if (assetLibraryEnabled && assetRegistry) {
@@ -412,6 +441,10 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     for (const tabContent of tabContentMap.values()) {
       const isActive = tabContent.dataset.tab === tab;
       tabContent.classList.toggle('left-berry__tab-content--active', isActive);
+    }
+
+    if (tab === 'animation') {
+      animationTabController?.refresh();
     }
 
     if (!options?.silent) {
@@ -477,10 +510,19 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     getTabContentContainer: (tab) => tabContentMap.get(tab) ?? null,
     onTabChange: (callback) => tabChangeCallbacks.push(callback),
     onOpenChange: (callback) => openChangeCallbacks.push(callback),
+    refreshTab: (tab) => {
+      if (tab === 'animation') {
+        animationTabController?.refresh();
+      }
+      if (tab === 'assets') {
+        assetLibraryController?.refresh();
+      }
+    },
     destroy: () => {
       panel.removeEventListener('touchstart', onTouchStart);
       panel.removeEventListener('touchend', onTouchEnd);
       assetLibraryController?.destroy();
+      animationTabController?.destroy();
       container.removeChild(shell);
     },
   };
