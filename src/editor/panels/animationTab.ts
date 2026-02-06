@@ -1237,7 +1237,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       sliceButton.type = 'button';
       sliceButton.className = 'animation-tab__button animation-tab__button--primary';
       sliceButton.textContent = 'Slice Frames';
-      sliceButton.addEventListener('click', openSliceSettings);
+      sliceButton.addEventListener('click', () => openSliceSettings());
 
       const sourceButton = document.createElement('button');
       sourceButton.type = 'button';
@@ -1277,7 +1277,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     sliceButton.type = 'button';
     sliceButton.className = 'animation-tab__button animation-tab__button--ghost';
     sliceButton.textContent = 'Reslice';
-    sliceButton.addEventListener('click', openSliceSettings);
+    sliceButton.addEventListener('click', () => openSliceSettings());
 
     row.appendChild(saveButton);
     row.appendChild(attachButton);
