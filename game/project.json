@@ -4,20 +4,20 @@
   "tileCategories": [
     {
       "name": "terrain",
-      "path": "assets/tiles/terrain",
-      "files": ["grass.png", "dirt.png", "water.png", "stone.png"]
+      "path": "assets/tilesets",
+      "files": ["base/grass.png", "base/dirt.png", "base/water.png", "base/stone.png"]
     },
     {
       "name": "props",
-      "path": "assets/tiles/props",
-      "files": ["tree.png", "rock.png", "bush.png"]
+      "path": "assets/props",
+      "files": ["base/tree.png", "base/rock.png", "base/bush.png"]
     }
   ],
   "entityTypes": [
     {
       "name": "player",
       "displayName": "Player",
-      "sprite": "assets/sprites/player.png",
+      "sprite": "assets/entities/base/player.png",
       "properties": [
         {
           "name": "speed",
@@ -38,7 +38,7 @@
     {
       "name": "enemy",
       "displayName": "Enemy",
-      "sprite": "assets/sprites/enemy.png",
+      "sprite": "assets/entities/base/enemy.png",
       "properties": [
         {
           "name": "speed",
@@ -66,7 +66,7 @@
     {
       "name": "door",
       "displayName": "Door",
-      "sprite": "assets/sprites/door.png",
+      "sprite": "assets/entities/base/door.png",
       "properties": [
         {
           "name": "targetScene",
