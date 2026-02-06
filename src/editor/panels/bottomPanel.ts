@@ -120,9 +120,10 @@ const STYLES = `
 
   .bottom-panel__context-row {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 12px 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px 12px 8px;
   }
 
   .bottom-panel__tool-group {
@@ -132,6 +133,7 @@ const STYLES = `
     padding: 4px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.04);
+    align-self: flex-start;
   }
 
   .bottom-panel__tool-button {
@@ -200,6 +202,7 @@ const STYLES = `
   .bottom-panel__context-strip {
     flex: 1;
     min-width: 0;
+    width: 100%;
   }
 
   .bottom-panel__content {

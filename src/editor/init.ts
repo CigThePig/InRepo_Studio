@@ -19,7 +19,7 @@ import {
   scanAssetFolders,
 } from '@/storage';
 import type { BrushSize, EditorState, UpdateCheckResult } from '@/storage';
-import type { StorageQuotaInfo } from '@/storage/hot';
+import type { SelectedTile, StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
@@ -43,6 +43,7 @@ import {
 } from '@/editor/panels';
 import {
   createAssetRegistry,
+  type AssetEntry,
   type AssetRegistry,
   type AssetRegistryState,
 } from '@/editor/assets';
@@ -330,6 +331,66 @@ function updateBottomPanelToolContext(): void {
   });
 }
 
+function normalizeAssetPath(value: string): string {
+  return value.replace(/^\/+/, '').replace(/\/{2,}/g, '/');
+}
+
+function resolveSelectedTileFromAsset(asset: AssetEntry, project: Project): SelectedTile | null {
+  if (asset.type === 'entity') return null;
+  if (/^data:/i.test(asset.dataUrl)) {
+    return null;
+  }
+
+  const assetPath = normalizeAssetPath(asset.dataUrl);
+
+  for (const category of project.tileCategories) {
+    const categoryRoot = normalizeAssetPath(category.path);
+    const files = category.files ?? [];
+
+    for (let index = 0; index < files.length; index += 1) {
+      const fullPath = normalizeAssetPath(`${categoryRoot}/${files[index]}`);
+      if (fullPath === assetPath) {
+        return { category: category.name, index };
+      }
+    }
+  }
+
+  return null;
+}
+
+function applySelectedTile(selection: SelectedTile, options?: { switchTool?: boolean }): void {
+  if (!editorState) return;
+
+  const previous = editorState.selectedTile;
+  if (previous?.category === selection.category && previous.index === selection.index) {
+    return;
+  }
+
+  editorState.selectedTile = selection;
+  scheduleSave();
+  canvasController?.setSelectedCategory(selection.category);
+
+  if (options?.switchTool) {
+    activateTileTool('paint');
+  }
+}
+
+function syncSelectedAssetSelection(
+  selectedAssetId: string | null,
+  options?: { switchTool?: boolean }
+): void {
+  if (!editorState || !assetRegistry || !currentProject) return;
+  if (!selectedAssetId) return;
+
+  const asset = assetRegistry.getAsset(selectedAssetId);
+  if (!asset) return;
+
+  const selection = resolveSelectedTileFromAsset(asset, currentProject);
+  if (!selection) return;
+
+  applySelectedTile(selection, options);
+}
+
 function updateEntitySelectionUI(): void {
   if (!editorState || !canvasController || !currentScene || !entitySelection) return;
   const renderer = canvasController.getRenderer();
@@ -544,8 +605,12 @@ export async function initEditor(): Promise<void> {
   });
   assetRegistry.onChange((nextState) => {
     if (!editorState) return;
+    const previousSelectedAssetId = editorState.assetRegistry?.selectedAssetId ?? null;
     editorState.assetRegistry = nextState;
     scheduleSave();
+    if (previousSelectedAssetId !== nextState.selectedAssetId) {
+      syncSelectedAssetSelection(nextState.selectedAssetId, { switchTool: true });
+    }
   });
   if (editorState.repoAssetManifest) {
     assetRegistry.refreshFromRepo(editorState.repoAssetManifest);
@@ -564,6 +629,7 @@ export async function initEditor(): Promise<void> {
     throw new Error('No project data available');
   }
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
+  syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null, { switchTool: true });
   if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
     editorState.selectedEntityType = currentProject.entityTypes[0].name;
     scheduleSave();
