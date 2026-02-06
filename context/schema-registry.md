@@ -127,12 +127,18 @@ Rules:
 
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state
-    - Keys: groups[], selectedAssetId
+    - Keys: groups[], selectedAssetId, animations[]
     - Apply mode: live
   - `AssetEntry` — asset metadata stored in groups
     - Keys: id, name, type, source, dataUrl, width, height, createdAt
   - `AssetEntrySource` — asset origin
     - Values: local, repo
+  - `AnimationAsset` — animation metadata stored in registry
+    - Keys: id, name, frames[], fps, loopMode, pivot, posterDataUrl?, createdAt
+  - `AnimationFrameRef` — frame slice metadata
+    - Keys: sourceAssetId, rect{x,y,w,h}, offset?
+  - `AnimationLoopMode` — animation looping behavior
+    - Values: loop, once, pingpong
 
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets

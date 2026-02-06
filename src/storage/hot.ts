@@ -109,6 +109,15 @@ function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState 
         source: asset.source ?? 'local',
       })),
     })),
+    animations: state.animations.map((animation) => ({
+      ...animation,
+      pivot: { ...animation.pivot },
+      frames: animation.frames.map((frame) => ({
+        sourceAssetId: frame.sourceAssetId,
+        rect: { ...frame.rect },
+        offset: frame.offset ? { ...frame.offset } : undefined,
+      })),
+    })),
   };
 }
 
@@ -374,6 +383,7 @@ export async function loadEditorState(): Promise<EditorState> {
     ...DEFAULT_EDITOR_STATE.assetRegistry,
     ...state.assetRegistry,
     groups: state.assetRegistry?.groups ?? DEFAULT_EDITOR_STATE.assetRegistry.groups,
+    animations: state.assetRegistry?.animations ?? DEFAULT_EDITOR_STATE.assetRegistry.animations,
   };
 
   const resolvedIntent = state.intent ?? inferIntentFromTool(state.currentTool);
