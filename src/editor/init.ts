@@ -277,6 +277,7 @@ function activateTileTool(tool: 'paint' | 'erase'): void {
 
 function updateBottomContextStrip(): void {
   if (!bottomContextStrip || !editorState) return;
+  bottomContextStrip.setSelectToolActive(editorState.currentTool === 'select');
   const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
   const toolAllowsEntitySelection =
     editorState.currentTool === 'select' ||
@@ -1381,14 +1382,19 @@ async function initPanels(): Promise<void> {
           const activeTab = rightBerryController?.getActiveTab() ?? 'ground';
           updateEditorMode(activeTab, true);
         } else {
-          updateEditorMode('select', true);
+          // Do not force-select on close. Keep the current editing mode/tool.
+          updateBottomPanelToolContext();
         }
       });
 
-      if (editorState.rightBerryOpen) {
-        updateEditorMode(initialTab, true);
-      } else {
-        updateEditorMode('select', true);
+      {
+        // Restore the last meaningful mode on boot. If we previously stored 'select',
+        // fall back to the mode implied by the current tool/layer.
+        const resolvedInitialMode =
+          editorState.editorMode !== 'select'
+            ? editorState.editorMode
+            : inferModeFromTool(editorState.currentTool);
+        updateEditorMode(resolvedInitialMode, true);
       }
     }
   }

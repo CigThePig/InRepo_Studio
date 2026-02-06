@@ -20,6 +20,8 @@ export interface BottomContextStripConfig {
 
 export interface BottomContextStripController {
   setSelectionType(type: BottomContextSelection): void;
+  /** Whether the selection tool is currently active (shows tile actions even before a selection exists). */
+  setSelectToolActive(active: boolean): void;
   setPasteEnabled(enabled: boolean): void;
   setSelectionCount(count: number): void;
   destroy(): void;
@@ -179,10 +181,12 @@ export function createBottomContextStrip(
   container.appendChild(triggerGroup);
 
   let selectionType: BottomContextSelection = 'none';
+  let selectToolActive = false;
+
   let selectionCount = 0;
 
   function updateVisibility(): void {
-    const isHidden = selectionType === 'none';
+    const isHidden = selectionType === 'none' && !selectToolActive;
     container.classList.toggle('bottom-context-strip--hidden', isHidden);
 
     if (selectionType === 'tiles') {
@@ -201,15 +205,34 @@ export function createBottomContextStrip(
       entityGroup.style.display = 'none';
       triggerGroup.style.display = 'flex';
     } else {
-      label.textContent = '';
-      tileGroup.style.display = 'none';
-      entityGroup.style.display = 'none';
-      triggerGroup.style.display = 'none';
-    }
+      if (selectToolActive) {
+        label.textContent = 'Select';
+        tileGroup.style.display = 'flex';
+        entityGroup.style.display = 'none';
+        triggerGroup.style.display = 'none';
+      } else {
+        label.textContent = '';
+        tileGroup.style.display = 'none';
+        entityGroup.style.display = 'none';
+        triggerGroup.style.display = 'none';
+      }
+  
+
+    const hasTileSelection = selectionType === 'tiles';
+    moveButton.disabled = !hasTileSelection;
+    copyButton.disabled = !hasTileSelection;
+    deleteButton.disabled = !hasTileSelection;
+    fillButton.disabled = !hasTileSelection;
+  }
   }
 
   function setSelectionType(type: BottomContextSelection): void {
     selectionType = type;
+    updateVisibility();
+  }
+
+  function setSelectToolActive(active: boolean): void {
+    selectToolActive = active;
     updateVisibility();
   }
 
@@ -257,6 +280,7 @@ export function createBottomContextStrip(
 
   return {
     setSelectionType,
+    setSelectToolActive,
     setPasteEnabled,
     setSelectionCount,
     destroy,
