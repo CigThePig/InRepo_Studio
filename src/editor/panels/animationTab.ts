@@ -88,6 +88,28 @@ const STYLES = `
     color: #9aa7d6;
   }
 
+  .animation-tab__source-cta {
+    border-radius: 14px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(22, 30, 60, 0.85);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .animation-tab__source-cta-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e6ecff;
+  }
+
+  .animation-tab__source-cta-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .animation-tab__frames {
     background: rgba(20, 30, 60, 0.85);
     border: 1px solid #253461;
@@ -267,6 +289,25 @@ const STYLES = `
     font-size: 13px;
   }
 
+  .animation-tab__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 140px;
+    flex: 1 1 140px;
+  }
+
+  .animation-tab__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #dbe4ff;
+  }
+
+  .animation-tab__helper {
+    font-size: 11px;
+    color: #9aa7d6;
+  }
+
   .animation-tab__asset-list {
     display: flex;
     flex-direction: column;
@@ -317,6 +358,35 @@ const STYLES = `
     background: rgba(74, 158, 255, 0.5);
     pointer-events: none;
   }
+
+  .animation-tab__pivot-hud {
+    font-size: 12px;
+    color: #dbe4ff;
+    font-weight: 600;
+  }
+
+  .animation-tab__pivot-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .animation-tab__thumbnail {
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(10, 15, 30, 0.7);
+    object-fit: contain;
+  }
+
+  .animation-tab__sheet-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
 `;
 
 const DEFAULT_FPS = 8;
@@ -331,6 +401,20 @@ interface AnimationFrameState {
   thumbnailDataUrl: string;
 }
 
+interface GridSliceSettings {
+  tileWidth: number;
+  tileHeight: number;
+  margin: number;
+  spacing: number;
+}
+
+interface GridModel {
+  settings: GridSliceSettings;
+  rects: AnimationFrameRef['rect'][];
+  cols: number;
+  rows: number;
+}
+
 interface AnimationTabState {
   sourceAssetId: string | null;
   sourceName: string | null;
@@ -341,11 +425,14 @@ interface AnimationTabState {
   loopMode: AnimationLoopMode;
   pivot: { x: number; y: number };
   showPivot: boolean;
+  pivotSnap: boolean;
   isPlaying: boolean;
   animationId: string | null;
   animationName: string;
   dirty: boolean;
   sheetOpen: boolean;
+  gridSlice: GridSliceSettings | null;
+  gridModel: GridModel | null;
 }
 
 export interface AnimationTabConfig {
@@ -454,11 +541,14 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     loopMode: DEFAULT_LOOP_MODE,
     pivot: { ...DEFAULT_PIVOT },
     showPivot: false,
+    pivotSnap: false,
     isPlaying: false,
     animationId: null,
     animationName: '',
     dirty: false,
     sheetOpen: false,
+    gridSlice: null,
+    gridModel: null,
   };
 
   const root = document.createElement('div');
@@ -517,8 +607,77 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   previewHint.className = 'animation-tab__preview-hint';
   previewHint.textContent = 'Import a spritesheet to start animating.';
 
+  const sourceCta = document.createElement('div');
+  sourceCta.className = 'animation-tab__source-cta';
+  sourceCta.style.display = 'none';
+
+  const sourceCtaTitle = document.createElement('div');
+  sourceCtaTitle.className = 'animation-tab__source-cta-title';
+  sourceCtaTitle.textContent = 'Source loaded. Next: slice frames.';
+
+  const sourceCtaActions = document.createElement('div');
+  sourceCtaActions.className = 'animation-tab__source-cta-actions';
+
+  const sourceCtaSlice = document.createElement('button');
+  sourceCtaSlice.type = 'button';
+  sourceCtaSlice.className = 'animation-tab__button animation-tab__button--primary';
+  sourceCtaSlice.textContent = 'Slice Frames';
+  sourceCtaSlice.addEventListener('click', () => openSliceSettings());
+
+  sourceCtaActions.appendChild(sourceCtaSlice);
+  sourceCta.appendChild(sourceCtaTitle);
+  sourceCta.appendChild(sourceCtaActions);
+
+  const pivotHud = document.createElement('div');
+  pivotHud.className = 'animation-tab__pivot-hud';
+  pivotHud.style.display = 'none';
+
+  const pivotControls = document.createElement('div');
+  pivotControls.className = 'animation-tab__pivot-controls';
+  pivotControls.style.display = 'none';
+
+  const pivotXField = document.createElement('div');
+  pivotXField.className = 'animation-tab__field';
+  const pivotXLabel = document.createElement('div');
+  pivotXLabel.className = 'animation-tab__label';
+  pivotXLabel.textContent = 'Pivot X';
+  const pivotXInput = document.createElement('input');
+  pivotXInput.className = 'animation-tab__input';
+  pivotXInput.type = 'number';
+  pivotXInput.min = '0';
+  pivotXInput.max = '1';
+  pivotXInput.step = '0.01';
+  pivotXField.appendChild(pivotXLabel);
+  pivotXField.appendChild(pivotXInput);
+
+  const pivotYField = document.createElement('div');
+  pivotYField.className = 'animation-tab__field';
+  const pivotYLabel = document.createElement('div');
+  pivotYLabel.className = 'animation-tab__label';
+  pivotYLabel.textContent = 'Pivot Y';
+  const pivotYInput = document.createElement('input');
+  pivotYInput.className = 'animation-tab__input';
+  pivotYInput.type = 'number';
+  pivotYInput.min = '0';
+  pivotYInput.max = '1';
+  pivotYInput.step = '0.01';
+  pivotYField.appendChild(pivotYLabel);
+  pivotYField.appendChild(pivotYInput);
+
+  const pivotSnapToggle = document.createElement('button');
+  pivotSnapToggle.type = 'button';
+  pivotSnapToggle.className = 'animation-tab__button animation-tab__button--ghost';
+  pivotSnapToggle.textContent = 'Snap 0.05: Off';
+
+  pivotControls.appendChild(pivotXField);
+  pivotControls.appendChild(pivotYField);
+  pivotControls.appendChild(pivotSnapToggle);
+
   previewSection.appendChild(previewStage);
   previewSection.appendChild(previewHint);
+  previewSection.appendChild(sourceCta);
+  previewSection.appendChild(pivotHud);
+  previewSection.appendChild(pivotControls);
 
   const framesSection = document.createElement('section');
   framesSection.className = 'animation-tab__frames';
@@ -569,6 +728,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   let draggingPivot = false;
   let dragFrameIndex: number | null = null;
   let dragStartTimeout: number | null = null;
+  let lastDrawBounds: { x: number; y: number; width: number; height: number } | null = null;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -654,6 +814,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     state.sourceImage = image;
     state.sourceAssetId = asset.id;
     state.sourceName = asset.name;
+    state.gridModel = null;
     if (!options?.preserveAnimation) {
       state.frames = [];
       state.currentFrame = 0;
@@ -734,17 +895,36 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     tileHeight: number;
     margin: number;
     spacing: number;
-    append?: boolean;
   }): void {
     if (!state.sourceImage || !state.sourceAssetId) return;
-    const rects = buildGridFrames({
-      imageWidth: state.sourceImage.naturalWidth,
-      imageHeight: state.sourceImage.naturalHeight,
+    const settings: GridSliceSettings = {
       tileWidth: options.tileWidth,
       tileHeight: options.tileHeight,
       margin: options.margin,
       spacing: options.spacing,
+    };
+    const rects = buildGridFrames({
+      imageWidth: state.sourceImage.naturalWidth,
+      imageHeight: state.sourceImage.naturalHeight,
+      tileWidth: settings.tileWidth,
+      tileHeight: settings.tileHeight,
+      margin: settings.margin,
+      spacing: settings.spacing,
     });
+    const cols = Math.max(
+      0,
+      Math.floor(
+        (state.sourceImage.naturalWidth - settings.margin + settings.spacing) /
+          (settings.tileWidth + settings.spacing)
+      )
+    );
+    const rows = Math.max(
+      0,
+      Math.floor(
+        (state.sourceImage.naturalHeight - settings.margin + settings.spacing) /
+          (settings.tileHeight + settings.spacing)
+      )
+    );
 
     const nextFrames = rects.map((rect) => ({
       ref: {
@@ -753,50 +933,102 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       },
       thumbnailDataUrl: createFrameThumbnail(state.sourceImage!, rect),
     }));
-    state.frames = options.append ? [...state.frames, ...nextFrames] : nextFrames;
-    if (!options.append || state.frames.length === nextFrames.length) {
-      state.currentFrame = 0;
-    }
+    state.frames = nextFrames;
+    state.currentFrame = 0;
     state.dirty = true;
+    state.gridSlice = settings;
+    state.gridModel = {
+      settings,
+      rects,
+      cols,
+      rows,
+    };
     render();
   }
 
-  function openSliceSettings(options?: { append?: boolean }): void {
+  function openSliceSettings(): void {
     const content = document.createElement('div');
-    content.className = 'animation-tab__row';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.gap = '12px';
+
+    const settings = state.gridSlice ?? {
+      tileWidth: 32,
+      tileHeight: 32,
+      margin: 0,
+      spacing: 0,
+    };
 
     const widthInput = document.createElement('input');
     widthInput.className = 'animation-tab__input';
     widthInput.type = 'number';
     widthInput.min = '1';
-    widthInput.value = '32';
-    widthInput.placeholder = 'Tile W';
+    widthInput.value = `${settings.tileWidth}`;
 
     const heightInput = document.createElement('input');
     heightInput.className = 'animation-tab__input';
     heightInput.type = 'number';
     heightInput.min = '1';
-    heightInput.value = '32';
-    heightInput.placeholder = 'Tile H';
+    heightInput.value = `${settings.tileHeight}`;
 
     const marginInput = document.createElement('input');
     marginInput.className = 'animation-tab__input';
     marginInput.type = 'number';
     marginInput.min = '0';
-    marginInput.value = '0';
-    marginInput.placeholder = 'Margin';
+    marginInput.value = `${settings.margin}`;
 
     const spacingInput = document.createElement('input');
     spacingInput.className = 'animation-tab__input';
     spacingInput.type = 'number';
     spacingInput.min = '0';
-    spacingInput.value = '0';
-    spacingInput.placeholder = 'Spacing';
+    spacingInput.value = `${settings.spacing}`;
 
-    content.appendChild(widthInput);
-    content.appendChild(heightInput);
-    content.appendChild(marginInput);
-    content.appendChild(spacingInput);
+    const widthField = document.createElement('div');
+    widthField.className = 'animation-tab__field';
+    const widthLabel = document.createElement('div');
+    widthLabel.className = 'animation-tab__label';
+    widthLabel.textContent = 'Frame Width (px)';
+    widthField.appendChild(widthLabel);
+    widthField.appendChild(widthInput);
+
+    const heightField = document.createElement('div');
+    heightField.className = 'animation-tab__field';
+    const heightLabel = document.createElement('div');
+    heightLabel.className = 'animation-tab__label';
+    heightLabel.textContent = 'Frame Height (px)';
+    heightField.appendChild(heightLabel);
+    heightField.appendChild(heightInput);
+
+    const marginField = document.createElement('div');
+    marginField.className = 'animation-tab__field';
+    const marginLabel = document.createElement('div');
+    marginLabel.className = 'animation-tab__label';
+    marginLabel.textContent = 'Outer Margin (px)';
+    marginField.appendChild(marginLabel);
+    marginField.appendChild(marginInput);
+
+    const spacingField = document.createElement('div');
+    spacingField.className = 'animation-tab__field';
+    const spacingLabel = document.createElement('div');
+    spacingLabel.className = 'animation-tab__label';
+    spacingLabel.textContent = 'Spacing (px)';
+    spacingField.appendChild(spacingLabel);
+    spacingField.appendChild(spacingInput);
+
+    const row = document.createElement('div');
+    row.className = 'animation-tab__sheet-row';
+    row.appendChild(widthField);
+    row.appendChild(heightField);
+    row.appendChild(marginField);
+    row.appendChild(spacingField);
+
+    const helper = document.createElement('div');
+    helper.className = 'animation-tab__helper';
+    helper.textContent =
+      'Grid slicing walks the sheet left-to-right, top-to-bottom using these dimensions.';
+
+    content.appendChild(row);
+    content.appendChild(helper);
 
     openSheet({
       title: 'Grid Slice Settings',
@@ -807,10 +1039,150 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         const tileHeight = Math.max(1, Number(heightInput.value) || 1);
         const margin = Math.max(0, Number(marginInput.value) || 0);
         const spacing = Math.max(0, Number(spacingInput.value) || 0);
-        buildFramesFromGrid({ tileWidth, tileHeight, margin, spacing, append: options?.append });
+        buildFramesFromGrid({ tileWidth, tileHeight, margin, spacing });
         closeSheet();
       },
     });
+  }
+
+  function openAddFrameSheet(): void {
+    if (!state.gridModel || !state.sourceImage) {
+      openSliceSettings();
+      return;
+    }
+    const { rects } = state.gridModel;
+    if (rects.length === 0) {
+      openSliceSettings();
+      return;
+    }
+
+    const content = document.createElement('div');
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.gap = '12px';
+
+    let selectedIndex = clamp(state.currentFrame + 1, 1, rects.length);
+
+    const row = document.createElement('div');
+    row.className = 'animation-tab__sheet-row';
+
+    const prevButton = document.createElement('button');
+    prevButton.type = 'button';
+    prevButton.className = 'animation-tab__button animation-tab__button--ghost';
+    prevButton.textContent = 'Prev';
+
+    const nextButton = document.createElement('button');
+    nextButton.type = 'button';
+    nextButton.className = 'animation-tab__button animation-tab__button--ghost';
+    nextButton.textContent = 'Next';
+
+    const indexField = document.createElement('div');
+    indexField.className = 'animation-tab__field';
+    const indexLabel = document.createElement('div');
+    indexLabel.className = 'animation-tab__label';
+    indexLabel.textContent = 'Frame index';
+    const indexInput = document.createElement('input');
+    indexInput.className = 'animation-tab__input';
+    indexInput.type = 'number';
+    indexInput.min = '1';
+    indexInput.max = `${rects.length}`;
+    indexInput.step = '1';
+    indexInput.value = `${selectedIndex}`;
+    indexField.appendChild(indexLabel);
+    indexField.appendChild(indexInput);
+
+    row.appendChild(prevButton);
+    row.appendChild(indexField);
+    row.appendChild(nextButton);
+
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'animation-tab__thumbnail';
+    thumbnail.alt = 'Frame preview';
+
+    const hint = document.createElement('div');
+    hint.className = 'animation-tab__helper';
+    hint.textContent = `Grid has ${rects.length} frames.`;
+
+    const error = document.createElement('div');
+    error.className = 'animation-tab__helper';
+    error.style.color = '#ff9db0';
+
+    const updatePreview = () => {
+      const rect = rects[selectedIndex - 1];
+      thumbnail.src = rect ? createFrameThumbnail(state.sourceImage!, rect) : '';
+      indexInput.value = `${selectedIndex}`;
+      error.textContent = '';
+    };
+
+    const setIndex = (value: number) => {
+      selectedIndex = clamp(value, 1, rects.length);
+      updatePreview();
+    };
+
+    prevButton.addEventListener('click', () => setIndex(selectedIndex - 1));
+    nextButton.addEventListener('click', () => setIndex(selectedIndex + 1));
+    indexInput.addEventListener('input', () => {
+      setIndex(Number(indexInput.value) || 1);
+    });
+
+    updatePreview();
+
+    content.appendChild(row);
+    content.appendChild(thumbnail);
+    content.appendChild(hint);
+    content.appendChild(error);
+
+    openSheet({
+      title: 'Add Frame',
+      content,
+      confirmLabel: 'Add Frame',
+      onConfirm: () => {
+        const rect = rects[selectedIndex - 1];
+        if (!rect || !state.sourceImage || !state.sourceAssetId) return;
+        const exists = state.frames.some(
+          (frame) =>
+            frame.ref.rect.x === rect.x &&
+            frame.ref.rect.y === rect.y &&
+            frame.ref.rect.w === rect.w &&
+            frame.ref.rect.h === rect.h
+        );
+        if (exists) {
+          error.textContent = 'That frame is already in the strip.';
+          return;
+        }
+        state.frames = [
+          ...state.frames,
+          {
+            ref: { sourceAssetId: state.sourceAssetId, rect },
+            thumbnailDataUrl: createFrameThumbnail(state.sourceImage, rect),
+          },
+        ];
+        state.currentFrame = state.frames.length - 1;
+        state.dirty = true;
+        render();
+        closeSheet();
+      },
+    });
+  }
+
+  function applyPivot(nextX: number, nextY: number): void {
+    const snapStep = state.pivotSnap ? 0.05 : 0;
+    const snappedX = snapStep ? Math.round(nextX / snapStep) * snapStep : nextX;
+    const snappedY = snapStep ? Math.round(nextY / snapStep) * snapStep : nextY;
+    state.pivot = {
+      x: clamp(snappedX, 0, 1),
+      y: clamp(snappedY, 0, 1),
+    };
+    state.dirty = true;
+  }
+
+  function updatePivotUi(): void {
+    pivotHud.textContent = `Pivot: ${state.pivot.x.toFixed(2)}, ${state.pivot.y.toFixed(2)}`;
+    pivotXInput.value = state.pivot.x.toFixed(2);
+    pivotYInput.value = state.pivot.y.toFixed(2);
+    pivotSnapToggle.textContent = `Snap 0.05: ${state.pivotSnap ? 'On' : 'Off'}`;
+    pivotHud.style.display = state.showPivot ? 'block' : 'none';
+    pivotControls.style.display = state.showPivot ? 'flex' : 'none';
   }
 
   function buildPosterDataUrl(): string | undefined {
@@ -982,8 +1354,8 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   function updatePivotOverlay(): void {
     const rect = previewStage.getBoundingClientRect();
-    const x = rect.width * state.pivot.x;
-    const y = rect.height * state.pivot.y;
+    const x = rect.width / 2;
+    const y = rect.height / 2;
     pivotMarker.style.left = `${x}px`;
     pivotMarker.style.top = `${y}px`;
     pivotMarker.style.display = state.showPivot ? 'block' : 'none';
@@ -1010,6 +1382,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     previewCanvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, rect.width, rect.height);
+    lastDrawBounds = null;
 
     if (!state.sourceImage || state.frames.length === 0) {
       ctx.fillStyle = '#9aa7d6';
@@ -1028,8 +1401,10 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     );
     const drawWidth = frameRect.w * scale;
     const drawHeight = frameRect.h * scale;
-    const dx = (rect.width - drawWidth) / 2;
-    const dy = (rect.height - drawHeight) / 2;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const dx = centerX - drawWidth * state.pivot.x;
+    const dy = centerY - drawHeight * state.pivot.y;
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
@@ -1043,11 +1418,24 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       drawWidth,
       drawHeight
     );
+    lastDrawBounds = {
+      x: dx,
+      y: dy,
+      width: drawWidth,
+      height: drawHeight,
+    };
     updatePivotOverlay();
   }
 
   function tick(time: number): void {
-    if (!state.isPlaying || state.frames.length === 0) return;
+    if (!state.isPlaying) {
+      animationFrameId = null;
+      return;
+    }
+    if (state.frames.length === 0) {
+      stopPlayback();
+      return;
+    }
     const interval = 1000 / state.fps;
     if (time - lastTick >= interval) {
       lastTick = time;
@@ -1057,6 +1445,9 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         state.currentFrame = 0;
       } else {
         state.isPlaying = false;
+        render();
+        animationFrameId = null;
+        return;
       }
       render();
     }
@@ -1078,6 +1469,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       cancelAnimationFrame(animationFrameId);
       animationFrameId = null;
     }
+    render();
   }
 
   function togglePlayback(): void {
@@ -1161,7 +1553,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     addButton.textContent = '+';
     addButton.addEventListener('click', () => {
       if (state.sourceImage) {
-        openSliceSettings({ append: true });
+        openAddFrameSheet();
       } else {
         fileInput.click();
       }
@@ -1298,18 +1690,43 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   function render(): void {
     if (state.frames.length === 0 && state.isPlaying) {
       stopPlayback();
+      return;
     }
     fpsChip.textContent = `FPS ${state.fps}`;
     loopChip.textContent = state.loopMode === 'loop' ? 'Loop' : 'Once';
     playChip.textContent = state.isPlaying ? 'Pause' : 'Play';
     pivotChip.classList.toggle('animation-tab__chip--active', state.showPivot);
     previewHint.textContent = state.sourceName
-      ? `Source: ${state.sourceName}`
+      ? state.frames.length === 0
+        ? `Source loaded: ${state.sourceName}. Slice frames to continue.`
+        : `Source: ${state.sourceName}`
       : 'Import a spritesheet to start animating.';
+    sourceCta.style.display =
+      state.sourceImage && state.frames.length === 0 ? 'flex' : 'none';
+    if (state.sourceName) {
+      sourceCtaTitle.textContent = `Source loaded: ${state.sourceName}`;
+    }
+    updatePivotUi();
     renderFrames();
     renderContext();
     drawPreview();
   }
+
+  const stopEventPropagation = (event: Event) => {
+    event.stopPropagation();
+  };
+
+  const stopEventPropagationAndDefault = (event: Event) => {
+    event.stopPropagation();
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+  };
+
+  [playChip, fpsChip, loopChip, pivotChip].forEach((chip) => {
+    chip.addEventListener('pointerdown', stopEventPropagationAndDefault);
+    chip.addEventListener('click', stopEventPropagation);
+  });
 
   playChip.addEventListener('click', togglePlayback);
   fpsChip.addEventListener('click', openSaveSheet);
@@ -1323,8 +1740,24 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     render();
   });
 
+  pivotXInput.addEventListener('input', () => {
+    applyPivot(Number(pivotXInput.value) || 0, state.pivot.y);
+    render();
+  });
+
+  pivotYInput.addEventListener('input', () => {
+    applyPivot(state.pivot.x, Number(pivotYInput.value) || 0);
+    render();
+  });
+
+  pivotSnapToggle.addEventListener('click', () => {
+    state.pivotSnap = !state.pivotSnap;
+    applyPivot(state.pivot.x, state.pivot.y);
+    render();
+  });
+
   previewStage.addEventListener('pointerdown', (event) => {
-    if (state.showPivot) {
+    if (state.showPivot && state.frames.length > 0) {
       draggingPivot = true;
     } else {
       previewPointerDown = true;
@@ -1335,15 +1768,25 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   });
 
   previewStage.addEventListener('pointermove', (event) => {
-    const rect = previewStage.getBoundingClientRect();
     if (draggingPivot) {
-      const x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-      const y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
-      state.pivot = { x, y };
-      state.dirty = true;
-      updatePivotOverlay();
+      if (!lastDrawBounds) return;
+      const rect = previewStage.getBoundingClientRect();
+      const x = clamp(
+        (event.clientX - rect.left - lastDrawBounds.x) / lastDrawBounds.width,
+        0,
+        1
+      );
+      const y = clamp(
+        (event.clientY - rect.top - lastDrawBounds.y) / lastDrawBounds.height,
+        0,
+        1
+      );
+      applyPivot(x, y);
+      updatePivotUi();
+      drawPreview();
       return;
     }
+    const rect = previewStage.getBoundingClientRect();
     if (!previewPointerDown || state.frames.length === 0) return;
     const dx = event.clientX - previewDragStartX;
     if (Math.abs(dx) > 6) {
@@ -1355,7 +1798,14 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     render();
   });
 
-  previewStage.addEventListener('pointerup', () => {
+  previewStage.addEventListener('pointerup', (event) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.animation-tab__chip')) {
+      previewPointerDown = false;
+      previewMoved = false;
+      draggingPivot = false;
+      return;
+    }
     if (previewPointerDown && previewMoved) {
       previewPointerDown = false;
       return;
@@ -1392,6 +1842,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   return {
     refresh(): void {
+      updatePivotUi();
       renderContext();
       renderFrames();
       drawPreview();
