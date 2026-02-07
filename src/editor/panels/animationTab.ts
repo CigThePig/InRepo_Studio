@@ -730,11 +730,21 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   let dragStartTimeout: number | null = null;
   let lastDrawBounds: { x: number; y: number; width: number; height: number } | null = null;
 
+  /** Cache of loaded images keyed by asset ID, for multi-source frame support. */
+  const sourceImageCache = new Map<string, HTMLImageElement>();
+
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'image/*';
   fileInput.style.display = 'none';
   container.appendChild(fileInput);
+
+  const frameFilesInput = document.createElement('input');
+  frameFilesInput.type = 'file';
+  frameFilesInput.accept = 'image/*';
+  frameFilesInput.multiple = true;
+  frameFilesInput.style.display = 'none';
+  container.appendChild(frameFilesInput);
 
   function setSheetOpen(open: boolean): void {
     state.sheetOpen = open;
@@ -805,12 +815,26 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     );
   }
 
+  /** Resolve and cache an image for the given asset. Returns the image element. */
+  async function resolveSourceImage(asset: AssetEntry): Promise<HTMLImageElement> {
+    const cached = sourceImageCache.get(asset.id);
+    if (cached) return cached;
+    const url = resolveAssetUrl(asset.dataUrl);
+    const image = await loadImage(url);
+    sourceImageCache.set(asset.id, image);
+    return image;
+  }
+
+  /** Get a cached source image by asset ID (synchronous, returns null if not loaded). */
+  function getCachedSourceImage(assetId: string): HTMLImageElement | null {
+    return sourceImageCache.get(assetId) ?? null;
+  }
+
   async function loadSourceFromAsset(
     asset: AssetEntry,
     options?: { preserveAnimation?: boolean }
   ): Promise<void> {
-    const url = resolveAssetUrl(asset.dataUrl);
-    const image = await loadImage(url);
+    const image = await resolveSourceImage(asset);
     state.sourceImage = image;
     state.sourceAssetId = asset.id;
     state.sourceName = asset.name;
@@ -845,6 +869,62 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       ],
     });
     await loadSourceFromAsset(created[0]);
+  }
+
+  async function handleImportFrameFiles(files: FileList): Promise<void> {
+    if (files.length === 0) return;
+
+    // Sort files by name so frames are in a predictable order
+    const sorted = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+    const newFrames: AnimationFrameState[] = [];
+
+    for (const file of sorted) {
+      const dataUrl = await readFileAsDataUrl(file);
+      const image = await loadImage(dataUrl);
+      const baseName = file.name.replace(/\.[^/.]+$/, '');
+      const created = assetRegistry.addAssets({
+        groupType: 'props',
+        groupName: SOURCE_GROUP_NAME,
+        assets: [
+          {
+            name: baseName,
+            type: 'sprite',
+            dataUrl,
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+            source: 'local',
+          },
+        ],
+      });
+      const asset = created[0];
+      sourceImageCache.set(asset.id, image);
+
+      const rect = { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
+      newFrames.push({
+        ref: { sourceAssetId: asset.id, rect },
+        thumbnailDataUrl: createFrameThumbnail(image, rect),
+      });
+    }
+
+    // If no source is loaded yet, use the first file as the primary source display
+    if (!state.sourceImage && newFrames.length > 0) {
+      const firstAssetId = newFrames[0].ref.sourceAssetId;
+      const firstImage = sourceImageCache.get(firstAssetId);
+      if (firstImage) {
+        state.sourceImage = firstImage;
+        state.sourceAssetId = firstAssetId;
+        state.sourceName = sorted[0].name.replace(/\.[^/.]+$/, '');
+      }
+    }
+
+    state.frames = [...state.frames, ...newFrames];
+    state.currentFrame = state.frames.length - 1;
+    state.dirty = true;
+    if (!state.animationName) {
+      state.animationName = 'New Animation';
+    }
+    render();
   }
 
   function openAssetPicker(): void {
@@ -1045,7 +1125,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     });
   }
 
-  function openAddFrameSheet(): void {
+  function openAddFrameFromGridSheet(): void {
     if (!state.gridModel || !state.sourceImage) {
       openSliceSettings();
       return;
@@ -1133,7 +1213,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     content.appendChild(error);
 
     openSheet({
-      title: 'Add Frame',
+      title: 'Add Frame from Grid',
       content,
       confirmLabel: 'Add Frame',
       onConfirm: () => {
@@ -1165,6 +1245,124 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     });
   }
 
+  function openAddFrameFromAssetSheet(): void {
+    const assets = getSourceAssets();
+    const content = document.createElement('div');
+    content.className = 'animation-tab__asset-list';
+
+    if (assets.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'animation-tab__hint';
+      empty.textContent = 'No image assets yet. Import files first.';
+      content.appendChild(empty);
+    } else {
+      assets.forEach((asset) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'animation-tab__asset-card';
+        const img = document.createElement('img');
+        img.src = resolveAssetUrl(asset.dataUrl);
+        img.alt = asset.name;
+        const meta = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'animation-tab__asset-name';
+        name.textContent = asset.name;
+        const details = document.createElement('div');
+        details.className = 'animation-tab__asset-meta';
+        details.textContent = `${asset.width ?? '?'}x${asset.height ?? '?'}`;
+        meta.appendChild(name);
+        meta.appendChild(details);
+        card.appendChild(img);
+        card.appendChild(meta);
+        card.addEventListener('click', async () => {
+          const image = await resolveSourceImage(asset);
+          const rect = { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
+          state.frames = [
+            ...state.frames,
+            {
+              ref: { sourceAssetId: asset.id, rect },
+              thumbnailDataUrl: createFrameThumbnail(image, rect),
+            },
+          ];
+          if (!state.sourceImage) {
+            state.sourceImage = image;
+            state.sourceAssetId = asset.id;
+            state.sourceName = asset.name;
+          }
+          state.currentFrame = state.frames.length - 1;
+          state.dirty = true;
+          if (!state.animationName) {
+            state.animationName = 'New Animation';
+          }
+          render();
+          closeSheet();
+        });
+        content.appendChild(card);
+      });
+    }
+
+    openSheet({
+      title: 'Add Frame from Existing Asset',
+      content,
+    });
+  }
+
+  function openAddFrameSheet(): void {
+    const hasGrid = Boolean(state.gridModel && state.sourceImage && state.gridModel.rects.length > 0);
+
+    const content = document.createElement('div');
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.gap = '10px';
+
+    const hint = document.createElement('div');
+    hint.className = 'animation-tab__helper';
+    hint.textContent = 'Choose how to add frames to the animation.';
+    content.appendChild(hint);
+
+    const row = document.createElement('div');
+    row.className = 'animation-tab__row';
+
+    if (hasGrid) {
+      const gridButton = document.createElement('button');
+      gridButton.type = 'button';
+      gridButton.className = 'animation-tab__button animation-tab__button--primary';
+      gridButton.textContent = 'From Grid';
+      gridButton.addEventListener('click', () => {
+        closeSheet();
+        openAddFrameFromGridSheet();
+      });
+      row.appendChild(gridButton);
+    }
+
+    const filesButton = document.createElement('button');
+    filesButton.type = 'button';
+    filesButton.className = 'animation-tab__button animation-tab__button--primary';
+    filesButton.textContent = 'From Files';
+    filesButton.addEventListener('click', () => {
+      closeSheet();
+      frameFilesInput.click();
+    });
+    row.appendChild(filesButton);
+
+    const existingButton = document.createElement('button');
+    existingButton.type = 'button';
+    existingButton.className = 'animation-tab__button';
+    existingButton.textContent = 'From Existing Asset';
+    existingButton.addEventListener('click', () => {
+      closeSheet();
+      openAddFrameFromAssetSheet();
+    });
+    row.appendChild(existingButton);
+
+    content.appendChild(row);
+
+    openSheet({
+      title: 'Add Frames',
+      content,
+    });
+  }
+
   function applyPivot(nextX: number, nextY: number): void {
     const snapStep = state.pivotSnap ? 0.05 : 0;
     const snappedX = snapStep ? Math.round(nextX / snapStep) * snapStep : nextX;
@@ -1187,8 +1385,10 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   function buildPosterDataUrl(): string | undefined {
     const frame = state.frames[0];
-    if (!frame || !state.sourceImage) return undefined;
-    return createFrameThumbnail(state.sourceImage, frame.ref.rect);
+    if (!frame) return undefined;
+    const img = getCachedSourceImage(frame.ref.sourceAssetId) ?? state.sourceImage;
+    if (!img) return undefined;
+    return createFrameThumbnail(img, frame.ref.rect);
   }
 
   function saveAnimation(): void {
@@ -1318,22 +1518,41 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     state.pivot = { ...animation.pivot };
     state.dirty = false;
 
+    // Collect all unique source asset IDs
+    const uniqueAssetIds = new Set(animation.frames.map((f) => f.sourceAssetId));
+    const loadPromises: Promise<void>[] = [];
+
+    for (const assetId of uniqueAssetIds) {
+      const asset = assetRegistry.getAsset(assetId);
+      if (asset) {
+        loadPromises.push(resolveSourceImage(asset).then(() => {}));
+      }
+    }
+
+    // Set primary source from first frame
     const firstFrame = animation.frames[0];
     if (firstFrame) {
       const asset = assetRegistry.getAsset(firstFrame.sourceAssetId);
       if (asset) {
-        void loadSourceFromAsset(asset, { preserveAnimation: true }).then(() => {
-          state.frames = animation.frames.map((frame) => ({
-            ref: frame,
-            thumbnailDataUrl: state.sourceImage
-              ? createFrameThumbnail(state.sourceImage, frame.rect)
-              : '',
-          }));
-          state.currentFrame = 0;
-          render();
-        });
-        return;
+        loadPromises.push(
+          loadSourceFromAsset(asset, { preserveAnimation: true }).then(() => {})
+        );
       }
+    }
+
+    if (loadPromises.length > 0) {
+      void Promise.all(loadPromises).then(() => {
+        state.frames = animation.frames.map((frame) => {
+          const img = getCachedSourceImage(frame.sourceAssetId) ?? state.sourceImage;
+          return {
+            ref: frame,
+            thumbnailDataUrl: img ? createFrameThumbnail(img, frame.rect) : '',
+          };
+        });
+        state.currentFrame = 0;
+        render();
+      });
+      return;
     }
 
     state.frames = animation.frames.map((frame) => ({
@@ -1384,7 +1603,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     ctx.clearRect(0, 0, rect.width, rect.height);
     lastDrawBounds = null;
 
-    if (!state.sourceImage || state.frames.length === 0) {
+    if (state.frames.length === 0) {
       ctx.fillStyle = '#9aa7d6';
       ctx.font = '12px sans-serif';
       ctx.fillText('No frames yet', 12, rect.height / 2);
@@ -1394,6 +1613,18 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const frame = state.frames[state.currentFrame];
     if (!frame) return;
+
+    // Resolve the source image for this frame (may differ per frame)
+    const frameSourceImage =
+      getCachedSourceImage(frame.ref.sourceAssetId) ?? state.sourceImage;
+    if (!frameSourceImage) {
+      ctx.fillStyle = '#9aa7d6';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Loading frame...', 12, rect.height / 2);
+      updatePivotOverlay();
+      return;
+    }
+
     const { rect: frameRect } = frame.ref;
     const scale = Math.min(
       rect.width / frameRect.w,
@@ -1408,7 +1639,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
-      state.sourceImage,
+      frameSourceImage,
       frameRect.x,
       frameRect.y,
       frameRect.w,
@@ -1552,11 +1783,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     addButton.className = 'animation-tab__frame animation-tab__frame-add';
     addButton.textContent = '+';
     addButton.addEventListener('click', () => {
-      if (state.sourceImage) {
-        openAddFrameSheet();
-      } else {
-        fileInput.click();
-      }
+      openAddFrameSheet();
     });
     framesStrip.appendChild(addButton);
   }
@@ -1567,7 +1794,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     if (!state.sourceImage) {
       const hint = document.createElement('div');
       hint.className = 'animation-tab__hint';
-      hint.textContent = 'Start by importing a spritesheet or using an existing asset.';
+      hint.textContent = 'Start by importing a spritesheet, adding individual frame files, or using an existing asset.';
 
       const row = document.createElement('div');
       row.className = 'animation-tab__row';
@@ -1577,6 +1804,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       importButton.className = 'animation-tab__button animation-tab__button--primary';
       importButton.textContent = 'Import Spritesheet';
       importButton.addEventListener('click', () => fileInput.click());
+
+      const addFilesButton = document.createElement('button');
+      addFilesButton.type = 'button';
+      addFilesButton.className = 'animation-tab__button animation-tab__button--primary';
+      addFilesButton.textContent = 'Add Files as Frames';
+      addFilesButton.addEventListener('click', () => frameFilesInput.click());
 
       const existingButton = document.createElement('button');
       existingButton.type = 'button';
@@ -1598,6 +1831,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       });
 
       row.appendChild(importButton);
+      row.appendChild(addFilesButton);
       row.appendChild(existingButton);
       row.appendChild(entityButton);
       contextSection.appendChild(hint);
@@ -1620,7 +1854,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     if (state.frames.length === 0) {
       const hint = document.createElement('div');
       hint.className = 'animation-tab__hint';
-      hint.textContent = 'Slice the spritesheet to generate frames.';
+      hint.textContent = 'Slice the spritesheet to generate frames, or add individual files.';
 
       const row = document.createElement('div');
       row.className = 'animation-tab__row';
@@ -1631,6 +1865,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       sliceButton.textContent = 'Slice Frames';
       sliceButton.addEventListener('click', () => openSliceSettings());
 
+      const addFilesButton = document.createElement('button');
+      addFilesButton.type = 'button';
+      addFilesButton.className = 'animation-tab__button animation-tab__button--primary';
+      addFilesButton.textContent = 'Add Files as Frames';
+      addFilesButton.addEventListener('click', () => frameFilesInput.click());
+
       const sourceButton = document.createElement('button');
       sourceButton.type = 'button';
       sourceButton.className = 'animation-tab__button';
@@ -1638,6 +1878,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       sourceButton.addEventListener('click', openAssetPicker);
 
       row.appendChild(sliceButton);
+      row.appendChild(addFilesButton);
       row.appendChild(sourceButton);
 
       contextSection.appendChild(hint);
@@ -1832,6 +2073,14 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     target.value = '';
   });
 
+  frameFilesInput.addEventListener('change', async (event) => {
+    const target = event.target as HTMLInputElement;
+    const files = target.files;
+    if (!files || files.length === 0) return;
+    await handleImportFrameFiles(files);
+    target.value = '';
+  });
+
   sheetOverlay.addEventListener('click', (event) => {
     if (event.target === sheetOverlay) {
       closeSheet();
@@ -1852,6 +2101,8 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       root.remove();
       sheetOverlay.remove();
       fileInput.remove();
+      frameFilesInput.remove();
+      sourceImageCache.clear();
     },
   };
 }
