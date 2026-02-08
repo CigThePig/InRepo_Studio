@@ -230,6 +230,65 @@ Rules:
   - `DataSourceMode` — runtime data source selector (hot | cold)
     - Invariant: playtest uses hot, deployed uses cold
 
+### Game API Contract (Track 31)
+
+- `/src/types/gameApi.ts`
+  - `ApiContext` — top-level Game API shape
+    - Keys: meta, events, time, log, entities, presets, call(), on(), read()
+    - Invariant: scene-scoped (one per playable Scene, disposed on shutdown)
+    - Invariant: Blockly scripts only access this surface, never raw Phaser
+  - `EventBus` — scene-scoped event pub/sub
+    - Methods: on, once, off, emit, list
+    - Invariant: payloads must be plain JSON
+  - `TimeHelpers` — safe timer wrappers
+    - Methods: after, every, clear
+    - Invariant: min interval 50ms for every()
+  - `LogApi` — structured logging
+    - Methods: info, warn, error, event
+  - `EntityHandle` — stable entity reference (read-only, no raw Phaser)
+    - Keys: id, type, x, y, exists
+  - `EntityLookup` — entity query surface
+    - Methods: getById, getByTag, setTag, exists
+  - `PresetSurface` — enabled preset modules
+    - Methods: getCategory, isEnabled, activePresetId
+  - `LogicTargetMeta` — identifies which Logic Target a script belongs to
+    - Keys: type (game|map), id, label
+  - `ApiMeta` — version + registry metadata
+    - Keys: apiVersion, schemaVersion, logicTarget, categories, capabilities
+
+### Preset Schema (Track 32)
+
+- `/src/types/preset.ts`
+  - `PresetDefinition` — full preset definition shape
+    - Keys: id, category, label, description, version, knobs[], commands[], events[], state[], compatibility{}
+    - Invariant: every preset must declare all four surfaces
+  - `PresetCategoryId` — preset category identifiers
+    - Values: controls, movement, camera, animation
+  - `KnobDef` — configuration option definition
+    - Keys: id, label, description, type, default, runtimeSettable?, constraints?, group?, advanced?
+  - `CommandDef` — callable action definition
+    - Keys: id, label, description, args[], keywords?, advanced?
+  - `EventDef` — emitted signal definition
+    - Keys: id, label, description, payload[], keywords?, advanced?
+  - `StateDef` — readable state definition
+    - Keys: id, label, description, type, keywords?, advanced?
+  - `PresetSavedConfig` — persisted preset config (/game/presets.json)
+    - Keys: formatVersion, profile, categories{}
+    - Invariant: missing keys fall back to preset defaults
+
+### Script Envelope (Track 33)
+
+- `/src/types/script.ts`
+  - `ScriptFile` — Blockly workspace persistence envelope
+    - Keys: formatVersion, scriptId, logicTarget{}, blockly.workspace{}, generated?{}
+    - Invariant: workspace JSON is source of truth, generated JS is disposable
+  - `ScriptLogicTarget` — script scope metadata
+    - Keys: type (game|map), mapId?, label
+  - `resolveScriptPath()` — Logic Target → file path mapping
+    - game → game/logic/main.json, map → game/logic/maps/<mapId>.json
+  - `resolveScriptId()` — Logic Target → stable script ID
+    - game → "main", map → "map:<mapId>"
+
 ---
 
 ## Invariants checklist for schema-driven work

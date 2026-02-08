@@ -147,6 +147,10 @@ Micro-format (copy/paste):
   - Role: Append-only track summaries with structured entry template.
   - Lists of truth: ChangeLog, EntryTemplate
 
+- `context/Blockly_Plan_Revised.md`
+  - Role: Blockly + Presets constitution (Parts 1–15). Authority for Phase 5 tracks.
+  - Lists of truth: BlocklyNonNegotiables, GameApiContract, PresetContract, BlockTaxonomy
+
 ## Tracks
 - `tracks/YYYY-MM-DD-track-N-slug/`
   - Role: Planning artifacts for a single bounded unit of work.
@@ -256,6 +260,18 @@ Micro-format (copy/paste):
 - `src/types/entity.ts`
   - Role: PropertyDefinitionSchema, PropertyConstraintsSchema.
   - Lists of truth: PropertyDefinitionSchema, PropertyConstraintsSchema, PropertyType
+
+- `src/types/gameApi.ts`
+  - Role: Game API contract types (ApiContext, EventBus, TimeHelpers, etc.).
+  - Lists of truth: ApiContext, EventBus, TimeHelpers, LogApi, EntityHandle, EntityLookup, PresetSurface, ApiMeta, LogicTargetMeta
+
+- `src/types/preset.ts`
+  - Role: PresetDefinition schema types.
+  - Lists of truth: PresetDefinition, PresetCategoryId, KnobDef, CommandDef, EventDef, StateDef, PresetSavedConfig
+
+- `src/types/script.ts`
+  - Role: Logic script envelope types.
+  - Lists of truth: ScriptFile, ScriptLogicTarget, resolveScriptPath, resolveScriptId
 
 ### Storage (Tracks 2-3 — exists)
 - `src/storage/index.ts`
@@ -524,6 +540,15 @@ Micro-format (copy/paste):
   - Role: User preferences.
   - Lists of truth: EditorSettingsSchema
 
+### Editor Blockly (Track 39)
+- `src/editor/blockly/AGENTS.md`
+  - Role: Blockly workspace UI module rules.
+  - Lists of truth: none
+
+- `src/editor/blockly/index.ts`
+  - Role: Public exports for editor blockly module.
+  - Lists of truth: none
+
 ### Shared
 - `src/shared/paths.ts`
   - Role: Centralized content path constants + URL resolver.
@@ -573,6 +598,37 @@ Micro-format (copy/paste):
 - `src/runtime/sceneManager.ts`
   - Role: Scene transitions.
   - Lists of truth: none
+
+### Runtime Presets (Track 34)
+- `src/runtime/presets/AGENTS.md`
+  - Role: Preset definitions + PresetManager module rules.
+  - Lists of truth: none
+
+- `src/runtime/presets/index.ts`
+  - Role: Public exports for presets module.
+  - Lists of truth: none
+
+### Runtime Blockly (Tracks 36-38)
+- `src/runtime/blockly/AGENTS.md`
+  - Role: Block definitions + ScriptHost module rules.
+  - Lists of truth: none
+
+- `src/runtime/blockly/index.ts`
+  - Role: Public exports for runtime blockly module.
+  - Lists of truth: none
+
+### Game Logic Data
+- `game/logic/`
+  - Role: Blockly script files (workspace JSON envelopes).
+  - Lists of truth: none
+
+- `game/logic/main.json` (created on demand)
+  - Role: Game Logic script.
+  - Lists of truth: ScriptFile
+
+- `game/logic/maps/*.json` (created on demand)
+  - Role: Per-map Logic scripts.
+  - Lists of truth: ScriptFile
 
 ### Deploy (Tracks 12-13)
 - `src/deploy/auth.ts`

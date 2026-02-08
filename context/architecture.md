@@ -14,6 +14,13 @@ Purpose:
 - **Touch-first interaction**: Canvas interactions use touch offset system
 - **Offline-safe editing**: All editing operations work without network
 - **No data loss**: Auto-save to IndexedDB on every meaningful change
+- **No Split Brain (Presets + Blockly)**: Presets and Blockly both operate through one unified Game API contract. Presets implement systems behind it; Blockly calls commands / listens to events / reads state through it
+- **Blockly workspace JSON is source of truth**: Generated JS is derived and disposable. Never persist generated JS as canonical state
+- **Event-first scripting**: Blockly is event-driven by default. No unrestricted per-frame loops in v1
+- **No raw Phaser in Blockly**: Blockly scripts receive only safe Game API wrappers (api.on/call/read/time/log). Presets may use raw Phaser internally
+- **Scope is never hidden**: In Blockly Mode, the Logic Target is always visible via the top-bar dropdown
+- **Presets are global**: Presets are game-wide systems. They do not vary per Logic Target
+- **Script errors don't crash the editor**: Runtime errors enter Error state for that script only, with clear reporting
 
 Notes:
 - **Offline-after-load**: Editing must work without network after initial load (no service worker required).
@@ -42,10 +49,23 @@ Notes:
 - Scene dimensions: **Requires rebuild** (regenerates layer arrays)
 - Tileset references: **Requires apply** (reload tileset images)
 
+### Preset Config (stored in /game/presets.json, hot storage)
+- Preset enable/disable: **Live-applying** (PresetManager attach/detach)
+- Preset knob changes: **Live-applying** (auto-apply with Undo toast)
+- Profile switching: **Live-applying** (applies recommended presets)
+
+### Blockly Scripts (stored in /game/logic/*.json, hot storage)
+- Workspace changes: **Live-applying** (auto-save to hot storage)
+- Script start/stop: **Live-applying** (ScriptHost manages lifecycle)
+- Logic Target switching: **Requires apply** (workspace save + load)
+
 ### Apply Hooks
 - Scene dimension change: `rebuildSceneLayers(sceneId)`
 - Tileset reference change: `reloadSceneTilesets(sceneId)`
 - Deploy: `commitToGitHub()` (explicit button)
+- Preset config change: `PresetManager.applyConfig(categoryId)` (auto)
+- Script start: `ScriptHost.start(logicTarget)` (explicit Run button)
+- Script stop: `ScriptHost.stop(logicTarget)` (explicit Stop button)
 
 ---
 
@@ -58,8 +78,12 @@ Notes:
 - **Editor/Panels**: Top panel (nav), bottom panel (tools/palettes)
 - **Editor/Tools**: Paint, erase, select, entity placement
 - **Editor/Inspectors**: Property editors for entities and scenes
+- **Editor/Blockly**: Blockly workspace UI, Logic Target switching, block insertion
 - **Runtime/Loader**: Load project/scene data for Phaser
 - **Runtime/Spawner**: Instantiate tilemaps and entities
+- **Runtime/Presets**: PresetManager engine, preset definitions, preset registry
+- **Runtime/Blockly**: ScriptHost engine, block definitions, schema-driven block generation, code generators
+- **Runtime/SceneHost**: SceneHost (owns PresetManager + ScriptHost + ApiContext per scene)
 - **Deploy**: GitHub API integration, conflict detection, commit flow
 
 ---
@@ -83,6 +107,30 @@ IndexedDB (hot) → Runtime Loader → Phaser Scene → Game Loop
 Fetch (cold) → Runtime Loader → Phaser Scene → Game Loop
 ```
 
+### Blockly Mode (editing scripts)
+```
+Logic Target Dropdown → Workspace Manager → Hot Storage (script JSON)
+                              ↓
+                        Blockly Workspace ← Right Berry Palette
+                              ↓
+                        Auto-save to IndexedDB
+```
+
+### Playtest Mode (with Presets + Scripts)
+```
+IndexedDB (hot) → Runtime Loader → Phaser Scene
+                                        ↓
+                                   SceneHost.attach()
+                                        ↓
+                              ┌─────────┴─────────┐
+                        PresetManager          ScriptHost
+                        (apply config,         (compile workspace,
+                         register API)          register handlers)
+                              └─────────┬─────────┘
+                                   ApiContext
+                                   (shared bus)
+```
+
 ### Deploy Flow
 ```
 IndexedDB (hot) → Change Detection → GitHub API → Repository
@@ -99,3 +147,6 @@ IndexedDB (hot) → Change Detection → GitHub API → Repository
 - **IndexedDB limits**: Monitor storage quota; warn user before hitting limits
 - **GitHub rate limits**: Cache SHAs; minimize API calls during deploy
 - **Asset loading**: Lazy-load tile categories; unload unused to manage memory
+- **Blockly bundle size**: Blockly is a large dependency; consider lazy-loading workspace UI
+- **Script execution**: Timer caps (64 per script), recursion guards, min interval 50ms for "Every" timers
+- **Multi-script runtime**: Game Logic + Map Logic run simultaneously; errors isolated per script

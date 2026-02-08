@@ -21,6 +21,7 @@ Purpose:
 
 ## Frameworks / libraries
 - **Phaser 3**: Game runtime (tilemap rendering, game loop)
+- **Blockly**: Visual block programming editor and code generator (workspace UI, block definitions, JS codegen)
 - **Vite**: Build tool and dev server
 - **idb**: IndexedDB wrapper (or raw IndexedDB API)
 
@@ -57,9 +58,14 @@ Purpose:
 ```
 /game/                    # Deployed game files
   project.json            # Project manifest
+  presets.json            # Preset configuration (enabled presets + knob overrides)
   scenes/                 # Scene JSON files
   assets/                 # Tile images, sprites
-  
+  logic/                  # Blockly script files
+    main.json             # Game Logic script
+    maps/                 # Per-map Logic scripts
+      <mapId>.json
+
 /src/                     # Source code
   boot/                   # Entry point, mode detection
   storage/                # IndexedDB and fetch abstractions
@@ -68,8 +74,13 @@ Purpose:
     canvas/
     panels/
     tools/
+    blockly/              # Blockly workspace UI, Logic Target switching
   runtime/                # Shared runtime code
+    presets/               # Preset definitions, registry, PresetManager
+      defs/               # Individual preset definition files
+    blockly/              # Block definitions, generators, ScriptHost
+      blocks/             # Block definition files per category
   types/                  # TypeScript types/schemas
-  
+
 /public/                  # Static assets for dev
 ```

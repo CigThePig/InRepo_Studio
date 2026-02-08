@@ -24,6 +24,9 @@ Local instruction files (present):
 - `src/editor/tools/AGENTS.md` (tool contracts + undo/redo)
 - `src/editor/panels/AGENTS.md` (bottom sheets + inspectors + deploy panel UX)
 - `src/runtime/AGENTS.md` (runtime loader constraints)
+- `src/runtime/presets/AGENTS.md` (preset definitions + PresetManager rules)
+- `src/runtime/blockly/AGENTS.md` (block definitions + ScriptHost rules)
+- `src/editor/blockly/AGENTS.md` (workspace UI + Logic Target switching)
 - `src/deploy/AGENTS.md` (PAT + deploy + SHA conflict checks)
 - `game/AGENTS.md` (content folder conventions)
 
@@ -38,7 +41,9 @@ Local instruction files (present):
 - `context/schema-registry.md`
   - Role: canonical inventory of schema-like lists-of-truth
 - `context/track-index.md`
-  - Role: roadmap as Tracks (29 tracks defined)
+  - Role: roadmap as Tracks (42 tracks defined)
+- `context/Blockly_Plan_Revised.md`
+  - Role: Blockly + Presets constitution (Parts 1–15)
 - `context/planning-checklist.md`
   - Role: how to create tracks safely (spec/blueprint/plan)
 - `context/workflow.md`
@@ -60,6 +65,14 @@ Local instruction files (present):
 - `game/assets/`
   - Role: tile images, sprites, audio
   - Consumers: editor (preview), runtime (game)
+- `game/presets.json` (planned)
+  - Role: preset configuration (enabled presets + knob overrides)
+  - Consumers: PresetManager (runtime), Presets UI (editor)
+- `game/logic/`
+  - Role: Blockly script files (workspace JSON envelopes)
+  - `main.json` → Game Logic script
+  - `maps/<mapId>.json` → Map Logic scripts
+  - Consumers: ScriptHost (runtime), Blockly workspace (editor)
 
 ## Source Modules
 
@@ -76,6 +89,15 @@ Local instruction files (present):
   - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema
 - `entity.ts`
   - Role: PropertyDefinitionSchema, PropertyConstraintsSchema
+- `gameApi.ts`
+  - Role: Game API contract types (ApiContext, EventBus, TimeHelpers, etc.)
+  - Owns: ApiContext, EventBus, TimeHelpers, LogApi, EntityHandle, EntityLookup, PresetSurface, ApiMeta, LogicTargetMeta
+- `preset.ts`
+  - Role: PresetDefinition schema types
+  - Owns: PresetDefinition, KnobDef, CommandDef, EventDef, StateDef, PresetSavedConfig
+- `script.ts`
+  - Role: Logic script envelope types
+  - Owns: ScriptFile, ScriptLogicTarget, resolveScriptPath, resolveScriptId
 
 ### Storage (`src/storage/`)
 - `hot.ts`
@@ -127,6 +149,9 @@ Local instruction files (present):
 - `settings/editorSettings.ts`
   - Role: user preferences
   - Owns: EditorSettingsSchema
+- `blockly/` (planned)
+  - Role: Blockly workspace UI, Logic Target switching, block insertion
+  - See: `src/editor/blockly/AGENTS.md`
 
 ### Runtime (`src/runtime/`)
 - `loader.ts`
@@ -143,6 +168,14 @@ Local instruction files (present):
   - Role: instantiate entities from scene data
 - `sceneManager.ts`
   - Role: scene transitions
+- `presets/` (planned)
+  - Role: Preset definitions, registry, PresetManager engine
+  - `defs/*.ts`: individual preset definition files
+  - See: `src/runtime/presets/AGENTS.md`
+- `blockly/` (planned)
+  - Role: Block definitions, generators, ScriptHost engine, schema-driven block generation
+  - `blocks/*.ts`: block definition files per category
+  - See: `src/runtime/blockly/AGENTS.md`
 
 ### Shared (`src/shared/`)
 - `paths.ts`
@@ -184,4 +217,21 @@ Local instruction files (present):
 [Runtime Loader]  [GitHub API]
      ↓                ↓
 [Phaser Game]    [Repository]
+```
+
+### Blockly + Presets Data Flow
+
+```
+[Preset Definitions]     [Blockly Workspace]
+     ↓                        ↓
+[PresetManager]          [ScriptHost]
+     ↓                        ↓
+     └───── ApiContext ────────┘
+              ↓
+         [Phaser Scene]
+```
+
+```
+[PresetDefinition schemas] → [Schema-driven block generation] → [Blockly palette + blocks]
+                           → [Presets UI (Configure + Hooks tabs)]
 ```

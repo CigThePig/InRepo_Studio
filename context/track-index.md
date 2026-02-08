@@ -767,3 +767,181 @@ Upload to GitHub
 
 Use it in the world
 All without touching legacy UI.
+
+---
+
+## Phase 5: Presets + Blockly (Game Logic)
+
+> Follows the Blockly Plan Revised (`/context/Blockly_Plan_Revised.md`, Parts 1–15).
+> These tracks implement the unified Preset + Blockly scripting system.
+
+### Track 31 — Game API Contract + Types (Part 4)
+Goal: Define the TypeScript Game API contract that Presets implement and Blockly calls.
+Includes:
+1. ApiContext interface (meta, events, time, log, entities, presets)
+2. Generic call/on/read methods for Blockly codegen
+3. EventBus, TimeHelpers, LogApi, EntityHandle, EntityLookup, PresetSurface interfaces
+4. LogicTargetMeta type
+Acceptance:
+- Types compile with isolatedModules
+- Generic call/on/read cover all Blockly codegen patterns
+Risks:
+- API shape changes later require Blockly codegen updates
+Verification:
+- Automated: tsc --noEmit passes
+
+### Track 32 — Preset Schema + Definition Types (Parts 5-6)
+Goal: Define the PresetDefinition schema that drives both Presets UI and Blockly blocks.
+Includes:
+1. PresetDefinition interface (knobs, commands, events, state)
+2. KnobDef, CommandDef, EventDef, StateDef types
+3. Compatibility/conflict metadata types
+4. PresetSavedConfig persistence format (/game/presets.json)
+Acceptance:
+- Every preset can declare knobs/commands/events/state
+- Schema supports compatibility/conflict metadata
+Risks:
+- Schema shape is hard to change once presets are defined
+Verification:
+- Automated: tsc --noEmit passes
+
+### Track 33 — Script Envelope + Storage (Part 12)
+Goal: Define script file format and storage paths for Blockly workspace persistence.
+Includes:
+1. ScriptFile envelope type (formatVersion, scriptId, logicTarget, blockly.workspace)
+2. Script path resolution (game logic → main.json, map logic → maps/<mapId>.json)
+3. Hot storage operations for script files
+4. Empty-state behavior (create on demand)
+Acceptance:
+- Script files round-trip cleanly
+- Logic Target → file path mapping is deterministic
+Risks:
+- Envelope format changes require migrations
+Verification:
+- Automated: Round-trip save/load test
+
+### Track 34 — Preset Registry + PresetManager (Parts 9-10)
+Goal: Implement the preset runtime engine.
+Includes:
+1. PresetRegistry via import.meta.glob
+2. PresetManager lifecycle (instantiate, attach, applyConfig, exposeApi, dispose)
+3. Config merging + validation + defaulting
+4. API registration (commands/events/state into ApiContext)
+5. Game Profile behavior (Top-down, Platformer, Custom)
+6. v1 preset stubs (Controls, Movement, Camera, Animation Driver)
+Acceptance:
+- PresetManager attaches/disposes without leaks
+- Config merging handles missing/unknown keys safely
+Risks:
+- Preset ownership conflicts between categories
+Verification:
+- Automated: Lifecycle test with mock presets
+
+### Track 35 — SceneHost + ApiContext Runtime (Part 2)
+Goal: Implement SceneHost that integrates PresetManager + ScriptHost into Phaser scenes.
+Includes:
+1. SceneHost class (owns PresetManager, ScriptHost, ApiContext, Disposables)
+2. Scene attach/detach lifecycle
+3. ApiContext implementation (event bus, time helpers, log, entity lookup)
+4. Event bridging (Phaser → InRepo event bus)
+5. Resource management (disposer tracking, clean shutdown)
+Acceptance:
+- Single attach point, single cleanup point
+- Presets and Blockly share one ApiContext
+Risks:
+- Memory leaks on scene transitions
+Verification:
+- Automated: Attach/dispose lifecycle test
+
+### Track 36 — ScriptHost Engine (Part 11)
+Goal: Implement the Blockly script execution engine.
+Includes:
+1. ScriptHost lifecycle (Stopped → Running → Error)
+2. Workspace → JS compilation
+3. Timer management (auto-cancel on stop/shutdown)
+4. Error handling (per-script, with Logic Target attribution)
+5. Multi-script support (Game Logic + Map Logic simultaneously)
+6. Safety limits (timer caps, recursion guards)
+Acceptance:
+- Scripts are event-first and scene-scoped
+- Runtime errors don't crash editor
+- Game Logic + Map Logic run simultaneously
+Risks:
+- Generated JS execution safety
+Verification:
+- Automated: Start/stop/error lifecycle tests
+
+### Track 37 — Schema-Driven Block Generation (Part 14)
+Goal: Generate Blockly blocks from PresetDefinition schemas.
+Includes:
+1. Hat blocks from EventDefs, action blocks from CommandDefs, reporter blocks from StateDefs
+2. Field validation, dependency metadata, block ID stability
+3. Codegen rules (api.on/call/read only)
+Acceptance:
+- Deterministic block generation from any PresetDefinition
+- All codegen uses Game API surface only
+Risks:
+- Block type ID stability (HIGH RISK if changed after release)
+Verification:
+- Automated: Generate blocks from test schema, verify output
+
+### Track 38 — Core Block Definitions (Part 13)
+Goal: Implement built-in block categories (Events, Logic, Math, Variables, Time, Debug, Map).
+Includes:
+1. Common event hat blocks, Logic, Math, Variable, Time, Debug, Map blocks
+2. Block registry via import.meta.glob
+Acceptance:
+- All v1 block categories populated
+- Map blocks only visible for Map Logic targets
+Verification:
+- Automated: Block compilation tests
+
+### Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
+Goal: Implement the Blockly Cockpit layout and workspace UI.
+Includes:
+1. Blockly workspace injection with Zelos renderer
+2. Logic Target dropdown, switching, empty state
+3. Run/Stop buttons, status indicator
+4. Auto-save, Blockly Mode enter/exit
+Acceptance:
+- Workspace renders on mobile with Zelos
+- Logic Target switching works correctly
+Verification:
+- Manual: Test on mobile device
+
+### Track 40 — Right Berry Blocks Palette (Part 13)
+Goal: Implement the blocks palette in the right berry for Blockly Mode.
+Includes:
+1. Categorized block palette with search
+2. Dynamic categories (reflect enabled presets)
+3. Disabled-category placeholder + enable action
+4. Logic Target filtering
+Acceptance:
+- Palette categories match v1 spec
+- Search works across all visible categories
+Verification:
+- Manual: Browse, search, insert blocks on mobile
+
+### Track 41 — Presets UI + Blockly Hooks (Part 8)
+Goal: Implement the Presets tab in left berry with Configure + Blockly Hooks tabs.
+Includes:
+1. Presets Dashboard, Category Detail, Preset Picker, Issues modal
+2. "Insert block" action in Blockly Mode
+3. Auto-apply with Undo toast
+Acceptance:
+- Dashboard shows all v1 categories
+- Blockly Hooks tab shows events/commands/state with Insert action
+Verification:
+- Manual: Full Presets UI workflow on mobile
+
+### Track 42 — Inspect/Errors Panel + Integration Polish
+Goal: Implement the inspector/errors panel and polish cross-system integration.
+Includes:
+1. Inspect/Errors tab in right berry
+2. Script status, error display with block highlight
+3. End-to-end integration: edit → run → inspect → stop
+Acceptance:
+- Errors displayed with block ID and Logic Target
+- Full edit → run → inspect cycle works
+Verification:
+- Manual: Trigger errors, verify display and recovery
