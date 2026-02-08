@@ -224,6 +224,10 @@ Micro-format (copy/paste):
   - Role: Track 32 planning artifacts (Preset Schema + Definition Types).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-08-track-33-script-envelope/`
+  - Role: Track 33 planning artifacts (Script Envelope + Storage).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -293,6 +297,10 @@ Micro-format (copy/paste):
   - Role: Default factories for preset configuration.
   - Lists of truth: PRESET_CONFIG_FORMAT_VERSION, VALID_PROFILES, createDefaultPresetConfig, createDefaultCategoryConfig
 
+- `src/types/scriptUtils.ts`
+  - Role: Script envelope validation and factory utilities.
+  - Lists of truth: SCRIPT_FORMAT_VERSION, createEmptyScriptFile, validateScriptFile
+
 ### Storage (Tracks 2-3 — exists)
 - `src/storage/index.ts`
   - Role: Re-exports all storage functions.
@@ -309,6 +317,14 @@ Micro-format (copy/paste):
 - `src/storage/migration.ts`
   - Role: Cold-to-hot migration on first load.
   - Lists of truth: MigrationResult
+
+- `src/storage/scriptStorage.ts`
+  - Role: Hot storage (IndexedDB) operations for Blockly script files.
+  - Lists of truth: ScriptStoreDB
+
+- `src/storage/scriptCold.ts`
+  - Role: Cold storage fetch for published script files.
+  - Lists of truth: none
 
 - `src/vite-env.d.ts`
   - Role: Vite type declarations.

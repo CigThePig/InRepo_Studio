@@ -1,7 +1,7 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 32 complete
-Next task: Track 33 — Script Envelope + Storage (Part 12)
+Current phase: Track 33 complete
+Next task: Track 34 — Preset Registry + PresetManager (Parts 9-10)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
@@ -33,6 +33,7 @@ Completed tracks:
 - Editor V2 Migration: Track 30 (Asset Upload + Editor V2 Completion)
 - Phase 5 (Presets + Blockly): Track 31 (Game API Contract + Types)
 - Phase 5 (Presets + Blockly): Track 32 (Preset Schema + Definition Types)
+- Phase 5 (Presets + Blockly): Track 33 (Script Envelope + Storage)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.

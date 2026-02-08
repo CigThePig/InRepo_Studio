@@ -20,6 +20,11 @@ export const ASSETS_ROOT = `${GAME_ROOT}/assets`;
 export const PROJECT_JSON_PATH = `${GAME_ROOT}/project.json`;
 export const SCENES_DIR = `${GAME_ROOT}/scenes`;
 export const SCENE_INDEX_JSON_PATH = `${SCENES_DIR}/index.json`;
+
+// Logic script paths (Part 12)
+export const LOGIC_DIR = `${GAME_ROOT}/logic`;
+export const LOGIC_MAIN_PATH = `${LOGIC_DIR}/main.json`;
+export const LOGIC_MAPS_DIR = `${LOGIC_DIR}/maps`;
 export const TILESETS_PATH = 'assets/tilesets';
 export const PROPS_PATH = 'assets/props';
 export const ENTITIES_PATH = 'assets/entities';
@@ -67,6 +72,20 @@ export function resolveGamePath(path: string): string {
   const cleanBase = base.endsWith('/') ? base : `${base}/`;
   const relative = normalizeGameRelative(path);
   return `${cleanBase}${GAME_ROOT}/${relative}`;
+}
+
+/**
+ * Resolve a cold-fetch URL for a logic script file.
+ * Uses BASE_URL for GitHub Pages compatibility.
+ */
+export function resolveScriptUrl(type: 'game' | 'map', mapId?: string): string {
+  if (type === 'game') {
+    return resolveGamePath('logic/main.json');
+  }
+  if (type === 'map' && mapId) {
+    return resolveGamePath(`logic/maps/${mapId}.json`);
+  }
+  throw new Error(`Invalid script URL params: type=${type}, mapId=${mapId}`);
 }
 
 export function resolveAssetUrl(

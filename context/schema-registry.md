@@ -276,7 +276,7 @@ Rules:
     - Keys: formatVersion, profile, categories{}
     - Invariant: missing keys fall back to preset defaults
 
-### Script Envelope (Track 33)
+### Script Envelope + Storage (Track 33)
 
 - `/src/types/script.ts`
   - `ScriptFile` — Blockly workspace persistence envelope
@@ -288,6 +288,22 @@ Rules:
     - game → game/logic/main.json, map → game/logic/maps/<mapId>.json
   - `resolveScriptId()` — Logic Target → stable script ID
     - game → "main", map → "map:<mapId>"
+
+- `/src/types/scriptUtils.ts`
+  - `SCRIPT_FORMAT_VERSION` — current envelope format version (1)
+  - `createEmptyScriptFile()` — factory for new script envelopes (on-demand creation)
+  - `validateScriptFile()` — structural validation at load boundaries
+
+- `/src/storage/scriptStorage.ts`
+  - `ScriptStoreDB` — dedicated IndexedDB schema for script persistence
+    - DB: inrepo-scripts, Store: scripts, Key: scriptId
+    - Invariant: scriptId comes from resolveScriptId()
+  - CRUD: initScriptStorage, saveScript, loadScript, deleteScript, listScriptIds, hasScript
+
+- `/src/storage/scriptCold.ts`
+  - `fetchScriptFromRepo()` — cold fetch via resolveScriptUrl()
+    - Invariant: returns null on 404 (missing script is safe)
+    - Invariant: validates envelope before returning
 
 ---
 
