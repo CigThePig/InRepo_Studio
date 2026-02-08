@@ -305,6 +305,40 @@ Rules:
     - Invariant: returns null on 404 (missing script is safe)
     - Invariant: validates envelope before returning
 
+### Preset Registry + PresetManager (Track 34)
+
+- `/src/runtime/presets/presetInstance.ts`
+  - `PresetInstance` — runtime interface for live preset instances
+    - Lifecycle: applyConfig → registerApi → update → dispose
+    - Invariant: presets never access raw ApiContext, only PresetApiRegistrar
+  - `PresetApiRegistrar` — registration surface for commands/state/events
+    - Methods: registerCommand, registerState, emitEvent
+  - `PresetFactory` — factory function type (PresetDefinition → PresetInstance)
+
+- `/src/runtime/presets/presetRegistry.ts`
+  - `PresetRegistry` — indexed preset definition lookup
+    - Methods: getById, getByCategory, getAllDefinitions, getAllIds
+    - Invariant: built at startup via import.meta.glob, immutable after
+    - Invariant: invalid definitions logged and skipped
+
+- `/src/runtime/presets/presetManager.ts`
+  - `PresetManager` — lifecycle engine for preset systems
+    - Lifecycle: initialize → registerApi → update → dispose
+    - Invariant: game-wide / global, not Logic-Target-specific
+    - Invariant: missing presets never crash (warn + skip)
+    - Invariant: zero enabled presets is a valid state
+  - `PresetConflict` — detected conflict between active presets
+
+- `/src/runtime/presets/gameProfiles.ts`
+  - `GAME_PROFILES` — v1 profile definitions (topdown, platformer, custom)
+    - Invariant: profile IDs are stable
+
+- `/src/runtime/presets/defs/*.ts` — v1 preset stub definitions
+  - 6 stubs: controls-topdown, controls-platformer, movement-topdown, movement-platformer, camera-follow, animation-driver
+  - Each exports: `definition: PresetDefinition` + `factory: PresetFactory`
+  - Invariant: all definitions pass validatePresetDefinition()
+  - Invariant: preset IDs are stable (category-prefix naming)
+
 ---
 
 ## Invariants checklist for schema-driven work

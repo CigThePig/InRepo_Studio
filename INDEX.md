@@ -228,6 +228,10 @@ Micro-format (copy/paste):
   - Role: Track 33 planning artifacts (Script Envelope + Storage).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-08-track-34-preset-registry/`
+  - Role: Track 34 planning artifacts (Preset Registry + PresetManager).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -643,6 +647,46 @@ Micro-format (copy/paste):
 - `src/runtime/presets/index.ts`
   - Role: Public exports for presets module.
   - Lists of truth: none
+
+- `src/runtime/presets/presetInstance.ts`
+  - Role: Runtime interface for live preset instances + API registration surface.
+  - Lists of truth: PresetInstance, PresetFactory, PresetApiRegistrar, PresetRegistryEntry
+
+- `src/runtime/presets/presetRegistry.ts`
+  - Role: Preset registry — discovers and indexes PresetDefinitions via import.meta.glob.
+  - Lists of truth: PresetRegistry, buildPresetRegistry
+
+- `src/runtime/presets/presetManager.ts`
+  - Role: PresetManager lifecycle engine (instantiate, config, API registration, dispose).
+  - Lists of truth: PresetManager, PresetConflict
+
+- `src/runtime/presets/gameProfiles.ts`
+  - Role: Game Profile definitions and apply logic.
+  - Lists of truth: GAME_PROFILES, GameProfileDef
+
+- `src/runtime/presets/defs/controls-topdown.ts`
+  - Role: Top-down controls preset definition + stub factory.
+  - Lists of truth: PresetDefinition (controls-topdown)
+
+- `src/runtime/presets/defs/controls-platformer.ts`
+  - Role: Platformer controls preset definition + stub factory.
+  - Lists of truth: PresetDefinition (controls-platformer)
+
+- `src/runtime/presets/defs/movement-topdown.ts`
+  - Role: Top-down movement preset definition + stub factory.
+  - Lists of truth: PresetDefinition (movement-topdown)
+
+- `src/runtime/presets/defs/movement-platformer.ts`
+  - Role: Platformer movement preset definition + stub factory.
+  - Lists of truth: PresetDefinition (movement-platformer)
+
+- `src/runtime/presets/defs/camera-follow.ts`
+  - Role: Camera follow preset definition + stub factory.
+  - Lists of truth: PresetDefinition (camera-follow)
+
+- `src/runtime/presets/defs/animation-driver.ts`
+  - Role: Animation driver preset definition + stub factory.
+  - Lists of truth: PresetDefinition (animation-driver)
 
 ### Runtime Blockly (Tracks 36-38)
 - `src/runtime/blockly/AGENTS.md`
