@@ -1,12 +1,13 @@
-Active track: (none)
+Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: (none)
-Next task: (none)
+Current phase: Setup (project scaffolding complete)
+Next task: Track 31 — Game API Contract + Types (Part 4)
 
 Track planning documents:
-- (none)
+- `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
+- `/context/track-index.md` (Tracks 31–42)
 
-Authority: (none)
+Authority: `/context/Blockly_Plan_Revised.md`
 
 ---
 

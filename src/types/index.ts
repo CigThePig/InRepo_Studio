@@ -68,3 +68,48 @@ export {
   validatePropertyValue,
   createDefaultProperties,
 } from './entity';
+
+// Game API types
+export type {
+  Disposer,
+  TimerHandle,
+  EventBus,
+  TimeHelpers,
+  LogApi,
+  EntityHandle,
+  EntityLookup,
+  PresetCategorySurface,
+  PresetSurface,
+  LogicTargetType,
+  LogicTargetMeta,
+  ApiMeta,
+  ApiContext,
+} from './gameApi';
+
+// Preset schema types
+export type {
+  PresetCategoryId,
+  KnobType,
+  KnobDef,
+  CommandArgDef,
+  CommandDef,
+  EventPayloadFieldDef,
+  EventDef,
+  StateDef,
+  PresetCompatibility,
+  PresetDefinition,
+  PresetCategoryConfig,
+  PresetSavedConfig,
+} from './preset';
+
+// Script envelope types
+export type {
+  ScriptLogicTarget,
+  ScriptGeneratedMeta,
+  ScriptFile,
+} from './script';
+
+export {
+  resolveScriptPath,
+  resolveScriptId,
+} from './script';
