@@ -113,3 +113,28 @@ export {
   resolveScriptPath,
   resolveScriptId,
 } from './script';
+
+// Preset validation utilities
+export type { ValidationResult } from './presetValidation';
+
+export {
+  validatePresetDefinition,
+  validateKnobDef,
+  validateCommandDef,
+  validateEventDef,
+  validateStateDef,
+  validatePresetSavedConfig,
+  isPresetDefinition,
+} from './presetValidation';
+
+// Preset default factories
+export type { GameProfile } from './presetDefaults';
+
+export {
+  PRESET_CONFIG_FORMAT_VERSION,
+  VALID_PROFILES,
+  createDefaultPresetConfig,
+  createDefaultCategoryConfig,
+  mergeCategoryConfig,
+  isCategoryConfigModified,
+} from './presetDefaults';
