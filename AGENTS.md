@@ -37,10 +37,13 @@ For planning (spec/blueprint/plan):
 8) `/context/active-track.md`
 9) Active track files (spec/blueprint/plan)
 
+For Blockly/Presets work (add to planning reads):
+10) `/context/Blockly_Plan_Revised.md` (the Blockly constitution — Parts 1–15)
+
 For implementation (add these):
-10) `/context/repo-map.md`
-11) `/context/tech-stack.md`
-12) `/context/code-style.md`
+11) `/context/repo-map.md`
+12) `/context/tech-stack.md`
+13) `/context/code-style.md`
 
 **Before editing files in any folder**: read the nearest local `AGENTS.md` for that folder (and any other folders you will touch).
 
@@ -79,6 +82,11 @@ Full Tracks are required when touching any of:
 - GitHub auth/token handling
 - Deploy/commit/conflict detection logic
 - Cross-cutting refactors across many modules
+- Game API contract (`api.on/call/read/time/log` surface)
+- Preset schema format (PresetDefinition shape, knobs/commands/events/state)
+- Logic script storage format (`/game/logic/*.json` envelope schema)
+- SceneHost/ScriptHost lifecycle or attachment model
+- Blockly block definitions, generators, or codegen rules
 
 ### Micro Track (allowed for low-risk/local work)
 Micro Tracks are allowed when the change is clearly low-risk and local:
@@ -173,6 +181,13 @@ Prefer running tools over manual polish:
 - **Touch-first interaction**: Canvas interactions must account for finger occlusion (touch offset).
 - **Offline-after-load editing**: Editing must work without network after initial load. Offline cold-start is not guaranteed until a Service Worker track exists.
 - **No data loss**: Auto-save to IndexedDB on every meaningful change.
+- **No Split Brain (Presets + Blockly)**: Presets and Blockly both operate through one unified Game API contract. Presets implement systems behind it; Blockly calls commands / listens to events / reads state through it. Users must never hit "I can't do this because it's a preset."
+- **Blockly workspace JSON is source of truth**: Generated JS is derived and disposable. Never persist generated JS as canonical state.
+- **Event-first scripting**: Blockly is event-driven by default. No unrestricted per-frame loops in v1. "Every frame" blocks require Advanced toggle + throttling.
+- **No raw Phaser in Blockly**: Blockly scripts receive only safe Game API wrappers (`api.on/call/read/time/log`). Presets may use raw Phaser internally.
+- **Scope is never hidden**: In Blockly Mode, the Logic Target (which script you're editing) is always visible via the top-bar dropdown and labeled as "Logic Target: …".
+- **Presets are global**: Presets are game-wide systems. They do not vary per Logic Target. Both Game Logic and Map Logic scripts share the same preset surface.
+- **Script errors don't crash the editor**: Runtime errors in user scripts enter Error state for that script only, with clear reporting (which block, which Logic Target). "Stop scripts" always works.
 
 If a requested change conflicts with an invariant, stop and report the conflict.
 
@@ -210,11 +225,19 @@ HIGH RISK (must ask):
 - changing GitHub authentication logic
 - changing token storage policy (session vs persistent) or token handling UX
 - wide refactors across many files
+- changing Game API contract (command/event/state surface names or signatures)
+- changing preset schema format (PresetDefinition shape)
+- changing logic script envelope format (`/game/logic/*.json`)
+- changing SceneHost/ScriptHost lifecycle or attachment model
+- changing Blockly block type IDs (stable once released; renames require aliasing)
 
 MEDIUM RISK (notify):
 - changing module boundaries
 - changing performance-critical code paths (tilemap rendering, IndexedDB operations)
 - changing deploy batching / GitHub API call patterns
+- adding/removing Blockly block categories or preset categories
+- changing Logic Target dropdown behavior or palette filtering rules
+- changing Blockly codegen output patterns
 
 LOW RISK (auto):
 - adding tests
@@ -236,6 +259,16 @@ LOW RISK (auto):
 - Conflict safety: Deploy must check remote SHAs before writing; no silent overwrites.
 - Asset uploads: keep v1 scoped to small/medium images; warn and refuse large binaries by default.
 - Editor/Runtime separation: runtime must not import editor modules.
+
+## 14b) Blockly + Presets specific rules
+- **Dual-mode editor**: The editor operates in World Mode (map editing) and Blockly Mode (script editing). The top-bar dropdown is a universal context selector — selects map in World Mode, selects Logic Target in Blockly Mode.
+- **Berry UI model**: Left berry = Presets (global systems, available in both modes). Right berry = placeables/tools (tiles/entities in World Mode, blocks palette in Blockly Mode).
+- **Logic Targets (v1)**: Game Logic (`/game/logic/main.json`) and Map Logic (`/game/logic/maps/<mapId>.json`). Scripts are created on demand, not pre-populated.
+- **Schema-driven blocks**: Blockly blocks are generated from PresetDefinition schemas. One schema drives both the Presets UI (left berry) and the block palette (right berry). Keep them in sync.
+- **Preset registries**: Use `import.meta.glob` for preset defs (`src/runtime/presets/defs/*.ts`) and block defs (`src/runtime/blockly/blocks/*.ts`). Use `{ eager: true }` in v1.
+- **Game API naming**: Category prefixes (`controls.*`, `movement.*`, `camera.*`, `animation.*`). Events use present/past tense. Commands use verbs. State uses nouns/adjectives.
+- **Versioning**: Stable IDs for preset categories, command/event/state names. Additive evolution preferred. Renames require aliasing/migration, never silent breakage.
+- **Performance guardrails**: Minimum interval for "Every" timers (≥ 50ms). Hard cap on active timers per script (e.g., 64). Guard recursion depth. No per-frame Blockly execution in v1 default.
 
 ---
 
