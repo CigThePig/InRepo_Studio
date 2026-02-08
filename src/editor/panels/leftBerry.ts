@@ -287,7 +287,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const tabs = config.tabs ?? LEFT_BERRY_TABS;
   const activeTabId = config.initialTab ?? tabs[0]?.id ?? 'sprites';
   let isOpen = config.initialOpen ?? false;
-  let currentTab: LeftBerryTabId = activeTabId;
+  let currentTab: LeftBerryTabId | null = null;
   const tabChangeCallbacks: Array<(tab: LeftBerryTabId) => void> = [];
   const openChangeCallbacks: Array<(open: boolean) => void> = [];
   const assetRegistry = config.assetRegistry;
@@ -430,7 +430,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   }
 
   function setActiveTab(tab: LeftBerryTabId, options?: { silent?: boolean }): void {
-    if (currentTab === tab) return;
+    if (currentTab !== null && currentTab === tab) return;
     currentTab = tab;
 
     for (const button of tabBar.querySelectorAll<HTMLButtonElement>('.left-berry__tab')) {
@@ -466,25 +466,57 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   let touchStartX = 0;
   let touchStartY = 0;
   let touchActive = false;
+  let swipeCancelled = false;
 
   function onTouchStart(evt: TouchEvent): void {
     if (!isOpen) return;
     if (evt.touches.length !== 1) return;
     const touch = evt.touches[0];
+    const target = evt.target as HTMLElement | null;
+
+    // Ignore swipes that start on the tab strip (those are tab navigation)
+    if (target?.closest('.left-berry__tabs')) {
+      touchActive = false;
+      return;
+    }
+
+    // Ignore swipes that start in scrollable content areas
+    if (target?.closest('.left-berry__tab-content')) {
+      touchActive = false;
+      return;
+    }
+
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     touchActive = true;
+    swipeCancelled = false;
+  }
+
+  function onTouchMove(evt: TouchEvent): void {
+    if (!touchActive || swipeCancelled) return;
+    const touch = evt.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartX);
+    const dy = Math.abs(touch.clientY - touchStartY);
+
+    // If vertical movement dominates, cancel swipe-to-close (user is scrolling)
+    if (dy > 15 && dy > dx) {
+      swipeCancelled = true;
+    }
   }
 
   function onTouchEnd(evt: TouchEvent): void {
-    if (!touchActive) return;
+    if (!touchActive || swipeCancelled) {
+      touchActive = false;
+      swipeCancelled = false;
+      return;
+    }
     touchActive = false;
 
     const touch = evt.changedTouches[0];
     const dx = touch.clientX - touchStartX;
     const dy = touch.clientY - touchStartY;
 
-    if (Math.abs(dx) > 80 && Math.abs(dy) < 60 && dx < 0) {
+    if (Math.abs(dx) > 80 && Math.abs(dy) < 40 && dx < 0) {
       handleClose();
     }
   }
@@ -493,10 +525,11 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   closeButton.addEventListener('click', handleClose);
   handle.addEventListener('click', () => updateOpenState(true));
   panel.addEventListener('touchstart', onTouchStart);
+  panel.addEventListener('touchmove', onTouchMove, { passive: true });
   panel.addEventListener('touchend', onTouchEnd);
 
   updateOpenState(isOpen);
-  setActiveTab(currentTab, { silent: true });
+  setActiveTab(activeTabId, { silent: true });
 
   return {
     open: (tab) => {
@@ -520,6 +553,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     },
     destroy: () => {
       panel.removeEventListener('touchstart', onTouchStart);
+      panel.removeEventListener('touchmove', onTouchMove);
       panel.removeEventListener('touchend', onTouchEnd);
       assetLibraryController?.destroy();
       animationTabController?.destroy();

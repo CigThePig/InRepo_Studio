@@ -462,9 +462,60 @@ function syncSelectedAssetSelection(
   if (!asset) return;
 
   const selection = resolveSelectedTileFromAsset(asset, currentProject);
-  if (!selection) return;
+  if (!selection) {
+    // Local (data: URL) assets can't be painted until uploaded to the repo.
+    if (asset.type !== 'entity' && /^data:/i.test(asset.dataUrl)) {
+      showLocalAssetNotice(asset);
+    }
+    return;
+  }
 
   applySelectedTile(selection, options);
+}
+
+let localAssetNoticeEl: HTMLElement | null = null;
+let localAssetNoticeTimeout: number | null = null;
+
+function showLocalAssetNotice(asset: AssetEntry): void {
+  // Show a temporary toast explaining why the asset can't be painted
+  const container = document.getElementById('canvas-container');
+  if (!container) return;
+
+  if (localAssetNoticeEl) {
+    localAssetNoticeEl.remove();
+    if (localAssetNoticeTimeout !== null) {
+      window.clearTimeout(localAssetNoticeTimeout);
+    }
+  }
+
+  const notice = document.createElement('div');
+  notice.style.cssText = `
+    position: absolute;
+    left: 50%;
+    bottom: 60px;
+    transform: translateX(-50%);
+    background: rgba(20, 24, 48, 0.95);
+    color: #ffddaa;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 185, 80, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    z-index: 30;
+    max-width: 280px;
+    text-align: center;
+    line-height: 1.4;
+  `;
+  notice.textContent = `"${asset.name}" is a local asset. Upload it to the repo to use it for painting.`;
+  container.appendChild(notice);
+  localAssetNoticeEl = notice;
+
+  localAssetNoticeTimeout = window.setTimeout(() => {
+    notice.remove();
+    localAssetNoticeEl = null;
+    localAssetNoticeTimeout = null;
+  }, 4000);
 }
 
 function updateEntitySelectionUI(): void {
