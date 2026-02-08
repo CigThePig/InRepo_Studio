@@ -490,6 +490,27 @@ Purpose:
 - **Follow-up**:
   - Track 33: Script Envelope + Storage (Part 12)
 
+### Track 33 — Script Envelope + Storage (Part 12)
+- **Dates**: 2026-02-08
+- **Status**: Completed
+- **Summary**: Implemented the storage layer for Blockly script files — hot storage (IndexedDB), cold fetch (repo), validation, and factory utilities. Script envelope types were created proactively in Track 31; this track added CRUD operations, validation at load boundaries, and cold fetch with 404 safety.
+- **Shipped**:
+  - `src/types/scriptUtils.ts` — createEmptyScriptFile factory, validateScriptFile validation, SCRIPT_FORMAT_VERSION constant
+  - `src/storage/scriptStorage.ts` — dedicated IndexedDB (inrepo-scripts) with CRUD: initScriptStorage, saveScript, loadScript, deleteScript, listScriptIds, hasScript
+  - `src/storage/scriptCold.ts` — fetchScriptFromRepo with URL helper, 404 safety, and validation
+  - `src/shared/paths.ts` — LOGIC_DIR, LOGIC_MAIN_PATH, LOGIC_MAPS_DIR constants + resolveScriptUrl helper
+  - Track planning artifacts (spec/blueprint/plan)
+  - INDEX.md, active-track.md, schema-registry.md all current
+- **Verification**:
+  - `npm run build` succeeds (Vite build completes)
+  - `npm run lint` passes (only pre-existing warnings in migration.ts)
+  - No new TypeScript errors beyond pre-existing external module issues
+- **Learned**:
+  - Using a separate IndexedDB database for scripts avoids version migration of the main database.
+  - Track 31 proactively created envelope types, making Track 33 focused on storage operations.
+- **Follow-up**:
+  - Track 34: Preset Registry + PresetManager (Parts 9-10)
+
 ---
 
 ## Stalled / Abandoned Tracks

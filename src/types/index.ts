@@ -114,6 +114,15 @@ export {
   resolveScriptId,
 } from './script';
 
+// Script validation + factory utilities
+export type { ScriptValidationResult } from './scriptUtils';
+
+export {
+  SCRIPT_FORMAT_VERSION,
+  createEmptyScriptFile,
+  validateScriptFile,
+} from './scriptUtils';
+
 // Preset validation utilities
 export type { ValidationResult } from './presetValidation';
 

@@ -57,8 +57,30 @@ export {
 
 export type { FreshnessCheck, AssetPreloadResult, RepoAssetManifest } from './cold';
 
+// Script storage (hot)
+export {
+  initScriptStorage,
+  saveScript,
+  loadScript,
+  deleteScript,
+  listScriptIds,
+  hasScript,
+} from './scriptStorage';
+
+// Script storage (cold)
+export { fetchScriptFromRepo } from './scriptCold';
+
 // Shared path helpers
-export { resolveGamePath, resolveAssetUrl, PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH } from '@/shared/paths';
+export {
+  resolveGamePath,
+  resolveAssetUrl,
+  resolveScriptUrl,
+  PROJECT_JSON_PATH,
+  SCENE_INDEX_JSON_PATH,
+  LOGIC_DIR,
+  LOGIC_MAIN_PATH,
+  LOGIC_MAPS_DIR,
+} from '@/shared/paths';
 
 // Migration
 export {
