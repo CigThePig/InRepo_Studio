@@ -447,6 +447,29 @@ Purpose:
 - **Follow-up**:
   - Run a full asset upload workflow against a real repo to validate folder placement and refresh behavior.
 
+### Track 31 — Game API Contract + Types
+- **Dates**: 2026-02-08
+- **Status**: Completed
+- **Summary**: Defined the TypeScript Game API contract — the single doorway for Presets and Blockly. All interfaces for ApiContext, EventBus, TimeHelpers, LogApi, EntityHandle, EntityLookup, PresetSurface, and LogicTargetMeta are in place with generic call/on/read methods for Blockly codegen.
+- **Shipped**:
+  - `src/types/gameApi.ts` with full Game API type definitions (ApiContext, EventBus, TimeHelpers, LogApi, EntityHandle, EntityLookup, PresetSurface, ApiMeta, LogicTargetMeta)
+  - Generic script surface: `call(commandId, args)`, `on(eventId, handler)`, `read(stateId)`
+  - Disposer pattern for subscription/timer cleanup
+  - `src/types/preset.ts` with PresetDefinition schema (knobs, commands, events, state, compatibility)
+  - `src/types/script.ts` with script envelope types and path resolution helpers
+  - All types re-exported from `src/types/index.ts`
+  - Schema registry and INDEX updated with all new lists-of-truth
+  - Runtime and types AGENTS.md updated with Game API rules
+- **Verification**:
+  - `tsc --noEmit` passes for all Track 31 type files (no errors in gameApi.ts, preset.ts, script.ts)
+  - All interfaces match Part 4 of Blockly Plan Revised (sections 4.2–4.6)
+  - Generic call/on/read cover Blockly codegen patterns
+- **Learned**:
+  - Scaffolding types, AGENTS.md files, and schema-registry entries together prevents drift between documentation and code.
+  - The generic call/on/read layer successfully isolates Blockly codegen from typed internals.
+- **Follow-up**:
+  - Track 32: Preset Schema + Definition Types (Parts 5-6)
+
 ---
 
 ## Stalled / Abandoned Tracks

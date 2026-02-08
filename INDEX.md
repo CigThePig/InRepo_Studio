@@ -216,6 +216,10 @@ Micro-format (copy/paste):
   - Role: Tracks 23-30 planning artifacts (Editor V2 Migration: UI + Workflow Overhaul).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-08-track-31-game-api-contract/`
+  - Role: Track 31 planning artifacts (Game API Contract + Types).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
