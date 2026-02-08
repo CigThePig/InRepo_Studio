@@ -470,6 +470,26 @@ Purpose:
 - **Follow-up**:
   - Track 32: Preset Schema + Definition Types (Parts 5-6)
 
+### Track 32 — Preset Schema + Definition Types (Parts 5-6)
+- **Dates**: 2026-02-08
+- **Status**: Completed
+- **Summary**: Completed the PresetDefinition schema system with validation utilities and default config factories. Type definitions for knobs/commands/events/state were created proactively in Track 31; this track added validation, defaults, and the baseline `/game/presets.json`.
+- **Shipped**:
+  - `src/types/presetValidation.ts` — validation functions for PresetDefinition, KnobDef, CommandDef, EventDef, StateDef, PresetSavedConfig
+  - `src/types/presetDefaults.ts` — default config factories (createDefaultPresetConfig, createDefaultCategoryConfig, mergeCategoryConfig, isCategoryConfigModified)
+  - `game/presets.json` — baseline empty preset config (formatVersion 1, profile "custom", empty categories)
+  - Track planning artifacts (spec/blueprint/plan)
+  - INDEX.md, active-track.md, schema-registry.md all current
+- **Verification**:
+  - `tsc --noEmit` passes with no errors in new files
+  - All types conform to Parts 5-6 of Blockly Plan Revised
+  - Validation functions enforce required surfaces and naming conventions
+- **Learned**:
+  - Track 31 proactively created most type definitions, making Track 32 a "verify + fill gaps" track rather than greenfield work.
+  - Validation utilities should be created alongside types to prevent malformed definitions from entering the system.
+- **Follow-up**:
+  - Track 33: Script Envelope + Storage (Part 12)
+
 ---
 
 ## Stalled / Abandoned Tracks

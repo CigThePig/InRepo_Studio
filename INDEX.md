@@ -220,6 +220,10 @@ Micro-format (copy/paste):
   - Role: Track 31 planning artifacts (Game API Contract + Types).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-08-track-32-preset-schema/`
+  - Role: Track 32 planning artifacts (Preset Schema + Definition Types).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -236,6 +240,10 @@ Micro-format (copy/paste):
 - `game/assets/`
   - Role: Tile images, sprites, audio.
   - Lists of truth: none
+
+- `game/presets.json`
+  - Role: Preset configuration (enabled presets + knob overrides).
+  - Lists of truth: PresetSavedConfig
 
 ## Source (Phase 0 complete, Tracks 5-9 complete)
 
@@ -276,6 +284,14 @@ Micro-format (copy/paste):
 - `src/types/script.ts`
   - Role: Logic script envelope types.
   - Lists of truth: ScriptFile, ScriptLogicTarget, resolveScriptPath, resolveScriptId
+
+- `src/types/presetValidation.ts`
+  - Role: Validation utilities for PresetDefinition schemas.
+  - Lists of truth: validatePresetDefinition, validateKnobDef, validateCommandDef, validateEventDef, validateStateDef, validatePresetSavedConfig
+
+- `src/types/presetDefaults.ts`
+  - Role: Default factories for preset configuration.
+  - Lists of truth: PRESET_CONFIG_FORMAT_VERSION, VALID_PROFILES, createDefaultPresetConfig, createDefaultCategoryConfig
 
 ### Storage (Tracks 2-3 — exists)
 - `src/storage/index.ts`
