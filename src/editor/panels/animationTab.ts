@@ -174,6 +174,31 @@ const STYLES = `
     border-radius: 6px;
   }
 
+  .animation-tab__frame-delete {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 100, 100, 0.6);
+    background: rgba(200, 40, 40, 0.85);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .animation-tab__frame-delete:active {
+    background: rgba(255, 60, 60, 0.95);
+  }
+
   .animation-tab__frame-add {
     border-style: dashed;
     color: #9aa7d6;
@@ -669,9 +694,47 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   pivotSnapToggle.className = 'animation-tab__button animation-tab__button--ghost';
   pivotSnapToggle.textContent = 'Snap 0.05: Off';
 
+  const nudgeStep = 0.01;
+
+  const nudgeLeftBtn = document.createElement('button');
+  nudgeLeftBtn.type = 'button';
+  nudgeLeftBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeLeftBtn.textContent = '← X';
+  nudgeLeftBtn.style.minHeight = '36px';
+  nudgeLeftBtn.style.padding = '4px 8px';
+  nudgeLeftBtn.style.fontSize = '12px';
+
+  const nudgeRightBtn = document.createElement('button');
+  nudgeRightBtn.type = 'button';
+  nudgeRightBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeRightBtn.textContent = 'X →';
+  nudgeRightBtn.style.minHeight = '36px';
+  nudgeRightBtn.style.padding = '4px 8px';
+  nudgeRightBtn.style.fontSize = '12px';
+
+  const nudgeUpBtn = document.createElement('button');
+  nudgeUpBtn.type = 'button';
+  nudgeUpBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeUpBtn.textContent = '↑ Y';
+  nudgeUpBtn.style.minHeight = '36px';
+  nudgeUpBtn.style.padding = '4px 8px';
+  nudgeUpBtn.style.fontSize = '12px';
+
+  const nudgeDownBtn = document.createElement('button');
+  nudgeDownBtn.type = 'button';
+  nudgeDownBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeDownBtn.textContent = 'Y ↓';
+  nudgeDownBtn.style.minHeight = '36px';
+  nudgeDownBtn.style.padding = '4px 8px';
+  nudgeDownBtn.style.fontSize = '12px';
+
   pivotControls.appendChild(pivotXField);
   pivotControls.appendChild(pivotYField);
   pivotControls.appendChild(pivotSnapToggle);
+  pivotControls.appendChild(nudgeLeftBtn);
+  pivotControls.appendChild(nudgeRightBtn);
+  pivotControls.appendChild(nudgeUpBtn);
+  pivotControls.appendChild(nudgeDownBtn);
 
   previewSection.appendChild(previewStage);
   previewSection.appendChild(previewHint);
@@ -732,6 +795,9 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   /** Cache of loaded images keyed by asset ID, for multi-source frame support. */
   const sourceImageCache = new Map<string, HTMLImageElement>();
+
+  /** Monotonically increasing counter to guard against stale async selections. */
+  let selectionRequestId = 0;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -958,7 +1024,10 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         card.appendChild(meta);
         card.addEventListener('click', async () => {
           closeSheet();
+          const requestId = ++selectionRequestId;
           await loadSourceFromAsset(asset);
+          if (requestId !== selectionRequestId) return; // stale
+          render();
         });
         content.appendChild(card);
       });
@@ -1275,7 +1344,9 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         card.appendChild(img);
         card.appendChild(meta);
         card.addEventListener('click', async () => {
+          const requestId = ++selectionRequestId;
           const image = await resolveSourceImage(asset);
+          if (requestId !== selectionRequestId) return; // stale
           const rect = { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
           state.frames = [
             ...state.frames,
@@ -1573,8 +1644,18 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   function updatePivotOverlay(): void {
     const rect = previewStage.getBoundingClientRect();
-    const x = rect.width / 2;
-    const y = rect.height / 2;
+
+    // Place marker at pivot position within the drawn sprite bounds
+    let x: number;
+    let y: number;
+    if (lastDrawBounds) {
+      x = lastDrawBounds.x + lastDrawBounds.width * state.pivot.x;
+      y = lastDrawBounds.y + lastDrawBounds.height * state.pivot.y;
+    } else {
+      x = rect.width / 2;
+      y = rect.height / 2;
+    }
+
     pivotMarker.style.left = `${x}px`;
     pivotMarker.style.top = `${y}px`;
     pivotMarker.style.display = state.showPivot ? 'block' : 'none';
@@ -1634,8 +1715,8 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     const drawHeight = frameRect.h * scale;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const dx = centerX - drawWidth * state.pivot.x;
-    const dy = centerY - drawHeight * state.pivot.y;
+    const dx = centerX - drawWidth / 2;
+    const dy = centerY - drawHeight / 2;
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
@@ -1711,6 +1792,47 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     }
   }
 
+  function deleteFrame(index: number): void {
+    if (index < 0 || index >= state.frames.length) return;
+    state.frames = state.frames.filter((_, i) => i !== index);
+    if (state.frames.length === 0) {
+      state.currentFrame = 0;
+      stopPlayback();
+    } else {
+      state.currentFrame = Math.min(state.currentFrame, state.frames.length - 1);
+    }
+    state.dirty = true;
+    render();
+  }
+
+  function clearAllFrames(): void {
+    state.frames = [];
+    state.currentFrame = 0;
+    state.dirty = true;
+    stopPlayback();
+    render();
+  }
+
+  function resetAnimation(): void {
+    state.sourceAssetId = null;
+    state.sourceName = null;
+    state.sourceImage = null;
+    state.frames = [];
+    state.currentFrame = 0;
+    state.fps = DEFAULT_FPS;
+    state.loopMode = DEFAULT_LOOP_MODE;
+    state.pivot = { ...DEFAULT_PIVOT };
+    state.showPivot = false;
+    state.pivotSnap = false;
+    state.animationId = null;
+    state.animationName = '';
+    state.dirty = false;
+    state.gridSlice = null;
+    state.gridModel = null;
+    stopPlayback();
+    render();
+  }
+
   function renderFrames(): void {
     framesStrip.innerHTML = '';
     state.frames.forEach((frame, index) => {
@@ -1734,6 +1856,18 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       label.className = 'animation-tab__frame-index';
       label.textContent = `${index + 1}`;
       button.appendChild(label);
+
+      // Delete button overlay
+      if (state.frames.length > 1) {
+        const deleteBtn = document.createElement('div');
+        deleteBtn.className = 'animation-tab__frame-delete';
+        deleteBtn.textContent = '×';
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteFrame(index);
+        });
+        button.appendChild(deleteBtn);
+      }
 
       button.addEventListener('click', () => {
         state.currentFrame = index;
@@ -1912,9 +2046,23 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     sliceButton.textContent = 'Reslice';
     sliceButton.addEventListener('click', () => openSliceSettings());
 
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'animation-tab__button animation-tab__button--ghost';
+    clearButton.textContent = 'Clear Frames';
+    clearButton.addEventListener('click', clearAllFrames);
+
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'animation-tab__button animation-tab__button--ghost';
+    resetButton.textContent = 'Reset All';
+    resetButton.addEventListener('click', resetAnimation);
+
     row.appendChild(saveButton);
     row.appendChild(attachButton);
     row.appendChild(sliceButton);
+    row.appendChild(clearButton);
+    row.appendChild(resetButton);
 
     const status = document.createElement('div');
     status.className = 'animation-tab__hint';
@@ -1994,6 +2142,23 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   pivotSnapToggle.addEventListener('click', () => {
     state.pivotSnap = !state.pivotSnap;
     applyPivot(state.pivot.x, state.pivot.y);
+    render();
+  });
+
+  nudgeLeftBtn.addEventListener('click', () => {
+    applyPivot(state.pivot.x - nudgeStep, state.pivot.y);
+    render();
+  });
+  nudgeRightBtn.addEventListener('click', () => {
+    applyPivot(state.pivot.x + nudgeStep, state.pivot.y);
+    render();
+  });
+  nudgeUpBtn.addEventListener('click', () => {
+    applyPivot(state.pivot.x, state.pivot.y - nudgeStep);
+    render();
+  });
+  nudgeDownBtn.addEventListener('click', () => {
+    applyPivot(state.pivot.x, state.pivot.y + nudgeStep);
     render();
   });
 
