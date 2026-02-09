@@ -9,6 +9,7 @@
  *
  * Ownership:
  * - PresetManager (applies preset systems to the scene)
+ * - ScriptHost (manages Blockly script lifecycle)
  * - ApiContext (shared Game API instance bound to the scene)
  * - Disposables (all subscriptions/timers/listeners for clean teardown)
  *
@@ -40,6 +41,7 @@ import { PresetManager } from './presets/presetManager';
 import type { PresetRegistry } from './presets/presetRegistry';
 import { createApiContext } from './apiContext/createApiContext';
 import type { DisposableApiContext } from './apiContext/createApiContext';
+import { ScriptHost } from './blockly/scriptHost';
 
 /** API version for the current runtime. */
 const API_VERSION = '0.1.0';
@@ -71,6 +73,7 @@ export interface SceneHostConfig {
  */
 export class SceneHost {
   private readonly presetManager: PresetManager;
+  private readonly scriptHost: ScriptHost;
   private readonly apiContext: DisposableApiContext;
   private readonly disposables: Disposer[] = [];
   private readonly sceneId: string;
@@ -103,6 +106,9 @@ export class SceneHost {
     // Register preset APIs into the event bus via a registrar
     const registrar = this.buildRegistrar();
     this.presetManager.registerApi(registrar);
+
+    // Create ScriptHost (shares the same ApiContext)
+    this.scriptHost = new ScriptHost(this.apiContext);
   }
 
   /** Get the shared ApiContext (for ScriptHost and other consumers). */
@@ -113,6 +119,11 @@ export class SceneHost {
   /** Get the PresetManager (for config changes at runtime). */
   getPresetManager(): PresetManager {
     return this.presetManager;
+  }
+
+  /** Get the ScriptHost (for starting/stopping Blockly scripts). */
+  getScriptHost(): ScriptHost {
+    return this.scriptHost;
   }
 
   /** Get the scene identifier. */
@@ -148,8 +159,9 @@ export class SceneHost {
    *
    * Disposes in reverse order:
    * 1. External disposables (reverse order)
-   * 2. PresetManager
-   * 3. ApiContext (timers, event bus)
+   * 2. ScriptHost (stop all scripts)
+   * 3. PresetManager
+   * 4. ApiContext (timers, event bus)
    */
   dispose(): void {
     if (this.disposed) return;
@@ -164,6 +176,9 @@ export class SceneHost {
       }
     }
     this.disposables.length = 0;
+
+    // Dispose ScriptHost (stop all running scripts)
+    this.scriptHost.dispose();
 
     // Dispose preset manager
     this.presetManager.dispose();

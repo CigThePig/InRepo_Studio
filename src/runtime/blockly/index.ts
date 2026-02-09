@@ -10,4 +10,11 @@
  * See /src/runtime/blockly/AGENTS.md for full rules.
  */
 
-// Public exports will be added as modules are implemented.
+export { ScriptHost } from './scriptHost';
+export type {
+  ScriptState,
+  ScriptEntry,
+  ScriptErrorInfo,
+  ScriptRegisterFn,
+  StartScriptOptions,
+} from './scriptHost';
