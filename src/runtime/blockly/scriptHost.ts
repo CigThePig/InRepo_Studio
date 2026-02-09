@@ -281,23 +281,25 @@ export class ScriptHost {
    * - Disposer tracking for the script entry
    */
   private createWrappedApi(entry: ScriptEntry): ApiContext {
-    const host = this;
     const baseApi = this.apiContext;
+    const safeExec = (fn: () => void) => this.safeExecute(entry, fn);
+    const safeExecReturn = (fn: () => unknown) =>
+      this.safeExecuteWithReturn(entry, fn);
 
     return {
       meta: baseApi.meta,
       events: baseApi.events,
       time: {
-        after(ms: number, fn: () => void) {
+        after: (ms: number, fn: () => void) => {
           const handle = baseApi.time.after(ms, () => {
-            host.safeExecute(entry, fn);
+            safeExec(fn);
           });
           entry.disposers.push(handle);
           return handle;
         },
-        every(ms: number, fn: () => void) {
+        every: (ms: number, fn: () => void) => {
           const handle = baseApi.time.every(ms, () => {
-            host.safeExecute(entry, fn);
+            safeExec(fn);
           });
           entry.disposers.push(handle);
           return handle;
@@ -308,25 +310,23 @@ export class ScriptHost {
       entities: baseApi.entities,
       presets: baseApi.presets,
 
-      call(commandId: string, args?: Record<string, unknown>): unknown {
-        return host.safeExecuteWithReturn(entry, () =>
-          baseApi.call(commandId, args),
-        );
+      call: (commandId: string, args?: Record<string, unknown>): unknown => {
+        return safeExecReturn(() => baseApi.call(commandId, args));
       },
 
-      on(
+      on: (
         eventId: string,
         handler: (payload: Record<string, unknown>) => void,
-      ): Disposer {
+      ): Disposer => {
         const wrappedHandler = (payload: Record<string, unknown>) => {
-          host.safeExecute(entry, () => handler(payload));
+          safeExec(() => handler(payload));
         };
         const disposer = baseApi.on(eventId, wrappedHandler);
         entry.disposers.push(disposer);
         return disposer;
       },
 
-      read(stateId: string): unknown {
+      read: (stateId: string): unknown => {
         return baseApi.read(stateId);
       },
     };
