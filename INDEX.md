@@ -236,6 +236,14 @@ Micro-format (copy/paste):
   - Role: Track 35 planning artifacts (SceneHost + ApiContext Runtime).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `context/tracks/track-36/`
+  - Role: Track 36 planning artifacts (ScriptHost Engine).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `context/tracks/track-37/`
+  - Role: Track 37 planning artifacts (Schema-Driven Block Generation).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -738,6 +746,18 @@ Micro-format (copy/paste):
 - `src/runtime/blockly/scriptHost.ts`
   - Role: ScriptHost engine — Blockly script lifecycle (compile, run, stop, error).
   - Lists of truth: ScriptHost, ScriptState, ScriptEntry, ScriptErrorInfo
+
+- `src/runtime/blockly/codegenRules.ts`
+  - Role: Shared codegen utilities for Blockly → JS code generation.
+  - Lists of truth: none (pure string builders)
+
+- `src/runtime/blockly/schemaToBlocks.ts`
+  - Role: Schema-driven block generation (PresetDefinition → BlockPack).
+  - Lists of truth: BlockDefinition, BlockPackEntry, BlockPack, BlockDependency
+
+- `src/runtime/blockly/blockRegistry.ts`
+  - Role: Block registry with search + dependency lookup.
+  - Lists of truth: BlockRegistry
 
 ### Game Logic Data
 - `game/logic/`
