@@ -339,6 +339,54 @@ Rules:
   - Invariant: all definitions pass validatePresetDefinition()
   - Invariant: preset IDs are stable (category-prefix naming)
 
+### SceneHost + ApiContext Runtime (Track 35)
+
+- `/src/runtime/apiContext/eventBus.ts`
+  - `createEventBus()` — scene-scoped event pub/sub implementation
+    - Implements: EventBus (from gameApi.ts)
+    - Returns disposable EventBus (on, once, off, emit, list, dispose)
+    - Invariant: each SceneHost gets its own instance (no shared state)
+
+- `/src/runtime/apiContext/timeHelpers.ts`
+  - `createTimeHelpers()` — safe timer wrappers
+    - Implements: TimeHelpers (from gameApi.ts)
+    - Guardrails: min interval 50ms for every(), hard cap 64 active timers
+    - Invariant: all timers auto-cancel on dispose
+
+- `/src/runtime/apiContext/logApi.ts`
+  - `createLogApi()` — structured logging with source attribution
+    - Implements: LogApi (from gameApi.ts)
+    - Logs include Logic Target source when available
+
+- `/src/runtime/apiContext/entityLookup.ts`
+  - `createEntityLookupStub()` — v1 stub entity lookup
+    - Implements: EntityLookup (from gameApi.ts)
+    - Returns empty/null for all queries (full integration future track)
+
+- `/src/runtime/apiContext/createApiContext.ts`
+  - `DisposableApiContext` — fully assembled ApiContext with dispose
+    - Wires: EventBus, TimeHelpers, LogApi, EntityLookup, PresetSurface
+    - Generic call/on/read delegate to PresetManager
+    - Invariant: scene-scoped (one per SceneHost)
+
+- `/src/runtime/sceneHost.ts`
+  - `SceneHost` — single attach/detach point per playable scene
+    - Owns: PresetManager, ApiContext, Disposables[]
+    - Lifecycle: construct → update → dispose
+    - Invariant: dispose cleans up in reverse order (disposables, presets, apiContext)
+    - Invariant: no shared mutable state between SceneHost instances
+  - `SceneHostConfig` — configuration for attaching to a scene
+    - Keys: registry, presetConfig, sceneId
+
+- `/src/runtime/inrepoRuntime.ts`
+  - `InRepoRuntime` — static attach/detach helper
+    - Methods: attach, getHost, detach
+    - Stores SceneHost on scene.data for retrieval
+    - Auto-disposes on scene shutdown/destroy events
+    - Invariant: prevents double-attach
+  - `AttachOptions` — attach configuration
+    - Keys: registry, presetConfig, sceneId?
+
 ---
 
 ## Invariants checklist for schema-driven work
