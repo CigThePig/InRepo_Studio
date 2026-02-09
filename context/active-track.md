@@ -1,11 +1,14 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 38 complete
-Next task: Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
+Current phase: Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
+Next task: Track 39, Phase 1 — Blockly Mode State + Workspace Injection
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
 - `/context/track-index.md` (Tracks 31–42)
+- `/tracks/2026-02-09-track-39-blockly-workspace-ui/spec.md`
+- `/tracks/2026-02-09-track-39-blockly-workspace-ui/blueprint.md`
+- `/tracks/2026-02-09-track-39-blockly-workspace-ui/plan.md`
 
 Authority: `/context/Blockly_Plan_Revised.md`
 
