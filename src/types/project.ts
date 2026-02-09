@@ -24,7 +24,7 @@
  * - [ ] entityTypes have unique names
  */
 
-import type { PropertyDefinition } from './entity';
+import { validatePropertyDefinition, type PropertyDefinition } from './entity';
 
 // --- Tile Category ---
 
@@ -140,10 +140,17 @@ export function validateTileCategory(cat: unknown): cat is TileCategory {
 export function validateEntityType(ent: unknown): ent is EntityType {
   if (!ent || typeof ent !== 'object') return false;
   const e = ent as Record<string, unknown>;
-  return (
-    typeof e.name === 'string' &&
-    Array.isArray(e.properties)
-  );
+
+  if (typeof e.name !== 'string' || e.name.length === 0) return false;
+  if (e.displayName !== undefined && typeof e.displayName !== 'string') return false;
+  if (e.sprite !== undefined && typeof e.sprite !== 'string') return false;
+  if (!Array.isArray(e.properties)) return false;
+
+  for (const prop of e.properties) {
+    if (!validatePropertyDefinition(prop)) return false;
+  }
+
+  return true;
 }
 
 export function validateProjectSettings(settings: unknown): settings is ProjectSettings {

@@ -9,7 +9,7 @@
 
 import { getGidForTile, type Scene, type LayerType } from '@/types';
 import type { ViewportState } from '@/editor/canvas/viewport';
-import type { EditorState, SelectedTile } from '@/storage/hot';
+import type { EditorState, SelectedTile } from '@/storage';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import { interpolateLine, screenToTileWithOffset } from '@/editor/tools/common';
 import { createTileChangeOperation, type HistoryManager } from '@/editor/history';

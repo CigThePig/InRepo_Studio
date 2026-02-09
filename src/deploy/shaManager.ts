@@ -25,6 +25,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { AuthManager } from './auth';
+import { parseRateLimitError, normalizePath } from './utils';
 
 const LOG_PREFIX = '[Deploy/ShaManager]';
 const DB_NAME = 'inrepo-deploy';
@@ -95,10 +96,6 @@ async function openShaDb(): Promise<IDBPDatabase<ShaDb>> {
   return db;
 }
 
-function normalizePath(path: string): string {
-  return path.startsWith('/') ? path.slice(1) : path;
-}
-
 function decodeBase64(base64: string): string {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -114,17 +111,6 @@ async function getToken(authManager: AuthManager): Promise<string> {
     throw new Error('Not authenticated');
   }
   return token;
-}
-
-function parseRateLimitError(response: Response): string | null {
-  if (response.status !== 403) {
-    return null;
-  }
-  const remaining = response.headers.get('X-RateLimit-Remaining');
-  if (remaining === '0') {
-    return 'GitHub API rate limit exceeded. Please try again later.';
-  }
-  return null;
 }
 
 export function createShaManager(config: ShaManagerConfig): ShaManager {

@@ -38,6 +38,7 @@ export type {
   EditorPayload,
   ViewportState,
   PanelStates,
+  SelectedTile,
   HotProject,
   ColdBaseline,
   StorageQuotaInfo,

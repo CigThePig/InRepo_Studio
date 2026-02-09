@@ -9,6 +9,7 @@ import {
   ensureEntityType,
 } from '@/shared/projectManifest';
 import { PROJECT_JSON_PATH, TILESETS_PATH, PROPS_PATH, ENTITIES_PATH } from '@/shared/paths';
+import { hashContent } from './utils';
 
 export type AssetUploadGroupType = 'tilesets' | 'props' | 'entities';
 
@@ -72,23 +73,6 @@ function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | n
 function estimateBase64Bytes(base64: string): number {
   const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
-}
-
-async function hashContent(content: string): Promise<string> {
-  if (crypto?.subtle) {
-    const data = new TextEncoder().encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  let hash = 0;
-  for (let i = 0; i < content.length; i += 1) {
-    hash = (hash << 5) - hash + content.charCodeAt(i);
-    hash |= 0;
-  }
-  return `fallback-${hash}`;
 }
 
 function slugifyFileName(name: string): string {
