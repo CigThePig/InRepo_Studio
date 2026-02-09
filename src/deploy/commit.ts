@@ -30,6 +30,7 @@ import type { Project, Scene } from '@/types';
 import { validateProject, validateScene } from '@/types';
 import { saveProject, saveScene, getAllSceneIds } from '@/storage';
 import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
+import { hashContent, parseRateLimitError, normalizePath } from './utils';
 
 const LOG_PREFIX = '[Deploy/Commit]';
 
@@ -88,41 +89,9 @@ function resolveContent(change: FileChange): string {
   return encodeContent(change.content ?? '');
 }
 
-async function hashContent(content: string): Promise<string> {
-  if (crypto?.subtle) {
-    const data = new TextEncoder().encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  let hash = 0;
-  for (let i = 0; i < content.length; i += 1) {
-    hash = (hash << 5) - hash + content.charCodeAt(i);
-    hash |= 0;
-  }
-  return `fallback-${hash}`;
-}
-
 function formatCommitMessage(): string {
   const timestamp = new Date().toISOString();
   return `Update via InRepo Studio - ${timestamp}`;
-}
-
-function parseRateLimitError(response: Response): string | null {
-  if (response.status !== 403) {
-    return null;
-  }
-  const remaining = response.headers.get('X-RateLimit-Remaining');
-  if (remaining === '0') {
-    return 'GitHub API rate limit exceeded. Please try again later.';
-  }
-  return null;
-}
-
-function normalizePath(path: string): string {
-  return path.startsWith('/') ? path.slice(1) : path;
 }
 
 async function fetchRemoteSha(

@@ -30,6 +30,7 @@ import {
   PROJECT_JSON_PATH,
   SCENES_DIR,
 } from '@/shared/paths';
+import { parseRateLimitError } from '@/deploy/utils';
 
 const LOG_PREFIX = '[Storage/Cold]';
 
@@ -158,17 +159,6 @@ interface GitHubContentItem {
   name: string;
   path: string;
   type: 'file' | 'dir';
-}
-
-function parseRateLimitError(response: Response): string | null {
-  if (response.status !== 403) {
-    return null;
-  }
-  const remaining = response.headers.get('X-RateLimit-Remaining');
-  if (remaining === '0') {
-    return 'GitHub API rate limit exceeded. Please try again later.';
-  }
-  return null;
 }
 
 async function fetchRepoContents(options: {

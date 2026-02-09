@@ -2,7 +2,7 @@ import { getGidForTile, type LayerType, type Scene } from '@/types';
 import { screenToTileWithOffset, type TilePoint } from '@/editor/tools/common';
 import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import { floodFill, type FloodFillResult } from '@/editor/tools/floodFill';
-import type { EditorState, SelectedTile } from '@/storage/hot';
+import type { EditorState, SelectedTile } from '@/storage';
 import type { ViewportState } from '@/editor/canvas/viewport';
 import {
   createTileChangeOperation,

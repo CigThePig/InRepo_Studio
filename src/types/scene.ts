@@ -439,7 +439,7 @@ export function createScene(
  * Generate a unique entity instance ID
  */
 export function generateEntityId(): string {
-  return `e_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `e_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 // --- Validation ---

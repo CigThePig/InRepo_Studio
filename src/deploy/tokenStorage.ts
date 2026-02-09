@@ -136,10 +136,3 @@ export function createTokenStorage(): TokenStorage {
     },
   };
 }
-
-export const StorageKeys = {
-  sessionKey: SESSION_KEY,
-  dbName: DB_NAME,
-  dbStore: DB_STORE,
-  dbKey: DB_KEY,
-} as const;

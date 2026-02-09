@@ -24,9 +24,10 @@ import type {
   EditorIntent,
   EditorDomain,
   EditorPayload,
+  SelectedTile,
+  StorageQuotaInfo,
   UpdateCheckResult,
 } from '@/storage';
-import type { SelectedTile, StorageQuotaInfo } from '@/storage/hot';
 import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {

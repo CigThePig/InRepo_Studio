@@ -23,6 +23,7 @@ import type { HotProject } from '@/storage';
 import type { Scene } from '@/types';
 import type { ShaStore } from './shaManager';
 import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
+import { hashContent } from './utils';
 
 export type FileChangeStatus = 'added' | 'modified' | 'deleted';
 
@@ -55,23 +56,6 @@ export interface ConflictInfo {
 export interface ConflictResult {
   safe: FileChange[];
   conflicts: (FileChange & ConflictInfo)[];
-}
-
-async function hashContent(content: string): Promise<string> {
-  if (crypto?.subtle) {
-    const data = new TextEncoder().encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  let hash = 0;
-  for (let i = 0; i < content.length; i += 1) {
-    hash = (hash << 5) - hash + content.charCodeAt(i);
-    hash |= 0;
-  }
-  return `fallback-${hash}`;
 }
 
 function detectContentChange(

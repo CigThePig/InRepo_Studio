@@ -43,17 +43,18 @@ export interface UpdateCheckResult {
 function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
 
-  const stringify = (v: any): any => {
+  const stringify = (v: unknown): unknown => {
     if (v === null || typeof v !== 'object') return v;
     if (seen.has(v)) return '[Circular]';
     seen.add(v);
 
     if (Array.isArray(v)) return v.map(stringify);
 
-    const out: Record<string, any> = {};
-    const keys = Object.keys(v).sort();
+    const obj = v as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    const keys = Object.keys(obj).sort();
     for (const k of keys) {
-      out[k] = stringify(v[k]);
+      out[k] = stringify(obj[k]);
     }
     return out;
   };

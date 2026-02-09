@@ -141,7 +141,7 @@ export function validateSceneDimensions(width: number, height: number): Validati
 // --- Helpers ---
 
 function generateSceneId(): string {
-  return `scene_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `scene_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 // --- Factory ---
