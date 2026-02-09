@@ -232,6 +232,10 @@ Micro-format (copy/paste):
   - Role: Track 34 planning artifacts (Preset Registry + PresetManager).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-09-track-35-scenehost-apicontext/`
+  - Role: Track 35 planning artifacts (SceneHost + ApiContext Runtime).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -687,6 +691,40 @@ Micro-format (copy/paste):
 - `src/runtime/presets/defs/animation-driver.ts`
   - Role: Animation driver preset definition + stub factory.
   - Lists of truth: PresetDefinition (animation-driver)
+
+### Runtime ApiContext (Track 35)
+- `src/runtime/apiContext/index.ts`
+  - Role: Public exports for ApiContext module.
+  - Lists of truth: none
+
+- `src/runtime/apiContext/eventBus.ts`
+  - Role: Scene-scoped event pub/sub implementation.
+  - Lists of truth: createEventBus
+
+- `src/runtime/apiContext/timeHelpers.ts`
+  - Role: Safe timer wrappers with guardrails (50ms min, 64 cap).
+  - Lists of truth: createTimeHelpers, DisposableTimeHelpers
+
+- `src/runtime/apiContext/logApi.ts`
+  - Role: Structured logging with source attribution.
+  - Lists of truth: createLogApi
+
+- `src/runtime/apiContext/entityLookup.ts`
+  - Role: Entity lookup stub for v1.
+  - Lists of truth: createEntityLookupStub
+
+- `src/runtime/apiContext/createApiContext.ts`
+  - Role: Factory assembling ApiContext from subsystems.
+  - Lists of truth: DisposableApiContext, CreateApiContextOptions
+
+### Runtime SceneHost (Track 35)
+- `src/runtime/sceneHost.ts`
+  - Role: SceneHost class — owns PresetManager + ApiContext per scene.
+  - Lists of truth: SceneHost, SceneHostConfig
+
+- `src/runtime/inrepoRuntime.ts`
+  - Role: Top-level InRepo runtime attach/detach entry point.
+  - Lists of truth: InRepoRuntime, AttachOptions
 
 ### Runtime Blockly (Tracks 36-38)
 - `src/runtime/blockly/AGENTS.md`

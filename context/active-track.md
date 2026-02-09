@@ -1,7 +1,7 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 34 complete
-Next task: Track 35 — SceneHost + ApiContext Runtime (Part 2)
+Current phase: Track 35 complete
+Next task: Track 36 — ScriptHost Engine (Part 11)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
@@ -35,13 +35,14 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 32 (Preset Schema + Definition Types)
 - Phase 5 (Presets + Blockly): Track 33 (Script Envelope + Storage)
 - Phase 5 (Presets + Blockly): Track 34 (Preset Registry + PresetManager)
+- Phase 5 (Presets + Blockly): Track 35 (SceneHost + ApiContext Runtime)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 Phase 4 Entity System is now complete.
 Editor V2 Migration is now complete. The editor uses mode-driven architecture per `/context/editor-v2-architecture.md`.
 
-Last updated: 2026-02-08
+Last updated: 2026-02-09
 
 ---
 
