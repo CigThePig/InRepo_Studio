@@ -42,6 +42,9 @@ export type {
 export { createBlockRegistry } from './blockRegistry';
 export type { BlockRegistry } from './blockRegistry';
 
+// Core block definitions (built-in categories: Events, Logic, Math, etc.)
+export { registerCoreBlocks, getCoreBlockPacks } from './coreBlocks';
+
 // Codegen rules
 export {
   codegenEventHandler,
