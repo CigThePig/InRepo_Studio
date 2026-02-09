@@ -172,8 +172,9 @@ Local instruction files (present):
   - Role: Preset definitions, registry, PresetManager engine
   - `defs/*.ts`: individual preset definition files
   - See: `src/runtime/presets/AGENTS.md`
-- `blockly/` (planned)
+- `blockly/`
   - Role: Block definitions, generators, ScriptHost engine, schema-driven block generation
+  - `scriptHost.ts`: ScriptHost engine (compile, run, stop, error lifecycle for Blockly scripts)
   - `blocks/*.ts`: block definition files per category
   - See: `src/runtime/blockly/AGENTS.md`
 

@@ -371,9 +371,9 @@ Rules:
 
 - `/src/runtime/sceneHost.ts`
   - `SceneHost` — single attach/detach point per playable scene
-    - Owns: PresetManager, ApiContext, Disposables[]
+    - Owns: PresetManager, ScriptHost, ApiContext, Disposables[]
     - Lifecycle: construct → update → dispose
-    - Invariant: dispose cleans up in reverse order (disposables, presets, apiContext)
+    - Invariant: dispose cleans up in reverse order (disposables, scriptHost, presets, apiContext)
     - Invariant: no shared mutable state between SceneHost instances
   - `SceneHostConfig` — configuration for attaching to a scene
     - Keys: registry, presetConfig, sceneId
@@ -386,6 +386,24 @@ Rules:
     - Invariant: prevents double-attach
   - `AttachOptions` — attach configuration
     - Keys: registry, presetConfig, sceneId?
+
+### ScriptHost Engine (Track 36)
+
+- `/src/runtime/blockly/scriptHost.ts`
+  - `ScriptHost` — Blockly script execution engine
+    - Lifecycle: startScript → stopScript → dispose
+    - Manages multiple scripts simultaneously (Game Logic + Map Logic)
+    - Invariant: one script erroring does not stop the other
+    - Invariant: all disposers tracked and cleaned up on stop/dispose
+    - Invariant: recursion guard (max depth 32)
+  - `ScriptState` — per-script state machine
+    - Values: stopped, running, error
+  - `ScriptEntry` — per-script tracking
+    - Keys: scriptId, logicTarget, state, disposers, errorInfo?
+  - `ScriptErrorInfo` — structured error info
+    - Keys: message, blockId?, stack?, logicTarget
+  - Lifecycle events (emitted on shared EventBus):
+    - script.starting, script.started, script.stopping, script.stopped, script.error
 
 ---
 

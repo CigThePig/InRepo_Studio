@@ -735,6 +735,10 @@ Micro-format (copy/paste):
   - Role: Public exports for runtime blockly module.
   - Lists of truth: none
 
+- `src/runtime/blockly/scriptHost.ts`
+  - Role: ScriptHost engine — Blockly script lifecycle (compile, run, stop, error).
+  - Lists of truth: ScriptHost, ScriptState, ScriptEntry, ScriptErrorInfo
+
 ### Game Logic Data
 - `game/logic/`
   - Role: Blockly script files (workspace JSON envelopes).

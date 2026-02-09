@@ -511,6 +511,28 @@ Purpose:
 - **Follow-up**:
   - Track 34: Preset Registry + PresetManager (Parts 9-10)
 
+### Track 36 — ScriptHost Engine (Part 11)
+- **Dates**: 2026-02-09
+- **Status**: Completed
+- **Summary**: Implemented the ScriptHost engine — the Blockly script execution runtime that compiles workspace JS and manages multi-script lifecycle (Game Logic + Map Logic simultaneously).
+- **Shipped**:
+  - `src/runtime/blockly/scriptHost.ts` — ScriptHost class with full lifecycle (Stopped → Running → Error)
+  - Per-script independent error handling (one script erroring doesn't stop the other)
+  - Wrapped ApiContext per script with recursion guards and error boundaries
+  - Lifecycle events emitted on shared EventBus (script.starting/started/stopping/stopped/error)
+  - v1 compilation stub (accepts register function or raw JS source via Function constructor)
+  - Integrated into SceneHost (owned subsystem, disposed in correct order)
+  - Updated `src/runtime/blockly/index.ts` with public exports
+- **Verification**:
+  - `tsc --noEmit` passes for all Track 36 files (no new type errors)
+  - Build succeeds (pre-existing external module errors only)
+- **Learned**:
+  - The wrapped ApiContext pattern allows per-script error isolation while sharing a single event bus.
+  - v1 uses Function constructor for JS compilation; real Blockly codegen will be wired in Tracks 37-38.
+- **Follow-up**:
+  - Track 37: Schema-Driven Block Generation (Part 14)
+  - Track 38: Core Block Definitions (Part 13)
+
 ---
 
 ## Stalled / Abandoned Tracks
