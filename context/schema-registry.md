@@ -405,6 +405,48 @@ Rules:
   - Lifecycle events (emitted on shared EventBus):
     - script.starting, script.started, script.stopping, script.stopped, script.error
 
+### Core Block Definitions (Track 38)
+
+- `/src/runtime/blockly/blocks/events.ts`
+  - `CoreBlockPack (events)` — common event hat blocks
+    - Block types: `inrepo_event_scene_started`
+    - Invariant: dependency is `__core` (always available, no preset needed)
+
+- `/src/runtime/blockly/blocks/logic.ts`
+  - `CoreBlockPack (logic)` — if/else, comparisons, boolean operators
+    - Block types: `inrepo_logic_if`, `inrepo_logic_ifelse`, `inrepo_logic_compare`, `inrepo_logic_operation`, `inrepo_logic_negate`, `inrepo_logic_boolean`
+    - Invariant: generates pure JS (no api.* calls)
+
+- `/src/runtime/blockly/blocks/math.ts`
+  - `CoreBlockPack (math)` — number, arithmetic, round, random, modulo
+    - Block types: `inrepo_math_number`, `inrepo_math_arithmetic`, `inrepo_math_round`, `inrepo_math_random_int`, `inrepo_math_modulo`
+    - Invariant: generates pure JS (no api.* calls)
+
+- `/src/runtime/blockly/blocks/variables.ts`
+  - `CoreBlockPack (variables)` — get/set variable
+    - Block types: `inrepo_variables_get`, `inrepo_variables_set`
+    - Invariant: variable names sanitized with `v_` prefix
+
+- `/src/runtime/blockly/blocks/time.ts`
+  - `CoreBlockPack (time)` — wait, every, cancel timer
+    - Block types: `inrepo_time_after`, `inrepo_time_every`, `inrepo_time_cancel`
+    - Invariant: uses api.time.after/every/clear from Game API
+
+- `/src/runtime/blockly/blocks/debug.ts`
+  - `CoreBlockPack (debug)` — log message, log value
+    - Block types: `inrepo_debug_log`, `inrepo_debug_log_value`
+    - Invariant: uses api.log from Game API
+
+- `/src/runtime/blockly/blocks/map.ts`
+  - `CoreBlockPack (map)` — map entered/exited events
+    - Block types: `inrepo_event_map_entered`, `inrepo_event_map_exited`
+    - Invariant: `logicTargetFilter: 'map'` (only visible for Map Logic targets)
+
+- `/src/runtime/blockly/coreBlocks.ts`
+  - `registerCoreBlocks()` — auto-discovers blocks/*.ts via import.meta.glob
+    - Invariant: registered before schema-driven preset blocks
+    - Invariant: safe to call multiple times (warns on duplicates)
+
 ---
 
 ## Invariants checklist for schema-driven work

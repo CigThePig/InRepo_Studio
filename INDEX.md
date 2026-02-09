@@ -244,6 +244,10 @@ Micro-format (copy/paste):
   - Role: Track 37 planning artifacts (Schema-Driven Block Generation).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `context/tracks/track-38/`
+  - Role: Track 38 planning artifacts (Core Block Definitions).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
@@ -758,6 +762,38 @@ Micro-format (copy/paste):
 - `src/runtime/blockly/blockRegistry.ts`
   - Role: Block registry with search + dependency lookup.
   - Lists of truth: BlockRegistry
+
+- `src/runtime/blockly/coreBlocks.ts`
+  - Role: Core block loader — auto-discovers blocks/*.ts via import.meta.glob.
+  - Lists of truth: none
+
+- `src/runtime/blockly/blocks/events.ts`
+  - Role: Core event hat blocks (When Scene Starts).
+  - Lists of truth: CoreBlockPack (events)
+
+- `src/runtime/blockly/blocks/logic.ts`
+  - Role: Core logic blocks (if/else, comparisons, boolean ops).
+  - Lists of truth: CoreBlockPack (logic)
+
+- `src/runtime/blockly/blocks/math.ts`
+  - Role: Core math blocks (number, arithmetic, round, random, modulo).
+  - Lists of truth: CoreBlockPack (math)
+
+- `src/runtime/blockly/blocks/variables.ts`
+  - Role: Core variable blocks (get/set variable).
+  - Lists of truth: CoreBlockPack (variables)
+
+- `src/runtime/blockly/blocks/time.ts`
+  - Role: Core time blocks (wait, every, cancel timer).
+  - Lists of truth: CoreBlockPack (time)
+
+- `src/runtime/blockly/blocks/debug.ts`
+  - Role: Core debug blocks (log message, log value).
+  - Lists of truth: CoreBlockPack (debug)
+
+- `src/runtime/blockly/blocks/map.ts`
+  - Role: Core map blocks (map entered/exited, Map Logic only).
+  - Lists of truth: CoreBlockPack (map)
 
 ### Game Logic Data
 - `game/logic/`

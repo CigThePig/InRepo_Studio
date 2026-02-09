@@ -533,6 +533,33 @@ Purpose:
   - Track 37: Schema-Driven Block Generation (Part 14)
   - Track 38: Core Block Definitions (Part 13)
 
+### Track 37 — Schema-Driven Block Generation
+- **Dates**: 2026-02-09
+- **Status**: Completed
+- **Summary**: Implemented deterministic block generation from PresetDefinition schemas, producing hat blocks (events), action blocks (commands), and reporter blocks (state).
+- **Shipped**:
+  - `src/runtime/blockly/codegenRules.ts` — shared codegen string builders for api.on/call/read/time/log
+  - `src/runtime/blockly/schemaToBlocks.ts` — PresetDefinition → BlockPack generator
+  - `src/runtime/blockly/blockRegistry.ts` — block registry with search + dependency lookup
+- **Verification**: `tsc --noEmit` passes for all Track 37 files (no new type errors)
+- **Learned**: Reusing BlockPackEntry for both schema-driven and core blocks keeps the registry uniform.
+- **Follow-up**: Track 38 (Core Block Definitions)
+
+### Track 38 — Core Block Definitions
+- **Dates**: 2026-02-09
+- **Status**: Completed
+- **Summary**: Implemented built-in block categories (Events, Logic, Math, Variables, Time, Debug, Map) that exist independently of presets, plus the import.meta.glob-based core block loader.
+- **Shipped**:
+  - 7 core block files in `src/runtime/blockly/blocks/` (events, logic, math, variables, time, debug, map)
+  - `src/runtime/blockly/coreBlocks.ts` — auto-discovery loader via import.meta.glob
+  - 22 block types total across 7 categories
+  - Map blocks use `logicTargetFilter: 'map'` for Map Logic target visibility
+- **Verification**: `tsc --noEmit` passes for all Track 38 files (pre-existing external module errors only)
+- **Learned**:
+  - Core blocks reuse BlockPack/BlockPackEntry types from Track 37 seamlessly by using synthetic presetId (`__core_*`) and `requiresCategoryEnabled: '__core'`.
+  - Variable sanitization (`v_` prefix) prevents JS keyword collisions.
+- **Follow-up**: Track 39 (Blockly Workspace UI)
+
 ---
 
 ## Stalled / Abandoned Tracks

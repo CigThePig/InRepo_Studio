@@ -1,7 +1,7 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 37 complete
-Next task: Track 38 — Core Block Definitions (Part 13)
+Current phase: Track 38 complete
+Next task: Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
@@ -38,6 +38,7 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 35 (SceneHost + ApiContext Runtime)
 - Phase 5 (Presets + Blockly): Track 36 (ScriptHost Engine)
 - Phase 5 (Presets + Blockly): Track 37 (Schema-Driven Block Generation)
+- Phase 5 (Presets + Blockly): Track 38 (Core Block Definitions)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
