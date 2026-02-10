@@ -495,6 +495,14 @@ Micro-format (copy/paste):
   - Role: Editor-side preset config read/write to hot storage.
   - Lists of truth: PresetConfigStore
 
+- `src/editor/presets/presetsTab.ts`
+  - Role: Presets dashboard UI with profile selector and category status list.
+  - Lists of truth: CATEGORY_META
+
+- `src/editor/presets/undoToast.ts`
+  - Role: Undo toast UI for reversible preset edits.
+  - Lists of truth: none
+
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none

@@ -8,6 +8,7 @@ import type { HistoryManager } from '@/editor/history';
 import { createAnimationTab, type AnimationTabController } from './animationTab';
 import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from '@/editor/presets/presetConfigStore';
+import { createPresetsTab, type PresetsTabController } from '@/editor/presets/presetsTab';
 
 export interface LeftBerryConfig {
   initialOpen?: boolean;
@@ -302,6 +303,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const history = config.history;
   let assetLibraryController: AssetLibraryTabController | null = null;
   let animationTabController: AnimationTabController | null = null;
+  let presetsTabController: PresetsTabController | null = null;
 
   const shell = document.createElement('div');
   shell.className = 'left-berry-shell';
@@ -436,9 +438,11 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   const presetsContainer = tabContentMap.get('presets');
   if (presetsContainer) {
     if (config.presetRegistry && config.presetConfigStore) {
-      presetsContainer.appendChild(
-        createLeftBerryPlaceholder('Presets dashboard loading... (Phase 2)')
-      );
+      presetsTabController = createPresetsTab({
+        container: presetsContainer,
+        registry: config.presetRegistry,
+        configStore: config.presetConfigStore,
+      });
     } else {
       presetsContainer.appendChild(
         createLeftBerryPlaceholder('Presets require a project to be loaded.')
@@ -567,6 +571,9 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       if (tab === 'assets') {
         assetLibraryController?.refresh();
       }
+      if (tab === 'presets') {
+        presetsTabController?.refresh();
+      }
     },
     destroy: () => {
       panel.removeEventListener('touchstart', onTouchStart);
@@ -574,6 +581,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       panel.removeEventListener('touchend', onTouchEnd);
       assetLibraryController?.destroy();
       animationTabController?.destroy();
+      presetsTabController?.destroy();
       container.removeChild(shell);
     },
   };
