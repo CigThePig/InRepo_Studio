@@ -503,6 +503,14 @@ Micro-format (copy/paste):
   - Role: Undo toast UI for reversible preset edits.
   - Lists of truth: none
 
+
+- `src/editor/presets/categoryDetail.ts`
+  - Role: Category detail screen with Configure/Hooks tabs and knob-editing actions.
+  - Lists of truth: CATEGORY_LABELS
+
+- `src/editor/presets/knobEditor.ts`
+  - Role: Schema-driven knob control renderer (number/boolean/enum/string).
+  - Lists of truth: none
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none

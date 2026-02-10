@@ -133,6 +133,10 @@ Rules:
   - `CATEGORY_META` — canonical dashboard category order + labels/icons
     - Invariant: order stays controls, movement, camera, animation for consistent UI
 
+- `/src/editor/presets/categoryDetail.ts`
+  - `CATEGORY_LABELS` — category title lookup for detail header
+    - Invariant: keys match PresetCategoryId set (controls, movement, camera, animation)
+
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state
     - Keys: groups[], selectedAssetId, animations[]
