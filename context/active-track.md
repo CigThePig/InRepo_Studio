@@ -1,7 +1,7 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 40 — Right Berry Blocks Palette
-Next task: Track 40, Phase 1 (implementation — Right Berry Tab Switching + Palette Categories)
+Current phase: Track 41 — Left Berry Presets UI + Blockly Hooks
+Next task: Track 41, Phase 1 (planning)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
@@ -43,6 +43,7 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 37 (Schema-Driven Block Generation)
 - Phase 5 (Presets + Blockly): Track 38 (Core Block Definitions)
 - Phase 5 (Presets + Blockly): Track 39 (Blockly Workspace UI — Cockpit)
+- Phase 5 (Presets + Blockly): Track 40 (Right Berry Blocks Palette)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.

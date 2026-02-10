@@ -41,3 +41,15 @@ export type { BlocklyTopBarController, LogicTargetItem } from './blocklyTopBar';
 // Blockly Cockpit (full orchestrator)
 export { createBlocklyCockpit } from './blocklyCockpit';
 export type { BlocklyCockpitController, BlocklyCockpitDeps } from './blocklyCockpit';
+
+// Palette Categories
+export { PALETTE_CATEGORIES, getCategoryBlocks, isCategoryEnabled, isCategoryVisible } from './paletteCategories';
+export type { PaletteCategoryDef } from './paletteCategories';
+
+// Blockly Berry Tabs
+export { BLOCKLY_BERRY_TABS } from './blocklyBerryTabs';
+export type { BlocklyBerryTab } from './blocklyBerryTabs';
+
+// Blocks Palette
+export { createBlocksPalette } from './blocksPalette';
+export type { BlocksPaletteController, BlocksPaletteDeps } from './blocksPalette';

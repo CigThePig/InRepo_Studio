@@ -13,6 +13,7 @@
  */
 
 import type { ScriptLogicTarget } from '@/types/script';
+import type { PresetSavedConfig } from '@/types/preset';
 import { initScriptStorage } from '@/storage/scriptStorage';
 import {
   enterBlocklyMode,
@@ -29,6 +30,9 @@ import {
   type BlocklyTopBarController,
   type LogicTargetItem,
 } from './blocklyTopBar';
+import { BLOCKLY_BERRY_TABS } from './blocklyBerryTabs';
+import { createBlocksPalette, type BlocksPaletteController } from './blocksPalette';
+import type { RightBerryController } from '@/editor/panels/rightBerry';
 
 const LOG_PREFIX = '[BlocklyCockpit]';
 
@@ -40,6 +44,9 @@ export interface BlocklyCockpitDeps {
   getSceneList: () => Promise<Array<{ id: string; name: string }>>;
   getCurrentSceneId: () => string | null;
   setWorldTopBarVisible: (visible: boolean) => void;
+  rightBerry?: RightBerryController;
+  getPresetConfig?: () => PresetSavedConfig | null;
+  onEnablePreset?: (categoryId: string) => void;
 }
 
 export interface BlocklyCockpitController {
@@ -128,6 +135,9 @@ export function createBlocklyCockpit(
     getSceneList,
     getCurrentSceneId,
     setWorldTopBarVisible,
+    rightBerry,
+    getPresetConfig,
+    onEnablePreset,
   } = deps;
 
   // Inject styles
@@ -171,12 +181,14 @@ export function createBlocklyCockpit(
     topBar: BlocklyTopBarController | null;
     workspace: BlocklyWorkspaceController | null;
     manager: WorkspaceManagerController | null;
+    palette: BlocksPaletteController | null;
     loaded: boolean;
     disposed: boolean;
   } = {
     topBar: null,
     workspace: null,
     manager: null,
+    palette: null,
     loaded: false,
     disposed: false,
   };
@@ -195,6 +207,10 @@ export function createBlocklyCockpit(
     if (s.manager) {
       s.manager.switchLogicTarget(target).then(() => {
         updateEmptyState();
+        // Update palette Logic Target filter
+        if (s.palette) {
+          s.palette.setLogicTarget(target.type);
+        }
       }).catch((err) => {
         console.error(`${LOG_PREFIX} Error switching Logic Target:`, err);
       });
@@ -364,6 +380,30 @@ export function createBlocklyCockpit(
       await s.manager.switchLogicTarget(resolvedTarget);
       updateEmptyState();
 
+      // Switch right berry to Blockly tabs and create palette
+      if (rightBerry) {
+        const tabContainers = rightBerry.setTabSet([...BLOCKLY_BERRY_TABS]);
+        const blocksContainer = tabContainers.get('blocks');
+        if (blocksContainer && s.workspace) {
+          s.palette = createBlocksPalette(blocksContainer, {
+            registry: s.workspace.getBlockRegistry(),
+            workspace: s.workspace,
+            getPresetConfig: getPresetConfig ?? (() => null),
+            onEnablePreset,
+          });
+          s.palette.setLogicTarget(resolvedTarget.type);
+        }
+
+        // Add placeholder content for Inspect tab
+        const inspectContainer = tabContainers.get('inspect');
+        if (inspectContainer) {
+          const placeholder = document.createElement('div');
+          placeholder.style.cssText = 'color: rgba(255,255,255,0.4); font-size: 13px; padding: 16px; text-align: center;';
+          placeholder.textContent = 'Inspect & Errors — coming in Track 42';
+          inspectContainer.appendChild(placeholder);
+        }
+      }
+
       // Resize to fit container
       s.workspace!.resize();
 
@@ -378,6 +418,15 @@ export function createBlocklyCockpit(
         await s.manager.saveNow();
         s.manager.dispose();
         s.manager = null;
+      }
+
+      // Destroy palette and restore right berry tabs
+      if (s.palette) {
+        s.palette.destroy();
+        s.palette = null;
+      }
+      if (rightBerry) {
+        rightBerry.restoreDefaultTabs();
       }
 
       hideUI();
@@ -396,6 +445,10 @@ export function createBlocklyCockpit(
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('resize', handleResize);
 
+      if (s.palette) {
+        s.palette.destroy();
+        s.palette = null;
+      }
       if (s.manager) {
         s.manager.dispose();
         s.manager = null;

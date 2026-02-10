@@ -633,6 +633,22 @@ Micro-format (copy/paste):
   - Role: Full Blockly Mode orchestrator (lazy-load, enter/exit, DOM layout, beforeunload).
   - Lists of truth: none
 
+- `src/editor/blockly/paletteCategories.ts`
+  - Role: Palette category definitions and query helpers for blocks palette.
+  - Lists of truth: PALETTE_CATEGORIES
+
+- `src/editor/blockly/blocklyBerryTabs.ts`
+  - Role: Blockly Mode tab definitions for right berry (Blocks + Inspect).
+  - Lists of truth: BLOCKLY_BERRY_TABS
+
+- `src/editor/blockly/blocksPalette.ts`
+  - Role: Categorized block browser — search, categories, tap-to-insert, mobile-first palette.
+  - Lists of truth: none
+
+- `src/editor/blockly/blocksPaletteStyles.ts`
+  - Role: CSS styles for the blocks palette component.
+  - Lists of truth: none
+
 ### Shared
 - `src/shared/paths.ts`
   - Role: Centralized content path constants + URL resolver.
