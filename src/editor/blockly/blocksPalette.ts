@@ -24,7 +24,7 @@ const LOG_PREFIX = '[BlocksPalette]';
 // --- Types ---
 
 export interface BlocksPaletteController {
-  setLogicTarget(target: 'game' | 'map' | null): void;
+  setLogicTarget(target: 'game' | 'map' | 'preset' | null): void;
   refresh(): void;
   destroy(): void;
 }
@@ -54,7 +54,7 @@ export function createBlocksPalette(
 
   // --- State ---
 
-  let logicTarget: 'game' | 'map' | null = null;
+  let logicTarget: 'game' | 'map' | 'preset' | null = null;
   let searchQuery = '';
   const expandedCategories = new Set<string>();
   const showAdvanced: Record<string, boolean> = {};

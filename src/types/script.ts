@@ -32,6 +32,8 @@ import type { LogicTargetType } from './gameApi';
 export interface ScriptLogicTarget {
   readonly type: LogicTargetType;
   readonly mapId?: string;
+  /** Generic target identifier — mapId for maps, categoryId for presets, entityId for entities, etc. */
+  readonly targetId?: string;
   readonly label: string;
 }
 
@@ -57,20 +59,29 @@ export interface ScriptFile {
 
 // --- Script file path resolution ---
 
-/** Resolve the file path for a Logic Target. */
-export function resolveScriptPath(type: LogicTargetType, mapId?: string): string {
-  if (type === 'game') {
-    return 'game/logic/main.json';
-  }
-  if (type === 'map' && mapId) {
-    return `game/logic/maps/${mapId}.json`;
-  }
-  throw new Error(`Invalid logic target: type=${type}, mapId=${mapId}`);
+/**
+ * Resolve the file path for a Logic Target.
+ * @param targetId — mapId for 'map', categoryId for 'preset', entityId for 'entity', triggerId for 'trigger'.
+ *                   Also accepts legacy `mapId` parameter for backwards compatibility.
+ */
+export function resolveScriptPath(type: LogicTargetType, targetId?: string): string {
+  if (type === 'game') return 'game/logic/main.json';
+  if (type === 'map' && targetId) return `game/logic/maps/${targetId}.json`;
+  if (type === 'preset' && targetId) return `game/logic/presets/${targetId}.json`;
+  if (type === 'entity' && targetId) return `game/logic/entities/${targetId}.json`;
+  if (type === 'trigger' && targetId) return `game/logic/triggers/${targetId}.json`;
+  throw new Error(`Invalid logic target: type=${type}, targetId=${targetId}`);
 }
 
-/** Generate a stable scriptId for a Logic Target. */
-export function resolveScriptId(type: LogicTargetType, mapId?: string): string {
+/**
+ * Generate a stable scriptId for a Logic Target.
+ * @param targetId — mapId for 'map', categoryId for 'preset', etc.
+ */
+export function resolveScriptId(type: LogicTargetType, targetId?: string): string {
   if (type === 'game') return 'main';
-  if (type === 'map' && mapId) return `map:${mapId}`;
-  throw new Error(`Invalid logic target: type=${type}, mapId=${mapId}`);
+  if (type === 'map' && targetId) return `map:${targetId}`;
+  if (type === 'preset' && targetId) return `preset:${targetId}`;
+  if (type === 'entity' && targetId) return `entity:${targetId}`;
+  if (type === 'trigger' && targetId) return `trigger:${targetId}`;
+  throw new Error(`Invalid logic target: type=${type}, targetId=${targetId}`);
 }

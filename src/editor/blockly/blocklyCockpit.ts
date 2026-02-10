@@ -6,10 +6,11 @@
  * - Shows/hides workspace container vs canvas
  * - Manages top bar swap (World Mode <-> Blockly Mode)
  * - Creates workspace manager for save/load
- * - Builds Logic Target list from scenes
+ * - Builds Logic Target list from scenes (grouped: Presets, Game, Maps)
  * - Wires Run/Stop to ScriptHost (stub — no SceneHost available in editor yet)
  * - Handles empty state UI
  * - beforeunload save, orientation resize
+ * - Hides bottom map toolbar while Blockly is active
  */
 
 import type { ScriptLogicTarget } from '@/types/script';
@@ -29,6 +30,7 @@ import {
   createBlocklyTopBar,
   type BlocklyTopBarController,
   type LogicTargetItem,
+  type LogicTargetGroup,
 } from './blocklyTopBar';
 import { BLOCKLY_BERRY_TABS } from './blocklyBerryTabs';
 import { createBlocksPalette, type BlocksPaletteController } from './blocksPalette';
@@ -36,6 +38,9 @@ import type { RightBerryController } from '@/editor/panels/rightBerry';
 import type { LeftBerryController } from '@/editor/panels/leftBerry';
 
 const LOG_PREFIX = '[BlocklyCockpit]';
+
+/** Preset category IDs used for building the preset target group. */
+const PRESET_CATEGORIES = ['controls', 'movement', 'camera', 'animation'] as const;
 
 // --- Types ---
 
@@ -45,6 +50,7 @@ export interface BlocklyCockpitDeps {
   getSceneList: () => Promise<Array<{ id: string; name: string }>>;
   getCurrentSceneId: () => string | null;
   setWorldTopBarVisible: (visible: boolean) => void;
+  setWorldBottomBarVisible?: (visible: boolean) => void;
   rightBerry?: RightBerryController;
   leftBerry?: LeftBerryController;
   getPresetConfig?: () => PresetSavedConfig | null;
@@ -153,6 +159,7 @@ export function createBlocklyCockpit(
     getSceneList,
     getCurrentSceneId,
     setWorldTopBarVisible,
+    setWorldBottomBarVisible,
     rightBerry,
     leftBerry,
     getPresetConfig,
@@ -228,7 +235,7 @@ export function createBlocklyCockpit(
         updateEmptyState();
         // Update palette Logic Target filter
         if (s.palette) {
-          s.palette.setLogicTarget(target.type);
+          s.palette.setLogicTarget(resolveLogicTargetFilter(target));
         }
       }).catch((err) => {
         console.error(`${LOG_PREFIX} Error switching Logic Target:`, err);
@@ -260,23 +267,38 @@ export function createBlocklyCockpit(
 
   // --- Helpers ---
 
-  async function buildLogicTargets(): Promise<LogicTargetItem[]> {
-    const targets: LogicTargetItem[] = [
+  /**
+   * Build the full target list including preset, game, and map targets.
+   * Returns both the flat list and grouped structure for the overlay picker.
+   */
+  async function buildLogicTargets(): Promise<{ flat: LogicTargetItem[]; groups: LogicTargetGroup[] }> {
+    const presetItems: LogicTargetItem[] = PRESET_CATEGORIES.map((catId) => ({
+      target: { type: 'preset' as const, targetId: catId, label: capitalize(catId) },
+      label: capitalize(catId),
+    }));
+
+    const gameItems: LogicTargetItem[] = [
       {
         target: { type: 'game', label: 'Game Logic (main)' },
-        label: 'Logic Target: Game Logic (main)',
+        label: 'Game Logic (main)',
       },
     ];
 
     const scenes = await getSceneList();
-    for (const scene of scenes) {
-      targets.push({
-        target: { type: 'map', mapId: scene.id, label: `Map: ${scene.name}` },
-        label: `Logic Target: Map: ${scene.name}`,
-      });
-    }
+    const mapItems: LogicTargetItem[] = scenes.map((scene) => ({
+      target: { type: 'map' as const, mapId: scene.id, label: `Map: ${scene.name}` },
+      label: `Map: ${scene.name}`,
+    }));
 
-    return targets;
+    const flat = [...presetItems, ...gameItems, ...mapItems];
+
+    const groups: LogicTargetGroup[] = [
+      { id: 'presets', label: 'Presets', items: presetItems },
+      { id: 'game', label: 'Game', items: gameItems },
+      { id: 'maps', label: 'Maps', items: mapItems },
+    ];
+
+    return { flat, groups };
   }
 
   function resolveDefaultTarget(): ScriptLogicTarget {
@@ -291,6 +313,21 @@ export function createBlocklyCockpit(
     return { type: 'game', label: 'Game Logic (main)' };
   }
 
+  /**
+   * Map a ScriptLogicTarget to the palette filter value.
+   * Preset targets use 'preset' filter; game and map pass through as-is.
+   */
+  function resolveLogicTargetFilter(target: ScriptLogicTarget): 'game' | 'map' | 'preset' | null {
+    if (target.type === 'preset') return 'preset';
+    if (target.type === 'game') return 'game';
+    if (target.type === 'map') return 'map';
+    return null;
+  }
+
+  function capitalize(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   function updateEmptyState(): void {
     const modeState = getBlocklyModeState();
     const showEmpty = !modeState.scriptExists && s.manager && !s.manager.getScriptExists();
@@ -303,6 +340,7 @@ export function createBlocklyCockpit(
   function showUI(): void {
     workspaceContainer.classList.add('blockly-container--active');
     setWorldTopBarVisible(false);
+    setWorldBottomBarVisible?.(false);
     s.topBar?.setVisible(true);
 
     const gameCanvas = canvasContainer.querySelector('canvas');
@@ -314,6 +352,7 @@ export function createBlocklyCockpit(
   function hideUI(): void {
     workspaceContainer.classList.remove('blockly-container--active');
     setWorldTopBarVisible(true);
+    setWorldBottomBarVisible?.(true);
     s.topBar?.setVisible(false);
 
     const gameCanvas = canvasContainer.querySelector('canvas');
@@ -389,9 +428,9 @@ export function createBlocklyCockpit(
 
       setWorkspaceReady(true);
 
-      // Build and set Logic Target list
-      const targets = await buildLogicTargets();
-      s.topBar!.setLogicTargets(targets);
+      // Build and set Logic Target list (grouped)
+      const { flat, groups } = await buildLogicTargets();
+      s.topBar!.setLogicTargets(flat, groups);
       s.topBar!.setCurrentTarget(resolvedTarget);
       s.topBar!.setScriptStatus('stopped');
 
@@ -414,7 +453,7 @@ export function createBlocklyCockpit(
             getPresetConfig: getPresetConfig ?? (() => null),
             onEnablePreset,
           });
-          s.palette.setLogicTarget(resolvedTarget.type);
+          s.palette.setLogicTarget(resolveLogicTargetFilter(resolvedTarget));
         }
 
         // Add placeholder content for Inspect tab

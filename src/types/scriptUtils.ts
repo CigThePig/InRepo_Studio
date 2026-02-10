@@ -86,11 +86,16 @@ export function validateScriptFile(data: unknown): ScriptValidationResult {
     errors.push('logicTarget must be an object');
   } else {
     const lt = obj.logicTarget as Record<string, unknown>;
-    if (lt.type !== 'game' && lt.type !== 'map') {
-      errors.push('logicTarget.type must be "game" or "map"');
+    const validTypes = ['game', 'map', 'preset', 'entity', 'trigger'];
+    if (!validTypes.includes(lt.type as string)) {
+      errors.push(`logicTarget.type must be one of: ${validTypes.join(', ')}`);
     }
     if (lt.type === 'map' && (typeof lt.mapId !== 'string' || lt.mapId.length === 0)) {
       errors.push('logicTarget.mapId must be a non-empty string for map targets');
+    }
+    if ((lt.type === 'preset' || lt.type === 'entity' || lt.type === 'trigger') &&
+        (typeof lt.targetId !== 'string' || (lt.targetId as string).length === 0)) {
+      errors.push(`logicTarget.targetId must be a non-empty string for ${lt.type} targets`);
     }
     if (typeof lt.label !== 'string' || lt.label.length === 0) {
       errors.push('logicTarget.label must be a non-empty string');

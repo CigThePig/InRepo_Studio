@@ -93,7 +93,7 @@ export function createWorkspaceManager(
       return;
     }
 
-    const scriptId = resolveScriptId(currentTarget.type, currentTarget.mapId);
+    const scriptId = resolveScriptId(currentTarget.type, currentTarget.targetId ?? currentTarget.mapId);
 
     const scriptFile: ScriptFile = {
       formatVersion: SCRIPT_FORMAT_VERSION,
@@ -113,7 +113,7 @@ export function createWorkspaceManager(
   }
 
   async function loadWorkspaceForTarget(target: ScriptLogicTarget): Promise<void> {
-    const scriptId = resolveScriptId(target.type, target.mapId);
+    const scriptId = resolveScriptId(target.type, target.targetId ?? target.mapId);
     const exists = await hasScript(scriptId);
 
     if (exists) {

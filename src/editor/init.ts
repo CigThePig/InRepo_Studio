@@ -112,6 +112,7 @@ import {
   createBlocklyCockpit,
   type BlocklyCockpitController,
 } from '@/editor/blockly';
+import type { ScriptLogicTarget } from '@/types/script';
 import { createPresetConfigStore } from '@/editor/presets';
 import { createPresetRegistry } from '@/runtime/presets';
 
@@ -151,6 +152,9 @@ let assetRegistry: AssetRegistry | null = null;
 // Blockly cockpit controller — assigned during init, used to enter/exit Blockly Mode.
 // Exported via getBlocklyCockpit() for other modules to trigger mode entry.
 let blocklyCockpit: BlocklyCockpitController | null = null;
+
+// Preset config store — hoisted so Blockly cockpit can read preset state.
+let presetConfigStoreRef: { getConfig(): import('@/types/preset').PresetSavedConfig } | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -617,6 +621,31 @@ export function getBlocklyCockpit(): BlocklyCockpitController | null {
   return blocklyCockpit;
 }
 
+/**
+ * Resolve a blockType string (from preset hooks) to a ScriptLogicTarget.
+ *
+ * Mapping rules (deterministic, prefix-based):
+ * - blockType containing 'movement'  → preset target: movement
+ * - blockType containing 'controls'  → preset target: controls
+ * - blockType containing 'camera'    → preset target: camera
+ * - blockType containing 'animation' → preset target: animation
+ * - unknown                          → preset target: movement (safe default)
+ *
+ * The blockType format from preset hooks is typically: <category>_<action>_<detail>
+ * e.g. "movement_set_speed", "controls_on_keypress", "camera_follow_entity".
+ */
+function resolveBlocklyTargetFromBlockType(blockType: string): ScriptLogicTarget {
+  const lower = blockType.toLowerCase();
+  const categories = ['controls', 'movement', 'camera', 'animation'] as const;
+  for (const cat of categories) {
+    if (lower.includes(cat)) {
+      return { type: 'preset', targetId: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) };
+    }
+  }
+  // Default to movement preset if no category match
+  return { type: 'preset', targetId: 'movement', label: 'Movement' };
+}
+
 export function getCurrentScene(): Scene | null {
   return currentScene;
 }
@@ -877,12 +906,20 @@ export async function initEditor(): Promise<void> {
             (topPanelController as TopBarV2Controller).setVisible(visible);
           }
         },
+        setWorldBottomBarVisible: (visible) => {
+          const el = document.getElementById('bottom-panel-container');
+          if (el) el.style.display = visible ? '' : 'none';
+        },
+        rightBerry: rightBerryController ?? undefined,
         leftBerry: leftBerryController ?? undefined,
+        getPresetConfig: () => presetConfigStoreRef?.getConfig() ?? null,
+        onEnablePreset: undefined,
       });
 
       if (leftBerryController && blocklyCockpit) {
-        leftBerryController.setOpenInBlocklyFn(async () => {
-          await blocklyCockpit?.enter();
+        leftBerryController.setOpenInBlocklyFn(async (blockType: string) => {
+          const target = resolveBlocklyTargetFromBlockType(blockType);
+          await blocklyCockpit?.enter(target);
         });
       }
 
@@ -1463,6 +1500,7 @@ async function initPanels(): Promise<void> {
       const presetRegistry = createPresetRegistry();
       const presetConfigStore = createPresetConfigStore(presetRegistry);
       await presetConfigStore.load();
+      presetConfigStoreRef = presetConfigStore;
 
       leftBerryController = createLeftBerry(canvasContainer, {
         initialOpen: editorState.leftBerryOpen,
