@@ -112,6 +112,8 @@ import {
   createBlocklyCockpit,
   type BlocklyCockpitController,
 } from '@/editor/blockly';
+import { createPresetConfigStore, type PresetConfigStore } from '@/editor/presets';
+import { createPresetRegistry, type PresetRegistry } from '@/runtime/presets';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -145,6 +147,8 @@ let entitiesTab: EntitiesTabController | null = null;
 let entityMoveController: SelectEntityController | null = null;
 let entityMoveActive = false;
 let assetRegistry: AssetRegistry | null = null;
+let presetRegistry: PresetRegistry | null = null;
+let presetConfigStore: PresetConfigStore | null = null;
 
 // Blockly cockpit controller — assigned during init, used to enter/exit Blockly Mode.
 // Exported via getBlocklyCockpit() for other modules to trigger mode entry.
@@ -776,6 +780,8 @@ export async function initEditor(): Promise<void> {
   if (!currentProject) {
     throw new Error('No project data available');
   }
+  presetRegistry = createPresetRegistry();
+  presetConfigStore = createPresetConfigStore(presetRegistry);
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
   syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null);
   if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
@@ -1459,6 +1465,8 @@ async function initPanels(): Promise<void> {
         getEditorState: () => editorState,
         entityManager: entityManager ?? undefined,
         history: historyManager ?? undefined,
+        presetRegistry: presetRegistry ?? undefined,
+        presetConfigStore: presetConfigStore ?? undefined,
       });
 
       const toolsContainer = leftBerryController.getTabContentContainer('tools');
