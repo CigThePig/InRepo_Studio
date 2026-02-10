@@ -112,6 +112,8 @@ import {
   createBlocklyCockpit,
   type BlocklyCockpitController,
 } from '@/editor/blockly';
+import { createPresetConfigStore } from '@/editor/presets';
+import { createPresetRegistry } from '@/runtime/presets';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -1450,6 +1452,10 @@ async function initPanels(): Promise<void> {
   if (isV2Enabled(EDITOR_V2_FLAGS.LEFT_BERRY)) {
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer && editorState) {
+      const presetRegistry = createPresetRegistry();
+      const presetConfigStore = createPresetConfigStore(presetRegistry);
+      await presetConfigStore.load();
+
       leftBerryController = createLeftBerry(canvasContainer, {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
@@ -1459,6 +1465,8 @@ async function initPanels(): Promise<void> {
         getEditorState: () => editorState,
         entityManager: entityManager ?? undefined,
         history: historyManager ?? undefined,
+        presetRegistry,
+        presetConfigStore,
       });
 
       const toolsContainer = leftBerryController.getTabContentContainer('tools');
