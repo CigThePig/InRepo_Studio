@@ -25,6 +25,7 @@ import { createIssuesModal, type IssuesModalController } from './issuesModal';
 export interface PresetsTabController {
   refresh(): void;
   setInsertBlockFn(fn: ((blockType: string) => void) | null): void;
+  setOpenInBlocklyFn(fn: ((blockType: string) => void | Promise<void>) | null): void;
   destroy(): void;
 }
 
@@ -313,6 +314,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   let categoryDetailController: CategoryDetailController | null = null;
   let issuesModalController: IssuesModalController | null = null;
   let insertBlockFn: ((blockType: string) => void) | null = null;
+  let openInBlocklyFn: ((blockType: string) => void | Promise<void>) | null = null;
   let selectedCategory: PresetCategoryId | null = null;
 
   function showDashboard(): void {
@@ -334,6 +336,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       registry: config.registry,
       configStore: config.configStore,
       getInsertBlockFn: () => insertBlockFn,
+      getOpenInBlocklyFn: () => openInBlocklyFn,
       onBack: showDashboard,
     });
   }
@@ -453,6 +456,11 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     refresh,
     setInsertBlockFn(fn) {
       insertBlockFn = fn;
+      categoryDetailController?.refresh();
+    },
+
+    setOpenInBlocklyFn(fn) {
+      openInBlocklyFn = fn;
       categoryDetailController?.refresh();
     },
     destroy() {

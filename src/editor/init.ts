@@ -879,6 +879,13 @@ export async function initEditor(): Promise<void> {
         },
         leftBerry: leftBerryController ?? undefined,
       });
+
+      if (leftBerryController && blocklyCockpit) {
+        leftBerryController.setOpenInBlocklyFn(async () => {
+          await blocklyCockpit?.enter();
+        });
+      }
+
       console.log(`${LOG_PREFIX} Blockly cockpit initialized`);
     }
   }
