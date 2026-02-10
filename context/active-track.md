@@ -1,14 +1,14 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
 Current phase: Track 41 — Left Berry Presets UI + Blockly Hooks
-Next task: Track 41, Phase 1 (planning)
+Next task: Track 41, Phase 1 (implementation — Preset Config Store + Left Berry Tab Integration)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
 - `/context/track-index.md` (Tracks 31–42)
-- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/spec.md`
-- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/blueprint.md`
-- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/plan.md`
+- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/spec.md`
+- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/blueprint.md`
+- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/plan.md`
 
 Authority: `/context/Blockly_Plan_Revised.md`
 
