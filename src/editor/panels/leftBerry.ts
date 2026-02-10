@@ -41,12 +41,8 @@ const STYLES = `
   .left-berry-shell {
     position: absolute;
     inset: 0;
-    pointer-events: none;
-    z-index: 20;
-  }
-
-  .left-berry-shell--open {
     pointer-events: auto;
+    z-index: 20;
   }
 
   .left-berry__overlay {
