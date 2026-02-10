@@ -147,6 +147,10 @@ Micro-format (copy/paste):
   - Role: Append-only track summaries with structured entry template.
   - Lists of truth: ChangeLog, EntryTemplate
 
+- `context/planned-tests.md`
+  - Role: Future-facing test plan covering high-risk debugging and stability areas.
+  - Lists of truth: PlannedTestSuites
+
 - `context/Blockly_Plan_Revised.md`
   - Role: Blockly + Presets constitution (Parts 1–15). Authority for Phase 5 tracks.
   - Lists of truth: BlocklyNonNegotiables, GameApiContract, PresetContract, BlockTaxonomy
