@@ -47,7 +47,7 @@ export interface BlockRegistry {
    * Matches against keywords and labels (case-insensitive).
    * Filters by Logic Target if provided.
    */
-  search(query: string, logicTarget?: 'game' | 'map'): BlockPackEntry[];
+  search(query: string, logicTarget?: string): BlockPackEntry[];
 
   /** Get all registered block type IDs. */
   getAllTypes(): string[];
@@ -132,7 +132,7 @@ export function createBlockRegistry(): BlockRegistry {
 
   function search(
     query: string,
-    logicTarget?: 'game' | 'map',
+    logicTarget?: string,
   ): BlockPackEntry[] {
     if (!query.trim()) return [];
 

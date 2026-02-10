@@ -78,14 +78,13 @@ export function resolveGamePath(path: string): string {
  * Resolve a cold-fetch URL for a logic script file.
  * Uses BASE_URL for GitHub Pages compatibility.
  */
-export function resolveScriptUrl(type: 'game' | 'map', mapId?: string): string {
-  if (type === 'game') {
-    return resolveGamePath('logic/main.json');
-  }
-  if (type === 'map' && mapId) {
-    return resolveGamePath(`logic/maps/${mapId}.json`);
-  }
-  throw new Error(`Invalid script URL params: type=${type}, mapId=${mapId}`);
+export function resolveScriptUrl(type: string, targetId?: string): string {
+  if (type === 'game') return resolveGamePath('logic/main.json');
+  if (type === 'map' && targetId) return resolveGamePath(`logic/maps/${targetId}.json`);
+  if (type === 'preset' && targetId) return resolveGamePath(`logic/presets/${targetId}.json`);
+  if (type === 'entity' && targetId) return resolveGamePath(`logic/entities/${targetId}.json`);
+  if (type === 'trigger' && targetId) return resolveGamePath(`logic/triggers/${targetId}.json`);
+  throw new Error(`Invalid script URL params: type=${type}, targetId=${targetId}`);
 }
 
 export function resolveAssetUrl(

@@ -103,7 +103,7 @@ export interface PresetSurface {
 
 // --- Logic Target ---
 
-export type LogicTargetType = 'game' | 'map';
+export type LogicTargetType = 'game' | 'map' | 'preset' | 'entity' | 'trigger';
 
 export interface LogicTargetMeta {
   readonly type: LogicTargetType;

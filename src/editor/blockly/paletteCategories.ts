@@ -57,7 +57,7 @@ export const PALETTE_CATEGORIES: readonly PaletteCategoryDef[] = [
 export function getCategoryBlocks(
   registry: BlockRegistry,
   categoryId: string,
-  logicTarget: 'game' | 'map' | null,
+  logicTarget: 'game' | 'map' | 'preset' | null,
   showAdvanced: boolean,
 ): BlockPackEntry[] {
   const entries = registry.getByCategory(categoryId);
@@ -88,11 +88,16 @@ export function isCategoryEnabled(
 
 /**
  * Check if a category should be visible given the current Logic Target.
+ * - Preset targets show all non-map-filtered categories (preset-driven + always-visible).
+ * - Map targets show map-filtered and non-filtered categories.
+ * - Game targets show non-filtered categories only.
  */
 export function isCategoryVisible(
   categoryDef: PaletteCategoryDef,
-  logicTarget: 'game' | 'map' | null,
+  logicTarget: 'game' | 'map' | 'preset' | null,
 ): boolean {
   if (!categoryDef.logicTargetFilter) return true;
+  // Preset targets: show everything except map-only categories
+  if (logicTarget === 'preset') return categoryDef.logicTargetFilter !== 'map';
   return categoryDef.logicTargetFilter === logicTarget;
 }
