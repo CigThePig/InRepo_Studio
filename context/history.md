@@ -578,6 +578,24 @@ Purpose:
   - Blockly's dynamic import creates a clean code-split boundary (~17KB workspace chunk).
 - **Follow-up**: Track 40 (Right Berry Blocks Palette)
 
+### Track 40 — Right Berry Blocks Palette (Part 13 — Block Taxonomy + Palette UX)
+- **Dates**: 2026-02-10
+- **Status**: Completed
+- **Summary**: Implemented the blocks palette in the right berry for Blockly Mode. When the editor enters Blockly Mode, the right berry swaps its World Mode tabs for Blockly-specific tabs (Blocks + Inspect placeholder). The Blocks tab renders a categorized, searchable block palette querying the BlockRegistry, with tap-to-insert, beginner/advanced split, Logic Target filtering, preset dependency prompts, and mobile-first UX.
+- **Shipped**:
+  - `paletteCategories.ts` — PALETTE_CATEGORIES (11 v1 categories), getCategoryBlocks(), isCategoryEnabled(), isCategoryVisible()
+  - `blocklyBerryTabs.ts` — BLOCKLY_BERRY_TABS (Blocks + Inspect)
+  - `blocksPalette.ts` — full palette component (categorized block list, collapsible sections, tap-to-insert, advanced toggle, dependency prompts, search, gesture isolation)
+  - `blocksPaletteStyles.ts` — extracted CSS styles for palette
+  - `rightBerry.ts` — added setTabSet(), restoreDefaultTabs(), getGenericTabContentContainer()
+  - `blocklyCockpit.ts` — wired palette lifecycle, added rightBerry/presetConfig/enablePreset deps
+  - `index.ts` — updated exports for palette, categories, and berry tabs
+- **Verification**: `tsc --noEmit` passes (no new errors), `npm run build` succeeds.
+- **Learned**:
+  - Extracting CSS styles to a separate file keeps component files under the line limit.
+  - Right berry tab switching via setTabSet/restoreDefaultTabs allows clean mode switching without restructuring the EditorMode-based tab system.
+- **Follow-up**: Track 41 (Left Berry Presets UI + Blockly Hooks)
+
 ---
 
 ## Stalled / Abandoned Tracks

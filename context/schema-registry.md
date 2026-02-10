@@ -447,6 +447,18 @@ Rules:
     - Invariant: registered before schema-driven preset blocks
     - Invariant: safe to call multiple times (warns on duplicates)
 
+- `/src/editor/blockly/paletteCategories.ts`
+  - `PALETTE_CATEGORIES` — ordered list of palette category metadata for blocks palette (lookup)
+    - Keys: events, controls, movement, camera, animation, logic, math, variables, time, debug, map
+    - Invariant: order matches v1 spec (Events through Map)
+    - Invariant: preset-driven categories map to BlockRegistry category IDs
+    - Apply mode: live (palette re-renders on Logic Target or preset state change)
+
+- `/src/editor/blockly/blocklyBerryTabs.ts`
+  - `BLOCKLY_BERRY_TABS` — tab definitions for right berry in Blockly Mode (lookup)
+    - Keys: blocks, inspect
+    - Apply mode: live (tabs render on Blockly Mode enter)
+
 ---
 
 ## Invariants checklist for schema-driven work

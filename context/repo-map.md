@@ -151,7 +151,7 @@ Local instruction files (present):
   - Owns: EditorSettingsSchema
 - `blockly/`
   - Role: Blockly workspace UI, Logic Target switching, block insertion, mode orchestration
-  - Key files: `blocklyCockpit.ts` (orchestrator), `blocklyWorkspace.ts` (inject), `workspaceManager.ts` (save/load), `blocklyMode.ts` (state), `blocklyTopBar.ts` (top bar)
+  - Key files: `blocklyCockpit.ts` (orchestrator), `blocklyWorkspace.ts` (inject), `workspaceManager.ts` (save/load), `blocklyMode.ts` (state), `blocklyTopBar.ts` (top bar), `blocksPalette.ts` (blocks palette), `paletteCategories.ts` (category defs)
   - See: `src/editor/blockly/AGENTS.md`
 
 ### Runtime (`src/runtime/`)

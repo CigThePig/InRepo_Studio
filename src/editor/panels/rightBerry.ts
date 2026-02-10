@@ -3,6 +3,12 @@ import { RIGHT_BERRY_TABS, type RightBerryTab } from './rightBerryTabs';
 
 const LOG_PREFIX = '[RightBerry]';
 
+/** Generic tab definition for setTabSet(). */
+export interface GenericBerryTab {
+  readonly id: string;
+  readonly label: string;
+}
+
 export interface RightBerryConfig {
   initialOpen?: boolean;
   initialTab?: EditorMode;
@@ -18,6 +24,12 @@ export interface RightBerryController {
   getTabContentContainer(tab: EditorMode): HTMLElement | null;
   onTabChange(callback: (tab: EditorMode) => void): void;
   onOpenChange(callback: (open: boolean) => void): void;
+  /** Replace current tabs with a generic tab set (e.g., for Blockly Mode). */
+  setTabSet(tabs: GenericBerryTab[]): Map<string, HTMLElement>;
+  /** Restore the original World Mode tabs. */
+  restoreDefaultTabs(): void;
+  /** Get a content container by generic tab ID (for Blockly Mode tabs). */
+  getGenericTabContentContainer(tabId: string): HTMLElement | null;
   destroy(): void;
 }
 
@@ -322,6 +334,11 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
   const tabButtons = new Map<EditorMode, HTMLButtonElement>();
   const tabContents = new Map<EditorMode, HTMLElement>();
 
+  // Track generic (Blockly Mode) tabs separately
+  const genericTabButtons = new Map<string, HTMLButtonElement>();
+  const genericTabContents = new Map<string, HTMLElement>();
+  let genericMode = false;
+
   for (const tab of tabs) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -420,6 +437,41 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     setOpen(true);
   });
 
+  function setActiveGenericTab(tabId: string): void {
+    for (const [id, button] of genericTabButtons) {
+      button.classList.toggle('right-berry__tab--active', id === tabId);
+    }
+    for (const [id, tabEl] of genericTabContents) {
+      tabEl.classList.toggle('right-berry__tab-content--active', id === tabId);
+    }
+  }
+
+  function clearGenericTabs(): void {
+    for (const button of genericTabButtons.values()) button.remove();
+    for (const el of genericTabContents.values()) el.remove();
+    genericTabButtons.clear();
+    genericTabContents.clear();
+  }
+
+  function hideWorldTabs(): void {
+    for (const button of tabButtons.values()) button.style.display = 'none';
+    for (const el of tabContents.values()) {
+      el.classList.remove('right-berry__tab-content--active');
+      el.style.display = 'none';
+    }
+  }
+
+  function showWorldTabs(): void {
+    for (const button of tabButtons.values()) button.style.display = '';
+    for (const el of tabContents.values()) el.style.display = '';
+    // Re-apply active tab
+    if (activeTab) {
+      const saved = activeTab;
+      activeTab = null;
+      setActiveTab(saved);
+    }
+  }
+
   handleSwipeToClose();
   applyInitialState();
 
@@ -452,6 +504,56 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     },
     onOpenChange(callback) {
       openChangeCallback = callback;
+    },
+    setTabSet(newTabs) {
+      // Clear any previous generic tabs
+      clearGenericTabs();
+      // Hide world mode tabs
+      hideWorldTabs();
+      genericMode = true;
+
+      const containers = new Map<string, HTMLElement>();
+
+      for (const tab of newTabs) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'right-berry__tab';
+        button.setAttribute('data-tab-id', tab.id);
+        button.textContent = tab.label;
+
+        tabBar.appendChild(button);
+        genericTabButtons.set(tab.id, button);
+
+        const tabContent = document.createElement('div');
+        tabContent.className = 'right-berry__tab-content';
+        tabContent.setAttribute('data-tab-id', tab.id);
+        content.appendChild(tabContent);
+        genericTabContents.set(tab.id, tabContent);
+        containers.set(tab.id, tabContent);
+
+        button.addEventListener('click', () => {
+          setActiveGenericTab(tab.id);
+          setOpen(true);
+        });
+      }
+
+      // Activate first tab
+      if (newTabs.length > 0) {
+        setActiveGenericTab(newTabs[0].id);
+      }
+
+      console.log(`${LOG_PREFIX} Tab set switched to generic tabs: ${newTabs.map((t) => t.id).join(', ')}`);
+      return containers;
+    },
+    restoreDefaultTabs() {
+      if (!genericMode) return;
+      clearGenericTabs();
+      showWorldTabs();
+      genericMode = false;
+      console.log(`${LOG_PREFIX} Restored default World Mode tabs`);
+    },
+    getGenericTabContentContainer(tabId) {
+      return genericTabContents.get(tabId) ?? null;
     },
     destroy() {
       shell.remove();
