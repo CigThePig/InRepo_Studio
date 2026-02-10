@@ -19,6 +19,7 @@ import type { GameProfile } from '@/types/presetDefaults';
 import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from './presetConfigStore';
 import { createUndoToast, type UndoToastController } from './undoToast';
+import { createCategoryDetail, type CategoryDetailController } from './categoryDetail';
 
 export interface PresetsTabController {
   refresh(): void;
@@ -304,8 +305,36 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   config.container.innerHTML = '';
   config.container.appendChild(root);
   const toast: UndoToastController = createUndoToast(config.container);
+  let categoryDetailController: CategoryDetailController | null = null;
+  let selectedCategory: PresetCategoryId | null = null;
+
+  function showDashboard(): void {
+    selectedCategory = null;
+    categoryDetailController?.destroy();
+    categoryDetailController = null;
+    root.hidden = false;
+    toast.clear();
+    refresh();
+  }
+
+  function showCategoryDetail(categoryId: PresetCategoryId): void {
+    selectedCategory = categoryId;
+    root.hidden = true;
+    categoryDetailController?.destroy();
+    categoryDetailController = createCategoryDetail({
+      container: config.container,
+      categoryId,
+      registry: config.registry,
+      configStore: config.configStore,
+      onBack: showDashboard,
+    });
+  }
 
   function refresh(): void {
+    if (selectedCategory) {
+      categoryDetailController?.refresh();
+      return;
+    }
     const activeProfile = config.configStore.getConfig().profile as GameProfile;
     for (const [id, button] of profileButtons.entries()) {
       button.classList.toggle('presets-tab__chip--active', id === activeProfile);
@@ -354,7 +383,10 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'presets-tab__row';
-      row.addEventListener('click', () => config.onCategorySelect?.(category.id));
+      row.addEventListener('click', () => {
+        config.onCategorySelect?.(category.id);
+        showCategoryDetail(category.id);
+      });
 
       const icon = document.createElement('span');
       icon.className = 'presets-tab__icon';
@@ -395,6 +427,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     refresh,
     destroy() {
       unsubscribe();
+      categoryDetailController?.destroy();
       toast.destroy();
       root.remove();
     },

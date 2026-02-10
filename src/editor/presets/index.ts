@@ -19,3 +19,15 @@ export {
   createUndoToast,
   type UndoToastController,
 } from './undoToast';
+
+export {
+  createCategoryDetail,
+  type CategoryDetailConfig,
+  type CategoryDetailController,
+} from './categoryDetail';
+
+export {
+  createKnobEditor,
+  type KnobEditorConfig,
+  type KnobEditorController,
+} from './knobEditor';
