@@ -560,6 +560,24 @@ Purpose:
   - Variable sanitization (`v_` prefix) prevents JS keyword collisions.
 - **Follow-up**: Track 39 (Blockly Workspace UI)
 
+### Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
+- **Dates**: 2026-02-10
+- **Status**: Completed
+- **Summary**: Implemented the Blockly cockpit — workspace injection with Zelos renderer, Blockly Mode state management, Logic Target switching with auto-save, top bar with Back/Run/Stop controls, empty state UI, and lazy loading. Full mode enter/exit orchestration wired into editor init.
+- **Shipped**:
+  - `blocklyMode.ts` — top-level Blockly Mode boolean state with listeners
+  - `blocklyWorkspace.ts` — Blockly.inject wrapper with Zelos renderer, mobile-tuned zoom/move, empty toolbox, change listener
+  - `workspaceManager.ts` — save/load orchestration, Logic Target switching, debounced auto-save (1s), empty state handling
+  - `blocklyTopBar.ts` — Back button, Logic Target dropdown, Run/Stop buttons, status indicator (green/gray/red)
+  - `blocklyCockpit.ts` — full orchestrator (lazy loading, DOM layout, beforeunload save, resize handling, touch isolation)
+  - `topBarV2.ts` updated with `setVisible()` for mode switching
+  - Editor init wiring with `createBlocklyCockpit()` + `getBlocklyCockpit()` export
+- **Verification**: `tsc --noEmit` passes, `npm run build` succeeds. Lazy loading confirmed (workspace in separate chunk).
+- **Learned**:
+  - Using a state object (`s.foo`) instead of individual `let` variables avoids TypeScript closure narrowing issues where TS thinks a variable is always null inside closures.
+  - Blockly's dynamic import creates a clean code-split boundary (~17KB workspace chunk).
+- **Follow-up**: Track 40 (Right Berry Blocks Palette)
+
 ---
 
 ## Stalled / Abandoned Tracks

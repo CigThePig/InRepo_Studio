@@ -1,7 +1,7 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 39 — Blockly Workspace UI (Part 8 — Cockpit)
-Next task: Track 39, Phase 1 — Blockly Mode State + Workspace Injection
+Current phase: Track 40 — Right Berry Blocks Palette
+Next task: Track 40, Phase 1 (planning)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
@@ -42,13 +42,14 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 36 (ScriptHost Engine)
 - Phase 5 (Presets + Blockly): Track 37 (Schema-Driven Block Generation)
 - Phase 5 (Presets + Blockly): Track 38 (Core Block Definitions)
+- Phase 5 (Presets + Blockly): Track 39 (Blockly Workspace UI — Cockpit)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 Phase 4 Entity System is now complete.
 Editor V2 Migration is now complete. The editor uses mode-driven architecture per `/context/editor-v2-architecture.md`.
 
-Last updated: 2026-02-09
+Last updated: 2026-02-10
 
 ---
 

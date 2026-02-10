@@ -609,20 +609,24 @@ Micro-format (copy/paste):
   - Role: Public exports for editor blockly module.
   - Lists of truth: none
 
-- `src/editor/blockly/blocklyWorkspace.ts` (planned — Track 39)
+- `src/editor/blockly/blocklyWorkspace.ts`
   - Role: Blockly workspace injection, Zelos renderer config, lifecycle (create/save/load/dispose).
   - Lists of truth: none
 
-- `src/editor/blockly/workspaceManager.ts` (planned — Track 39)
+- `src/editor/blockly/workspaceManager.ts`
   - Role: Workspace save/load orchestration, Logic Target switching, empty state, auto-save.
   - Lists of truth: none
 
-- `src/editor/blockly/blocklyMode.ts` (planned — Track 39)
+- `src/editor/blockly/blocklyMode.ts`
   - Role: Blockly Mode state management (enter/exit), UI layout coordination.
   - Lists of truth: none
 
-- `src/editor/blockly/blocklyTopBar.ts` (planned — Track 39)
+- `src/editor/blockly/blocklyTopBar.ts`
   - Role: Blockly Mode top bar (Back, Logic Target dropdown, Run/Stop, status indicator).
+  - Lists of truth: none
+
+- `src/editor/blockly/blocklyCockpit.ts`
+  - Role: Full Blockly Mode orchestrator (lazy-load, enter/exit, DOM layout, beforeunload).
   - Lists of truth: none
 
 ### Shared
