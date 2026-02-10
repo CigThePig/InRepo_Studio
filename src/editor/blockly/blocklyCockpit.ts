@@ -69,6 +69,22 @@ const STYLES = `
     bottom: 0;
     display: none;
     background: #1e1e2e;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  .blockly-container .blocklySvg {
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  .blockly-container .blocklyScrollbarHorizontal,
+  .blockly-container .blocklyScrollbarVertical,
+  .blockly-container .blocklyScrollbarBackground,
+  .blockly-container .blocklyScrollbarHandle {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .blockly-container--active {
