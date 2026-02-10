@@ -42,7 +42,7 @@ const STYLES = `
   .left-berry-shell {
     position: absolute;
     inset: 0;
-    pointer-events: auto;
+    pointer-events: none;
     z-index: 20;
   }
 
@@ -80,6 +80,7 @@ const STYLES = `
 
   .left-berry-shell--open .left-berry {
     transform: translateX(0);
+    pointer-events: auto;
   }
 
   .left-berry__header {

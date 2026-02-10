@@ -164,7 +164,6 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
 
   const root = document.createElement('div');
   root.className = 'preset-category-detail';
-  config.container.innerHTML = '';
   config.container.appendChild(root);
 
   const toast: UndoToastController = createUndoToast(config.container);
