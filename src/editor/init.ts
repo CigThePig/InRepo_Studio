@@ -877,6 +877,7 @@ export async function initEditor(): Promise<void> {
             (topPanelController as TopBarV2Controller).setVisible(visible);
           }
         },
+        leftBerry: leftBerryController ?? undefined,
       });
       console.log(`${LOG_PREFIX} Blockly cockpit initialized`);
     }

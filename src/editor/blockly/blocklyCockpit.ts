@@ -33,6 +33,7 @@ import {
 import { BLOCKLY_BERRY_TABS } from './blocklyBerryTabs';
 import { createBlocksPalette, type BlocksPaletteController } from './blocksPalette';
 import type { RightBerryController } from '@/editor/panels/rightBerry';
+import type { LeftBerryController } from '@/editor/panels/leftBerry';
 
 const LOG_PREFIX = '[BlocklyCockpit]';
 
@@ -45,6 +46,7 @@ export interface BlocklyCockpitDeps {
   getCurrentSceneId: () => string | null;
   setWorldTopBarVisible: (visible: boolean) => void;
   rightBerry?: RightBerryController;
+  leftBerry?: LeftBerryController;
   getPresetConfig?: () => PresetSavedConfig | null;
   onEnablePreset?: (categoryId: string) => void;
 }
@@ -136,6 +138,7 @@ export function createBlocklyCockpit(
     getCurrentSceneId,
     setWorldTopBarVisible,
     rightBerry,
+    leftBerry,
     getPresetConfig,
     onEnablePreset,
   } = deps;
@@ -380,6 +383,10 @@ export function createBlocklyCockpit(
       await s.manager.switchLogicTarget(resolvedTarget);
       updateEmptyState();
 
+      leftBerry?.setInsertBlockFn((blockType) => {
+        s.workspace?.insertBlock(blockType);
+      });
+
       // Switch right berry to Blockly tabs and create palette
       if (rightBerry) {
         const tabContainers = rightBerry.setTabSet([...BLOCKLY_BERRY_TABS]);
@@ -428,6 +435,7 @@ export function createBlocklyCockpit(
       if (rightBerry) {
         rightBerry.restoreDefaultTabs();
       }
+      leftBerry?.setInsertBlockFn(null);
 
       hideUI();
       emptyState.classList.remove('blockly-empty-state--visible');
@@ -461,6 +469,8 @@ export function createBlocklyCockpit(
         s.topBar.destroy();
         s.topBar = null;
       }
+
+      leftBerry?.setInsertBlockFn(null);
 
       workspaceContainer.remove();
 

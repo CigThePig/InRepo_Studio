@@ -34,6 +34,7 @@ export interface LeftBerryController {
   onTabChange(callback: (tab: LeftBerryTabId) => void): void;
   onOpenChange(callback: (open: boolean) => void): void;
   refreshTab(tab: LeftBerryTabId): void;
+  setInsertBlockFn(fn: ((blockType: string) => void) | null): void;
   destroy(): void;
 }
 
@@ -570,6 +571,9 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       if (tab === 'presets') {
         presetsTabController?.refresh();
       }
+    },
+    setInsertBlockFn: (fn) => {
+      presetsTabController?.setInsertBlockFn(fn);
     },
     destroy: () => {
       panel.removeEventListener('touchstart', onTouchStart);

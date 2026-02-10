@@ -1,11 +1,11 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
-Current phase: Track 41 — Left Berry Presets UI + Blockly Hooks
-Next task: Track 41, Phase 2 (implementation — Presets Dashboard + Undo Toast)
+Current phase: Track 42 — Right Berry Inspect/Errors Panel
+Next task: Track 42, Phase 1 (implementation kickoff)
 
-Note: Phase 1 (Preset Config Store + Left Berry Tab Integration) is already complete.
-Files delivered: src/editor/presets/presetConfigStore.ts, src/editor/presets/index.ts,
-src/editor/presets/AGENTS.md, plus modifications to leftBerryTabs.ts, leftBerry.ts, hot.ts.
+Note: Track 41 (Left Berry Presets UI + Blockly Hooks) is complete.
+Files delivered include: src/editor/presets/presetsTab.ts, categoryDetail.ts, knobEditor.ts,
+blocklyHooksTab.ts, presetPicker.ts, issuesModal.ts, undoToast.ts; plus leftBerry/cockpit wiring.
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)

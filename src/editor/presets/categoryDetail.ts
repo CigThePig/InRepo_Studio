@@ -18,12 +18,15 @@ import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from './presetConfigStore';
 import { createUndoToast, type UndoToastController } from './undoToast';
 import { createKnobEditor, type KnobEditorController } from './knobEditor';
+import { createBlocklyHooksTab, type BlocklyHooksTabController } from './blocklyHooksTab';
+import { createPresetPicker, type PresetPickerController } from './presetPicker';
 
 export interface CategoryDetailConfig {
   container: HTMLElement;
   categoryId: PresetCategoryId;
   registry: PresetRegistry;
   configStore: PresetConfigStore;
+  getInsertBlockFn?: () => ((blockType: string) => void) | null;
   onBack: () => void;
 }
 
@@ -209,7 +212,8 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
   enabledToggle.type = 'checkbox';
   enabledRow.append(enabledText, enabledToggle);
 
-  const presetRow = document.createElement('div');
+  const presetRow = document.createElement('button');
+  presetRow.type = 'button';
   presetRow.className = 'preset-category-detail__row';
   const presetLabel = document.createElement('span');
   presetLabel.textContent = 'Preset';
@@ -217,20 +221,20 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
   presetRow.append(presetLabel, presetValue);
 
   const knobsContainer = document.createElement('div');
-  const hooksPlaceholder = document.createElement('div');
-  hooksPlaceholder.className = 'preset-category-detail__row';
-  hooksPlaceholder.textContent = 'Blockly Hooks will be available in the next phase.';
-  hooksPlaceholder.hidden = true;
+  const hooksContainer = document.createElement('div');
+  hooksContainer.hidden = true;
 
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
   resetButton.className = 'preset-category-detail__reset';
   resetButton.textContent = 'Reset to Defaults';
 
-  contentSection.append(enabledRow, presetRow, knobsContainer, hooksPlaceholder, resetButton);
+  contentSection.append(enabledRow, presetRow, knobsContainer, hooksContainer, resetButton);
   root.append(header, contentSection);
 
   let knobEditor: KnobEditorController | null = null;
+  let hooksTabController: BlocklyHooksTabController | null = null;
+  let presetPickerController: PresetPickerController | null = null;
   let activeTab: 'configure' | 'hooks' = 'configure';
 
   function render(): void {
@@ -259,11 +263,20 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
       } else {
         knobEditor.refresh(categoryConfig.config);
       }
+
+      hooksTabController?.destroy();
+      hooksTabController = createBlocklyHooksTab({
+        container: hooksContainer,
+        definition: entry.definition,
+        getInsertBlockFn: config.getInsertBlockFn,
+      });
     } else {
       if (knobEditor) {
         knobEditor.destroy();
         knobEditor = null;
       }
+      hooksTabController?.destroy();
+      hooksTabController = null;
       knobsContainer.innerHTML = '';
       const missing = document.createElement('div');
       missing.className = 'preset-category-detail__row';
@@ -277,7 +290,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     presetRow.hidden = !showConfigure;
     knobsContainer.hidden = !showConfigure;
     resetButton.hidden = !showConfigure;
-    hooksPlaceholder.hidden = showConfigure;
+    hooksContainer.hidden = showConfigure;
     configureTab.classList.toggle('preset-category-detail__tab--active', showConfigure);
     hooksTab.classList.toggle('preset-category-detail__tab--active', !showConfigure);
   }
@@ -310,6 +323,25 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     render();
   });
 
+  presetRow.addEventListener('click', () => {
+    presetPickerController?.destroy();
+    presetPickerController = createPresetPicker({
+      container: config.container,
+      categoryId: config.categoryId,
+      registry: config.registry,
+      configStore: config.configStore,
+      onSelect: (presetId) => {
+        const snapshot = config.configStore.snapshot();
+        config.configStore.enableCategory(config.categoryId, presetId);
+        toast.show('Preset switched. Undo?', () => config.configStore.restore(snapshot));
+      },
+      onClose: () => {
+        presetPickerController?.destroy();
+        presetPickerController = null;
+      },
+    });
+  });
+
   const unsubscribe = config.configStore.onChange(render);
   render();
 
@@ -318,6 +350,8 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     destroy() {
       unsubscribe();
       knobEditor?.destroy();
+      hooksTabController?.destroy();
+      presetPickerController?.destroy();
       toast.destroy();
       root.remove();
     },

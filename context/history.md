@@ -601,3 +601,24 @@ Purpose:
 ## Stalled / Abandoned Tracks
 
 (none yet)
+
+### Track 41 — Left Berry Presets UI + Blockly Hooks
+- **Dates**: 2026-02-10
+- **Status**: Completed
+- **Summary**: Completed the Presets left-berry experience with dashboard, category detail, schema-driven hooks, preset picker modal, issues modal, and Blockly insert-block bridge wiring.
+- **Shipped**:
+  - `src/editor/presets/presetsTab.ts` — dashboard with profile chips, category status rows, and issues modal trigger.
+  - `src/editor/presets/categoryDetail.ts` — Configure + Hooks sub-tabs, preset switching, reset/defaults, and undo toast integration.
+  - `src/editor/presets/blocklyHooksTab.ts` — Events/Commands/State sections with expandable details and block insertion actions.
+  - `src/editor/presets/presetPicker.ts` + `issuesModal.ts` — modal workflows for preset selection and issue drill-in.
+  - `src/editor/panels/leftBerry.ts` + `src/editor/blockly/blocklyCockpit.ts` — insert-block callback bridge into active Blockly workspace.
+  - Inventory updates: `INDEX.md`, `context/schema-registry.md`, `context/active-track.md`.
+- **Verification**:
+  - `npm run lint` passes.
+  - `npx tsc --noEmit` passes.
+  - `npm run build` succeeds.
+- **Learned**:
+  - Keeping insert-block wiring as a callback on the left berry avoids coupling presets UI to workspace internals.
+  - Hooks tab block IDs can be derived deterministically from schema IDs, matching runtime block generation conventions.
+- **Follow-up**:
+  - Track 42: Right Berry Inspect/Errors panel.
