@@ -10,4 +10,34 @@
  * See /src/editor/blockly/AGENTS.md for full rules.
  */
 
-// Public exports will be added as modules are implemented.
+// Blockly Mode state
+export {
+  isBlocklyModeActive,
+  enterBlocklyMode,
+  exitBlocklyMode,
+  onBlocklyModeChange,
+  getCurrentLogicTarget,
+  getBlocklyModeState,
+  setWorkspaceReady,
+  setScriptStatus,
+  setHasUnsavedChanges,
+  setScriptExists,
+  setCurrentLogicTarget,
+} from './blocklyMode';
+export type { ScriptStatus, BlocklyModeState } from './blocklyMode';
+
+// Blockly Workspace
+export { createBlocklyWorkspace } from './blocklyWorkspace';
+export type { BlocklyWorkspaceController } from './blocklyWorkspace';
+
+// Workspace Manager
+export { createWorkspaceManager } from './workspaceManager';
+export type { WorkspaceManagerController } from './workspaceManager';
+
+// Blockly Top Bar
+export { createBlocklyTopBar } from './blocklyTopBar';
+export type { BlocklyTopBarController, LogicTargetItem } from './blocklyTopBar';
+
+// Blockly Cockpit (full orchestrator)
+export { createBlocklyCockpit } from './blocklyCockpit';
+export type { BlocklyCockpitController, BlocklyCockpitDeps } from './blocklyCockpit';

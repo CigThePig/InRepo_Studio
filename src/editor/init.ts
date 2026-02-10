@@ -108,6 +108,10 @@ import {
 } from '@/editor/v2/editorMode';
 
 import { downloadJson } from '@/utils/download';
+import {
+  createBlocklyCockpit,
+  type BlocklyCockpitController,
+} from '@/editor/blockly';
 
 const LOG_PREFIX = '[Editor]';
 
@@ -141,6 +145,10 @@ let entitiesTab: EntitiesTabController | null = null;
 let entityMoveController: SelectEntityController | null = null;
 let entityMoveActive = false;
 let assetRegistry: AssetRegistry | null = null;
+
+// Blockly cockpit controller — assigned during init, used to enter/exit Blockly Mode.
+// Exported via getBlocklyCockpit() for other modules to trigger mode entry.
+let blocklyCockpit: BlocklyCockpitController | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -603,6 +611,10 @@ export function getAuthManager(): AuthManager | null {
   return authManager;
 }
 
+export function getBlocklyCockpit(): BlocklyCockpitController | null {
+  return blocklyCockpit;
+}
+
 export function getCurrentScene(): Scene | null {
   return currentScene;
 }
@@ -846,6 +858,27 @@ export async function initEditor(): Promise<void> {
 
   // Initialize panels (after canvas so we can wire up canvas updates)
   await initPanels();
+
+  // Initialize Blockly cockpit (after panels + scene management)
+  {
+    const topContainer = document.getElementById('top-panel-container');
+    const canvasContainer = document.getElementById('canvas-container');
+    if (topContainer && canvasContainer && sceneManager) {
+      const sm = sceneManager;
+      blocklyCockpit = createBlocklyCockpit({
+        topPanelContainer: topContainer,
+        canvasContainer,
+        getSceneList: () => sm.getSceneList(),
+        getCurrentSceneId: () => currentScene?.id ?? null,
+        setWorldTopBarVisible: (visible) => {
+          if (topPanelController && 'setVisible' in topPanelController) {
+            (topPanelController as TopBarV2Controller).setVisible(visible);
+          }
+        },
+      });
+      console.log(`${LOG_PREFIX} Blockly cockpit initialized`);
+    }
+  }
 
   // Render system notices (update + quota warning) after panels exist.
   let quotaInfo: StorageQuotaInfo | null = null;

@@ -46,6 +46,9 @@ export interface TopBarV2Controller {
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
 
+  /** Show or hide the entire top bar (for Blockly Mode switching). */
+  setVisible(visible: boolean): void;
+
   /** Clean up resources */
   destroy(): void;
 }
@@ -311,6 +314,10 @@ export function createTopBarV2(
 
     onExpandToggle(callback) {
       expandToggleCallback = callback;
+    },
+
+    setVisible(visible: boolean) {
+      panel.style.display = visible ? '' : 'none';
     },
 
     destroy() {
