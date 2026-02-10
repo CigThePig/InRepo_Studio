@@ -483,6 +483,18 @@ Micro-format (copy/paste):
   - Role: Entities mode tab UI for palette, selection, and inline property editing.
   - Lists of truth: none
 
+- `src/editor/presets/AGENTS.md`
+  - Role: Module rules for editor presets UI.
+  - Lists of truth: none
+
+- `src/editor/presets/index.ts`
+  - Role: Editor Presets module public exports.
+  - Lists of truth: none
+
+- `src/editor/presets/presetConfigStore.ts`
+  - Role: Editor-side preset config read/write to hot storage.
+  - Lists of truth: PresetConfigStore
+
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none
