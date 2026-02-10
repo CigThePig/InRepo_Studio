@@ -1,14 +1,14 @@
 Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
 
 Current phase: Track 40 — Right Berry Blocks Palette
-Next task: Track 40, Phase 1 (planning)
+Next task: Track 40, Phase 1 (implementation — Right Berry Tab Switching + Palette Categories)
 
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
 - `/context/track-index.md` (Tracks 31–42)
-- `/tracks/2026-02-09-track-39-blockly-workspace-ui/spec.md`
-- `/tracks/2026-02-09-track-39-blockly-workspace-ui/blueprint.md`
-- `/tracks/2026-02-09-track-39-blockly-workspace-ui/plan.md`
+- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/spec.md`
+- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/blueprint.md`
+- `/tracks/2026-02-10-track-40-right-berry-blocks-palette/plan.md`
 
 Authority: `/context/Blockly_Plan_Revised.md`
 

@@ -252,6 +252,10 @@ Micro-format (copy/paste):
   - Role: Track 39 planning artifacts (Blockly Workspace UI — Cockpit).
   - Lists of truth: Spec, Blueprint, Plan
 
+- `tracks/2026-02-10-track-40-right-berry-blocks-palette/`
+  - Role: Track 40 planning artifacts (Right Berry Blocks Palette).
+  - Lists of truth: Spec, Blueprint, Plan
+
 ## Game Data (created during Track 1)
 - `game/project.json`
   - Role: Project manifest (tile categories, entity types, settings).
