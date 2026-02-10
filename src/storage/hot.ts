@@ -24,6 +24,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Project, Scene, LayerType } from '@/types';
+import type { PresetSavedConfig } from '@/types/preset';
 import type { AssetRegistryState } from '@/editor/assets';
 import { DEFAULT_ASSET_REGISTRY_STATE } from '@/editor/assets';
 import type { EditorMode } from '@/editor/v2/editorMode';
@@ -138,6 +139,8 @@ export interface HotProject {
   project: Project;
   lastSaved: number;
   lastDeployedSha: Record<string, string>;
+  /** Saved preset configuration (/game/presets.json shape). */
+  presetConfig?: PresetSavedConfig;
 }
 
 // --- Database Schema ---
@@ -259,6 +262,25 @@ export async function updateLastDeployedSha(filePath: string, sha: string): Prom
     hotProject.lastDeployedSha[filePath] = sha;
     await database.put('project', hotProject, 'current');
   }
+}
+
+// --- Preset Config Operations ---
+
+export async function savePresetConfig(config: PresetSavedConfig): Promise<void> {
+  const database = getDB();
+  const hotProject = await database.get('project', 'current');
+
+  if (hotProject) {
+    hotProject.presetConfig = config;
+    await database.put('project', hotProject, 'current');
+    console.log(`${LOG_PREFIX} Preset config saved`);
+  }
+}
+
+export async function loadPresetConfig(): Promise<PresetSavedConfig | null> {
+  const database = getDB();
+  const hotProject = await database.get('project', 'current');
+  return hotProject?.presetConfig ?? null;
 }
 
 // --- Scene Operations ---

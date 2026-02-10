@@ -6,6 +6,8 @@ import type { EditorState } from '@/storage/hot';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import type { HistoryManager } from '@/editor/history';
 import { createAnimationTab, type AnimationTabController } from './animationTab';
+import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
+import type { PresetConfigStore } from '@/editor/presets/presetConfigStore';
 
 export interface LeftBerryConfig {
   initialOpen?: boolean;
@@ -17,6 +19,8 @@ export interface LeftBerryConfig {
   getEditorState?: () => EditorState | null;
   entityManager?: EntityManager;
   history?: HistoryManager;
+  presetRegistry?: PresetRegistry;
+  presetConfigStore?: PresetConfigStore;
 }
 
 export interface LeftBerryController {
@@ -426,6 +430,19 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       });
     } else {
       assetsContainer.appendChild(createLeftBerryPlaceholder('Asset library is disabled for this session.'));
+    }
+  }
+
+  const presetsContainer = tabContentMap.get('presets');
+  if (presetsContainer) {
+    if (config.presetRegistry && config.presetConfigStore) {
+      presetsContainer.appendChild(
+        createLeftBerryPlaceholder('Presets dashboard loading... (Phase 2)')
+      );
+    } else {
+      presetsContainer.appendChild(
+        createLeftBerryPlaceholder('Presets require a project to be loaded.')
+      );
     }
   }
 
