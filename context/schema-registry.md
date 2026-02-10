@@ -123,7 +123,15 @@ Rules:
 
 - `/src/editor/panels/leftBerryTabs.ts`
   - `LEFT_BERRY_TABS` — left berry asset workflow tabs
-    - Invariant: order matches left berry navigation (Sprites, Assets, Tools)
+    - Invariant: order matches left berry navigation (Sprites, Animation, Assets, Tools, Presets)
+
+- `/src/editor/presets/presetConfigStore.ts`
+  - `PresetConfigStore` — editor preset config mutations + subscriptions
+    - Invariant: writes/reads PresetSavedConfig from hot storage; changes auto-save
+
+- `/src/editor/presets/presetsTab.ts`
+  - `CATEGORY_META` — canonical dashboard category order + labels/icons
+    - Invariant: order stays controls, movement, camera, animation for consistent UI
 
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state

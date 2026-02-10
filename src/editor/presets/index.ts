@@ -8,3 +8,14 @@ export {
   createPresetConfigStore,
   type PresetConfigStore,
 } from './presetConfigStore';
+
+export {
+  createPresetsTab,
+  type PresetsTabConfig,
+  type PresetsTabController,
+} from './presetsTab';
+
+export {
+  createUndoToast,
+  type UndoToastController,
+} from './undoToast';
