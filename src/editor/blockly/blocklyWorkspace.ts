@@ -60,7 +60,7 @@ const WORKSPACE_CONFIG: Blockly.BlocklyOptions = {
     scaleSpeed: 1.1,
   },
   move: {
-    scrollbars: { horizontal: true, vertical: true },
+    scrollbars: { horizontal: false, vertical: false },
     drag: true,
     wheel: true,
   },
