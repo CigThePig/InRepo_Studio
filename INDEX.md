@@ -515,6 +515,19 @@ Micro-format (copy/paste):
 - `src/editor/presets/knobEditor.ts`
   - Role: Schema-driven knob control renderer (number/boolean/enum/string).
   - Lists of truth: none
+
+- `src/editor/presets/blocklyHooksTab.ts`
+  - Role: Category detail Hooks tab renderer for events/commands/state with insert actions.
+  - Lists of truth: none
+
+- `src/editor/presets/presetPicker.ts`
+  - Role: Preset selection modal with compatibility hints per category.
+  - Lists of truth: none
+
+- `src/editor/presets/issuesModal.ts`
+  - Role: Preset issue list modal for conflicts and missing definitions.
+  - Lists of truth: none
+
 - `src/editor/v2/index.ts`
   - Role: Editor V2 public exports.
   - Lists of truth: none

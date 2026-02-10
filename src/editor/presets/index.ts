@@ -27,7 +27,25 @@ export {
 } from './categoryDetail';
 
 export {
+  createBlocklyHooksTab,
+  type BlocklyHooksTabConfig,
+  type BlocklyHooksTabController,
+} from './blocklyHooksTab';
+
+export {
   createKnobEditor,
   type KnobEditorConfig,
   type KnobEditorController,
 } from './knobEditor';
+
+export {
+  createPresetPicker,
+  type PresetPickerConfig,
+  type PresetPickerController,
+} from './presetPicker';
+
+export {
+  createIssuesModal,
+  type IssuesModalConfig,
+  type IssuesModalController,
+} from './issuesModal';

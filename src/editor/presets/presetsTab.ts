@@ -20,9 +20,11 @@ import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from './presetConfigStore';
 import { createUndoToast, type UndoToastController } from './undoToast';
 import { createCategoryDetail, type CategoryDetailController } from './categoryDetail';
+import { createIssuesModal, type IssuesModalController } from './issuesModal';
 
 export interface PresetsTabController {
   refresh(): void;
+  setInsertBlockFn(fn: ((blockType: string) => void) | null): void;
   destroy(): void;
 }
 
@@ -121,13 +123,15 @@ const STYLES = `
   }
 
   .presets-tab__warning {
+    min-height: 44px;
     border-radius: 999px;
-    padding: 2px 8px;
+    padding: 2px 10px;
     font-size: 11px;
     font-weight: 700;
     border: 1px solid rgba(255, 181, 71, 0.6);
     color: #ffc870;
     background: rgba(79, 53, 11, 0.7);
+    cursor: pointer;
   }
 
   .presets-tab__categories {
@@ -286,7 +290,8 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   const statusRow = document.createElement('div');
   statusRow.className = 'presets-tab__status';
   const statusText = document.createElement('span');
-  const warningBadge = document.createElement('span');
+  const warningBadge = document.createElement('button');
+  warningBadge.type = 'button';
   warningBadge.className = 'presets-tab__warning';
   warningBadge.hidden = true;
   statusRow.append(statusText, warningBadge);
@@ -306,6 +311,8 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   config.container.appendChild(root);
   const toast: UndoToastController = createUndoToast(config.container);
   let categoryDetailController: CategoryDetailController | null = null;
+  let issuesModalController: IssuesModalController | null = null;
+  let insertBlockFn: ((blockType: string) => void) | null = null;
   let selectedCategory: PresetCategoryId | null = null;
 
   function showDashboard(): void {
@@ -326,6 +333,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       categoryId,
       registry: config.registry,
       configStore: config.configStore,
+      getInsertBlockFn: () => insertBlockFn,
       onBack: showDashboard,
     });
   }
@@ -421,13 +429,36 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   }
 
   const unsubscribe = config.configStore.onChange(refresh);
+
+  warningBadge.addEventListener('click', () => {
+    if (warningBadge.hidden) return;
+    issuesModalController?.destroy();
+    issuesModalController = createIssuesModal({
+      container: config.container,
+      configStore: config.configStore,
+      registry: config.registry,
+      onJumpToCategory: (categoryId) => {
+        showCategoryDetail(categoryId);
+      },
+      onClose: () => {
+        issuesModalController?.destroy();
+        issuesModalController = null;
+      },
+    });
+  });
+
   refresh();
 
   return {
     refresh,
+    setInsertBlockFn(fn) {
+      insertBlockFn = fn;
+      categoryDetailController?.refresh();
+    },
     destroy() {
       unsubscribe();
       categoryDetailController?.destroy();
+      issuesModalController?.destroy();
       toast.destroy();
       root.remove();
     },

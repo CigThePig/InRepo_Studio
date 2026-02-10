@@ -137,6 +137,10 @@ Rules:
   - `CATEGORY_LABELS` — category title lookup for detail header
     - Invariant: keys match PresetCategoryId set (controls, movement, camera, animation)
 
+- `/src/editor/presets/blocklyHooksTab.ts`
+  - `BlockTypeResolution` — deterministic hook→block type mapping
+    - Invariant: events=`inrepo_when_<eventId>`, commands=`inrepo_do_<commandId>`, state=`inrepo_get_<stateId>`
+
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state
     - Keys: groups[], selectedAssetId, animations[]
