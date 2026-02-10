@@ -157,13 +157,24 @@ export function createBlocklyWorkspace(
     },
 
     insertBlock(blockType: string, position?: { x: number; y: number }): void {
-      const block = workspace.newBlock(blockType);
-      if (position) {
-        block.moveBy(position.x, position.y);
+      try {
+        const block = workspace.newBlock(blockType);
+        if (position) {
+          block.moveBy(position.x, position.y);
+        }
+        block.initSvg();
+        const blockSvg = block as Blockly.BlockSvg;
+        blockSvg.render();
+        blockSvg.select();
+
+        if (!position && typeof (workspace as Blockly.WorkspaceSvg & { centerOnBlock?: (id: string, blockOnly?: boolean) => void }).centerOnBlock === 'function') {
+          (workspace as Blockly.WorkspaceSvg & { centerOnBlock: (id: string, blockOnly?: boolean) => void }).centerOnBlock(block.id, true);
+        }
+
+        console.log(`${LOG_PREFIX} Inserted block: ${blockType}`);
+      } catch (error) {
+        console.warn(`${LOG_PREFIX} Failed to insert block: ${blockType}`, error);
       }
-      block.initSvg();
-      (block as Blockly.BlockSvg).render();
-      console.log(`${LOG_PREFIX} Inserted block: ${blockType}`);
     },
 
     resize(): void {

@@ -27,6 +27,7 @@ export interface CategoryDetailConfig {
   registry: PresetRegistry;
   configStore: PresetConfigStore;
   getInsertBlockFn?: () => ((blockType: string) => void) | null;
+  getOpenInBlocklyFn?: () => ((blockType: string) => void | Promise<void>) | null;
   onBack: () => void;
 }
 
@@ -273,6 +274,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
           container: hooksContainer,
           definition: entry.definition,
           getInsertBlockFn: config.getInsertBlockFn,
+          getOpenInBlocklyFn: config.getOpenInBlocklyFn,
         });
       }
     } else {

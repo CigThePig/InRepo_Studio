@@ -4,6 +4,7 @@ export interface BlocklyHooksTabConfig {
   container: HTMLElement;
   definition: PresetDefinition;
   getInsertBlockFn?: () => ((blockType: string) => void) | null;
+  getOpenInBlocklyFn?: () => ((blockType: string) => void | Promise<void>) | null;
 }
 
 export interface BlocklyHooksTabController {
@@ -146,6 +147,26 @@ export function createBlocklyHooksTab(config: BlocklyHooksTabConfig): BlocklyHoo
         insertBlock(blockType);
       });
       summary.appendChild(insertBtn);
+    } else {
+      const openInBlockly = config.getOpenInBlocklyFn?.() ?? null;
+      if (openInBlockly) {
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'preset-hooks__insert';
+        openBtn.textContent = 'Edit in Blockly';
+        openBtn.addEventListener('click', async (evt) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          try {
+            await openInBlockly(blockType);
+            const insertAfterOpen = config.getInsertBlockFn?.() ?? null;
+            insertAfterOpen?.(blockType);
+          } catch (error) {
+            console.warn('[BlocklyHooksTab] Failed to open Blockly mode from hooks action', error);
+          }
+        });
+        summary.appendChild(openBtn);
+      }
     }
 
     const body = document.createElement('div');
