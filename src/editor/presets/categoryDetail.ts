@@ -235,11 +235,14 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
   let hooksTabController: BlocklyHooksTabController | null = null;
   let presetPickerController: PresetPickerController | null = null;
   let activeTab: 'configure' | 'hooks' = 'configure';
+  let currentPresetId: string | null = null;
 
   function render(): void {
     const categoryConfig = config.configStore.getCategoryConfig(config.categoryId);
     const entry = config.registry.getById(categoryConfig.presetId);
     const isEnabled = categoryConfig.enabled;
+    const presetChanged = currentPresetId !== categoryConfig.presetId;
+    currentPresetId = categoryConfig.presetId;
 
     statusChip.textContent = isEnabled ? 'Enabled' : 'Off';
     statusChip.classList.toggle('preset-category-detail__status--off', !isEnabled);
@@ -248,7 +251,8 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     if (entry) {
       presetValue.textContent = entry.definition.label;
 
-      if (!knobEditor) {
+      if (!knobEditor || presetChanged) {
+        knobEditor?.destroy();
         knobEditor = createKnobEditor({
           container: knobsContainer,
           definition: entry.definition,
@@ -263,12 +267,14 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
         knobEditor.refresh(categoryConfig.config);
       }
 
-      hooksTabController?.destroy();
-      hooksTabController = createBlocklyHooksTab({
-        container: hooksContainer,
-        definition: entry.definition,
-        getInsertBlockFn: config.getInsertBlockFn,
-      });
+      if (!hooksTabController || presetChanged) {
+        hooksTabController?.destroy();
+        hooksTabController = createBlocklyHooksTab({
+          container: hooksContainer,
+          definition: entry.definition,
+          getInsertBlockFn: config.getInsertBlockFn,
+        });
+      }
     } else {
       if (knobEditor) {
         knobEditor.destroy();
@@ -341,13 +347,11 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     });
   });
 
-  const unsubscribe = config.configStore.onChange(render);
   render();
 
   return {
     refresh: render,
     destroy() {
-      unsubscribe();
       knobEditor?.destroy();
       hooksTabController?.destroy();
       presetPickerController?.destroy();

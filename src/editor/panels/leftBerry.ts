@@ -547,7 +547,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   panel.addEventListener('touchmove', onTouchMove, { passive: true });
   panel.addEventListener('touchend', onTouchEnd);
 
-  updateOpenState(isOpen);
+  shell.classList.toggle('left-berry-shell--open', isOpen);
   setActiveTab(activeTabId, { silent: true });
 
   return {

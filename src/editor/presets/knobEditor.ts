@@ -186,6 +186,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
 
       wrap.append(range, number);
       row.appendChild(wrap);
+      inputRefs.set(knob.id, { type: 'number', elements: [range, number] });
     } else if (knob.type === 'boolean') {
       const toggle = document.createElement('label');
       toggle.className = 'knob-editor__toggle';
@@ -202,6 +203,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       });
       toggle.append(checkbox, text);
       row.appendChild(toggle);
+      inputRefs.set(knob.id, { type: 'boolean', elements: [checkbox] });
     } else if (knob.type === 'enum') {
       const select = document.createElement('select');
       select.className = 'knob-editor__control';
@@ -217,6 +219,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
         config.onChange(knob.id, select.value);
       });
       row.appendChild(select);
+      inputRefs.set(knob.id, { type: 'enum', elements: [select as unknown as HTMLInputElement] });
     } else {
       const input = document.createElement('input');
       input.className = 'knob-editor__control';
@@ -226,6 +229,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
         config.onChange(knob.id, input.value);
       });
       row.appendChild(input);
+      inputRefs.set(knob.id, { type: 'string', elements: [input] });
     }
 
     const help = document.createElement('div');
@@ -236,8 +240,12 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
     return row;
   }
 
+  // Track input elements by knob ID for in-place value updates
+  const inputRefs = new Map<string, { type: string; elements: HTMLInputElement[] }>();
+
   function render(values: Record<string, unknown>): void {
     root.innerHTML = '';
+    inputRefs.clear();
 
     const basics = config.definition.knobs.filter((k) => !k.advanced);
     const advanced = config.definition.knobs.filter((k) => k.advanced);
@@ -269,11 +277,40 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
     }
   }
 
+  /** Update input values in-place without rebuilding DOM. */
+  function updateValues(values: Record<string, unknown>): void {
+    for (const knob of config.definition.knobs) {
+      const ref = inputRefs.get(knob.id);
+      if (!ref) continue;
+      const value = getKnobValue(values, knob);
+
+      if (ref.type === 'number') {
+        const [range, number] = ref.elements;
+        const str = String(typeof value === 'number' ? value : Number(knob.default));
+        if (document.activeElement !== range) range.value = str;
+        if (document.activeElement !== number) number.value = str;
+      } else if (ref.type === 'boolean') {
+        const [checkbox] = ref.elements;
+        if (document.activeElement !== checkbox) checkbox.checked = Boolean(value);
+      } else if (ref.type === 'enum') {
+        const [select] = ref.elements;
+        if (document.activeElement !== select) select.value = String(value ?? knob.default ?? '');
+      } else {
+        const [input] = ref.elements;
+        if (document.activeElement !== input) input.value = String(value ?? '');
+      }
+    }
+  }
+
   render(config.values);
 
   return {
     refresh(nextValues) {
-      render(nextValues);
+      if (inputRefs.size > 0) {
+        updateValues(nextValues);
+      } else {
+        render(nextValues);
+      }
     },
     destroy() {
       root.remove();
