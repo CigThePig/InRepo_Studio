@@ -428,6 +428,10 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
         container: assetsContainer,
         assetRegistry,
         uploadEnabled: assetUploadEnabled,
+        onOpenAnimation: (id) => {
+          setActiveTab('animation');
+          animationTabController?.openAnimation(id);
+        },
       });
     } else {
       assetsContainer.appendChild(createLeftBerryPlaceholder('Asset library is disabled for this session.'));

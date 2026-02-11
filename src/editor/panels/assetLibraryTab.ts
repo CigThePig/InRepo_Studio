@@ -245,6 +245,7 @@ export interface AssetLibraryTabConfig {
   container: HTMLElement;
   assetRegistry: AssetRegistry;
   uploadEnabled?: boolean;
+  onOpenAnimation?: (animationId: string) => void;
 }
 
 export interface AssetLibraryTabController {
@@ -259,7 +260,7 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
 };
 
 export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibraryTabController {
-  const { container, assetRegistry, uploadEnabled = false } = config;
+  const { container, assetRegistry, uploadEnabled = false, onOpenAnimation } = config;
 
   if (!document.getElementById('asset-library-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -573,6 +574,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     animations.forEach((animation) => {
       const card = document.createElement('div');
       card.className = 'asset-library__animation-card';
+      card.addEventListener('click', () => {
+        onOpenAnimation?.(animation.id);
+      });
 
       const img = document.createElement('img');
       img.src = animation.posterDataUrl ?? fallbackPoster;
@@ -595,6 +599,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       deleteButton.textContent = '×';
       deleteButton.addEventListener('click', () => {
         assetRegistry.removeAnimation(animation.id);
+      });
+      deleteButton.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      deleteButton.addEventListener('click', (event) => {
+        event.stopPropagation();
       });
       card.appendChild(deleteButton);
 
