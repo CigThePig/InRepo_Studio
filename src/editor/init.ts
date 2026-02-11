@@ -113,6 +113,7 @@ import {
   type BlocklyCockpitController,
 } from '@/editor/blockly';
 import type { ScriptLogicTarget } from '@/types/script';
+import type { PresetCategoryId } from '@/types/preset';
 import { createPresetConfigStore } from '@/editor/presets';
 import { createPresetRegistry } from '@/runtime/presets';
 
@@ -152,9 +153,13 @@ let assetRegistry: AssetRegistry | null = null;
 // Blockly cockpit controller — assigned during init, used to enter/exit Blockly Mode.
 // Exported via getBlocklyCockpit() for other modules to trigger mode entry.
 let blocklyCockpit: BlocklyCockpitController | null = null;
+let presetRegistryRef: ReturnType<typeof createPresetRegistry> | null = null;
 
 // Preset config store — hoisted so Blockly cockpit can read preset state.
-let presetConfigStoreRef: { getConfig(): import('@/types/preset').PresetSavedConfig } | null = null;
+let presetConfigStoreRef: {
+  getConfig(): import('@/types/preset').PresetSavedConfig;
+  enableCategory(categoryId: PresetCategoryId, presetId: string): void;
+} | null = null;
 
 const ERASE_HOVER_STYLE = {
   fill: 'rgba(255, 80, 80, 0.25)',
@@ -913,7 +918,11 @@ export async function initEditor(): Promise<void> {
         rightBerry: rightBerryController ?? undefined,
         leftBerry: leftBerryController ?? undefined,
         getPresetConfig: () => presetConfigStoreRef?.getConfig() ?? null,
-        onEnablePreset: undefined,
+        onEnablePreset: (categoryId) => {
+          const defaultPresetId = presetRegistryRef?.getDefaultForCategory(categoryId as PresetCategoryId);
+          if (!defaultPresetId) return;
+          presetConfigStoreRef?.enableCategory(categoryId as PresetCategoryId, defaultPresetId);
+        },
       });
 
       if (leftBerryController && blocklyCockpit) {
@@ -1498,6 +1507,7 @@ async function initPanels(): Promise<void> {
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer && editorState) {
       const presetRegistry = createPresetRegistry();
+      presetRegistryRef = presetRegistry;
       const presetConfigStore = createPresetConfigStore(presetRegistry);
       await presetConfigStore.load();
       presetConfigStoreRef = presetConfigStore;

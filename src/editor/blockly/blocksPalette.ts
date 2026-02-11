@@ -134,6 +134,11 @@ export function createBlocksPalette(
 
   function renderCategories(): void {
     const targetType = logicTarget;
+    const isValidBlock = (entry: BlockPackEntry): boolean => {
+      const message = getDisplayLabel(entry);
+      if (!message) return false;
+      return !!registry.getByType(entry.definition.type);
+    };
 
     for (const catDef of PALETTE_CATEGORIES) {
       if (!isCategoryVisible(catDef, targetType)) continue;
@@ -144,10 +149,10 @@ export function createBlocksPalette(
       const isExpanded = expandedCategories.has(catDef.id);
       const enabled = isCategoryEnabled(catDef, getPresetConfig());
       const blocks = enabled
-        ? getCategoryBlocks(registry, catDef.categoryId ?? catDef.id, targetType, showAdvanced[catDef.id] ?? false)
+        ? getCategoryBlocks(registry, catDef.categoryId ?? catDef.id, targetType, showAdvanced[catDef.id] ?? false, isValidBlock)
         : [];
       const allBlocks = enabled
-        ? getCategoryBlocks(registry, catDef.categoryId ?? catDef.id, targetType, true)
+        ? getCategoryBlocks(registry, catDef.categoryId ?? catDef.id, targetType, true, isValidBlock)
         : [];
       const hasAdvanced = allBlocks.some((b) => b.advanced);
 
@@ -198,6 +203,7 @@ export function createBlocksPalette(
           if (onEnablePreset) {
             onEnablePreset(catDef.categoryId ?? catDef.id);
           }
+          render();
         });
 
         placeholder.appendChild(document.createElement('br'));
@@ -206,7 +212,10 @@ export function createBlocksPalette(
       } else if (enabled) {
         // Block items
         for (const entry of blocks) {
-          body.appendChild(createBlockItem(entry));
+          const blockItem = createBlockItem(entry);
+          if (blockItem) {
+            body.appendChild(blockItem);
+          }
         }
 
         // Advanced toggle
@@ -251,7 +260,8 @@ export function createBlocksPalette(
   }
 
   function renderSearchResults(): void {
-    const results = registry.search(searchQuery, logicTarget ?? undefined);
+    const results = registry.search(searchQuery, logicTarget ?? undefined)
+      .filter((entry) => !!getDisplayLabel(entry));
 
     if (results.length === 0) {
       const empty = document.createElement('div');
@@ -304,7 +314,9 @@ export function createBlocksPalette(
 
       for (const entry of entries) {
         const item = createBlockItem(entry, true);
-        body.appendChild(item);
+        if (item) {
+          body.appendChild(item);
+        }
       }
 
       section.appendChild(header);
@@ -313,7 +325,16 @@ export function createBlocksPalette(
     }
   }
 
-  function createBlockItem(entry: BlockPackEntry, showCatTag = false): HTMLElement {
+  function getDisplayLabel(entry: BlockPackEntry): string {
+    return (entry.definition.message0 ?? '').replace(/%\d+/g, '').trim();
+  }
+
+  function createBlockItem(entry: BlockPackEntry, showCatTag = false): HTMLElement | null {
+    const displayLabel = getDisplayLabel(entry);
+    if (!displayLabel) {
+      return null;
+    }
+
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'blocks-palette__block-item';
@@ -324,7 +345,7 @@ export function createBlocksPalette(
     const label = document.createElement('span');
     label.className = 'blocks-palette__block-label';
     // Strip emoji prefix from message0 for display
-    label.textContent = entry.definition.message0.replace(/%\d+/g, '').trim();
+    label.textContent = displayLabel;
 
     item.appendChild(dot);
     item.appendChild(label);
@@ -338,6 +359,18 @@ export function createBlocksPalette(
         tag.className = 'blocks-palette__cat-tag';
         tag.textContent = catDef.label;
         item.appendChild(tag);
+      }
+    }
+
+    const depCatId = entry.dependency.requiresCategoryEnabled;
+    if (depCatId) {
+      const depEnabled = getPresetConfig()?.categories[depCatId]?.enabled ?? false;
+      if (!depEnabled) {
+        const depDef = PALETTE_CATEGORIES.find((c) => c.id === depCatId || c.categoryId === depCatId);
+        const requires = document.createElement('span');
+        requires.className = 'blocks-palette__cat-tag';
+        requires.textContent = `Requires: ${depDef?.label ?? depCatId}`;
+        item.appendChild(requires);
       }
     }
 
@@ -371,6 +404,7 @@ export function createBlocksPalette(
 
   function showDependencyPrompt(entry: BlockPackEntry): void {
     const catId = entry.dependency.requiresCategoryEnabled;
+    if (!catId) return;
     const catDef = PALETTE_CATEGORIES.find(
       (c) => c.id === catId || c.categoryId === catId,
     );
@@ -380,7 +414,7 @@ export function createBlocksPalette(
     const items = listContainer.querySelectorAll('.blocks-palette__block-item');
     for (const item of items) {
       const labelEl = item.querySelector('.blocks-palette__block-label');
-      if (labelEl && labelEl.textContent === entry.definition.message0.replace(/%\d+/g, '').trim()) {
+      if (labelEl && labelEl.textContent === getDisplayLabel(entry)) {
         // Remove any existing prompt
         const existing = item.parentElement?.querySelector('.blocks-palette__dep-prompt');
         if (existing) existing.remove();
@@ -400,7 +434,12 @@ export function createBlocksPalette(
           if (onEnablePreset) {
             onEnablePreset(catId);
           }
-          prompt.remove();
+          text.textContent = `${catLabel} enabled`;
+          enableBtn.disabled = true;
+          window.setTimeout(() => {
+            prompt.remove();
+            render();
+          }, 350);
         });
 
         prompt.appendChild(text);

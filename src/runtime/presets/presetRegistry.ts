@@ -37,6 +37,9 @@ export interface PresetRegistry {
 
   /** Get all registered preset ids. */
   getAllIds(): string[];
+
+  /** Get the default preset id for a category (first registered entry). */
+  getDefaultForCategory(categoryId: PresetCategoryId): string | null;
 }
 
 /**
@@ -125,6 +128,11 @@ export function buildPresetRegistry(
 
     getAllIds(): string[] {
       return Array.from(byId.keys());
+    },
+
+    getDefaultForCategory(categoryId: PresetCategoryId): string | null {
+      const entries = byCategory.get(categoryId) ?? [];
+      return entries[0]?.definition.id ?? null;
     },
   };
 }

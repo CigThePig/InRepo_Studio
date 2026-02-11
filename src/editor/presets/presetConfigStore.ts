@@ -100,6 +100,7 @@ function cloneConfig(config: PresetSavedConfig): PresetSavedConfig {
 export function createPresetConfigStore(registry: PresetRegistry): PresetConfigStore {
   let config: PresetSavedConfig = createDefaultPresetConfig();
   const listeners: Array<() => void> = [];
+  const PROFILE_CATEGORY_IDS: readonly PresetCategoryId[] = ['controls', 'movement', 'camera', 'animation'];
 
   function notify(): void {
     for (const cb of listeners) {
@@ -139,10 +140,12 @@ export function createPresetConfigStore(registry: PresetRegistry): PresetConfigS
     },
 
     setProfile(profile: GameProfile): PresetSavedConfig {
+      console.log(`${LOG_PREFIX} setProfile start`, { from: config.profile, to: profile });
       const recommendations = getProfileRecommendations(profile);
       const newCategories: Record<string, PresetCategoryConfig> = { ...config.categories };
 
-      for (const [catId, presetId] of Object.entries(recommendations)) {
+      for (const catId of PROFILE_CATEGORY_IDS) {
+        const presetId = recommendations[catId];
         if (!presetId) continue;
         const entry = registry.getById(presetId);
         if (!entry) continue;
@@ -163,6 +166,7 @@ export function createPresetConfigStore(registry: PresetRegistry): PresetConfigS
 
       notify();
       void store.save();
+      console.log(`${LOG_PREFIX} setProfile complete`, { profile, categories: config.categories });
       return config;
     },
 
@@ -295,6 +299,7 @@ export function createPresetConfigStore(registry: PresetRegistry): PresetConfigS
     },
 
     restore(prev: PresetSavedConfig): void {
+      console.log(`${LOG_PREFIX} restore snapshot`, { from: config.profile, to: prev.profile });
       config = cloneConfig(prev);
       notify();
       void store.save();

@@ -20,6 +20,7 @@ const LOG_PREFIX = '[BlocklyTopBar]';
 export interface LogicTargetItem {
   readonly target: ScriptLogicTarget;
   readonly label: string;
+  readonly subLabel?: string;
 }
 
 /** Grouped target list for the picker overlay. */
@@ -198,6 +199,21 @@ const STYLES = `
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
+  }
+
+  .blockly-target-overlay__item-main {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .blockly-target-overlay__item-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    margin-top: 2px;
+    margin-left: 10px;
   }
 
   .blockly-target-overlay__item:active {
@@ -404,7 +420,16 @@ export function createBlocklyTopBar(
         if (isTargetMatch(item.target, selectedTarget)) {
           itemBtn.classList.add('blockly-target-overlay__item--active');
         }
-        itemBtn.textContent = item.label;
+        const itemMain = document.createElement('span');
+        itemMain.className = 'blockly-target-overlay__item-main';
+        itemMain.textContent = item.label;
+        itemBtn.appendChild(itemMain);
+        if (item.subLabel) {
+          const itemSub = document.createElement('span');
+          itemSub.className = 'blockly-target-overlay__item-sub';
+          itemSub.textContent = item.subLabel;
+          itemBtn.appendChild(itemSub);
+        }
         itemBtn.addEventListener('click', () => {
           closeOverlay();
           targetChangeCallback?.(item.target);
@@ -487,7 +512,10 @@ export function createBlocklyTopBar(
       targetBtn.textContent = 'Select Target';
       return;
     }
-    targetBtn.textContent = selectedTarget.label;
+    const selectedItem = currentTargets.find((item) => isTargetMatch(item.target, selectedTarget));
+    targetBtn.textContent = selectedItem?.subLabel
+      ? `${selectedTarget.label} → ${selectedItem.subLabel}`
+      : selectedTarget.label;
   }
 
   console.log(`${LOG_PREFIX} Blockly top bar created`);
@@ -498,6 +526,7 @@ export function createBlocklyTopBar(
     setLogicTargets(targets: LogicTargetItem[], groups?: LogicTargetGroup[]): void {
       currentTargets = targets;
       currentGroups = groups ?? [];
+      updateTargetBtnLabel();
     },
 
     setCurrentTarget(target: ScriptLogicTarget): void {
