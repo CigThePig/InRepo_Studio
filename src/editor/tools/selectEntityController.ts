@@ -1,5 +1,4 @@
 import { screenToWorld, type ViewportState } from '@/editor/canvas/viewport';
-import { TOUCH_OFFSET_Y } from '@/editor/canvas/renderer';
 import type { EditorState } from '@/storage/hot';
 import type { EntityInstance, Scene } from '@/types';
 import type { EntityManager } from '@/editor/entities/entityManager';
@@ -51,16 +50,9 @@ export interface SelectEntityController {
   duplicateSelected(tileSize: number): void;
 }
 
-function screenToWorldWithOffset(
-  viewport: ViewportState,
-  screenX: number,
-  screenY: number
-): { x: number; y: number } {
-  return screenToWorld(viewport, screenX, screenY + TOUCH_OFFSET_Y);
-}
-
-function getEntityHitTolerance(tileSize: number): number {
-  return Math.max(8, tileSize * 0.2);
+function getEntityHitTolerance(tileSize: number, zoom: number): number {
+  const zoomScale = Math.min(1.8, Math.max(1, 1 / Math.max(zoom, 0.1)));
+  return Math.max(10, tileSize * 0.2 * zoomScale);
 }
 
 function hitTestEntity(
@@ -70,8 +62,8 @@ function hitTestEntity(
   screenY: number,
   tileSize: number
 ): EntityInstance | null {
-  const world = screenToWorldWithOffset(viewport, screenX, screenY);
-  const halfSize = tileSize / 2 + getEntityHitTolerance(tileSize);
+  const world = screenToWorld(viewport, screenX, screenY);
+  const halfSize = tileSize / 2 + getEntityHitTolerance(tileSize, viewport.zoom);
   let bestMatch: EntityInstance | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
 
@@ -96,9 +88,10 @@ function snapEntityPosition(
   snapToGridEnabled: boolean
 ): { x: number; y: number } {
   if (!snapToGridEnabled) return position;
+  const halfTile = tileSize / 2;
   return {
-    x: Math.floor(position.x / tileSize) * tileSize,
-    y: Math.floor(position.y / tileSize) * tileSize,
+    x: Math.floor(position.x / tileSize) * tileSize + halfTile,
+    y: Math.floor(position.y / tileSize) * tileSize + halfTile,
   };
 }
 
@@ -107,11 +100,12 @@ function clampEntityPosition(
   position: { x: number; y: number },
   tileSize: number
 ): { x: number; y: number } {
-  const maxX = scene.width * tileSize;
-  const maxY = scene.height * tileSize;
+  const halfTile = tileSize / 2;
+  const maxX = scene.width * tileSize - halfTile;
+  const maxY = scene.height * tileSize - halfTile;
   return {
-    x: Math.max(0, Math.min(position.x, maxX)),
-    y: Math.max(0, Math.min(position.y, maxY)),
+    x: Math.max(halfTile, Math.min(position.x, maxX)),
+    y: Math.max(halfTile, Math.min(position.y, maxY)),
   };
 }
 
@@ -169,7 +163,7 @@ export function createSelectEntityController(
     }
 
     entityDrag = {
-      startWorld: screenToWorldWithOffset(viewport, screenX, screenY),
+      startWorld: screenToWorld(viewport, screenX, screenY),
       startPositions,
       moved: false,
     };
@@ -185,7 +179,7 @@ export function createSelectEntityController(
   ): void {
     if (!entityDrag) return;
 
-    const world = screenToWorldWithOffset(viewport, screenX, screenY);
+    const world = screenToWorld(viewport, screenX, screenY);
     const deltaX = world.x - entityDrag.startWorld.x;
     const deltaY = world.y - entityDrag.startWorld.y;
     const snapEnabled = editorState.entitySnapToGrid ?? true;

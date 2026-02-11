@@ -46,9 +46,10 @@ export interface EntityTool {
 // --- Helpers ---
 
 function snapToGrid(x: number, y: number, tileSize: number): { x: number; y: number } {
+  const halfTile = tileSize / 2;
   return {
-    x: Math.floor(x / tileSize) * tileSize,
-    y: Math.floor(y / tileSize) * tileSize,
+    x: Math.floor(x / tileSize) * tileSize + halfTile,
+    y: Math.floor(y / tileSize) * tileSize + halfTile,
   };
 }
 
@@ -57,11 +58,12 @@ function clampToScene(
   position: { x: number; y: number },
   tileSize: number
 ): { x: number; y: number } {
-  const maxX = scene.width * tileSize;
-  const maxY = scene.height * tileSize;
+  const halfTile = tileSize / 2;
+  const maxX = scene.width * tileSize - halfTile;
+  const maxY = scene.height * tileSize - halfTile;
   return {
-    x: Math.max(0, Math.min(position.x, maxX)),
-    y: Math.max(0, Math.min(position.y, maxY)),
+    x: Math.max(halfTile, Math.min(position.x, maxX)),
+    y: Math.max(halfTile, Math.min(position.y, maxY)),
   };
 }
 
