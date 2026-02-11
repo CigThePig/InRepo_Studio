@@ -4,6 +4,12 @@ import type {
   PresetInstance,
   PresetApiRegistrar,
 } from '../presetInstance';
+import { getRuntimeEnv } from '../runtimeEnv';
+
+function getNumber(config: Record<string, unknown>, key: string, fallback: number): number {
+  const value = config[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
 
 export const definition: PresetDefinition = {
   id: 'camera-follow',
@@ -193,6 +199,7 @@ export const factory: PresetFactory = (def): PresetInstance => {
   let config: Record<string, unknown> = {};
   let currentZoom = 1;
   let isShaking = false;
+  let emitEvent: PresetApiRegistrar['emitEvent'] | null = null;
 
   return {
     definition: def,
@@ -202,19 +209,34 @@ export const factory: PresetFactory = (def): PresetInstance => {
     },
 
     registerApi(registrar: PresetApiRegistrar) {
+      emitEvent = registrar.emitEvent;
+
       registrar.registerCommand('camera.shake', (args) => {
+        const env = getRuntimeEnv();
+        const camera = env?.getMainCamera();
+        if (!camera) return undefined;
+
+        const duration = Number(args.duration ?? 200);
+        const intensity = Number(args.intensity ?? 0.01);
         isShaking = true;
-        registrar.emitEvent('camera.shakeStarted', {
-          duration: args.duration as number,
+        emitEvent?.('camera.shakeStarted', { duration });
+        camera.shake(duration, intensity);
+
+        camera.once('camerashakecomplete', () => {
+          isShaking = false;
+          emitEvent?.('camera.shakeEnded');
         });
-        // Stub: no actual shake until Phaser integration
-        isShaking = false;
-        registrar.emitEvent('camera.shakeEnded');
+
         return undefined;
       });
 
       registrar.registerCommand('camera.setZoom', (args) => {
-        currentZoom = args.zoom as number;
+        const env = getRuntimeEnv();
+        const camera = env?.getMainCamera();
+        if (!camera) return undefined;
+
+        currentZoom = Number(args.zoom ?? currentZoom);
+        camera.setZoom(currentZoom);
         return undefined;
       });
 
@@ -230,10 +252,31 @@ export const factory: PresetFactory = (def): PresetInstance => {
       registrar.registerState('camera.isShaking', () => isShaking);
     },
 
+    update(_delta) {
+      const env = getRuntimeEnv();
+      const player = env?.getPlayerSprite();
+      const camera = env?.getMainCamera();
+      if (!player || !camera) return;
+
+      const lerpSpeed = Math.max(0.01, Math.min(1, getNumber(config, 'lerpSpeed', 0.1)));
+      const offsetX = getNumber(config, 'followOffsetX', 0);
+      const offsetY = getNumber(config, 'followOffsetY', 0);
+      const deadzoneWidth = Math.max(0, getNumber(config, 'deadzoneWidth', 50));
+      const deadzoneHeight = Math.max(0, getNumber(config, 'deadzoneHeight', 50));
+
+      camera.setDeadzone(deadzoneWidth, deadzoneHeight);
+
+      const targetScrollX = player.x + offsetX - camera.width * 0.5;
+      const targetScrollY = player.y + offsetY - camera.height * 0.5;
+      camera.scrollX += (targetScrollX - camera.scrollX) * lerpSpeed;
+      camera.scrollY += (targetScrollY - camera.scrollY) * lerpSpeed;
+    },
+
     dispose() {
       config = {};
       currentZoom = 1;
       isShaking = false;
+      emitEvent = null;
     },
   };
 };

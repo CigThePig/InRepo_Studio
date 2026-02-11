@@ -2,6 +2,15 @@ import Phaser from 'phaser';
 import { createUnifiedLoader, type DataSourceMode, type UnifiedLoader } from '@/runtime/loader';
 import { initProject } from '@/runtime/projectLoader';
 import { createSceneManager } from '@/runtime/sceneManager';
+import { createPresetRegistry } from '@/runtime/presets/presetRegistry';
+import { SceneHost } from '@/runtime/sceneHost';
+import { InRepoRuntime } from '@/runtime/inrepoRuntime';
+import { loadPresetConfig, savePresetConfig } from '@/storage/hot';
+import {
+  createDefaultPresetConfig,
+  createDefaultCategoryConfig,
+} from '@/types/presetDefaults';
+import type { PresetCategoryId } from '@/types/preset';
 
 const LOG_PREFIX = '[Runtime]';
 
@@ -81,6 +90,11 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
       void this.bootstrap();
     }
 
+    update(_time: number, delta: number): void {
+      const host = InRepoRuntime.getHost(this);
+      host?.update(delta);
+    }
+
     private async bootstrap(): Promise<void> {
       try {
         const projectRuntime = await initProject({ loader, phaserScene: this });
@@ -96,6 +110,47 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
         }
 
         await sceneManager.goTo(sceneId);
+
+        const registry = createPresetRegistry();
+        let presetConfig = null;
+        if (loader.getMode() === 'hot') {
+          presetConfig = await loadPresetConfig();
+        }
+
+        if (!presetConfig) {
+          presetConfig = createDefaultPresetConfig();
+
+          const defaultPresetByCategory: Record<PresetCategoryId, string | null> = {
+            controls: registry.getById('controls-topdown')?.definition.id
+              ?? registry.getDefaultForCategory('controls'),
+            movement: registry.getById('movement-topdown')?.definition.id
+              ?? registry.getDefaultForCategory('movement'),
+            camera: registry.getById('camera-follow')?.definition.id
+              ?? registry.getDefaultForCategory('camera'),
+            animation: registry.getDefaultForCategory('animation'),
+          };
+
+          for (const [category, presetId] of Object.entries(defaultPresetByCategory)) {
+            if (!presetId) continue;
+            presetConfig.categories[category as PresetCategoryId] = {
+              ...createDefaultCategoryConfig(presetId),
+              enabled: category !== 'animation',
+            };
+          }
+
+          if (loader.getMode() === 'hot') {
+            await savePresetConfig(presetConfig);
+          }
+        }
+
+        const host = new SceneHost({
+          registry,
+          presetConfig,
+          sceneId,
+        });
+        if (!InRepoRuntime.attach(this, host)) {
+          host.dispose();
+        }
 
         console.log(`${LOG_PREFIX} Runtime initialized`);
         resolveReady?.();

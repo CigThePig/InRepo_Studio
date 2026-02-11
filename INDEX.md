@@ -729,8 +729,12 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/runtime/playtestOverlay.ts`
-  - Role: Playtest mode UI overlay with exit controls.
+  - Role: Playtest mode UI overlay with exit controls + mobile joystick input.
   - Lists of truth: none
+
+- `src/runtime/input/moveInput.ts`
+  - Role: Shared move vector store for runtime input systems.
+  - Lists of truth: MoveVectorState
 
 - `src/runtime/tileMapFactory.ts`
   - Role: Create Phaser tilemaps and overlays from scene data.
@@ -745,7 +749,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/runtime/sceneManager.ts`
-  - Role: Scene transitions.
+  - Role: Scene transitions + runtime environment binding (scene/player/camera).
   - Lists of truth: none
 
 ### Runtime Presets (Track 34)
@@ -768,6 +772,10 @@ Micro-format (copy/paste):
 - `src/runtime/presets/presetManager.ts`
   - Role: PresetManager lifecycle engine (instantiate, config, API registration, dispose).
   - Lists of truth: PresetManager, PresetConflict
+
+- `src/runtime/presets/runtimeEnv.ts`
+  - Role: Scene-scoped runtime environment access for preset implementations.
+  - Lists of truth: RuntimeEnv
 
 - `src/runtime/presets/gameProfiles.ts`
   - Role: Game Profile definitions and apply logic.
@@ -829,7 +837,7 @@ Micro-format (copy/paste):
 
 - `src/runtime/inrepoRuntime.ts`
   - Role: Top-level InRepo runtime attach/detach entry point.
-  - Lists of truth: InRepoRuntime, AttachOptions
+  - Lists of truth: InRepoRuntime
 
 ### Runtime Blockly (Tracks 36-38)
 - `src/runtime/blockly/AGENTS.md`
@@ -857,7 +865,11 @@ Micro-format (copy/paste):
   - Lists of truth: BlockRegistry
 
 - `src/runtime/blockly/coreBlocks.ts`
-  - Role: Core block loader — auto-discovers blocks/*.ts via import.meta.glob.
+  - Role: Core + preset block loader for registry population.
+  - Lists of truth: none
+
+- `src/runtime/blockly/installIntoBlockly.ts`
+  - Role: Installs registry block definitions/generators into Blockly runtime.
   - Lists of truth: none
 
 - `src/runtime/blockly/blocks/events.ts`

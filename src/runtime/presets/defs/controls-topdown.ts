@@ -4,6 +4,39 @@ import type {
   PresetInstance,
   PresetApiRegistrar,
 } from '../presetInstance';
+import { getMoveVector } from '../../input/moveInput';
+
+const EPSILON = 0.001;
+
+function getBoolean(config: Record<string, unknown>, key: string, fallback: boolean): boolean {
+  const value = config[key];
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function normalizeMoveVector(config: Record<string, unknown>, x: number, y: number): { x: number; y: number } {
+  const diagonalEnabled = getBoolean(config, 'diagonalEnabled', true);
+  const diagonalNormalize = getBoolean(config, 'diagonalNormalize', true);
+  let nx = x;
+  let ny = y;
+
+  if (!diagonalEnabled && Math.abs(nx) > EPSILON && Math.abs(ny) > EPSILON) {
+    if (Math.abs(nx) >= Math.abs(ny)) {
+      ny = 0;
+    } else {
+      nx = 0;
+    }
+  }
+
+  if (diagonalNormalize && Math.abs(nx) > EPSILON && Math.abs(ny) > EPSILON) {
+    const mag = Math.hypot(nx, ny);
+    if (mag > EPSILON) {
+      nx /= mag;
+      ny /= mag;
+    }
+  }
+
+  return { x: nx, y: ny };
+}
 
 export const definition: PresetDefinition = {
   id: 'controls-topdown',
@@ -117,6 +150,13 @@ export const definition: PresetDefinition = {
 
 export const factory: PresetFactory = (def): PresetInstance => {
   let config: Record<string, unknown> = {};
+  let moveX = 0;
+  let moveY = 0;
+  let isMoving = false;
+  let previousMoveX = 0;
+  let previousMoveY = 0;
+  let previousMoving = false;
+  let emitEvent: PresetApiRegistrar['emitEvent'] | null = null;
 
   return {
     definition: def,
@@ -134,13 +174,47 @@ export const factory: PresetFactory = (def): PresetInstance => {
         return undefined;
       });
 
-      registrar.registerState('controls.moveX', () => 0);
-      registrar.registerState('controls.moveY', () => 0);
-      registrar.registerState('controls.isMoving', () => false);
+      emitEvent = registrar.emitEvent;
+      registrar.registerState('controls.moveX', () => moveX);
+      registrar.registerState('controls.moveY', () => moveY);
+      registrar.registerState('controls.isMoving', () => isMoving);
+    },
+
+    update() {
+      const move = getMoveVector();
+      const normalized = normalizeMoveVector(config, move.x, move.y);
+      moveX = normalized.x;
+      moveY = normalized.y;
+      isMoving = Math.abs(moveX) + Math.abs(moveY) > EPSILON;
+
+      const directionChanged =
+        Math.abs(previousMoveX - moveX) > EPSILON ||
+        Math.abs(previousMoveY - moveY) > EPSILON;
+      if (directionChanged) {
+        emitEvent?.('controls.directionChanged', {
+          dx: moveX,
+          dy: moveY,
+        });
+      }
+
+      if (previousMoving && !isMoving) {
+        emitEvent?.('controls.stopped');
+      }
+
+      previousMoveX = moveX;
+      previousMoveY = moveY;
+      previousMoving = isMoving;
     },
 
     dispose() {
       config = {};
+      moveX = 0;
+      moveY = 0;
+      isMoving = false;
+      previousMoveX = 0;
+      previousMoveY = 0;
+      previousMoving = false;
+      emitEvent = null;
     },
   };
 };
