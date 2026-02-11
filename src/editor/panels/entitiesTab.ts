@@ -178,6 +178,35 @@ const STYLES = `
     justify-content: space-between;
     gap: 12px;
   }
+
+  .entities-tab__action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .entities-tab__action-button {
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(33, 46, 89, 0.85);
+    color: #f2f5ff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+  }
+
+  .entities-tab__action-button:active {
+    background: rgba(52, 70, 128, 0.9);
+  }
+
+  .entities-tab__action-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 `;
 
 export interface EntitiesTabConfig {
@@ -190,6 +219,7 @@ export interface EntitiesTabConfig {
   onEntityTypeSelect?: (typeName: string | null) => void;
   onEntityTypePlace?: (typeName: string) => void;
   onEntitySnapChange?: (enabled: boolean) => void;
+  onEditAnimation?: (animationId: string) => void;
 }
 
 export interface EntitiesTabController {
@@ -521,14 +551,193 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       return;
     }
 
-    const definitions = entityType.properties ?? [];
-    if (definitions.length === 0) {
-      renderEmptyProperties('No editable properties for this entity.');
-      return;
-    }
-
     renderAssetOptions(project);
     propertiesBody.innerHTML = '';
+
+    const typeRow = document.createElement('div');
+    typeRow.className = 'entities-tab__property-row';
+
+    const typeLabel = document.createElement('label');
+    typeLabel.className = 'entities-tab__label';
+    typeLabel.textContent = 'Entity Type';
+
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'entities-tab__input';
+
+    const entityTypes = project?.entityTypes ?? [];
+    for (const candidate of entityTypes) {
+      const option = document.createElement('option');
+      option.value = candidate.name;
+      option.textContent = `${getEntityTypeLabel(candidate)} (${candidate.name})`;
+      typeSelect.appendChild(option);
+    }
+    typeSelect.value = entity.type;
+
+    const typeActionRow = document.createElement('div');
+    typeActionRow.className = 'entities-tab__action-row';
+
+    const applyTypeButton = document.createElement('button');
+    applyTypeButton.type = 'button';
+    applyTypeButton.className = 'entities-tab__action-button';
+    applyTypeButton.textContent = 'Apply Type';
+
+    typeActionRow.appendChild(applyTypeButton);
+    typeRow.appendChild(typeLabel);
+    typeRow.appendChild(typeSelect);
+    typeRow.appendChild(typeActionRow);
+    propertiesBody.appendChild(typeRow);
+
+    const applyEntityTypeChange = (): void => {
+      const nextType = typeSelect.value;
+      if (!nextType || nextType === entity.type) return;
+
+      const previousType = entity.type;
+      entityManager.changeEntityType(entity.id, nextType);
+
+      const operation: Operation = {
+        id: generateOperationId(),
+        type: 'entity_property_change',
+        description: `Change entity type to ${nextType}`,
+        execute: () => {
+          entityManager.changeEntityType(entity.id, nextType);
+        },
+        undo: () => {
+          entityManager.changeEntityType(entity.id, previousType);
+        },
+      };
+
+      history.push(operation);
+      renderSelection();
+    };
+
+    applyTypeButton.addEventListener('click', applyEntityTypeChange);
+
+    const canApplyType = typeSelect.value !== entity.type;
+    applyTypeButton.disabled = !canApplyType;
+
+    typeSelect.addEventListener('change', () => {
+      applyTypeButton.disabled = typeSelect.value === entity.type;
+    });
+
+    const animationRow = document.createElement('div');
+    animationRow.className = 'entities-tab__property-row';
+
+    const animationLabel = document.createElement('label');
+    animationLabel.className = 'entities-tab__label';
+    animationLabel.textContent = 'Animation';
+
+    const animationSelect = document.createElement('select');
+    animationSelect.className = 'entities-tab__input';
+
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    noneOption.textContent = 'None';
+    animationSelect.appendChild(noneOption);
+
+    const animations = assetRegistry?.getAnimations() ?? [];
+    for (const animation of animations) {
+      const option = document.createElement('option');
+      option.value = animation.id;
+      option.textContent = `${animation.name} (${animation.id})`;
+      animationSelect.appendChild(option);
+    }
+
+    const currentAnimationId = String(entity.properties?.animationId ?? '');
+    animationSelect.value = currentAnimationId;
+    if (animationSelect.value !== currentAnimationId) {
+      animationSelect.value = '';
+    }
+
+    const animationHint = document.createElement('div');
+    animationHint.className = 'entities-tab__hint';
+    animationHint.textContent = assetRegistry
+      ? animations.length > 0
+        ? 'Select a saved animation for this entity.'
+        : 'No saved animations yet. Create one in the Animation tab.'
+      : 'Animation assignment is unavailable without the asset registry.';
+
+    const animationActionRow = document.createElement('div');
+    animationActionRow.className = 'entities-tab__action-row';
+
+    const editAnimationButton = document.createElement('button');
+    editAnimationButton.type = 'button';
+    editAnimationButton.className = 'entities-tab__action-button';
+    editAnimationButton.textContent = 'Edit Animation';
+    editAnimationButton.disabled = !currentAnimationId;
+
+    editAnimationButton.addEventListener('click', () => {
+      const animationId = String(entity.properties?.animationId ?? '');
+      if (!animationId) return;
+      config.onEditAnimation?.(animationId);
+    });
+
+    animationSelect.disabled = !assetRegistry;
+    animationSelect.addEventListener('change', () => {
+      const nextAnimationId = animationSelect.value;
+      const previousAnimationIdRaw = entity.properties?.animationId;
+      const previousAnimationId =
+        typeof previousAnimationIdRaw === 'string' ? previousAnimationIdRaw : undefined;
+      if (previousAnimationId === nextAnimationId || (!previousAnimationId && nextAnimationId === '')) {
+        editAnimationButton.disabled = !nextAnimationId;
+        return;
+      }
+
+      const previousStateRaw = entity.properties?.animationState;
+      const previousAnimationState =
+        typeof previousStateRaw === 'string' ? previousStateRaw : undefined;
+      const nextAnimationState = nextAnimationId
+        ? previousAnimationState ?? 'idle'
+        : undefined;
+
+      const nextUpdates = {
+        id: entity.id,
+        properties: {
+          animationId: nextAnimationId || undefined,
+          animationState: nextAnimationState,
+        },
+      };
+
+      const previousUpdates = {
+        id: entity.id,
+        properties: {
+          animationId: previousAnimationId,
+          animationState: previousAnimationState,
+        },
+      };
+
+      entityManager.updateEntityProperties([nextUpdates]);
+
+      const operation: Operation = {
+        id: generateOperationId(),
+        type: 'entity_property_change',
+        description: nextAnimationId ? 'Assign entity animation' : 'Clear entity animation',
+        execute: () => {
+          entityManager.updateEntityProperties([nextUpdates]);
+        },
+        undo: () => {
+          entityManager.updateEntityProperties([previousUpdates]);
+        },
+      };
+
+      history.push(operation);
+      editAnimationButton.disabled = !nextAnimationId;
+    });
+
+    animationActionRow.appendChild(editAnimationButton);
+    animationRow.appendChild(animationLabel);
+    animationRow.appendChild(animationSelect);
+    animationRow.appendChild(animationHint);
+    animationRow.appendChild(animationActionRow);
+    propertiesBody.appendChild(animationRow);
+
+    const definitions = entityType.properties ?? [];
+    if (definitions.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'entities-tab__empty';
+      empty.textContent = 'No editable type-specific properties for this entity.';
+      propertiesBody.appendChild(empty);
+      return;
+    }
 
     for (const definition of definitions) {
       const row = document.createElement('div');

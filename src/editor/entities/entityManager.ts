@@ -14,7 +14,7 @@
  * - Apply mode: live (entity updates reflected immediately)
  */
 
-import { createDefaultProperties } from '@/types/entity';
+import { createDefaultProperties, validatePropertyValue } from '@/types/entity';
 import { generateEntityId, type Scene, type EntityInstance, type Project } from '@/types';
 
 const LOG_PREFIX = '[EntityManager]';
@@ -48,9 +48,13 @@ export interface EntityManager {
       properties: Record<string, string | number | boolean | undefined>;
     }>
   ): void;
+  /** Change the type of an existing entity instance */
+  changeEntityType(id: string, nextType: string): void;
   /** Duplicate entities with an offset */
   duplicateEntities(ids: string[], offset: { x: number; y: number }): EntityInstance[];
 }
+
+const PRESERVED_SYSTEM_PROPERTY_KEYS = new Set(['animationId', 'animationState']);
 
 export function createEntityManager(config: EntityManagerConfig): EntityManager {
   const { getScene, getProject, onSceneChange } = config;
@@ -192,6 +196,44 @@ export function createEntityManager(config: EntityManagerConfig): EntityManager 
     }
   }
 
+  function changeEntityType(id: string, nextType: string): void {
+    const scene = getScene();
+    const project = getProject();
+    if (!scene || !project) return;
+
+    const entity = scene.entities.find((entry) => entry.id === id);
+    if (!entity) return;
+
+    const targetType = project.entityTypes.find((candidate) => candidate.name === nextType);
+    if (!targetType) {
+      console.warn(`${LOG_PREFIX} Cannot change entity "${id}" to unknown type "${nextType}"`);
+      return;
+    }
+
+    if (entity.type === targetType.name) return;
+
+    const previousProperties = entity.properties ?? {};
+    const nextProperties = createDefaultProperties(targetType.properties ?? []);
+
+    for (const definition of targetType.properties ?? []) {
+      const previousValue = previousProperties[definition.name];
+      if (previousValue !== undefined && validatePropertyValue(previousValue, definition)) {
+        nextProperties[definition.name] = previousValue;
+      }
+    }
+
+    for (const key of PRESERVED_SYSTEM_PROPERTY_KEYS) {
+      const previousValue = previousProperties[key];
+      if (previousValue !== undefined) {
+        nextProperties[key] = previousValue;
+      }
+    }
+
+    entity.type = targetType.name;
+    entity.properties = nextProperties;
+    onSceneChange(scene);
+  }
+
   function duplicateEntities(
     ids: string[],
     offset: { x: number; y: number }
@@ -229,6 +271,7 @@ export function createEntityManager(config: EntityManagerConfig): EntityManager 
     removeEntities,
     moveEntities,
     updateEntityProperties,
+    changeEntityType,
     duplicateEntities,
   };
 }
