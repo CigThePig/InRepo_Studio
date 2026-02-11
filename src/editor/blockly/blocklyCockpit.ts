@@ -272,10 +272,16 @@ export function createBlocklyCockpit(
    * Returns both the flat list and grouped structure for the overlay picker.
    */
   async function buildLogicTargets(): Promise<{ flat: LogicTargetItem[]; groups: LogicTargetGroup[] }> {
-    const presetItems: LogicTargetItem[] = PRESET_CATEGORIES.map((catId) => ({
-      target: { type: 'preset' as const, targetId: catId, label: capitalize(catId) },
-      label: capitalize(catId),
-    }));
+    const presetConfig = getPresetConfig?.() ?? null;
+    const presetItems: LogicTargetItem[] = PRESET_CATEGORIES.map((catId) => {
+      const catConfig = presetConfig?.categories[catId];
+      const activePresetId = catConfig?.enabled ? catConfig.presetId : null;
+      return {
+        target: { type: 'preset' as const, targetId: catId, label: capitalize(catId) },
+        label: capitalize(catId),
+        subLabel: activePresetId ?? 'No active preset',
+      };
+    });
 
     const gameItems: LogicTargetItem[] = [
       {
@@ -393,11 +399,29 @@ export function createBlocklyCockpit(
   const controller: BlocklyCockpitController = {
     async enter(target?: ScriptLogicTarget): Promise<void> {
       if (s.disposed) return;
-      if (isBlocklyModeActive()) return;
 
       const resolvedTarget = target ?? resolveDefaultTarget();
+      if (isBlocklyModeActive()) {
+        showUI();
+        leftBerry?.close();
+        if (!s.manager) return;
+        const currentTarget = getBlocklyModeState().currentLogicTarget;
+        const targetChanged = !currentTarget
+          || currentTarget.type !== resolvedTarget.type
+          || (currentTarget.type === 'map' && resolvedTarget.type === 'map' && currentTarget.mapId !== resolvedTarget.mapId)
+          || (currentTarget.targetId !== resolvedTarget.targetId);
+        if (targetChanged) {
+          await s.manager.switchLogicTarget(resolvedTarget);
+          s.topBar?.setCurrentTarget(resolvedTarget);
+          s.palette?.setLogicTarget(resolveLogicTargetFilter(resolvedTarget));
+          updateEmptyState();
+        }
+        return;
+      }
+
       enterBlocklyMode(resolvedTarget);
       showUI();
+      leftBerry?.close();
 
       await initScriptStorage();
 
@@ -451,7 +475,12 @@ export function createBlocklyCockpit(
             registry: s.workspace.getBlockRegistry(),
             workspace: s.workspace,
             getPresetConfig: getPresetConfig ?? (() => null),
-            onEnablePreset,
+            onEnablePreset: (categoryId) => {
+              onEnablePreset?.(categoryId);
+              void buildLogicTargets().then(({ flat: nextFlat, groups: nextGroups }) => {
+                s.topBar?.setLogicTargets(nextFlat, nextGroups);
+              });
+            },
           });
           s.palette.setLogicTarget(resolveLogicTargetFilter(resolvedTarget));
         }

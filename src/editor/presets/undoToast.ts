@@ -1,5 +1,5 @@
 export interface UndoToastController {
-  show(message: string, onUndo: () => void): void;
+  show(message: string, onUndo: () => void, options?: { durationMs?: number; emphasized?: boolean }): void;
   clear(): void;
   destroy(): void;
 }
@@ -24,6 +24,11 @@ const STYLES = `
 
   .preset-undo-toast--visible {
     display: flex;
+  }
+
+  .preset-undo-toast--emphasis {
+    border-color: rgba(255, 194, 88, 0.65);
+    background: rgba(89, 54, 16, 0.95);
   }
 
   .preset-undo-toast__message {
@@ -97,6 +102,7 @@ export function createUndoToast(container: HTMLElement): UndoToastController {
     clearTimer();
     onUndo = null;
     root.classList.remove('preset-undo-toast--visible');
+    root.classList.remove('preset-undo-toast--emphasis');
   }
 
   undoButton.addEventListener('click', () => {
@@ -107,14 +113,15 @@ export function createUndoToast(container: HTMLElement): UndoToastController {
   });
 
   return {
-    show(message, callback) {
+    show(message, callback, options) {
       clearTimer();
       messageEl.textContent = message;
       onUndo = callback;
       root.classList.add('preset-undo-toast--visible');
+      root.classList.toggle('preset-undo-toast--emphasis', options?.emphasized ?? false);
       hideTimer = window.setTimeout(() => {
         clear();
-      }, 5000);
+      }, options?.durationMs ?? 5000);
     },
     clear,
     destroy() {

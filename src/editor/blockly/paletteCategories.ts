@@ -59,6 +59,7 @@ export function getCategoryBlocks(
   categoryId: string,
   logicTarget: 'game' | 'map' | 'preset' | null,
   showAdvanced: boolean,
+  validateBlock?: (entry: BlockPackEntry) => boolean,
 ): BlockPackEntry[] {
   const entries = registry.getByCategory(categoryId);
   return entries.filter((entry) => {
@@ -68,6 +69,7 @@ export function getCategoryBlocks(
     }
     // Filter advanced blocks
     if (!showAdvanced && entry.advanced) return false;
+    if (validateBlock && !validateBlock(entry)) return false;
     return true;
   });
 }

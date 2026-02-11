@@ -1,4 +1,5 @@
 import type { CommandDef, EventDef, PresetDefinition, StateDef } from '@/types/preset';
+import { isBlocklyModeActive } from '@/editor/blockly/blocklyMode';
 
 export interface BlocklyHooksTabConfig {
   container: HTMLElement;
@@ -159,6 +160,10 @@ export function createBlocklyHooksTab(config: BlocklyHooksTabConfig): BlocklyHoo
           evt.stopPropagation();
           try {
             await openInBlockly(blockType);
+            if (!isBlocklyModeActive()) {
+              console.warn('[BlocklyHooksTab] openInBlockly resolved but Blockly mode is not active');
+              return;
+            }
             const insertAfterOpen = config.getInsertBlockFn?.() ?? null;
             insertAfterOpen?.(blockType);
           } catch (error) {

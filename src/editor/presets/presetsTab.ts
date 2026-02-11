@@ -269,6 +269,22 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
 
   const profileButtons = new Map<GameProfile, HTMLButtonElement>();
 
+  function buildProfileDiffSummary(profileId: GameProfile): string {
+    const currentConfig = config.configStore.getConfig();
+    const fromEntries: string[] = [];
+    for (const category of CATEGORY_META) {
+      const before = currentConfig.categories[category.id]?.presetId ?? 'off';
+      const profileEntry = GAME_PROFILES.find((p) => p.id === profileId);
+      const after = profileEntry?.recommendations[category.id] ?? before;
+      if (before !== after) {
+        fromEntries.push(`${category.label} (${before} → ${after})`);
+      }
+    }
+    return fromEntries.length > 0
+      ? `Will change: ${fromEntries.join(', ')}`
+      : 'No category changes detected.';
+  }
+
   for (const profile of GAME_PROFILES) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -276,9 +292,18 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     button.textContent = profile.label;
     button.title = profile.description;
     button.addEventListener('click', () => {
+      toast.clear();
+      const confirmMessage = `Switch to ${profile.label}? This will change all preset categories. Your current settings will be saved for undo.\n\n${buildProfileDiffSummary(profile.id)}`;
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
       const snapshot = config.configStore.snapshot();
       config.configStore.setProfile(profile.id);
-      toast.show('Profile applied. Undo?', () => config.configStore.restore(snapshot));
+      refresh();
+      toast.show('Profile applied. Undo?', () => config.configStore.restore(snapshot), {
+        durationMs: 10000,
+        emphasized: true,
+      });
     });
     chipWrap.appendChild(button);
     profileButtons.set(profile.id, button);
