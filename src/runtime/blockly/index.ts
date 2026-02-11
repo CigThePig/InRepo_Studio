@@ -44,6 +44,9 @@ export type { BlockRegistry } from './blockRegistry';
 
 // Core block definitions (built-in categories: Events, Logic, Math, etc.)
 export { registerCoreBlocks, getCoreBlockPacks } from './coreBlocks';
+export type { RegisterCoreBlocksOptions } from './coreBlocks';
+export { registerPresetBlocks } from './coreBlocks';
+export { installRegistryIntoBlockly } from './installIntoBlockly';
 
 // Codegen rules
 export {

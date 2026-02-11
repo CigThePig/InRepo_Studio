@@ -4,6 +4,8 @@
  * UI overlay for playtest mode, showing a badge and exit button.
  */
 
+import { clearMoveVector, setMoveVector } from '@/runtime/input/moveInput';
+
 const STYLES = `
   .playtest-overlay {
     position: fixed;
@@ -49,6 +51,32 @@ const STYLES = `
     background: rgba(58, 58, 110, 0.9);
   }
 
+  .playtest-overlay__joystick {
+    position: absolute;
+    left: 16px;
+    bottom: 64px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px solid rgba(74, 158, 255, 0.65);
+    background: rgba(15, 30, 60, 0.35);
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  .playtest-overlay__joystick-knob {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    left: 34px;
+    top: 34px;
+    background: rgba(74, 158, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+  }
+
   .playtest-overlay--hidden {
     display: none;
   }
@@ -78,7 +106,62 @@ export function createPlaytestOverlay(container: HTMLElement): PlaytestOverlay {
   exitButton.type = 'button';
   exitButton.textContent = 'Exit';
 
+  const joystick = document.createElement('div');
+  joystick.className = 'playtest-overlay__joystick';
+  const joystickKnob = document.createElement('div');
+  joystickKnob.className = 'playtest-overlay__joystick-knob';
+  joystick.appendChild(joystickKnob);
+
   let exitCallback: (() => void) | null = null;
+  let activePointerId: number | null = null;
+  let originX = 0;
+  let originY = 0;
+  const radius = 40;
+
+  const setKnob = (x: number, y: number): void => {
+    joystickKnob.style.transform = `translate(${x}px, ${y}px)`;
+  };
+
+  const endJoystick = (): void => {
+    activePointerId = null;
+    setKnob(0, 0);
+    clearMoveVector();
+  };
+
+  joystick.addEventListener('pointerdown', (event) => {
+    activePointerId = event.pointerId;
+    originX = event.clientX;
+    originY = event.clientY;
+    joystick.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  joystick.addEventListener('pointermove', (event) => {
+    if (activePointerId !== event.pointerId) return;
+    const dx = event.clientX - originX;
+    const dy = event.clientY - originY;
+    const dist = Math.hypot(dx, dy);
+    const clampedScale = dist > radius ? radius / dist : 1;
+    const clampedX = dx * clampedScale;
+    const clampedY = dy * clampedScale;
+    setKnob(clampedX, clampedY);
+    setMoveVector({
+      x: clampedX / radius,
+      y: clampedY / radius,
+    });
+    event.preventDefault();
+  });
+
+  joystick.addEventListener('pointerup', (event) => {
+    if (activePointerId === event.pointerId) {
+      endJoystick();
+    }
+  });
+  joystick.addEventListener('pointercancel', (event) => {
+    if (activePointerId === event.pointerId) {
+      endJoystick();
+    }
+  });
 
   exitButton.addEventListener('click', () => {
     exitCallback?.();
@@ -86,6 +169,7 @@ export function createPlaytestOverlay(container: HTMLElement): PlaytestOverlay {
 
   overlay.appendChild(badge);
   overlay.appendChild(exitButton);
+  overlay.appendChild(joystick);
   container.appendChild(overlay);
 
   const controller: PlaytestOverlay = {
@@ -99,6 +183,7 @@ export function createPlaytestOverlay(container: HTMLElement): PlaytestOverlay {
       exitCallback = callback;
     },
     destroy() {
+      endJoystick();
       container.removeChild(overlay);
       document.head.removeChild(styleEl);
     },

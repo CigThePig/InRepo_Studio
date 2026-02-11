@@ -9,7 +9,12 @@
  */
 
 import * as Blockly from 'blockly';
-import { registerCoreBlocks, createBlockRegistry } from '@/runtime/blockly';
+import { javascriptGenerator } from 'blockly/javascript';
+import {
+  registerCoreBlocks,
+  createBlockRegistry,
+  installRegistryIntoBlockly,
+} from '@/runtime/blockly';
 import type { BlockRegistry } from '@/runtime/blockly';
 
 const LOG_PREFIX = '[BlocklyWorkspace]';
@@ -88,7 +93,8 @@ export function createBlocklyWorkspace(
 ): BlocklyWorkspaceController {
   // Register core blocks (idempotent — safe to call multiple times)
   const registry = createBlockRegistry();
-  registerCoreBlocks(registry);
+  registerCoreBlocks(registry, { includePresets: true });
+  installRegistryIntoBlockly({ Blockly, javascriptGenerator, registry });
 
   console.log(`${LOG_PREFIX} Injecting Blockly workspace with Zelos renderer`);
 

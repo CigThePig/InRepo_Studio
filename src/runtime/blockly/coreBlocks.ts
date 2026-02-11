@@ -11,6 +11,12 @@
 
 import type { BlockRegistry } from './blockRegistry';
 import type { BlockPack } from './schemaToBlocks';
+import { generateBlockPack } from './schemaToBlocks';
+import { createPresetRegistry } from '../presets/presetRegistry';
+
+export interface RegisterCoreBlocksOptions {
+  includePresets?: boolean;
+}
 
 /** Type guard for modules that export a coreBlockPack. */
 function isCoreBlockModule(
@@ -41,7 +47,10 @@ const coreBlockModules: Record<string, unknown> = import.meta.glob(
  * Call this once at startup, before registering schema-driven preset blocks.
  * Safe to call multiple times (but will warn about duplicate block types).
  */
-export function registerCoreBlocks(registry: BlockRegistry): void {
+export function registerCoreBlocks(
+  registry: BlockRegistry,
+  options: RegisterCoreBlocksOptions = {},
+): void {
   for (const [path, mod] of Object.entries(coreBlockModules)) {
     if (!isCoreBlockModule(mod)) {
       console.warn(
@@ -50,6 +59,18 @@ export function registerCoreBlocks(registry: BlockRegistry): void {
       continue;
     }
     registry.registerPack(mod.coreBlockPack);
+  }
+
+  if (options.includePresets) {
+    registerPresetBlocks(registry);
+  }
+}
+
+/** Register schema-generated preset blocks into the given registry. */
+export function registerPresetBlocks(registry: BlockRegistry): void {
+  const presetRegistry = createPresetRegistry();
+  for (const presetDef of presetRegistry.getAllDefinitions()) {
+    registry.registerPack(generateBlockPack(presetDef));
   }
 }
 

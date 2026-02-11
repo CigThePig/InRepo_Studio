@@ -5,7 +5,8 @@ import { loadScene } from '@/runtime/sceneLoader';
 import { createTileMap, type TileMapResult } from '@/runtime/tileMapFactory';
 import { createEntityRegistry } from '@/runtime/entityRegistry';
 import { spawnEntities, type SpawnedEntity } from '@/runtime/entitySpawner';
-import type Phaser from 'phaser';
+import { setRuntimeEnv, clearRuntimeEnv } from '@/runtime/presets/runtimeEnv';
+import Phaser from 'phaser';
 
 const LOG_PREFIX = '[Runtime/SceneManager]';
 
@@ -31,6 +32,45 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
   let currentSceneRuntime: SceneRuntime | null = null;
   let currentTilemap: TileMapResult | null = null;
   let currentEntities: SpawnedEntity[] = [];
+  let currentPlayerSprite: Phaser.GameObjects.Sprite | null = null;
+  let fallbackPlayerTextureKey: string | null = null;
+
+  const ensureFallbackPlayerSprite = (): Phaser.GameObjects.Sprite => {
+    if (!fallbackPlayerTextureKey || !phaserScene.textures.exists(fallbackPlayerTextureKey)) {
+      fallbackPlayerTextureKey = '__inrepo_placeholder_player';
+      if (!phaserScene.textures.exists(fallbackPlayerTextureKey)) {
+        const g = phaserScene.make.graphics({ x: 0, y: 0 });
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(0, 0, 32, 32);
+        g.generateTexture(fallbackPlayerTextureKey, 32, 32);
+        g.destroy();
+      }
+    }
+
+    const sprite = phaserScene.add.sprite(0, 0, fallbackPlayerTextureKey);
+    sprite.setName('__inrepo_placeholder_player');
+    return sprite;
+  };
+
+  const resolvePlayerSprite = (): Phaser.GameObjects.Sprite | null => {
+    const preferred = currentEntities.find((entity) => {
+      const entityType = entity.instance.type;
+      return /player/i.test(entityType) && entity.gameObject instanceof Phaser.GameObjects.Sprite;
+    });
+
+    if (preferred && preferred.gameObject instanceof Phaser.GameObjects.Sprite) {
+      return preferred.gameObject;
+    }
+
+    const firstSprite = currentEntities.find(
+      (entity) => entity.gameObject instanceof Phaser.GameObjects.Sprite,
+    );
+    if (firstSprite && firstSprite.gameObject instanceof Phaser.GameObjects.Sprite) {
+      return firstSprite.gameObject;
+    }
+
+    return null;
+  };
 
   const cleanup = (): void => {
     for (const entity of currentEntities) {
@@ -44,6 +84,14 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     }
 
     currentSceneRuntime = null;
+    if (currentPlayerSprite && currentPlayerSprite.active) {
+      const isFallback = currentPlayerSprite.name === '__inrepo_placeholder_player';
+      if (isFallback) {
+        currentPlayerSprite.destroy();
+      }
+    }
+    currentPlayerSprite = null;
+    clearRuntimeEnv();
   };
 
   const applyCameraBounds = (sceneRuntime: SceneRuntime, options?: { x?: number; y?: number }) => {
@@ -75,6 +123,21 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         { phaserScene, entityRegistry, projectRuntime },
         currentSceneRuntime.scene.entities
       );
+
+      const playerSprite = resolvePlayerSprite() ?? ensureFallbackPlayerSprite();
+      currentPlayerSprite = playerSprite;
+      setRuntimeEnv({
+        scene: phaserScene,
+        getPlayerSprite: () => playerSprite.active ? playerSprite : null,
+        getMainCamera: () => phaserScene.cameras.main,
+      });
+
+      phaserScene.events.once('shutdown', () => {
+        clearRuntimeEnv();
+      });
+      phaserScene.events.once('destroy', () => {
+        clearRuntimeEnv();
+      });
 
       applyCameraBounds(currentSceneRuntime, options);
 

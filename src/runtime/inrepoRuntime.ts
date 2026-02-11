@@ -10,7 +10,8 @@
  * Usage:
  * ```ts
  * // In Scene.create():
- * InRepoRuntime.attach(scene, { registry, presetConfig });
+ * const host = new SceneHost({ registry, presetConfig, sceneId });
+ * InRepoRuntime.attach(scene, host);
  * ```
  *
  * Apply/Rebuild semantics:
@@ -23,23 +24,10 @@
  * - [ ] Double-attach is prevented
  */
 
-import type { PresetSavedConfig } from '../types/preset';
-import type { PresetRegistry } from './presets/presetRegistry';
 import { SceneHost } from './sceneHost';
-import type { SceneHostConfig } from './sceneHost';
 
 /** Key used to store SceneHost on scene data. */
 const SCENE_HOST_KEY = '__inrepoSceneHost';
-
-/** Options for attaching InRepo runtime to a scene. */
-export interface AttachOptions {
-  /** Preset registry (built once at startup). */
-  readonly registry: PresetRegistry;
-  /** Saved preset configuration. */
-  readonly presetConfig: PresetSavedConfig;
-  /** Override scene ID (defaults to scene.sys.settings.key). */
-  readonly sceneId?: string;
-}
 
 /**
  * Check if a Phaser scene is eligible for InRepo runtime attachment.
@@ -85,7 +73,7 @@ export const InRepoRuntime = {
         on(event: string, fn: () => void): void;
       };
     },
-    options: AttachOptions,
+    host: SceneHost,
   ): SceneHost | null {
     if (!isEligible(scene)) {
       console.warn('[InRepoRuntime] Scene is not eligible for attachment');
@@ -97,19 +85,6 @@ export const InRepoRuntime = {
       console.warn('[InRepoRuntime] Scene already has a SceneHost attached');
       return null;
     }
-
-    const sceneId =
-      options.sceneId ??
-      scene.sys?.settings?.key ??
-      'unknown';
-
-    const config: SceneHostConfig = {
-      registry: options.registry,
-      presetConfig: options.presetConfig,
-      sceneId,
-    };
-
-    const host = new SceneHost(config);
 
     // Store on scene data for retrieval
     scene.data?.set(SCENE_HOST_KEY, host);
