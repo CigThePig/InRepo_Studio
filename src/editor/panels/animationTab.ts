@@ -470,6 +470,7 @@ export interface AnimationTabConfig {
 
 export interface AnimationTabController {
   refresh(): void;
+  openAnimation(animationId: string): void;
   destroy(): void;
 }
 
@@ -2260,6 +2261,13 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       renderContext();
       renderFrames();
       drawPreview();
+    },
+    openAnimation(animationId: string): void {
+      const animation = assetRegistry.getAnimation(animationId);
+      if (!animation) {
+        return;
+      }
+      loadAnimation(animation);
     },
     destroy(): void {
       stopPlayback();
