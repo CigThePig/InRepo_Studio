@@ -26,6 +26,7 @@ export interface LeftBerryConfig {
 
 export interface LeftBerryController {
   open(tab?: LeftBerryTabId): void;
+  openAnimation(animationId: string): void;
   close(): void;
   isOpen(): boolean;
   getActiveTab(): LeftBerryTabId | null;
@@ -559,6 +560,11 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     open: (tab) => {
       updateOpenState(true);
       if (tab) setActiveTab(tab);
+    },
+    openAnimation: (animationId) => {
+      updateOpenState(true);
+      setActiveTab('animation');
+      animationTabController?.openAnimation(animationId);
     },
     close: () => updateOpenState(false),
     isOpen: () => isOpen,

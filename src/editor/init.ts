@@ -1634,6 +1634,10 @@ async function initPanels(): Promise<void> {
             editorState.entitySnapToGrid = enabled;
             scheduleSave();
           },
+          onEditAnimation: (animationId) => {
+            if (!animationId) return;
+            leftBerryController?.openAnimation(animationId);
+          },
         });
         entitiesTab.setSelection(editorState.selectedEntityIds ?? []);
       }
