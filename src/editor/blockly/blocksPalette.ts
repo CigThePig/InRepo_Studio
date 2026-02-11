@@ -326,7 +326,24 @@ export function createBlocksPalette(
   }
 
   function getDisplayLabel(entry: BlockPackEntry): string {
-    return (entry.definition.message0 ?? '').replace(/%\d+/g, '').trim();
+    const rawMessage = (entry.definition.message0 ?? '').trim();
+    if (!rawMessage) {
+      return '';
+    }
+
+    const cleanedMessage = rawMessage.replace(/%\d+/g, '').replace(/\s+/g, ' ').trim();
+    if (cleanedMessage) {
+      return cleanedMessage;
+    }
+
+    // Some valid reporter blocks intentionally use placeholder-only labels (e.g. "%1").
+    // Fall back to keywords/type so they stay visible in category and search views.
+    const keywordFallback = entry.keywords.find((kw) => kw.trim().length > 0);
+    if (keywordFallback) {
+      return keywordFallback;
+    }
+
+    return entry.definition.type.replace(/^inrepo_/, '').replace(/_/g, ' ').trim();
   }
 
   function createBlockItem(entry: BlockPackEntry, showCatTag = false): HTMLElement | null {
