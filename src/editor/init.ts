@@ -795,6 +795,8 @@ export async function initEditor(): Promise<void> {
         closeRightBerry: shouldPlace,
       });
     }
+    canvasController?.getRenderer().setAssetRegistry(assetRegistry);
+    canvasController?.invalidateScene();
   });
   if (editorState.repoAssetManifest) {
     assetRegistry.refreshFromRepo(editorState.repoAssetManifest);
@@ -1043,6 +1045,7 @@ async function initCanvas(tileSize: number): Promise<void> {
   // Set initial selected category for rendering
   canvasController.setSelectedCategory(initialCategory);
   canvasController.getRenderer().setEntityTypes(currentProject?.entityTypes ?? []);
+  canvasController.getRenderer().setAssetRegistry(assetRegistry);
 
   // Preload tile images for all categories
   if (currentProject?.tileCategories) {

@@ -17,6 +17,7 @@
 import type { EntityInstance, EntityType } from '@/types';
 import { worldToScreen, type ViewportState } from './viewport';
 import { resolveAssetUrl } from '@/shared/paths';
+import type { AssetRegistry, AnimationFrameRef } from '@/editor/assets/assetRegistry';
 
 const LOG_PREFIX = '[EntityRenderer]';
 
@@ -36,43 +37,44 @@ export interface EntityPreview {
 }
 
 interface SpriteCache {
-  getSprite(path: string): HTMLImageElement | null;
+  getImage(source: string): HTMLImageElement | null;
 }
 
 function createSpriteCache(config: EntityRendererConfig): SpriteCache {
   const cache = new Map<string, HTMLImageElement>();
   const pending = new Set<string>();
 
-  function loadSprite(path: string): void {
-    if (cache.has(path) || pending.has(path)) return;
-    pending.add(path);
+  function loadImage(source: string): void {
+    if (cache.has(source) || pending.has(source)) return;
+    pending.add(source);
 
     const img = new Image();
     img.onload = () => {
-      cache.set(path, img);
-      pending.delete(path);
+      cache.set(source, img);
+      pending.delete(source);
       config.onSpriteLoad?.();
     };
     img.onerror = () => {
-      pending.delete(path);
-      console.warn(`${LOG_PREFIX} Failed to load sprite: ${path}`);
+      pending.delete(source);
+      console.warn(`${LOG_PREFIX} Failed to load sprite: ${source}`);
     };
-    img.src = resolveAssetUrl(path);
+    img.src = resolveAssetUrl(source);
   }
 
   return {
-    getSprite(path: string): HTMLImageElement | null {
-      if (!cache.has(path)) {
-        loadSprite(path);
+    getImage(source: string): HTMLImageElement | null {
+      if (!cache.has(source)) {
+        loadImage(source);
         return null;
       }
-      return cache.get(path) ?? null;
+      return cache.get(source) ?? null;
     },
   };
 }
 
 export interface EntityRenderer {
   setEntityTypes(types: EntityType[]): void;
+  setAssetRegistry(assetRegistry: AssetRegistry | null): void;
   setPreview(preview: EntityPreview | null): void;
   setHighlightId(id: string | null): void;
   setSelectedIds(ids: string[]): void;
@@ -88,6 +90,7 @@ export interface EntityRenderer {
 
 export function createEntityRenderer(config: EntityRendererConfig): EntityRenderer {
   let entityTypes: EntityType[] = [];
+  let assetRegistry: AssetRegistry | null = null;
   let preview: EntityPreview | null = null;
   let highlightId: string | null = null;
   let selectedIds = new Set<string>();
@@ -170,8 +173,29 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
       return;
     }
 
-    if (entityType?.sprite) {
-      const sprite = spriteCache.getSprite(entityType.sprite);
+    const animationFrame = getAnimationFrame(entity);
+    if (animationFrame) {
+      const sprite = spriteCache.getImage(animationFrame.source);
+      if (sprite) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(
+          sprite,
+          animationFrame.frame.rect.x,
+          animationFrame.frame.rect.y,
+          animationFrame.frame.rect.w,
+          animationFrame.frame.rect.h,
+          screenPos.x - halfSize,
+          screenPos.y - halfSize,
+          size,
+          size
+        );
+        ctx.restore();
+      } else {
+        drawPlaceholder(ctx, screenPos.x, screenPos.y, size, getEntityLabel(entityType, entity.type), alpha);
+      }
+    } else if (entityType?.sprite) {
+      const sprite = spriteCache.getImage(entityType.sprite);
       if (sprite) {
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -189,9 +213,32 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     }
   }
 
+  function getAnimationFrame(entity: EntityInstance): { source: string; frame: AnimationFrameRef } | null {
+    const animationId = entity.properties?.animationId;
+    if (typeof animationId !== 'string' || !animationId.trim() || !assetRegistry) {
+      return null;
+    }
+
+    const animation = assetRegistry.getAnimation(animationId);
+    const firstFrame = animation?.frames?.[0];
+    if (!firstFrame || firstFrame.rect.w <= 0 || firstFrame.rect.h <= 0) {
+      return null;
+    }
+
+    const sourceAsset = assetRegistry.getAsset(firstFrame.sourceAssetId);
+    if (!sourceAsset?.dataUrl) {
+      return null;
+    }
+
+    return { source: sourceAsset.dataUrl, frame: firstFrame };
+  }
+
   return {
     setEntityTypes(types: EntityType[]): void {
       entityTypes = types;
+    },
+    setAssetRegistry(nextRegistry: AssetRegistry | null): void {
+      assetRegistry = nextRegistry;
     },
     setPreview(nextPreview: EntityPreview | null): void {
       preview = nextPreview;
