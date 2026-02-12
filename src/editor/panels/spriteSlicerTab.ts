@@ -1,8 +1,20 @@
-import { sliceImage, type AssetGroupType, type SliceResult } from '@/editor/assets';
+import {
+  computeNonEmptyTileMask,
+  sliceImage,
+  sliceImageRegions,
+  type AssetGroupType,
+  type SliceResult,
+} from '@/editor/assets';
 
 export type SliceMode = 'separate' | 'atlas';
 
 export interface AtlasSliceEntry {
+  name: string;
+  rect: { x: number; y: number; w: number; h: number };
+}
+
+interface CustomRegion {
+  id: string;
   name: string;
   rect: { x: number; y: number; w: number; h: number };
 }
@@ -55,6 +67,11 @@ const STYLES = `
     background: #3a4a80;
   }
 
+  .sprite-slicer__button--active {
+    background: #3a4a80;
+    border-color: #6ba5ff;
+  }
+
   .sprite-slicer__row {
     display: flex;
     flex-wrap: wrap;
@@ -89,6 +106,7 @@ const STYLES = `
     border-radius: 12px;
     border: 1px solid rgba(83, 101, 164, 0.6);
     background: #0d142a;
+    touch-action: none;
   }
 
   .sprite-slicer__meta {
@@ -140,6 +158,31 @@ const STYLES = `
   .sprite-slicer__mode-option:not(:last-child) {
     border-right: 1px solid rgba(83, 101, 164, 0.6);
   }
+
+  .sprite-slicer__regions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sprite-slicer__region-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #dbe4ff;
+  }
+
+  .sprite-slicer__region-remove {
+    min-height: 30px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(22, 30, 60, 0.85);
+    color: #e6ecff;
+    cursor: pointer;
+  }
 `;
 
 export interface SpriteSlicerTabConfig {
@@ -178,6 +221,14 @@ interface SpriteSlicerState {
   sliceHeight: number;
   slices: SliceResult[];
   sliceMode: SliceMode;
+  skipEmptyTiles: boolean;
+  customRegions: CustomRegion[];
+  selectionMode: 'tile' | 'region';
+  pendingRegion: null | { startCol: number; startRow: number; endCol: number; endRow: number };
+  cachedMaskKey: string | null;
+  cachedNonEmptyMask: boolean[][] | null;
+  nextRegionIndex: number;
+  previewRenderId: number;
 }
 
 export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy: () => void } {
@@ -203,6 +254,14 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     sliceHeight: 16,
     slices: [],
     sliceMode: 'atlas',
+    skipEmptyTiles: true,
+    customRegions: [],
+    selectionMode: 'tile',
+    pendingRegion: null,
+    cachedMaskKey: null,
+    cachedNonEmptyMask: null,
+    nextRegionIndex: 1,
+    previewRenderId: 0,
   };
 
   const root = document.createElement('div');
@@ -239,7 +298,6 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   importSection.appendChild(importTitle);
   importSection.appendChild(importRow);
 
-  // --- Mode Toggle ---
   const modeSection = document.createElement('section');
   modeSection.className = 'sprite-slicer__section';
 
@@ -267,29 +325,6 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   modeHint.className = 'sprite-slicer__hint';
   modeHint.textContent = 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.';
 
-  function updateModeToggle(): void {
-    atlasOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'atlas');
-    separateOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'separate');
-    modeHint.textContent = state.sliceMode === 'atlas'
-      ? 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.'
-      : 'Separate mode cuts the sheet into individual image files.';
-    confirmButton.textContent = state.sliceMode === 'atlas' ? 'Confirm Atlas Import' : 'Confirm Slice';
-  }
-
-  atlasOption.addEventListener('click', () => {
-    state.sliceMode = 'atlas';
-    updateModeToggle();
-  });
-  separateOption.addEventListener('click', () => {
-    state.sliceMode = 'separate';
-    updateModeToggle();
-  });
-
-  modeSection.appendChild(modeTitle);
-  modeSection.appendChild(modeToggle);
-  modeSection.appendChild(modeHint);
-
-  // --- Slice Settings ---
   const sliceSection = document.createElement('section');
   sliceSection.className = 'sprite-slicer__section';
 
@@ -326,6 +361,17 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   sizeHint.className = 'sprite-slicer__hint';
   sizeHint.textContent = 'Choose tile size to match your grid.';
 
+  const skipEmptyWrap = document.createElement('label');
+  skipEmptyWrap.className = 'sprite-slicer__row';
+  const skipEmptyInput = document.createElement('input');
+  skipEmptyInput.type = 'checkbox';
+  skipEmptyInput.checked = true;
+  const skipEmptyText = document.createElement('span');
+  skipEmptyText.className = 'sprite-slicer__hint';
+  skipEmptyText.textContent = 'Skip empty tiles';
+  skipEmptyWrap.appendChild(skipEmptyInput);
+  skipEmptyWrap.appendChild(skipEmptyText);
+
   const groupRow = document.createElement('div');
   groupRow.className = 'sprite-slicer__row';
 
@@ -356,6 +402,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   sliceSection.appendChild(sliceTitle);
   sliceSection.appendChild(sliceRow);
+  sliceSection.appendChild(skipEmptyWrap);
   sliceSection.appendChild(groupRow);
   sliceSection.appendChild(groupHint);
 
@@ -369,6 +416,18 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   const preview = document.createElement('div');
   preview.className = 'sprite-slicer__preview';
 
+  const previewControls = document.createElement('div');
+  previewControls.className = 'sprite-slicer__row';
+  const regionSelectButton = document.createElement('button');
+  regionSelectButton.type = 'button';
+  regionSelectButton.className = 'sprite-slicer__button';
+  regionSelectButton.textContent = 'Region Select';
+  const regionHint = document.createElement('div');
+  regionHint.className = 'sprite-slicer__hint';
+  regionHint.textContent = 'Drag on the preview to create a larger sprite region aligned to the grid.';
+  previewControls.appendChild(regionSelectButton);
+  previewControls.appendChild(regionHint);
+
   const previewCanvas = document.createElement('canvas');
   previewCanvas.className = 'sprite-slicer__canvas';
 
@@ -376,8 +435,13 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   previewMeta.className = 'sprite-slicer__meta';
   previewMeta.textContent = 'Import an image to preview slices.';
 
+  const regionsList = document.createElement('div');
+  regionsList.className = 'sprite-slicer__regions';
+
+  preview.appendChild(previewControls);
   preview.appendChild(previewCanvas);
   preview.appendChild(previewMeta);
+  preview.appendChild(regionsList);
 
   const confirmButton = document.createElement('button');
   confirmButton.type = 'button';
@@ -406,6 +470,145 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     sliceGrid.innerHTML = '';
   }
 
+  function resetMaskCache(): void {
+    state.cachedMaskKey = null;
+    state.cachedNonEmptyMask = null;
+  }
+
+  async function getNonEmptyMask(): Promise<boolean[][] | null> {
+    if (!state.skipEmptyTiles || !state.imageBlob) {
+      return null;
+    }
+    const key = `${state.imageName ?? 'image'}:${state.sliceWidth}x${state.sliceHeight}`;
+    if (state.cachedMaskKey === key && state.cachedNonEmptyMask) {
+      return state.cachedNonEmptyMask;
+    }
+    const mask = await computeNonEmptyTileMask(state.imageBlob, state.sliceWidth, state.sliceHeight);
+    state.cachedMaskKey = key;
+    state.cachedNonEmptyMask = mask;
+    return mask;
+  }
+
+  function getGridSize(): { columns: number; rows: number } {
+    return {
+      columns: Math.floor(state.imageWidth / state.sliceWidth),
+      rows: Math.floor(state.imageHeight / state.sliceHeight),
+    };
+  }
+
+  function buildOccupiedTilesGrid(): boolean[][] {
+    const { columns, rows } = getGridSize();
+    const occupied = Array.from({ length: rows }, () => Array.from({ length: columns }, () => false));
+    for (const region of state.customRegions) {
+      const startCol = Math.floor(region.rect.x / state.sliceWidth);
+      const startRow = Math.floor(region.rect.y / state.sliceHeight);
+      const colCount = Math.floor(region.rect.w / state.sliceWidth);
+      const rowCount = Math.floor(region.rect.h / state.sliceHeight);
+      for (let row = startRow; row < startRow + rowCount; row += 1) {
+        for (let col = startCol; col < startCol + colCount; col += 1) {
+          if (occupied[row]?.[col] !== undefined) {
+            occupied[row][col] = true;
+          }
+        }
+      }
+    }
+    return occupied;
+  }
+
+  function updateRegionsList(): void {
+    regionsList.innerHTML = '';
+    if (state.customRegions.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sprite-slicer__hint';
+      empty.textContent = 'No custom regions yet.';
+      regionsList.appendChild(empty);
+      return;
+    }
+
+    state.customRegions.forEach((region) => {
+      const item = document.createElement('div');
+      item.className = 'sprite-slicer__region-item';
+      const widthTiles = Math.floor(region.rect.w / state.sliceWidth);
+      const heightTiles = Math.floor(region.rect.h / state.sliceHeight);
+      const label = document.createElement('span');
+      label.textContent = `${region.name} (${widthTiles}x${heightTiles})`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'sprite-slicer__region-remove';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', () => {
+        state.customRegions = state.customRegions.filter((entry) => entry.id !== region.id);
+        updateRegionsList();
+        void updatePreviewCanvas();
+        void updateSliceResults();
+      });
+      item.appendChild(label);
+      item.appendChild(remove);
+      regionsList.appendChild(item);
+    });
+  }
+
+  async function buildSeparateSlices(): Promise<SliceResult[]> {
+    if (!state.imageBlob) {
+      return [];
+    }
+    const occupied = buildOccupiedTilesGrid();
+    const mask = state.skipEmptyTiles ? await getNonEmptyMask() : null;
+    const regionSlices = await sliceImageRegions(
+      state.imageBlob,
+      state.customRegions.map((region) => region.rect)
+    );
+    const tileSlices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight, {
+      skipEmpty: state.skipEmptyTiles,
+      nonEmptyMask: mask ?? undefined,
+    });
+    const filteredTileSlices = tileSlices.filter((slice) => {
+      const col = Math.floor(slice.x / state.sliceWidth);
+      const row = Math.floor(slice.y / state.sliceHeight);
+      return !occupied[row]?.[col];
+    });
+    return [...regionSlices, ...filteredTileSlices];
+  }
+
+  async function buildAtlasSlices(): Promise<AtlasSliceEntry[]> {
+    const { columns, rows } = getGridSize();
+    const baseName = state.imageName?.replace(/\.[^/.]+$/, '') ?? 'slice';
+    const occupied = buildOccupiedTilesGrid();
+    const mask = state.skipEmptyTiles ? await getNonEmptyMask() : null;
+    const entries: AtlasSliceEntry[] = [];
+    let index = 0;
+
+    state.customRegions.forEach((region) => {
+      entries.push({
+        name: region.name,
+        rect: { ...region.rect },
+      });
+    });
+
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < columns; col += 1) {
+        if (occupied[row]?.[col]) {
+          continue;
+        }
+        if (state.skipEmptyTiles && !mask?.[row]?.[col]) {
+          continue;
+        }
+        entries.push({
+          name: `${baseName}_${index}`,
+          rect: {
+            x: col * state.sliceWidth,
+            y: row * state.sliceHeight,
+            w: state.sliceWidth,
+            h: state.sliceHeight,
+          },
+        });
+        index += 1;
+      }
+    }
+
+    return entries;
+  }
+
   function updateSliceInputs(): void {
     if (state.slicePreset === 'custom') {
       widthInput.style.display = '';
@@ -418,7 +621,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     }
   }
 
-  function updatePreviewCanvas(): void {
+  async function updatePreviewCanvas(): Promise<void> {
     const ctx = previewCanvas.getContext('2d');
     if (!ctx || !state.imageUrl || state.imageWidth === 0 || state.imageHeight === 0) {
       previewCanvas.width = 1;
@@ -427,13 +630,12 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       return;
     }
 
+    const renderId = state.previewRenderId + 1;
+    state.previewRenderId = renderId;
+
     const maxWidth = Math.max(1, container.clientWidth - 24);
     const maxHeight = Math.min(480, Math.floor(window.innerHeight * 0.45));
-    const scale = Math.min(
-      maxWidth / state.imageWidth,
-      maxHeight / state.imageHeight,
-      1
-    );
+    const scale = Math.min(maxWidth / state.imageWidth, maxHeight / state.imageHeight, 1);
     const displayWidth = Math.max(1, Math.floor(state.imageWidth * scale));
     const displayHeight = Math.max(1, Math.floor(state.imageHeight * scale));
     const dpr = window.devicePixelRatio || 1;
@@ -446,43 +648,86 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     ctx.clearRect(0, 0, displayWidth, displayHeight);
 
     const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
-      ctx.strokeStyle = 'rgba(74, 158, 255, 0.6)';
-      ctx.lineWidth = 1;
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+      img.src = state.imageUrl as string;
+    });
+    if (state.previewRenderId !== renderId) {
+      return;
+    }
 
-      const tileWidth = state.sliceWidth * scale;
-      const tileHeight = state.sliceHeight * scale;
-      const columns = Math.floor(state.imageWidth / state.sliceWidth);
-      const rows = Math.floor(state.imageHeight / state.sliceHeight);
+    ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
 
-      for (let col = 0; col <= columns; col += 1) {
-        const x = Math.floor(col * tileWidth) + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, rows * tileHeight);
-        ctx.stroke();
+    const tileWidth = state.sliceWidth * scale;
+    const tileHeight = state.sliceHeight * scale;
+    const { columns, rows } = getGridSize();
+
+    if (state.skipEmptyTiles) {
+      const mask = await getNonEmptyMask();
+      if (state.previewRenderId !== renderId) {
+        return;
       }
-
-      for (let row = 0; row <= rows; row += 1) {
-        const y = Math.floor(row * tileHeight) + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(columns * tileWidth, y);
-        ctx.stroke();
+      if (mask) {
+        ctx.fillStyle = 'rgba(6, 10, 22, 0.4)';
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < columns; col += 1) {
+            if (!mask[row]?.[col]) {
+              ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+            }
+          }
+        }
       }
-    };
-    img.src = state.imageUrl;
+    }
+
+    ctx.strokeStyle = 'rgba(74, 158, 255, 0.6)';
+    ctx.lineWidth = 1;
+    for (let col = 0; col <= columns; col += 1) {
+      const x = Math.floor(col * tileWidth) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, rows * tileHeight);
+      ctx.stroke();
+    }
+
+    for (let row = 0; row <= rows; row += 1) {
+      const y = Math.floor(row * tileHeight) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(columns * tileWidth, y);
+      ctx.stroke();
+    }
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 184, 46, 0.95)';
+    state.customRegions.forEach((region) => {
+      ctx.strokeRect(
+        region.rect.x * scale + 1,
+        region.rect.y * scale + 1,
+        Math.max(1, region.rect.w * scale - 2),
+        Math.max(1, region.rect.h * scale - 2)
+      );
+    });
+
+    if (state.pendingRegion) {
+      const minCol = Math.min(state.pendingRegion.startCol, state.pendingRegion.endCol);
+      const maxCol = Math.max(state.pendingRegion.startCol, state.pendingRegion.endCol);
+      const minRow = Math.min(state.pendingRegion.startRow, state.pendingRegion.endRow);
+      const maxRow = Math.max(state.pendingRegion.startRow, state.pendingRegion.endRow);
+      ctx.strokeStyle = 'rgba(125, 232, 126, 0.95)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(
+        minCol * tileWidth + 1,
+        minRow * tileHeight + 1,
+        Math.max(1, (maxCol - minCol + 1) * tileWidth - 2),
+        Math.max(1, (maxRow - minRow + 1) * tileHeight - 2)
+      );
+    }
 
     const remainderX = state.imageWidth % state.sliceWidth;
     const remainderY = state.imageHeight % state.sliceHeight;
-    const remainderNote =
-      remainderX !== 0 || remainderY !== 0
-        ? ' (extra pixels will be ignored)'
-        : '';
-    previewMeta.textContent = `${state.imageWidth}×${state.imageHeight}px — ${
-      Math.floor(state.imageWidth / state.sliceWidth)
-    }×${Math.floor(state.imageHeight / state.sliceHeight)} tiles${remainderNote}`;
+    const remainderNote = remainderX !== 0 || remainderY !== 0 ? ' (extra pixels will be ignored)' : '';
+    previewMeta.textContent = `${state.imageWidth}×${state.imageHeight}px — ${columns}×${rows} tiles${remainderNote}`;
   }
 
   async function updateSliceResults(): Promise<void> {
@@ -493,7 +738,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     }
 
     confirmButton.disabled = false;
-    const slices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight);
+    const slices = await buildSeparateSlices();
     state.slices = slices;
     slices.slice(0, 24).forEach((slice) => {
       const img = document.createElement('img');
@@ -519,28 +764,39 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     });
   }
 
-  function buildAtlasSlices(): AtlasSliceEntry[] {
-    const columns = Math.floor(state.imageWidth / state.sliceWidth);
-    const rows = Math.floor(state.imageHeight / state.sliceHeight);
-    const baseName = state.imageName?.replace(/\.[^/.]+$/, '') ?? 'slice';
-    const entries: AtlasSliceEntry[] = [];
-    let index = 0;
+  function updateModeToggle(): void {
+    atlasOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'atlas');
+    separateOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'separate');
+    modeHint.textContent =
+      state.sliceMode === 'atlas'
+        ? 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.'
+        : 'Separate mode cuts the sheet into individual image files.';
+    confirmButton.textContent = state.sliceMode === 'atlas' ? 'Confirm Atlas Import' : 'Confirm Slice';
+  }
 
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < columns; col += 1) {
-        entries.push({
-          name: `${baseName}_${index}`,
-          rect: {
-            x: col * state.sliceWidth,
-            y: row * state.sliceHeight,
-            w: state.sliceWidth,
-            h: state.sliceHeight,
-          },
-        });
-        index += 1;
-      }
+  function clearRegions(): void {
+    state.customRegions = [];
+    state.pendingRegion = null;
+    state.nextRegionIndex = 1;
+    updateRegionsList();
+  }
+
+  function pointerToTile(event: PointerEvent): { col: number; row: number } | null {
+    if (!state.imageWidth || !state.imageHeight || !state.sliceWidth || !state.sliceHeight) {
+      return null;
     }
-    return entries;
+    const rect = previewCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null;
+    }
+    const x = Math.min(Math.max(event.clientX - rect.left, 0), rect.width - 1);
+    const y = Math.min(Math.max(event.clientY - rect.top, 0), rect.height - 1);
+    const imageX = (x / rect.width) * state.imageWidth;
+    const imageY = (y / rect.height) * state.imageHeight;
+    const { columns, rows } = getGridSize();
+    const col = Math.min(columns - 1, Math.max(0, Math.floor(imageX / state.sliceWidth)));
+    const row = Math.min(rows - 1, Math.max(0, Math.floor(imageY / state.sliceHeight)));
+    return { col, row };
   }
 
   async function handleFileChange(event: Event): Promise<void> {
@@ -559,19 +815,21 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.imageUrl = URL.createObjectURL(file);
     state.groupName = file.name.replace(/\.[^/.]+$/, '');
     groupInput.value = state.groupName;
+    clearRegions();
+    resetMaskCache();
 
     const img = new Image();
     img.onload = () => {
       state.imageWidth = img.naturalWidth;
       state.imageHeight = img.naturalHeight;
-      updatePreviewCanvas();
+      void updatePreviewCanvas();
     };
     img.onerror = () => {
       previewMeta.textContent = 'Failed to load image.';
     };
     img.src = state.imageUrl;
 
-    updatePreviewCanvas();
+    await updatePreviewCanvas();
     await updateSliceResults();
   }
 
@@ -588,15 +846,19 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       state.sliceWidth = Number(widthInput.value) || 16;
       state.sliceHeight = Number(heightInput.value) || 16;
     }
+    resetMaskCache();
+    clearRegions();
     updateSliceInputs();
-    updatePreviewCanvas();
+    void updatePreviewCanvas();
     void updateSliceResults();
   }
 
   function handleCustomSizeChange(): void {
     state.sliceWidth = Math.max(1, Number(widthInput.value) || 1);
     state.sliceHeight = Math.max(1, Number(heightInput.value) || 1);
-    updatePreviewCanvas();
+    resetMaskCache();
+    clearRegions();
+    void updatePreviewCanvas();
     void updateSliceResults();
   }
 
@@ -613,13 +875,99 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   groupSelect.addEventListener('change', () => {
     state.groupType = groupSelect.value as AssetGroupType;
   });
+  skipEmptyInput.addEventListener('change', () => {
+    state.skipEmptyTiles = skipEmptyInput.checked;
+    void updatePreviewCanvas();
+    void updateSliceResults();
+  });
+
+  atlasOption.addEventListener('click', () => {
+    state.sliceMode = 'atlas';
+    updateModeToggle();
+  });
+  separateOption.addEventListener('click', () => {
+    state.sliceMode = 'separate';
+    updateModeToggle();
+  });
+
+  regionSelectButton.addEventListener('click', () => {
+    state.selectionMode = state.selectionMode === 'region' ? 'tile' : 'region';
+    regionSelectButton.classList.toggle('sprite-slicer__button--active', state.selectionMode === 'region');
+    if (state.selectionMode !== 'region') {
+      state.pendingRegion = null;
+      void updatePreviewCanvas();
+    }
+  });
+
+  previewCanvas.addEventListener('pointerdown', (event) => {
+    if (state.selectionMode !== 'region' || !state.imageBlob) {
+      return;
+    }
+    const tile = pointerToTile(event);
+    if (!tile) {
+      return;
+    }
+    state.pendingRegion = {
+      startCol: tile.col,
+      startRow: tile.row,
+      endCol: tile.col,
+      endRow: tile.row,
+    };
+    previewCanvas.setPointerCapture(event.pointerId);
+    void updatePreviewCanvas();
+  });
+
+  previewCanvas.addEventListener('pointermove', (event) => {
+    if (!state.pendingRegion) {
+      return;
+    }
+    const tile = pointerToTile(event);
+    if (!tile) {
+      return;
+    }
+    state.pendingRegion.endCol = tile.col;
+    state.pendingRegion.endRow = tile.row;
+    void updatePreviewCanvas();
+  });
+
+  previewCanvas.addEventListener('pointerup', () => {
+    if (!state.pendingRegion) {
+      return;
+    }
+
+    const minCol = Math.min(state.pendingRegion.startCol, state.pendingRegion.endCol);
+    const maxCol = Math.max(state.pendingRegion.startCol, state.pendingRegion.endCol);
+    const minRow = Math.min(state.pendingRegion.startRow, state.pendingRegion.endRow);
+    const maxRow = Math.max(state.pendingRegion.startRow, state.pendingRegion.endRow);
+
+    const rect = {
+      x: minCol * state.sliceWidth,
+      y: minRow * state.sliceHeight,
+      w: (maxCol - minCol + 1) * state.sliceWidth,
+      h: (maxRow - minRow + 1) * state.sliceHeight,
+    };
+
+    const baseName = state.imageName?.replace(/\.[^/.]+$/, '') ?? 'sprite';
+    const region: CustomRegion = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name: `${baseName}_region_${state.nextRegionIndex}`,
+      rect,
+    };
+    state.nextRegionIndex += 1;
+    state.customRegions.push(region);
+    state.pendingRegion = null;
+
+    updateRegionsList();
+    void updatePreviewCanvas();
+    void updateSliceResults();
+  });
 
   confirmButton.addEventListener('click', async () => {
     if (!state.imageBlob) return;
 
     if (state.sliceMode === 'atlas') {
       const imageDataUrl = await blobToDataUrl(state.imageBlob);
-      const atlasSlices = buildAtlasSlices();
+      const atlasSlices = await buildAtlasSlices();
       onAtlasConfirmed?.({
         imageDataUrl,
         imageWidth: state.imageWidth,
@@ -631,7 +979,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
         sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
       });
     } else {
-      const slices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight);
+      const slices = await buildSeparateSlices();
       state.slices = slices;
       onSlicesConfirmed?.({
         slices,
@@ -643,8 +991,10 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     }
   });
 
+  updateModeToggle();
+  updateRegionsList();
   updateSliceInputs();
-  updatePreviewCanvas();
+  void updatePreviewCanvas();
 
   return {
     destroy: () => {
