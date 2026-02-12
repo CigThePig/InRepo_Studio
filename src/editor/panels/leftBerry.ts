@@ -42,7 +42,7 @@ export interface LeftBerryController {
 
 const STYLES = `
   .left-berry-shell {
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 20;
@@ -78,6 +78,12 @@ const STYLES = `
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+
+  @media (max-width: 520px) {
+    .left-berry {
+      width: 100vw;
+    }
   }
 
   .left-berry-shell--open .left-berry {

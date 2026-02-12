@@ -1507,15 +1507,15 @@ async function initPanels(): Promise<void> {
   }
 
   if (isV2Enabled(EDITOR_V2_FLAGS.LEFT_BERRY)) {
-    const canvasContainer = document.getElementById('canvas-container');
-    if (canvasContainer && editorState) {
+    const editorContainer = document.getElementById('editor-container');
+    if (editorContainer && editorState) {
       const presetRegistry = createPresetRegistry();
       presetRegistryRef = presetRegistry;
       const presetConfigStore = createPresetConfigStore(presetRegistry);
       await presetConfigStore.load();
       presetConfigStoreRef = presetConfigStore;
 
-      leftBerryController = createLeftBerry(canvasContainer, {
+      leftBerryController = createLeftBerry(editorContainer, {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
         assetRegistry: assetRegistry ?? undefined,
@@ -1545,10 +1545,10 @@ async function initPanels(): Promise<void> {
   }
 
   if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
-    const canvasContainer = document.getElementById('canvas-container');
-    if (canvasContainer && editorState) {
+    const editorContainer = document.getElementById('editor-container');
+    if (editorContainer && editorState) {
       const initialTab = editorState.domain ?? 'ground';
-      rightBerryController = createRightBerry(canvasContainer, {
+      rightBerryController = createRightBerry(editorContainer, {
         initialOpen: editorState.rightBerryOpen,
         initialTab,
       });
