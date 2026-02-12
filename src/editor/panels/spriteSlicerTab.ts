@@ -427,8 +427,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       return;
     }
 
-    const maxWidth = Math.min(container.clientWidth - 24, 280);
-    const maxHeight = 240;
+    const maxWidth = Math.max(1, container.clientWidth - 24);
+    const maxHeight = Math.min(480, Math.floor(window.innerHeight * 0.45));
     const scale = Math.min(
       maxWidth / state.imageWidth,
       maxHeight / state.imageHeight,

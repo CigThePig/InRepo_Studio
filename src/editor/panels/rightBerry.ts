@@ -35,7 +35,7 @@ export interface RightBerryController {
 
 const STYLES = `
   .right-berry-shell {
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 20;
@@ -79,6 +79,12 @@ const STYLES = `
 
   .right-berry-shell--open .right-berry {
     transform: translateX(0);
+  }
+
+  @media (max-width: 520px) {
+    .right-berry {
+      width: 100vw;
+    }
   }
 
   .right-berry__header {
