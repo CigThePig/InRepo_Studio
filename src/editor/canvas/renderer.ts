@@ -27,6 +27,7 @@ import { getTile, LAYER_ORDER } from '@/types/scene';
 import type { TileImageCache } from './tileCache';
 import type { LayerVisibility, LayerLocks } from '@/storage/hot';
 import { createEntityRenderer, type EntityPreview } from './entityRenderer';
+import type { AssetRegistry } from '@/editor/assets/assetRegistry';
 
 const LOG_PREFIX = '[Renderer]';
 
@@ -138,6 +139,9 @@ export interface TilemapRenderer {
 
   /** Set entity types used for rendering */
   setEntityTypes(types: EntityType[]): void;
+
+  /** Set asset registry used for animation frame previews */
+  setAssetRegistry(assetRegistry: AssetRegistry | null): void;
 
   /** Set entity placement preview */
   setEntityPreview(preview: EntityPreview | null): void;
@@ -542,6 +546,11 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
     setEntityTypes(types: EntityType[]): void {
       entityRenderer.setEntityTypes(types);
+      dirty = true;
+    },
+
+    setAssetRegistry(assetRegistry: AssetRegistry | null): void {
+      entityRenderer.setAssetRegistry(assetRegistry);
       dirty = true;
     },
 
