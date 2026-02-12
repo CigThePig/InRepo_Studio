@@ -1,5 +1,12 @@
 import { sliceImage, type AssetGroupType, type SliceResult } from '@/editor/assets';
 
+export type SliceMode = 'separate' | 'atlas';
+
+export interface AtlasSliceEntry {
+  name: string;
+  rect: { x: number; y: number; w: number; h: number };
+}
+
 const STYLES = `
   .sprite-slicer {
     display: flex;
@@ -103,12 +110,52 @@ const STYLES = `
     background: rgba(22, 30, 60, 0.85);
     object-fit: cover;
   }
+
+  .sprite-slicer__mode-toggle {
+    display: flex;
+    gap: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+  }
+
+  .sprite-slicer__mode-option {
+    flex: 1;
+    min-height: 40px;
+    padding: 6px 10px;
+    border: none;
+    background: rgba(22, 30, 60, 0.85);
+    color: #9aa7d6;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .sprite-slicer__mode-option--active {
+    background: #2f3b66;
+    color: #ffffff;
+  }
+
+  .sprite-slicer__mode-option:not(:last-child) {
+    border-right: 1px solid rgba(83, 101, 164, 0.6);
+  }
 `;
 
 export interface SpriteSlicerTabConfig {
   container: HTMLElement;
   onSlicesConfirmed?: (payload: {
     slices: SliceResult[];
+    groupName: string;
+    groupType: AssetGroupType;
+    imageName: string | null;
+    sliceSize: { width: number; height: number };
+  }) => void;
+  onAtlasConfirmed?: (payload: {
+    imageDataUrl: string;
+    imageWidth: number;
+    imageHeight: number;
+    slices: AtlasSliceEntry[];
     groupName: string;
     groupType: AssetGroupType;
     imageName: string | null;
@@ -130,10 +177,11 @@ interface SpriteSlicerState {
   sliceWidth: number;
   sliceHeight: number;
   slices: SliceResult[];
+  sliceMode: SliceMode;
 }
 
 export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy: () => void } {
-  const { container, onSlicesConfirmed } = config;
+  const { container, onSlicesConfirmed, onAtlasConfirmed } = config;
 
   if (!document.getElementById('sprite-slicer-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -154,6 +202,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     sliceWidth: 16,
     sliceHeight: 16,
     slices: [],
+    sliceMode: 'atlas',
   };
 
   const root = document.createElement('div');
@@ -190,6 +239,57 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   importSection.appendChild(importTitle);
   importSection.appendChild(importRow);
 
+  // --- Mode Toggle ---
+  const modeSection = document.createElement('section');
+  modeSection.className = 'sprite-slicer__section';
+
+  const modeTitle = document.createElement('div');
+  modeTitle.className = 'sprite-slicer__title';
+  modeTitle.textContent = 'Import Mode';
+
+  const modeToggle = document.createElement('div');
+  modeToggle.className = 'sprite-slicer__mode-toggle';
+
+  const atlasOption = document.createElement('button');
+  atlasOption.type = 'button';
+  atlasOption.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  atlasOption.textContent = 'Keep sheet + register slices';
+
+  const separateOption = document.createElement('button');
+  separateOption.type = 'button';
+  separateOption.className = 'sprite-slicer__mode-option';
+  separateOption.textContent = 'Export as separate images';
+
+  modeToggle.appendChild(atlasOption);
+  modeToggle.appendChild(separateOption);
+
+  const modeHint = document.createElement('div');
+  modeHint.className = 'sprite-slicer__hint';
+  modeHint.textContent = 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.';
+
+  function updateModeToggle(): void {
+    atlasOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'atlas');
+    separateOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'separate');
+    modeHint.textContent = state.sliceMode === 'atlas'
+      ? 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.'
+      : 'Separate mode cuts the sheet into individual image files.';
+    confirmButton.textContent = state.sliceMode === 'atlas' ? 'Confirm Atlas Import' : 'Confirm Slice';
+  }
+
+  atlasOption.addEventListener('click', () => {
+    state.sliceMode = 'atlas';
+    updateModeToggle();
+  });
+  separateOption.addEventListener('click', () => {
+    state.sliceMode = 'separate';
+    updateModeToggle();
+  });
+
+  modeSection.appendChild(modeTitle);
+  modeSection.appendChild(modeToggle);
+  modeSection.appendChild(modeHint);
+
+  // --- Slice Settings ---
   const sliceSection = document.createElement('section');
   sliceSection.className = 'sprite-slicer__section';
 
@@ -282,7 +382,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   const confirmButton = document.createElement('button');
   confirmButton.type = 'button';
   confirmButton.className = 'sprite-slicer__button sprite-slicer__button--primary';
-  confirmButton.textContent = 'Confirm Slice';
+  confirmButton.textContent = 'Confirm Atlas Import';
   confirmButton.disabled = true;
 
   const sliceGrid = document.createElement('div');
@@ -294,6 +394,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   previewSection.appendChild(sliceGrid);
 
   root.appendChild(importSection);
+  root.appendChild(modeSection);
   root.appendChild(sliceSection);
   root.appendChild(previewSection);
   root.appendChild(fileInput);
@@ -409,6 +510,39 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     }
   }
 
+  function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function buildAtlasSlices(): AtlasSliceEntry[] {
+    const columns = Math.floor(state.imageWidth / state.sliceWidth);
+    const rows = Math.floor(state.imageHeight / state.sliceHeight);
+    const baseName = state.imageName?.replace(/\.[^/.]+$/, '') ?? 'slice';
+    const entries: AtlasSliceEntry[] = [];
+    let index = 0;
+
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < columns; col += 1) {
+        entries.push({
+          name: `${baseName}_${index}`,
+          rect: {
+            x: col * state.sliceWidth,
+            y: row * state.sliceHeight,
+            w: state.sliceWidth,
+            h: state.sliceHeight,
+          },
+        });
+        index += 1;
+      }
+    }
+    return entries;
+  }
+
   async function handleFileChange(event: Event): Promise<void> {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
@@ -482,15 +616,31 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   confirmButton.addEventListener('click', async () => {
     if (!state.imageBlob) return;
-    const slices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight);
-    state.slices = slices;
-    onSlicesConfirmed?.({
-      slices,
-      groupName: state.groupName,
-      groupType: state.groupType,
-      imageName: state.imageName,
-      sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
-    });
+
+    if (state.sliceMode === 'atlas') {
+      const imageDataUrl = await blobToDataUrl(state.imageBlob);
+      const atlasSlices = buildAtlasSlices();
+      onAtlasConfirmed?.({
+        imageDataUrl,
+        imageWidth: state.imageWidth,
+        imageHeight: state.imageHeight,
+        slices: atlasSlices,
+        groupName: state.groupName,
+        groupType: state.groupType,
+        imageName: state.imageName,
+        sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
+      });
+    } else {
+      const slices = await sliceImage(state.imageBlob, state.sliceWidth, state.sliceHeight);
+      state.slices = slices;
+      onSlicesConfirmed?.({
+        slices,
+        groupName: state.groupName,
+        groupType: state.groupType,
+        imageName: state.imageName,
+        sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
+      });
+    }
   });
 
   updateSliceInputs();
