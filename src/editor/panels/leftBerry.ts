@@ -402,6 +402,46 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
         });
         setActiveTab('assets');
       },
+      onAtlasConfirmed: (payload) => {
+        if (!assetRegistry) return;
+        const { imageDataUrl, imageWidth, imageHeight, slices, groupName, groupType, imageName } = payload;
+        const baseName = groupName || imageName || 'Asset Group';
+        const assetType = groupType === 'entities' ? 'entity' as const : groupType === 'props' ? 'sprite' as const : 'tile' as const;
+
+        // Import the spritesheet as a single source asset
+        const sourceAssets = assetRegistry.addAssets({
+          groupType,
+          groupName: baseName,
+          assets: [{
+            name: `${baseName} (sheet)`,
+            type: assetType,
+            dataUrl: imageDataUrl,
+            width: imageWidth,
+            height: imageHeight,
+            source: 'local',
+          }],
+        });
+        const sourceAsset = sourceAssets[0];
+        if (!sourceAsset) return;
+
+        // Create slice entries referencing the source sheet
+        const sliceAssets: AssetEntryInput[] = slices.map((slice) => ({
+          name: slice.name,
+          type: assetType,
+          dataUrl: imageDataUrl,
+          width: slice.rect.w,
+          height: slice.rect.h,
+          source: 'local' as const,
+          sourceAssetId: sourceAsset.id,
+          rect: { ...slice.rect },
+        }));
+        assetRegistry.addAssets({
+          groupType,
+          groupName: baseName,
+          assets: sliceAssets,
+        });
+        setActiveTab('assets');
+      },
     });
   }
 

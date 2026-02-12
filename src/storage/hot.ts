@@ -108,6 +108,7 @@ function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState 
       assets: group.assets.map((asset) => ({
         ...asset,
         source: asset.source ?? 'local',
+        rect: asset.rect ? { ...asset.rect } : undefined,
       })),
     })),
     animations: state.animations.map((animation) => ({

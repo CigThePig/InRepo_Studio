@@ -50,6 +50,26 @@ export interface EntityType {
   properties: PropertyDefinition[];
 }
 
+// --- Sprite Atlas ---
+
+export interface SpriteAtlasSlice {
+  /** Unique name for this slice within the atlas */
+  name: string;
+  /** Region within the spritesheet image */
+  rect: { x: number; y: number; w: number; h: number };
+}
+
+export interface SpriteAtlas {
+  /** Unique name for this atlas (e.g., "terrain-sheet") */
+  name: string;
+  /** Relative path to the spritesheet image */
+  path: string;
+  /** Slice size used to generate the atlas grid */
+  sliceSize: { width: number; height: number };
+  /** Individual slice definitions */
+  slices: SpriteAtlasSlice[];
+}
+
 // --- Project Settings ---
 
 export interface ProjectSettings {
@@ -72,6 +92,8 @@ export interface Project {
   tileCategories: TileCategory[];
   /** Available entity types */
   entityTypes: EntityType[];
+  /** Sprite atlas definitions for non-destructive spritesheet imports */
+  spriteAtlases?: SpriteAtlas[];
   /** Project-wide settings */
   settings: ProjectSettings;
 }
@@ -90,6 +112,7 @@ export function createDefaultProject(name: string = 'Untitled Project'): Project
     defaultScene: 'main',
     tileCategories: [],
     entityTypes: [],
+    spriteAtlases: [],
     settings: { ...DEFAULT_PROJECT_SETTINGS },
   };
 }
@@ -123,6 +146,17 @@ export function validateProject(project: unknown): project is Project {
     entityNames.add(ent.name);
   }
 
+  // Validate optional sprite atlases
+  if (p.spriteAtlases !== undefined) {
+    if (!Array.isArray(p.spriteAtlases)) return false;
+    const atlasNames = new Set<string>();
+    for (const atlas of p.spriteAtlases) {
+      if (!validateSpriteAtlas(atlas)) return false;
+      if (atlasNames.has(atlas.name)) return false;
+      atlasNames.add(atlas.name);
+    }
+  }
+
   return validateProjectSettings(p.settings);
 }
 
@@ -151,6 +185,32 @@ export function validateEntityType(ent: unknown): ent is EntityType {
   }
 
   return true;
+}
+
+export function validateSpriteAtlasSlice(slice: unknown): slice is SpriteAtlasSlice {
+  if (!slice || typeof slice !== 'object') return false;
+  const s = slice as Record<string, unknown>;
+  if (typeof s.name !== 'string') return false;
+  if (!s.rect || typeof s.rect !== 'object') return false;
+  const r = s.rect as Record<string, unknown>;
+  return (
+    typeof r.x === 'number' &&
+    typeof r.y === 'number' &&
+    typeof r.w === 'number' &&
+    typeof r.h === 'number'
+  );
+}
+
+export function validateSpriteAtlas(atlas: unknown): atlas is SpriteAtlas {
+  if (!atlas || typeof atlas !== 'object') return false;
+  const a = atlas as Record<string, unknown>;
+  if (typeof a.name !== 'string') return false;
+  if (typeof a.path !== 'string') return false;
+  if (!a.sliceSize || typeof a.sliceSize !== 'object') return false;
+  const sz = a.sliceSize as Record<string, unknown>;
+  if (typeof sz.width !== 'number' || typeof sz.height !== 'number') return false;
+  if (!Array.isArray(a.slices)) return false;
+  return a.slices.every((s) => validateSpriteAtlasSlice(s));
 }
 
 export function validateProjectSettings(settings: unknown): settings is ProjectSettings {

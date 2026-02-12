@@ -11,6 +11,8 @@ export type {
   ProjectSettings,
   TileCategory,
   EntityType,
+  SpriteAtlas,
+  SpriteAtlasSlice,
 } from './project';
 
 export {
@@ -20,6 +22,8 @@ export {
   validateTileCategory,
   validateEntityType,
   validateProjectSettings,
+  validateSpriteAtlas,
+  validateSpriteAtlasSlice,
 } from './project';
 
 // Scene types

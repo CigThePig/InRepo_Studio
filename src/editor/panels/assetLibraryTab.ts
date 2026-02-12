@@ -159,7 +159,8 @@ const STYLES = `
     background: rgba(47, 59, 102, 0.9);
   }
 
-  .asset-library__asset img {
+  .asset-library__asset img,
+  .asset-library__asset canvas {
     width: 100%;
     border-radius: 8px;
     object-fit: cover;
@@ -354,14 +355,44 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return wrapper;
   }
 
+  function renderSliceThumbnail(asset: AssetEntry): HTMLElement {
+    const rect = asset.rect!;
+    const canvas = document.createElement('canvas');
+    const thumbSize = 72;
+    canvas.width = thumbSize;
+    canvas.height = thumbSize;
+    canvas.style.imageRendering = 'pixelated';
+
+    const sourceUrl = resolveAssetUrl(asset.dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+      const scale = Math.min(thumbSize / rect.w, thumbSize / rect.h);
+      const dw = rect.w * scale;
+      const dh = rect.h * scale;
+      const dx = (thumbSize - dw) / 2;
+      const dy = (thumbSize - dh) / 2;
+      ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, dx, dy, dw, dh);
+    };
+    img.src = sourceUrl;
+    return canvas;
+  }
+
   function renderAssetCard(asset: AssetEntry, selectedAssetId: string | null): HTMLElement {
     const card = document.createElement('div');
     card.className = 'asset-library__asset';
     card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
 
-    const img = document.createElement('img');
-    img.src = resolveAssetUrl(asset.dataUrl);
-    img.alt = asset.name;
+    if (asset.sourceAssetId && asset.rect) {
+      card.appendChild(renderSliceThumbnail(asset));
+    } else {
+      const img = document.createElement('img');
+      img.src = resolveAssetUrl(asset.dataUrl);
+      img.alt = asset.name;
+      card.appendChild(img);
+    }
 
     const name = document.createElement('div');
     name.className = 'asset-library__asset-name';
@@ -371,7 +402,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     meta.className = 'asset-library__asset-meta';
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
-    meta.textContent = `${sizeLabel} · ${sourceLabel}`;
+    const sliceLabel = asset.sourceAssetId ? ' · Slice' : '';
+    meta.textContent = `${sizeLabel} · ${sourceLabel}${sliceLabel}`;
 
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
@@ -382,7 +414,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       assetRegistry.removeAsset(asset.id);
     });
 
-    card.appendChild(img);
     card.appendChild(name);
     card.appendChild(meta);
     card.appendChild(deleteButton);

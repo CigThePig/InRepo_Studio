@@ -65,6 +65,10 @@ export interface AssetEntry {
   width: number;
   height: number;
   createdAt: number;
+  /** If this asset is a slice of a spritesheet, references the parent asset */
+  sourceAssetId?: string;
+  /** Region within the parent spritesheet (used when sourceAssetId is set) */
+  rect?: { x: number; y: number; w: number; h: number };
 }
 
 export interface AssetRegistryState {
@@ -80,6 +84,10 @@ export interface AssetEntryInput {
   dataUrl: string;
   width: number;
   height: number;
+  /** If this asset is a slice of a spritesheet, references the parent asset */
+  sourceAssetId?: string;
+  /** Region within the parent spritesheet (used when sourceAssetId is set) */
+  rect?: { x: number; y: number; w: number; h: number };
 }
 
 export interface AnimationAssetInput {
@@ -142,7 +150,10 @@ function cloneGroup(group: AssetGroup): AssetGroup {
     type: group.type,
     name: group.name,
     slug: group.slug,
-    assets: group.assets.map((asset) => ({ ...asset })),
+    assets: group.assets.map((asset) => ({
+      ...asset,
+      rect: asset.rect ? { ...asset.rect } : undefined,
+    })),
   };
 }
 
@@ -354,6 +365,8 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       id: generateAssetId(),
       createdAt: Date.now(),
       source: asset.source ?? 'local',
+      sourceAssetId: asset.sourceAssetId,
+      rect: asset.rect ? { ...asset.rect } : undefined,
     }));
 
     const updatedGroup: AssetGroup = {

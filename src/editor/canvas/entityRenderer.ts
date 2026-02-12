@@ -36,6 +36,17 @@ export interface EntityPreview {
   type: string;
 }
 
+/** Resolved sprite draw information */
+interface SpriteDrawInfo {
+  image: HTMLImageElement;
+  /** Source rect within the image (for spritesheets) */
+  srcRect?: { x: number; y: number; w: number; h: number };
+  /** Draw width in tiles (can be >1 for larger sprites) */
+  tileWidth: number;
+  /** Draw height in tiles (can be >1 for larger sprites) */
+  tileHeight: number;
+}
+
 interface SpriteCache {
   getImage(source: string): HTMLImageElement | null;
 }
@@ -105,18 +116,19 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     return label.trim().charAt(0).toUpperCase() || '?';
   }
 
-  function isCulled(
+  function isCulledRect(
     screenX: number,
     screenY: number,
-    halfSize: number,
+    drawW: number,
+    drawH: number,
     canvasWidth: number,
     canvasHeight: number
   ): boolean {
     return (
-      screenX + halfSize < 0 ||
-      screenY + halfSize < 0 ||
-      screenX - halfSize > canvasWidth ||
-      screenY - halfSize > canvasHeight
+      screenX + drawW / 2 < 0 ||
+      screenY + drawH / 2 < 0 ||
+      screenX - drawW / 2 > canvasWidth ||
+      screenY - drawH / 2 > canvasHeight
     );
   }
 
@@ -140,18 +152,66 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     ctx.restore();
   }
 
-  function drawHighlight(
+  function drawHighlightRect(
     ctx: CanvasRenderingContext2D,
     screenX: number,
     screenY: number,
-    size: number,
+    drawW: number,
+    drawH: number,
     zoom: number
   ): void {
     ctx.save();
     ctx.strokeStyle = HIGHLIGHT_STROKE;
     ctx.lineWidth = HIGHLIGHT_LINE_WIDTH / Math.max(1, zoom);
-    ctx.strokeRect(screenX - size / 2 - 2, screenY - size / 2 - 2, size + 4, size + 4);
+    ctx.strokeRect(
+      screenX - drawW / 2 - 2,
+      screenY - drawH / 2 - 2,
+      drawW + 4,
+      drawH + 4
+    );
     ctx.restore();
+  }
+
+  /** Compute tile dimensions from a rect relative to tileSize */
+  function rectToTileDims(
+    rect: { w: number; h: number },
+    tileSize: number
+  ): { tw: number; th: number } {
+    return {
+      tw: Math.max(1, rect.w / tileSize),
+      th: Math.max(1, rect.h / tileSize),
+    };
+  }
+
+  /** Try to resolve a sprite asset (slice or standalone) from entity properties */
+  function getSpriteAssetInfo(entity: EntityInstance, tileSize: number): SpriteDrawInfo | null {
+    const spriteAssetId = entity.properties?.spriteAssetId;
+    if (typeof spriteAssetId !== 'string' || !spriteAssetId.trim() || !assetRegistry) {
+      return null;
+    }
+
+    const asset = assetRegistry.getAsset(spriteAssetId);
+    if (!asset?.dataUrl) return null;
+
+    // Slice asset: crop from source sheet
+    if (asset.sourceAssetId && asset.rect) {
+      const image = spriteCache.getImage(asset.dataUrl);
+      if (!image) return null;
+      const dims = rectToTileDims(asset.rect, tileSize);
+      return {
+        image,
+        srcRect: asset.rect,
+        tileWidth: dims.tw,
+        tileHeight: dims.th,
+      };
+    }
+
+    // Standalone asset: draw the whole image
+    const image = spriteCache.getImage(asset.dataUrl);
+    if (!image) return null;
+    const tw = Math.max(1, asset.width / tileSize);
+    const th = Math.max(1, asset.height / tileSize);
+    return { image, tileWidth: tw, tileHeight: th };
   }
 
   function drawEntity(
@@ -166,35 +226,89 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
   ): void {
     const entityType = getEntityType(entity.type);
     const screenPos = worldToScreen(viewport, entity.x, entity.y);
-    const size = tileSize * viewport.zoom;
-    const halfSize = size / 2;
+    const baseTileScreen = tileSize * viewport.zoom;
 
-    if (isCulled(screenPos.x, screenPos.y, halfSize, canvasWidth, canvasHeight)) {
-      return;
-    }
-
+    // Try animation frame first
     const animationFrame = getAnimationFrame(entity);
     if (animationFrame) {
       const sprite = spriteCache.getImage(animationFrame.source);
       if (sprite) {
+        const dims = rectToTileDims(animationFrame.frame.rect, tileSize);
+        const drawW = dims.tw * baseTileScreen;
+        const drawH = dims.th * baseTileScreen;
+
+        if (!isCulledRect(screenPos.x, screenPos.y, drawW, drawH, canvasWidth, canvasHeight)) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(
+            sprite,
+            animationFrame.frame.rect.x,
+            animationFrame.frame.rect.y,
+            animationFrame.frame.rect.w,
+            animationFrame.frame.rect.h,
+            screenPos.x - drawW / 2,
+            screenPos.y - drawH / 2,
+            drawW,
+            drawH
+          );
+          ctx.restore();
+
+          if (highlight) {
+            drawHighlightRect(ctx, screenPos.x, screenPos.y, drawW, drawH, viewport.zoom);
+          }
+        }
+        return;
+      }
+    }
+
+    // Try sprite asset (slice or standalone from entity properties)
+    const spriteInfo = getSpriteAssetInfo(entity, tileSize);
+    if (spriteInfo) {
+      const drawW = spriteInfo.tileWidth * baseTileScreen;
+      const drawH = spriteInfo.tileHeight * baseTileScreen;
+
+      if (!isCulledRect(screenPos.x, screenPos.y, drawW, drawH, canvasWidth, canvasHeight)) {
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.drawImage(
-          sprite,
-          animationFrame.frame.rect.x,
-          animationFrame.frame.rect.y,
-          animationFrame.frame.rect.w,
-          animationFrame.frame.rect.h,
-          screenPos.x - halfSize,
-          screenPos.y - halfSize,
-          size,
-          size
-        );
+        if (spriteInfo.srcRect) {
+          ctx.drawImage(
+            spriteInfo.image,
+            spriteInfo.srcRect.x,
+            spriteInfo.srcRect.y,
+            spriteInfo.srcRect.w,
+            spriteInfo.srcRect.h,
+            screenPos.x - drawW / 2,
+            screenPos.y - drawH / 2,
+            drawW,
+            drawH
+          );
+        } else {
+          ctx.drawImage(
+            spriteInfo.image,
+            screenPos.x - drawW / 2,
+            screenPos.y - drawH / 2,
+            drawW,
+            drawH
+          );
+        }
         ctx.restore();
-      } else {
-        drawPlaceholder(ctx, screenPos.x, screenPos.y, size, getEntityLabel(entityType, entity.type), alpha);
+
+        if (highlight) {
+          drawHighlightRect(ctx, screenPos.x, screenPos.y, drawW, drawH, viewport.zoom);
+        }
       }
-    } else if (entityType?.sprite) {
+      return;
+    }
+
+    // Fallback: entity type sprite or placeholder (1×1 tile)
+    const size = baseTileScreen;
+    const halfSize = size / 2;
+
+    if (isCulledRect(screenPos.x, screenPos.y, size, size, canvasWidth, canvasHeight)) {
+      return;
+    }
+
+    if (entityType?.sprite) {
       const sprite = spriteCache.getImage(entityType.sprite);
       if (sprite) {
         ctx.save();
@@ -209,7 +323,7 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     }
 
     if (highlight) {
-      drawHighlight(ctx, screenPos.x, screenPos.y, size, viewport.zoom);
+      drawHighlightRect(ctx, screenPos.x, screenPos.y, size, size, viewport.zoom);
     }
   }
 
