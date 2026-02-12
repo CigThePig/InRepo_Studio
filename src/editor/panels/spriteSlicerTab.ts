@@ -174,6 +174,43 @@ const STYLES = `
     color: #dbe4ff;
   }
 
+  .sprite-slicer__region-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sprite-slicer__region-name {
+    min-height: 44px;
+    border: none;
+    background: transparent;
+    color: #dbe4ff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .sprite-slicer__region-name-input {
+    min-height: 44px;
+    max-width: 180px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(83, 101, 164, 0.8);
+    background: rgba(22, 30, 60, 0.95);
+    color: #f2f5ff;
+    font-size: 12px;
+  }
+
+  .sprite-slicer__region-size {
+    color: #9aa7d6;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
   .sprite-slicer__region-remove {
     min-height: 30px;
     padding: 4px 8px;
@@ -229,6 +266,11 @@ interface SpriteSlicerState {
   cachedNonEmptyMask: boolean[][] | null;
   nextRegionIndex: number;
   previewRenderId: number;
+  previewImage: HTMLImageElement | null;
+  previewImageReady: boolean;
+  previewImageUrlLoaded: string | null;
+  previewRafPending: boolean;
+  lastPreviewLayout: { w: number; h: number; scale: number; dpr: number } | null;
 }
 
 export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy: () => void } {
@@ -262,6 +304,11 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     cachedNonEmptyMask: null,
     nextRegionIndex: 1,
     previewRenderId: 0,
+    previewImage: null,
+    previewImageReady: false,
+    previewImageUrlLoaded: null,
+    previewRafPending: false,
+    lastPreviewLayout: null,
   };
 
   const root = document.createElement('div');
@@ -530,8 +577,74 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       item.className = 'sprite-slicer__region-item';
       const widthTiles = Math.floor(region.rect.w / state.sliceWidth);
       const heightTiles = Math.floor(region.rect.h / state.sliceHeight);
-      const label = document.createElement('span');
-      label.textContent = `${region.name} (${widthTiles}x${heightTiles})`;
+
+      const main = document.createElement('div');
+      main.className = 'sprite-slicer__region-main';
+
+      const nameButton = document.createElement('button');
+      nameButton.type = 'button';
+      nameButton.className = 'sprite-slicer__region-name';
+      nameButton.textContent = region.name;
+      nameButton.title = 'Tap to rename';
+
+      const startRename = (): void => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'sprite-slicer__region-name-input';
+        input.value = region.name;
+        main.replaceChild(input, nameButton);
+        input.focus();
+        input.select();
+
+        const commitRename = (): void => {
+          const previousName = region.name;
+          let nextName = input.value.trim();
+          if (!nextName) {
+            nextName = previousName;
+          }
+
+          const takenNames = new Set(
+            state.customRegions
+              .filter((entry) => entry.id !== region.id)
+              .map((entry) => entry.name.toLowerCase())
+          );
+          const candidateBase = nextName;
+          let suffix = 2;
+          while (takenNames.has(nextName.toLowerCase())) {
+            nextName = `${candidateBase}_${suffix}`;
+            suffix += 1;
+          }
+
+          if (region.name !== nextName) {
+            region.name = nextName;
+          }
+
+          updateRegionsList();
+          schedulePreviewRender();
+          void updateSliceResults();
+        };
+
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commitRename();
+          } else if (event.key === 'Escape') {
+            updateRegionsList();
+          }
+        });
+
+        input.addEventListener('blur', commitRename, { once: true });
+      };
+
+      nameButton.addEventListener('click', startRename);
+
+      const size = document.createElement('span');
+      size.className = 'sprite-slicer__region-size';
+      size.textContent = `(${widthTiles}x${heightTiles})`;
+
+      main.appendChild(nameButton);
+      main.appendChild(size);
+
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'sprite-slicer__region-remove';
@@ -539,14 +652,130 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       remove.addEventListener('click', () => {
         state.customRegions = state.customRegions.filter((entry) => entry.id !== region.id);
         updateRegionsList();
-        void updatePreviewCanvas();
+        schedulePreviewRender();
         void updateSliceResults();
       });
-      item.appendChild(label);
+      item.appendChild(main);
       item.appendChild(remove);
       regionsList.appendChild(item);
     });
   }
+
+  function schedulePreviewRender(): void {
+    if (state.previewRafPending) {
+      return;
+    }
+    state.previewRafPending = true;
+    window.requestAnimationFrame(() => {
+      state.previewRafPending = false;
+      void updatePreviewCanvas();
+    });
+  }
+
+  async function ensurePreviewImageLoaded(): Promise<void> {
+    if (!state.imageUrl) {
+      state.previewImage = null;
+      state.previewImageReady = false;
+      state.previewImageUrlLoaded = null;
+      return;
+    }
+
+    if (state.previewImageUrlLoaded === state.imageUrl && state.previewImage && state.previewImageReady) {
+      return;
+    }
+
+    const imageUrl = state.imageUrl;
+    const image = new Image();
+    state.previewImageReady = false;
+    await new Promise<void>((resolve) => {
+      image.onload = () => {
+        if (state.imageUrl === imageUrl) {
+          state.previewImage = image;
+          state.previewImageReady = true;
+          state.previewImageUrlLoaded = imageUrl;
+        }
+        resolve();
+      };
+      image.onerror = () => {
+        if (state.imageUrl === imageUrl) {
+          state.previewImage = null;
+          state.previewImageReady = false;
+          state.previewImageUrlLoaded = null;
+        }
+        resolve();
+      };
+      image.src = imageUrl;
+    });
+  }
+
+  function drawPreviewBase(ctx: CanvasRenderingContext2D, displayWidth: number, displayHeight: number, scale: number): void {
+    if (state.previewImage) {
+      ctx.drawImage(state.previewImage, 0, 0, displayWidth, displayHeight);
+    }
+
+    const tileWidth = state.sliceWidth * scale;
+    const tileHeight = state.sliceHeight * scale;
+    const { columns, rows } = getGridSize();
+
+    ctx.strokeStyle = 'rgba(74, 158, 255, 0.6)';
+    ctx.lineWidth = 1;
+    for (let col = 0; col <= columns; col += 1) {
+      const x = Math.floor(col * tileWidth) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, rows * tileHeight);
+      ctx.stroke();
+    }
+
+    for (let row = 0; row <= rows; row += 1) {
+      const y = Math.floor(row * tileHeight) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(columns * tileWidth, y);
+      ctx.stroke();
+    }
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 184, 46, 0.95)';
+    state.customRegions.forEach((region) => {
+      ctx.strokeRect(
+        region.rect.x * scale + 1,
+        region.rect.y * scale + 1,
+        Math.max(1, region.rect.w * scale - 2),
+        Math.max(1, region.rect.h * scale - 2)
+      );
+    });
+
+    if (state.pendingRegion) {
+      const minCol = Math.min(state.pendingRegion.startCol, state.pendingRegion.endCol);
+      const maxCol = Math.max(state.pendingRegion.startCol, state.pendingRegion.endCol);
+      const minRow = Math.min(state.pendingRegion.startRow, state.pendingRegion.endRow);
+      const maxRow = Math.max(state.pendingRegion.startRow, state.pendingRegion.endRow);
+      ctx.strokeStyle = 'rgba(125, 232, 126, 0.95)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(
+        minCol * tileWidth + 1,
+        minRow * tileHeight + 1,
+        Math.max(1, (maxCol - minCol + 1) * tileWidth - 2),
+        Math.max(1, (maxRow - minRow + 1) * tileHeight - 2)
+      );
+    }
+  }
+
+  function drawPreviewMask(mask: boolean[][], ctx: CanvasRenderingContext2D, scale: number): void {
+    const tileWidth = state.sliceWidth * scale;
+    const tileHeight = state.sliceHeight * scale;
+    const { columns, rows } = getGridSize();
+    ctx.fillStyle = 'rgba(6, 10, 22, 0.4)';
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < columns; col += 1) {
+        if (!mask[row]?.[col]) {
+          ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+        }
+      }
+    }
+  }
+
 
   async function buildSeparateSlices(): Promise<SliceResult[]> {
     if (!state.imageBlob) {
@@ -626,6 +855,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     if (!ctx || !state.imageUrl || state.imageWidth === 0 || state.imageHeight === 0) {
       previewCanvas.width = 1;
       previewCanvas.height = 1;
+      state.lastPreviewLayout = null;
       previewMeta.textContent = 'Import an image to preview slices.';
       return;
     }
@@ -640,95 +870,55 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     const displayHeight = Math.max(1, Math.floor(state.imageHeight * scale));
     const dpr = window.devicePixelRatio || 1;
 
-    previewCanvas.width = displayWidth * dpr;
-    previewCanvas.height = displayHeight * dpr;
+    const needsResize =
+      !state.lastPreviewLayout ||
+      state.lastPreviewLayout.w !== displayWidth ||
+      state.lastPreviewLayout.h !== displayHeight ||
+      state.lastPreviewLayout.dpr !== dpr;
+
+    if (needsResize) {
+      previewCanvas.width = displayWidth * dpr;
+      previewCanvas.height = displayHeight * dpr;
+      state.lastPreviewLayout = { w: displayWidth, h: displayHeight, scale, dpr };
+    } else if (state.lastPreviewLayout) {
+      state.lastPreviewLayout.scale = scale;
+    }
+
     previewCanvas.style.width = `${displayWidth}px`;
     previewCanvas.style.height = `${displayHeight}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, displayWidth, displayHeight);
 
-    const img = new Image();
-    await new Promise<void>((resolve) => {
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-      img.src = state.imageUrl as string;
-    });
+    await ensurePreviewImageLoaded();
     if (state.previewRenderId !== renderId) {
       return;
     }
 
-    ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+    if (!state.previewImage || !state.previewImageReady) {
+      previewMeta.textContent = 'Loading preview image…';
+      return;
+    }
 
-    const tileWidth = state.sliceWidth * scale;
-    const tileHeight = state.sliceHeight * scale;
-    const { columns, rows } = getGridSize();
+    ctx.clearRect(0, 0, displayWidth, displayHeight);
+    drawPreviewBase(ctx, displayWidth, displayHeight, scale);
 
-    if (state.skipEmptyTiles) {
+    const isDraggingRegion = state.pendingRegion !== null;
+    if (state.skipEmptyTiles && !isDraggingRegion) {
       const mask = await getNonEmptyMask();
       if (state.previewRenderId !== renderId) {
         return;
       }
       if (mask) {
-        ctx.fillStyle = 'rgba(6, 10, 22, 0.4)';
-        for (let row = 0; row < rows; row += 1) {
-          for (let col = 0; col < columns; col += 1) {
-            if (!mask[row]?.[col]) {
-              ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
-            }
-          }
-        }
+        drawPreviewMask(mask, ctx, scale);
       }
     }
 
-    ctx.strokeStyle = 'rgba(74, 158, 255, 0.6)';
-    ctx.lineWidth = 1;
-    for (let col = 0; col <= columns; col += 1) {
-      const x = Math.floor(col * tileWidth) + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, rows * tileHeight);
-      ctx.stroke();
-    }
-
-    for (let row = 0; row <= rows; row += 1) {
-      const y = Math.floor(row * tileHeight) + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(columns * tileWidth, y);
-      ctx.stroke();
-    }
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255, 184, 46, 0.95)';
-    state.customRegions.forEach((region) => {
-      ctx.strokeRect(
-        region.rect.x * scale + 1,
-        region.rect.y * scale + 1,
-        Math.max(1, region.rect.w * scale - 2),
-        Math.max(1, region.rect.h * scale - 2)
-      );
-    });
-
-    if (state.pendingRegion) {
-      const minCol = Math.min(state.pendingRegion.startCol, state.pendingRegion.endCol);
-      const maxCol = Math.max(state.pendingRegion.startCol, state.pendingRegion.endCol);
-      const minRow = Math.min(state.pendingRegion.startRow, state.pendingRegion.endRow);
-      const maxRow = Math.max(state.pendingRegion.startRow, state.pendingRegion.endRow);
-      ctx.strokeStyle = 'rgba(125, 232, 126, 0.95)';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(
-        minCol * tileWidth + 1,
-        minRow * tileHeight + 1,
-        Math.max(1, (maxCol - minCol + 1) * tileWidth - 2),
-        Math.max(1, (maxRow - minRow + 1) * tileHeight - 2)
-      );
-    }
-
+    const { columns, rows } = getGridSize();
     const remainderX = state.imageWidth % state.sliceWidth;
     const remainderY = state.imageHeight % state.sliceHeight;
     const remainderNote = remainderX !== 0 || remainderY !== 0 ? ' (extra pixels will be ignored)' : '';
     previewMeta.textContent = `${state.imageWidth}×${state.imageHeight}px — ${columns}×${rows} tiles${remainderNote}`;
   }
+
 
   async function updateSliceResults(): Promise<void> {
     clearSlices();
@@ -813,6 +1003,10 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.imageBlob = file;
     state.imageName = file.name;
     state.imageUrl = URL.createObjectURL(file);
+    state.previewImage = null;
+    state.previewImageReady = false;
+    state.previewImageUrlLoaded = null;
+    state.lastPreviewLayout = null;
     state.groupName = file.name.replace(/\.[^/.]+$/, '');
     groupInput.value = state.groupName;
     clearRegions();
@@ -822,14 +1016,14 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     img.onload = () => {
       state.imageWidth = img.naturalWidth;
       state.imageHeight = img.naturalHeight;
-      void updatePreviewCanvas();
+      schedulePreviewRender();
     };
     img.onerror = () => {
       previewMeta.textContent = 'Failed to load image.';
     };
     img.src = state.imageUrl;
 
-    await updatePreviewCanvas();
+    schedulePreviewRender();
     await updateSliceResults();
   }
 
@@ -849,7 +1043,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     resetMaskCache();
     clearRegions();
     updateSliceInputs();
-    void updatePreviewCanvas();
+    schedulePreviewRender();
     void updateSliceResults();
   }
 
@@ -858,7 +1052,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.sliceHeight = Math.max(1, Number(heightInput.value) || 1);
     resetMaskCache();
     clearRegions();
-    void updatePreviewCanvas();
+    schedulePreviewRender();
     void updateSliceResults();
   }
 
@@ -877,7 +1071,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   });
   skipEmptyInput.addEventListener('change', () => {
     state.skipEmptyTiles = skipEmptyInput.checked;
-    void updatePreviewCanvas();
+    schedulePreviewRender();
     void updateSliceResults();
   });
 
@@ -895,7 +1089,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     regionSelectButton.classList.toggle('sprite-slicer__button--active', state.selectionMode === 'region');
     if (state.selectionMode !== 'region') {
       state.pendingRegion = null;
-      void updatePreviewCanvas();
+      schedulePreviewRender();
     }
   });
 
@@ -914,7 +1108,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       endRow: tile.row,
     };
     previewCanvas.setPointerCapture(event.pointerId);
-    void updatePreviewCanvas();
+    schedulePreviewRender();
   });
 
   previewCanvas.addEventListener('pointermove', (event) => {
@@ -927,7 +1121,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     }
     state.pendingRegion.endCol = tile.col;
     state.pendingRegion.endRow = tile.row;
-    void updatePreviewCanvas();
+    schedulePreviewRender();
   });
 
   previewCanvas.addEventListener('pointerup', () => {
@@ -958,7 +1152,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.pendingRegion = null;
 
     updateRegionsList();
-    void updatePreviewCanvas();
+    schedulePreviewRender();
     void updateSliceResults();
   });
 
@@ -994,7 +1188,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   updateModeToggle();
   updateRegionsList();
   updateSliceInputs();
-  void updatePreviewCanvas();
+  schedulePreviewRender();
 
   return {
     destroy: () => {
