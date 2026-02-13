@@ -176,6 +176,40 @@ const STYLES = `
     color: #93a1d8;
   }
 
+  .asset-library__asset-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .asset-library__asset-action-btn {
+    min-height: 44px;
+    border: 1px solid rgba(83, 101, 164, 0.7);
+    border-radius: 10px;
+    background: rgba(27, 42, 82, 0.95);
+    color: #dbe4ff;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .asset-library__asset-action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .asset-library__asset-rename-input {
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.7);
+    background: rgba(16, 24, 48, 0.95);
+    color: #f2f5ff;
+    padding: 8px;
+    font-size: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .asset-library__asset-delete {
     position: absolute;
     top: 4px;
@@ -271,10 +305,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   const expandedGroups = new Set<string>();
+  const organizeGroups = new Set<string>();
   const uploadStatus = new Map<
     string,
     { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
   >();
+  let editingAssetId: string | null = null;
+  let editingName = '';
 
   const root = document.createElement('div');
   root.className = 'asset-library';
@@ -337,7 +374,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return `${group.type}:${group.slug}`;
   }
 
-  function renderAssets(group: AssetGroup, selectedAssetId: string | null): HTMLElement {
+  function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'asset-library__assets';
 
@@ -349,8 +386,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       return wrapper;
     }
 
-    group.assets.forEach((asset) => {
-      wrapper.appendChild(renderAssetCard(asset, selectedAssetId));
+    group.assets.forEach((asset, index) => {
+      wrapper.appendChild(renderAssetCard({
+        group,
+        asset,
+        assetIndex: index,
+        assetCount: group.assets.length,
+        selectedAssetId,
+        organizeMode,
+      }));
     });
     return wrapper;
   }
@@ -380,7 +424,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return canvas;
   }
 
-  function renderAssetCard(asset: AssetEntry, selectedAssetId: string | null): HTMLElement {
+  function renderAssetCard(options: {
+    group: AssetGroup;
+    asset: AssetEntry;
+    assetIndex: number;
+    assetCount: number;
+    selectedAssetId: string | null;
+    organizeMode: boolean;
+  }): HTMLElement {
+    const { group, asset, assetIndex, assetCount, selectedAssetId, organizeMode } = options;
     const card = document.createElement('div');
     card.className = 'asset-library__asset';
     card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
@@ -394,9 +446,53 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       card.appendChild(img);
     }
 
-    const name = document.createElement('div');
-    name.className = 'asset-library__asset-name';
-    name.textContent = asset.name;
+    const isEditingName = editingAssetId === asset.id;
+    if (isEditingName) {
+      const renameInput = document.createElement('input');
+      renameInput.className = 'asset-library__asset-rename-input';
+      renameInput.type = 'text';
+      renameInput.value = editingName;
+      renameInput.maxLength = 64;
+
+      const commitRename = () => {
+        assetRegistry.renameAsset(asset.id, renameInput.value);
+        editingAssetId = null;
+        editingName = '';
+        refresh();
+      };
+
+      const cancelRename = () => {
+        editingAssetId = null;
+        editingName = '';
+        refresh();
+      };
+
+      renameInput.addEventListener('input', () => {
+        editingName = renameInput.value;
+      });
+      renameInput.addEventListener('click', (event) => event.stopPropagation());
+      renameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
+      renameInput.addEventListener('keydown', (event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          commitRename();
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelRename();
+        }
+      });
+      renameInput.addEventListener('blur', commitRename);
+
+      card.appendChild(renameInput);
+      queueMicrotask(() => renameInput.focus());
+    } else {
+      const name = document.createElement('div');
+      name.className = 'asset-library__asset-name';
+      name.textContent = asset.name;
+      card.appendChild(name);
+    }
 
     const meta = document.createElement('div');
     meta.className = 'asset-library__asset-meta';
@@ -414,8 +510,63 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       assetRegistry.removeAsset(asset.id);
     });
 
-    card.appendChild(name);
     card.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'asset-library__asset-actions';
+
+    const renameButton = document.createElement('button');
+    renameButton.type = 'button';
+    renameButton.className = 'asset-library__asset-action-btn';
+    renameButton.textContent = isEditingName ? 'Cancel' : 'Rename';
+    renameButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (editingAssetId === asset.id) {
+        editingAssetId = null;
+        editingName = '';
+      } else {
+        editingAssetId = asset.id;
+        editingName = asset.name;
+      }
+      refresh();
+    });
+    actions.appendChild(renameButton);
+
+    if (organizeMode) {
+      const moveUpButton = document.createElement('button');
+      moveUpButton.type = 'button';
+      moveUpButton.className = 'asset-library__asset-action-btn';
+      moveUpButton.textContent = 'Move Up';
+      moveUpButton.disabled = assetIndex <= 0;
+      moveUpButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        assetRegistry.reorderAsset({
+          groupType: group.type,
+          groupSlug: group.slug,
+          fromIndex: assetIndex,
+          toIndex: assetIndex - 1,
+        });
+      });
+      actions.appendChild(moveUpButton);
+
+      const moveDownButton = document.createElement('button');
+      moveDownButton.type = 'button';
+      moveDownButton.className = 'asset-library__asset-action-btn';
+      moveDownButton.textContent = 'Move Down';
+      moveDownButton.disabled = assetIndex >= assetCount - 1;
+      moveDownButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        assetRegistry.reorderAsset({
+          groupType: group.type,
+          groupSlug: group.slug,
+          fromIndex: assetIndex,
+          toIndex: assetIndex + 1,
+        });
+      });
+      actions.appendChild(moveDownButton);
+    }
+
+    card.appendChild(actions);
     card.appendChild(deleteButton);
 
     card.addEventListener('click', () => {
@@ -469,7 +620,22 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           <span class="asset-library__group-count">${group.assets.length} assets</span>
         `;
 
-        const assetsContainer = renderAssets(group, selectedAssetId);
+        const organizeToggle = document.createElement('button');
+        organizeToggle.type = 'button';
+        organizeToggle.className = 'asset-library__button';
+        const organizeEnabled = organizeGroups.has(key);
+        organizeToggle.textContent = organizeEnabled ? 'Done' : 'Organize';
+        organizeToggle.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (organizeGroups.has(key)) {
+            organizeGroups.delete(key);
+          } else {
+            organizeGroups.add(key);
+          }
+          refresh();
+        });
+
+        const assetsContainer = renderAssets(group, selectedAssetId, organizeEnabled);
         assetsContainer.classList.toggle('asset-library__assets--open', isOpen);
 
         toggle.addEventListener('click', () => {
@@ -564,6 +730,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           actions.appendChild(status);
           actions.appendChild(uploadButton);
+          actions.prepend(organizeToggle);
+          header.appendChild(actions);
+        } else {
+          const actions = document.createElement('div');
+          actions.className = 'asset-library__group-actions';
+          actions.appendChild(organizeToggle);
           header.appendChild(actions);
         }
 
