@@ -19,6 +19,31 @@ interface CustomRegion {
   rect: { x: number; y: number; w: number; h: number };
 }
 
+type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
+interface RegionSnapshot {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  name: string;
+}
+
+interface HandleRect {
+  id: HandleId;
+  rect: { x: number; y: number; w: number; h: number };
+}
+
+interface InteractionState {
+  kind: 'none' | 'dragNew' | 'move' | 'handle';
+  pointerId: number | null;
+  startPointerPx: { x: number; y: number } | null;
+  startTile: { col: number; row: number } | null;
+  startRegion: RegionSnapshot | null;
+  active: boolean;
+  handle: HandleId | null;
+}
+
 const STYLES = `
   .sprite-slicer {
     display: flex;
@@ -220,6 +245,71 @@ const STYLES = `
     color: #e6ecff;
     cursor: pointer;
   }
+
+  .sprite-slicer__region-item--active {
+    border-radius: 10px;
+    padding: 4px 6px;
+    background: rgba(70, 109, 206, 0.2);
+    border: 1px solid rgba(107, 165, 255, 0.55);
+  }
+
+  .sprite-slicer__selection-controls {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    border-radius: 12px;
+    background: rgba(16, 24, 47, 0.9);
+  }
+
+  .sprite-slicer__selection-controls--visible {
+    display: flex;
+  }
+
+  .sprite-slicer__selection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sprite-slicer__selection-label {
+    font-size: 11px;
+    color: #9aa7d6;
+    margin-bottom: 4px;
+  }
+
+  .sprite-slicer__dpad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    gap: 6px;
+    max-width: 190px;
+  }
+
+  .sprite-slicer__dpad button:nth-child(1) {
+    grid-column: 2;
+  }
+
+  .sprite-slicer__dpad button:nth-child(2) {
+    grid-column: 1;
+  }
+
+  .sprite-slicer__dpad button:nth-child(3) {
+    grid-column: 3;
+  }
+
+  .sprite-slicer__dpad button:nth-child(4) {
+    grid-column: 2;
+  }
+
+  .sprite-slicer__selection-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .sprite-slicer__selection-actions .sprite-slicer__button {
+    flex: 1;
+  }
 `;
 
 export interface SpriteSlicerTabConfig {
@@ -262,6 +352,12 @@ interface SpriteSlicerState {
   customRegions: CustomRegion[];
   selectionMode: 'tile' | 'region';
   pendingRegion: null | { startCol: number; startRow: number; endCol: number; endRow: number };
+  activeRegionId: string | null;
+  activeMode: 'move' | 'resize';
+  activeStep: 1 | 4;
+  activeRegionOriginal: RegionSnapshot | null;
+  interaction: InteractionState;
+  handleRects: HandleRect[];
   cachedMaskKey: string | null;
   cachedNonEmptyMask: boolean[][] | null;
   nextRegionIndex: number;
@@ -300,6 +396,20 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     customRegions: [],
     selectionMode: 'tile',
     pendingRegion: null,
+    activeRegionId: null,
+    activeMode: 'move',
+    activeStep: 1,
+    activeRegionOriginal: null,
+    interaction: {
+      kind: 'none',
+      pointerId: null,
+      startPointerPx: null,
+      startTile: null,
+      startRegion: null,
+      active: false,
+      handle: null,
+    },
+    handleRects: [],
     cachedMaskKey: null,
     cachedNonEmptyMask: null,
     nextRegionIndex: 1,
@@ -482,12 +592,100 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   previewMeta.className = 'sprite-slicer__meta';
   previewMeta.textContent = 'Import an image to preview slices.';
 
+  const selectionControls = document.createElement('div');
+  selectionControls.className = 'sprite-slicer__selection-controls';
+
+  const selectionTop = document.createElement('div');
+  selectionTop.className = 'sprite-slicer__selection-grid';
+
+  const modeGroup = document.createElement('div');
+  const modeLabel = document.createElement('div');
+  modeLabel.className = 'sprite-slicer__selection-label';
+  modeLabel.textContent = 'Mode';
+  const modeToggleControls = document.createElement('div');
+  modeToggleControls.className = 'sprite-slicer__mode-toggle';
+  const moveModeButton = document.createElement('button');
+  moveModeButton.type = 'button';
+  moveModeButton.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  moveModeButton.textContent = 'Move';
+  const resizeModeButton = document.createElement('button');
+  resizeModeButton.type = 'button';
+  resizeModeButton.className = 'sprite-slicer__mode-option';
+  resizeModeButton.textContent = 'Resize';
+  modeToggleControls.appendChild(moveModeButton);
+  modeToggleControls.appendChild(resizeModeButton);
+  modeGroup.appendChild(modeLabel);
+  modeGroup.appendChild(modeToggleControls);
+
+  const stepGroup = document.createElement('div');
+  const stepLabel = document.createElement('div');
+  stepLabel.className = 'sprite-slicer__selection-label';
+  stepLabel.textContent = 'Step';
+  const stepToggleControls = document.createElement('div');
+  stepToggleControls.className = 'sprite-slicer__mode-toggle';
+  const stepOneButton = document.createElement('button');
+  stepOneButton.type = 'button';
+  stepOneButton.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  stepOneButton.textContent = '1 tile';
+  const stepFourButton = document.createElement('button');
+  stepFourButton.type = 'button';
+  stepFourButton.className = 'sprite-slicer__mode-option';
+  stepFourButton.textContent = '4 tiles';
+  stepToggleControls.appendChild(stepOneButton);
+  stepToggleControls.appendChild(stepFourButton);
+  stepGroup.appendChild(stepLabel);
+  stepGroup.appendChild(stepToggleControls);
+
+  selectionTop.appendChild(modeGroup);
+  selectionTop.appendChild(stepGroup);
+
+  const dpad = document.createElement('div');
+  dpad.className = 'sprite-slicer__dpad';
+  const upButton = document.createElement('button');
+  upButton.type = 'button';
+  upButton.className = 'sprite-slicer__button';
+  upButton.textContent = '▲';
+  const leftButton = document.createElement('button');
+  leftButton.type = 'button';
+  leftButton.className = 'sprite-slicer__button';
+  leftButton.textContent = '◀';
+  const rightButton = document.createElement('button');
+  rightButton.type = 'button';
+  rightButton.className = 'sprite-slicer__button';
+  rightButton.textContent = '▶';
+  const downButton = document.createElement('button');
+  downButton.type = 'button';
+  downButton.className = 'sprite-slicer__button';
+  downButton.textContent = '▼';
+  dpad.appendChild(upButton);
+  dpad.appendChild(leftButton);
+  dpad.appendChild(rightButton);
+  dpad.appendChild(downButton);
+
+  const selectionActions = document.createElement('div');
+  selectionActions.className = 'sprite-slicer__selection-actions';
+  const doneSelectionButton = document.createElement('button');
+  doneSelectionButton.type = 'button';
+  doneSelectionButton.className = 'sprite-slicer__button';
+  doneSelectionButton.textContent = 'Done';
+  const cancelSelectionButton = document.createElement('button');
+  cancelSelectionButton.type = 'button';
+  cancelSelectionButton.className = 'sprite-slicer__button';
+  cancelSelectionButton.textContent = 'Cancel';
+  selectionActions.appendChild(doneSelectionButton);
+  selectionActions.appendChild(cancelSelectionButton);
+
+  selectionControls.appendChild(selectionTop);
+  selectionControls.appendChild(dpad);
+  selectionControls.appendChild(selectionActions);
+
   const regionsList = document.createElement('div');
   regionsList.className = 'sprite-slicer__regions';
 
   preview.appendChild(previewControls);
   preview.appendChild(previewCanvas);
   preview.appendChild(previewMeta);
+  preview.appendChild(selectionControls);
   preview.appendChild(regionsList);
 
   const confirmButton = document.createElement('button');
@@ -562,6 +760,66 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     return occupied;
   }
 
+  function getRegionById(regionId: string | null): CustomRegion | null {
+    if (!regionId) {
+      return null;
+    }
+    return state.customRegions.find((region) => region.id === regionId) ?? null;
+  }
+
+  function setActiveRegion(regionId: string | null): void {
+    state.activeRegionId = regionId;
+    const activeRegion = getRegionById(regionId);
+    state.activeRegionOriginal = activeRegion ? { ...activeRegion.rect, name: activeRegion.name } : null;
+    state.interaction = {
+      kind: 'none',
+      pointerId: null,
+      startPointerPx: null,
+      startTile: null,
+      startRegion: null,
+      active: false,
+      handle: null,
+    };
+    updateRegionsList();
+    updateSelectionControls();
+    schedulePreviewRender();
+  }
+
+  function updateSelectionControls(): void {
+    const hasActive = Boolean(getRegionById(state.activeRegionId));
+    selectionControls.classList.toggle('sprite-slicer__selection-controls--visible', hasActive);
+    moveModeButton.classList.toggle('sprite-slicer__mode-option--active', state.activeMode === 'move');
+    resizeModeButton.classList.toggle('sprite-slicer__mode-option--active', state.activeMode === 'resize');
+    stepOneButton.classList.toggle('sprite-slicer__mode-option--active', state.activeStep === 1);
+    stepFourButton.classList.toggle('sprite-slicer__mode-option--active', state.activeStep === 4);
+    doneSelectionButton.disabled = !hasActive;
+    cancelSelectionButton.disabled = !hasActive;
+    upButton.disabled = !hasActive;
+    downButton.disabled = !hasActive;
+    leftButton.disabled = !hasActive;
+    rightButton.disabled = !hasActive;
+  }
+
+  function clampRegionRect(rect: { x: number; y: number; w: number; h: number }): { x: number; y: number; w: number; h: number } {
+    const { columns, rows } = getGridSize();
+    const atlasTilesW = Math.max(1, columns);
+    const atlasTilesH = Math.max(1, rows);
+    const xTiles = Math.max(0, Math.round(rect.x / state.sliceWidth));
+    const yTiles = Math.max(0, Math.round(rect.y / state.sliceHeight));
+    let wTiles = Math.max(1, Math.round(rect.w / state.sliceWidth));
+    let hTiles = Math.max(1, Math.round(rect.h / state.sliceHeight));
+    const clampedXTiles = Math.min(xTiles, atlasTilesW - 1);
+    const clampedYTiles = Math.min(yTiles, atlasTilesH - 1);
+    wTiles = Math.min(wTiles, atlasTilesW - clampedXTiles);
+    hTiles = Math.min(hTiles, atlasTilesH - clampedYTiles);
+    return {
+      x: clampedXTiles * state.sliceWidth,
+      y: clampedYTiles * state.sliceHeight,
+      w: Math.max(1, wTiles) * state.sliceWidth,
+      h: Math.max(1, hTiles) * state.sliceHeight,
+    };
+  }
+
   function updateRegionsList(): void {
     regionsList.innerHTML = '';
     if (state.customRegions.length === 0) {
@@ -575,6 +833,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.customRegions.forEach((region) => {
       const item = document.createElement('div');
       item.className = 'sprite-slicer__region-item';
+      item.classList.toggle('sprite-slicer__region-item--active', region.id === state.activeRegionId);
       const widthTiles = Math.floor(region.rect.w / state.sliceWidth);
       const heightTiles = Math.floor(region.rect.h / state.sliceHeight);
 
@@ -636,7 +895,13 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
         input.addEventListener('blur', commitRename, { once: true });
       };
 
-      nameButton.addEventListener('click', startRename);
+      nameButton.addEventListener('click', (event) => {
+        if (event.detail === 1) {
+          setActiveRegion(region.id);
+          updateSelectionControls();
+        }
+        startRename();
+      });
 
       const size = document.createElement('span');
       size.className = 'sprite-slicer__region-size';
@@ -651,12 +916,21 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       remove.textContent = 'Remove';
       remove.addEventListener('click', () => {
         state.customRegions = state.customRegions.filter((entry) => entry.id !== region.id);
+        if (state.activeRegionId === region.id) {
+          state.activeRegionId = null;
+          state.activeRegionOriginal = null;
+        }
         updateRegionsList();
+        updateSelectionControls();
         schedulePreviewRender();
         void updateSliceResults();
       });
       item.appendChild(main);
       item.appendChild(remove);
+      item.addEventListener('click', () => {
+        setActiveRegion(region.id);
+        updateSelectionControls();
+      });
       regionsList.appendChild(item);
     });
   }
@@ -735,15 +1009,51 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       ctx.stroke();
     }
 
+    state.handleRects = [];
+    const activeRegion = getRegionById(state.activeRegionId);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255, 184, 46, 0.95)';
     state.customRegions.forEach((region) => {
-      ctx.strokeRect(
-        region.rect.x * scale + 1,
-        region.rect.y * scale + 1,
-        Math.max(1, region.rect.w * scale - 2),
-        Math.max(1, region.rect.h * scale - 2)
-      );
+      const isActive = activeRegion?.id === region.id;
+      ctx.strokeStyle = isActive ? 'rgba(120, 250, 156, 0.98)' : 'rgba(255, 184, 46, 0.95)';
+      ctx.lineWidth = isActive ? 3 : 2;
+      const rx = region.rect.x * scale + 1;
+      const ry = region.rect.y * scale + 1;
+      const rw = Math.max(1, region.rect.w * scale - 2);
+      const rh = Math.max(1, region.rect.h * scale - 2);
+      ctx.strokeRect(rx, ry, rw, rh);
+
+      if (!isActive) {
+        return;
+      }
+
+      const hitSize = 32;
+      const drawSize = 10;
+      const halfHit = hitSize / 2;
+      const halfDraw = drawSize / 2;
+      const left = region.rect.x * scale;
+      const top = region.rect.y * scale;
+      const right = (region.rect.x + region.rect.w) * scale;
+      const bottom = (region.rect.y + region.rect.h) * scale;
+      const midX = (left + right) / 2;
+      const midY = (top + bottom) / 2;
+      const handles: Array<{ id: HandleId; x: number; y: number }> = [
+        { id: 'nw', x: left, y: top },
+        { id: 'n', x: midX, y: top },
+        { id: 'ne', x: right, y: top },
+        { id: 'e', x: right, y: midY },
+        { id: 'se', x: right, y: bottom },
+        { id: 's', x: midX, y: bottom },
+        { id: 'sw', x: left, y: bottom },
+        { id: 'w', x: left, y: midY },
+      ];
+      ctx.fillStyle = 'rgba(120, 250, 156, 0.95)';
+      handles.forEach((handle) => {
+        ctx.fillRect(handle.x - halfDraw, handle.y - halfDraw, drawSize, drawSize);
+        state.handleRects.push({
+          id: handle.id,
+          rect: { x: handle.x - halfHit, y: handle.y - halfHit, w: hitSize, h: hitSize },
+        });
+      });
     });
 
     if (state.pendingRegion) {
@@ -901,7 +1211,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     ctx.clearRect(0, 0, displayWidth, displayHeight);
     drawPreviewBase(ctx, displayWidth, displayHeight, scale);
 
-    const isDraggingRegion = state.pendingRegion !== null;
+    const isDraggingRegion = state.pendingRegion !== null || state.interaction.kind === 'move' || state.interaction.kind === 'handle';
     if (state.skipEmptyTiles && !isDraggingRegion) {
       const mask = await getNonEmptyMask();
       if (state.previewRenderId !== renderId) {
@@ -967,26 +1277,105 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   function clearRegions(): void {
     state.customRegions = [];
     state.pendingRegion = null;
+    state.activeRegionId = null;
+    state.activeRegionOriginal = null;
     state.nextRegionIndex = 1;
     updateRegionsList();
+    updateSelectionControls();
+  }
+
+  function pointerToCanvasPoint(event: PointerEvent): { x: number; y: number } | null {
+    const rect = previewCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null;
+    }
+    return {
+      x: Math.min(Math.max(event.clientX - rect.left, 0), rect.width - 1),
+      y: Math.min(Math.max(event.clientY - rect.top, 0), rect.height - 1),
+    };
   }
 
   function pointerToTile(event: PointerEvent): { col: number; row: number } | null {
     if (!state.imageWidth || !state.imageHeight || !state.sliceWidth || !state.sliceHeight) {
       return null;
     }
+    const point = pointerToCanvasPoint(event);
     const rect = previewCanvas.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) {
+    if (!point || rect.width <= 0 || rect.height <= 0) {
       return null;
     }
-    const x = Math.min(Math.max(event.clientX - rect.left, 0), rect.width - 1);
-    const y = Math.min(Math.max(event.clientY - rect.top, 0), rect.height - 1);
-    const imageX = (x / rect.width) * state.imageWidth;
-    const imageY = (y / rect.height) * state.imageHeight;
+    const imageX = (point.x / rect.width) * state.imageWidth;
+    const imageY = (point.y / rect.height) * state.imageHeight;
     const { columns, rows } = getGridSize();
     const col = Math.min(columns - 1, Math.max(0, Math.floor(imageX / state.sliceWidth)));
     const row = Math.min(rows - 1, Math.max(0, Math.floor(imageY / state.sliceHeight)));
     return { col, row };
+  }
+
+  function hitTestRegion(point: { x: number; y: number }): CustomRegion | null {
+    const layout = state.lastPreviewLayout;
+    if (!layout) {
+      return null;
+    }
+    for (let index = state.customRegions.length - 1; index >= 0; index -= 1) {
+      const region = state.customRegions[index];
+      const x = region.rect.x * layout.scale;
+      const y = region.rect.y * layout.scale;
+      const w = region.rect.w * layout.scale;
+      const h = region.rect.h * layout.scale;
+      if (point.x >= x && point.x <= x + w && point.y >= y && point.y <= y + h) {
+        return region;
+      }
+    }
+    return null;
+  }
+
+  function hitTestHandle(point: { x: number; y: number }): HandleId | null {
+    for (const handle of state.handleRects) {
+      const { x, y, w, h } = handle.rect;
+      if (point.x >= x && point.x <= x + w && point.y >= y && point.y <= y + h) {
+        return handle.id;
+      }
+    }
+    return null;
+  }
+
+  function applyResizeFromHandle(region: CustomRegion, handle: HandleId, deltaCol: number, deltaRow: number): void {
+    const start = state.interaction.startRegion;
+    if (!start) {
+      return;
+    }
+    let left = Math.floor(start.x / state.sliceWidth);
+    let top = Math.floor(start.y / state.sliceHeight);
+    let right = left + Math.floor(start.w / state.sliceWidth);
+    let bottom = top + Math.floor(start.h / state.sliceHeight);
+
+    if (handle.includes('w')) {
+      left += deltaCol;
+    }
+    if (handle.includes('e')) {
+      right += deltaCol;
+    }
+    if (handle.includes('n')) {
+      top += deltaRow;
+    }
+    if (handle.includes('s')) {
+      bottom += deltaRow;
+    }
+
+    if (right <= left) {
+      right = left + 1;
+    }
+    if (bottom <= top) {
+      bottom = top + 1;
+    }
+
+    region.rect = clampRegionRect({
+      x: left * state.sliceWidth,
+      y: top * state.sliceHeight,
+      w: (right - left) * state.sliceWidth,
+      h: (bottom - top) * state.sliceHeight,
+    });
   }
 
   async function handleFileChange(event: Event): Promise<void> {
@@ -1084,51 +1473,10 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     updateModeToggle();
   });
 
-  regionSelectButton.addEventListener('click', () => {
-    state.selectionMode = state.selectionMode === 'region' ? 'tile' : 'region';
-    regionSelectButton.classList.toggle('sprite-slicer__button--active', state.selectionMode === 'region');
-    if (state.selectionMode !== 'region') {
-      state.pendingRegion = null;
-      schedulePreviewRender();
-    }
-  });
-
-  previewCanvas.addEventListener('pointerdown', (event) => {
-    if (state.selectionMode !== 'region' || !state.imageBlob) {
-      return;
-    }
-    const tile = pointerToTile(event);
-    if (!tile) {
-      return;
-    }
-    state.pendingRegion = {
-      startCol: tile.col,
-      startRow: tile.row,
-      endCol: tile.col,
-      endRow: tile.row,
-    };
-    previewCanvas.setPointerCapture(event.pointerId);
-    schedulePreviewRender();
-  });
-
-  previewCanvas.addEventListener('pointermove', (event) => {
+  function commitPendingRegion(): void {
     if (!state.pendingRegion) {
       return;
     }
-    const tile = pointerToTile(event);
-    if (!tile) {
-      return;
-    }
-    state.pendingRegion.endCol = tile.col;
-    state.pendingRegion.endRow = tile.row;
-    schedulePreviewRender();
-  });
-
-  previewCanvas.addEventListener('pointerup', () => {
-    if (!state.pendingRegion) {
-      return;
-    }
-
     const minCol = Math.min(state.pendingRegion.startCol, state.pendingRegion.endCol);
     const maxCol = Math.max(state.pendingRegion.startCol, state.pendingRegion.endCol);
     const minRow = Math.min(state.pendingRegion.startRow, state.pendingRegion.endRow);
@@ -1145,15 +1493,277 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     const region: CustomRegion = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name: `${baseName}_region_${state.nextRegionIndex}`,
-      rect,
+      rect: clampRegionRect(rect),
     };
     state.nextRegionIndex += 1;
     state.customRegions.push(region);
     state.pendingRegion = null;
+    setActiveRegion(region.id);
+    state.activeRegionOriginal = { ...region.rect, name: region.name };
 
+    updateRegionsList();
+    updateSelectionControls();
+    schedulePreviewRender();
+    void updateSliceResults();
+  }
+
+  function beginInteraction(kind: InteractionState['kind'], pointerId: number, point: { x: number; y: number }, tile: { col: number; row: number } | null, region: CustomRegion | null, handle: HandleId | null = null): void {
+    state.interaction = {
+      kind,
+      pointerId,
+      startPointerPx: point,
+      startTile: tile,
+      startRegion: region ? { ...region.rect, name: region.name } : null,
+      active: false,
+      handle,
+    };
+  }
+
+  function endInteraction(): void {
+    state.interaction = {
+      kind: 'none',
+      pointerId: null,
+      startPointerPx: null,
+      startTile: null,
+      startRegion: null,
+      active: false,
+      handle: null,
+    };
+  }
+
+  regionSelectButton.addEventListener('click', () => {
+    state.selectionMode = state.selectionMode === 'region' ? 'tile' : 'region';
+    regionSelectButton.classList.toggle('sprite-slicer__button--active', state.selectionMode === 'region');
+    if (state.selectionMode !== 'region') {
+      state.pendingRegion = null;
+      endInteraction();
+      schedulePreviewRender();
+    }
+  });
+
+  previewCanvas.addEventListener('pointerdown', (event) => {
+    if (state.selectionMode !== 'region' || !state.imageBlob) {
+      return;
+    }
+    const point = pointerToCanvasPoint(event);
+    const tile = pointerToTile(event);
+    if (!point || !tile) {
+      return;
+    }
+
+    const activeRegion = getRegionById(state.activeRegionId);
+    const handle = activeRegion ? hitTestHandle(point) : null;
+
+    if (handle && activeRegion) {
+      beginInteraction('handle', event.pointerId, point, tile, activeRegion, handle);
+      previewCanvas.setPointerCapture(event.pointerId);
+      return;
+    }
+
+    const hitRegion = hitTestRegion(point);
+    if (activeRegion && hitRegion?.id === activeRegion.id) {
+      beginInteraction('move', event.pointerId, point, tile, activeRegion);
+      previewCanvas.setPointerCapture(event.pointerId);
+      return;
+    }
+
+    if (hitRegion) {
+      setActiveRegion(hitRegion.id);
+      state.activeRegionOriginal = { ...hitRegion.rect, name: hitRegion.name };
+      updateSelectionControls();
+      return;
+    }
+
+    state.pendingRegion = {
+      startCol: tile.col,
+      startRow: tile.row,
+      endCol: tile.col,
+      endRow: tile.row,
+    };
+    beginInteraction('dragNew', event.pointerId, point, tile, null);
+    previewCanvas.setPointerCapture(event.pointerId);
+    schedulePreviewRender();
+  });
+
+  previewCanvas.addEventListener('pointermove', (event) => {
+    if (state.interaction.kind === 'none') {
+      return;
+    }
+    if (state.interaction.pointerId !== event.pointerId) {
+      return;
+    }
+    const point = pointerToCanvasPoint(event);
+    const tile = pointerToTile(event);
+    if (!point || !tile) {
+      return;
+    }
+
+    const startPoint = state.interaction.startPointerPx;
+    const moveDistance = startPoint ? Math.hypot(point.x - startPoint.x, point.y - startPoint.y) : 0;
+    if (!state.interaction.active && moveDistance < 8) {
+      return;
+    }
+    state.interaction.active = true;
+
+    if (state.interaction.kind === 'dragNew' && state.pendingRegion) {
+      state.pendingRegion.endCol = tile.col;
+      state.pendingRegion.endRow = tile.row;
+      schedulePreviewRender();
+      return;
+    }
+
+    const activeRegion = getRegionById(state.activeRegionId);
+    const startTile = state.interaction.startTile;
+    if (!activeRegion || !startTile) {
+      return;
+    }
+    const deltaCol = tile.col - startTile.col;
+    const deltaRow = tile.row - startTile.row;
+
+    if (state.interaction.kind === 'move' && state.interaction.startRegion) {
+      activeRegion.rect = clampRegionRect({
+        x: state.interaction.startRegion.x + deltaCol * state.sliceWidth,
+        y: state.interaction.startRegion.y + deltaRow * state.sliceHeight,
+        w: state.interaction.startRegion.w,
+        h: state.interaction.startRegion.h,
+      });
+      schedulePreviewRender();
+      updateRegionsList();
+      return;
+    }
+
+    if (state.interaction.kind === 'handle' && state.interaction.handle) {
+      applyResizeFromHandle(activeRegion, state.interaction.handle, deltaCol, deltaRow);
+      schedulePreviewRender();
+      updateRegionsList();
+    }
+  });
+
+  previewCanvas.addEventListener('pointerup', (event) => {
+    if (state.interaction.pointerId !== event.pointerId) {
+      return;
+    }
+    if (state.interaction.kind === 'dragNew' && state.pendingRegion) {
+      if (state.interaction.active) {
+        commitPendingRegion();
+      } else {
+        state.pendingRegion = null;
+        setActiveRegion(null);
+      }
+    } else if (state.interaction.kind !== 'none' && state.interaction.active) {
+      void updateSliceResults();
+    } else if (state.interaction.kind !== 'none' && !state.interaction.active) {
+      const point = pointerToCanvasPoint(event);
+      if (point && !hitTestRegion(point)) {
+        setActiveRegion(null);
+        updateSelectionControls();
+      }
+    }
+    endInteraction();
+  });
+
+  previewCanvas.addEventListener('pointercancel', () => {
+    state.pendingRegion = null;
+    endInteraction();
+    schedulePreviewRender();
+  });
+
+  moveModeButton.addEventListener('click', () => {
+    state.activeMode = 'move';
+    updateSelectionControls();
+  });
+
+  resizeModeButton.addEventListener('click', () => {
+    state.activeMode = 'resize';
+    updateSelectionControls();
+  });
+
+  stepOneButton.addEventListener('click', () => {
+    state.activeStep = 1;
+    updateSelectionControls();
+  });
+
+  stepFourButton.addEventListener('click', () => {
+    state.activeStep = 4;
+    updateSelectionControls();
+  });
+
+  function applyNudge(dx: number, dy: number): void {
+    const region = getRegionById(state.activeRegionId);
+    if (!region) {
+      return;
+    }
+    if (!state.activeRegionOriginal) {
+      state.activeRegionOriginal = { ...region.rect, name: region.name };
+    }
+    const step = state.activeStep;
+    if (state.activeMode === 'move') {
+      region.rect = clampRegionRect({
+        x: region.rect.x + dx * step * state.sliceWidth,
+        y: region.rect.y + dy * step * state.sliceHeight,
+        w: region.rect.w,
+        h: region.rect.h,
+      });
+    } else {
+      region.rect = clampRegionRect({
+        x: region.rect.x,
+        y: region.rect.y,
+        w: Math.max(state.sliceWidth, region.rect.w + dx * step * state.sliceWidth),
+        h: Math.max(state.sliceHeight, region.rect.h + dy * step * state.sliceHeight),
+      });
+    }
     updateRegionsList();
     schedulePreviewRender();
     void updateSliceResults();
+  }
+
+  function bindRepeat(button: HTMLButtonElement, onStep: () => void): void {
+    let timeoutId = 0;
+    let intervalId = 0;
+    const stop = (): void => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+      timeoutId = 0;
+      intervalId = 0;
+    };
+    button.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      onStep();
+      stop();
+      timeoutId = window.setTimeout(() => {
+        intervalId = window.setInterval(onStep, 90);
+      }, 250);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((eventName) => {
+      button.addEventListener(eventName, stop);
+    });
+  }
+
+  bindRepeat(leftButton, () => applyNudge(state.activeMode === 'move' ? -1 : -1, 0));
+  bindRepeat(rightButton, () => applyNudge(1, 0));
+  bindRepeat(upButton, () => applyNudge(0, -1));
+  bindRepeat(downButton, () => applyNudge(0, 1));
+
+  doneSelectionButton.addEventListener('click', () => {
+    setActiveRegion(null);
+    updateSelectionControls();
+  });
+
+  cancelSelectionButton.addEventListener('click', () => {
+    const region = getRegionById(state.activeRegionId);
+    if (region && state.activeRegionOriginal) {
+      region.rect = clampRegionRect({
+        x: state.activeRegionOriginal.x,
+        y: state.activeRegionOriginal.y,
+        w: state.activeRegionOriginal.w,
+        h: state.activeRegionOriginal.h,
+      });
+      updateRegionsList();
+      schedulePreviewRender();
+      void updateSliceResults();
+    }
+    setActiveRegion(null);
+    updateSelectionControls();
   });
 
   confirmButton.addEventListener('click', async () => {
@@ -1187,6 +1797,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   updateModeToggle();
   updateRegionsList();
+  updateSelectionControls();
   updateSliceInputs();
   schedulePreviewRender();
 
