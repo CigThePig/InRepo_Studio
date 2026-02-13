@@ -51,7 +51,7 @@ export interface AssetUploadResult {
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
-const MIME_EXTENSION_MAP: Record<string, string> = {
+export const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
@@ -61,7 +61,7 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/svg+xml': 'svg',
 };
 
-function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | null {
+export function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | null {
   const match = /^data:([^;]+);base64,(.+)$/i.exec(dataUrl);
   if (!match) return null;
   return {
@@ -75,7 +75,7 @@ function estimateBase64Bytes(base64: string): number {
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 }
 
-function slugifyFileName(name: string): string {
+export function slugifyFileName(name: string): string {
   const cleaned = name
     .trim()
     .toLowerCase()
@@ -86,7 +86,7 @@ function slugifyFileName(name: string): string {
   return cleaned.length > 0 ? cleaned : 'asset';
 }
 
-function buildUniqueFileName(base: string, extension: string, used: Set<string>): string {
+export function buildUniqueFileName(base: string, extension: string, used: Set<string>): string {
   let candidate = `${base}.${extension}`;
   let index = 2;
   while (used.has(candidate)) {

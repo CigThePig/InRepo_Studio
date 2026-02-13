@@ -8,11 +8,13 @@ import {
   createShaManager,
   deployChanges,
 } from '@/deploy';
+import type { AssetRegistry } from '@/editor/assets';
 import { getAllScenes, getHotProject } from '@/storage';
 
 export interface DeployPanelConfig {
   container: HTMLElement;
   authManager: AuthManager;
+  assetRegistry?: AssetRegistry;
 }
 
 export interface DeployPanelController {
@@ -138,7 +140,7 @@ function ensureStyles(): void {
 }
 
 export function createDeployPanel(config: DeployPanelConfig): DeployPanelController {
-  const { container, authManager } = config;
+  const { container, authManager, assetRegistry } = config;
 
   ensureStyles();
 
@@ -343,6 +345,9 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
         getProject: getHotProject,
         getScenes: getAllScenes,
         getShaStore: () => shaManager.createStore(),
+        getAssetRegistryState: assetRegistry
+          ? () => assetRegistry.getState()
+          : undefined,
       });
       const committer = createCommitter({ authManager, repoOwner: owner, repoName: repo });
 

@@ -29,7 +29,7 @@ import type { ResolvedConflict } from './conflictResolver';
 import type { Project, Scene } from '@/types';
 import { validateProject, validateScene } from '@/types';
 import { saveProject, saveScene, getAllSceneIds } from '@/storage';
-import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
+import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR, ASSETS_ROOT } from '@/shared/paths';
 import { hashContent, parseRateLimitError, normalizePath } from './utils';
 
 const LOG_PREFIX = '[Deploy/Commit]';
@@ -594,6 +594,13 @@ async function applyRemoteContent(path: string, content: string): Promise<void> 
       throw new Error(`Remote scene ${path} failed validation`);
     }
     await saveScene(data);
+    return;
+  }
+
+  // Asset files (images) cannot be applied back to local storage.
+  // Accepting the remote version is a no-op for binary assets; the SHA
+  // store update happens in the caller so subsequent deploys stay in sync.
+  if (path.startsWith(`${ASSETS_ROOT}/`)) {
     return;
   }
 

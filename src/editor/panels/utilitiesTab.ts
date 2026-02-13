@@ -1,4 +1,5 @@
 import type { AuthManager } from '@/deploy';
+import type { AssetRegistry } from '@/editor/assets';
 import type { StorageQuotaInfo } from '@/storage/hot';
 import { exportAllData, importAllData, checkStorageQuota } from '@/storage';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
@@ -79,6 +80,7 @@ const STYLES = `
 export interface UtilitiesTabConfig {
   container: HTMLElement;
   authManager?: AuthManager;
+  assetRegistry?: AssetRegistry;
 }
 
 export interface UtilitiesTabController {
@@ -86,7 +88,7 @@ export interface UtilitiesTabController {
 }
 
 export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabController {
-  const { container, authManager } = config;
+  const { container, authManager, assetRegistry } = config;
 
   if (!document.getElementById('utilities-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -112,6 +114,7 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
     deployPanelController = createDeployPanel({
       container: deploySection,
       authManager,
+      assetRegistry,
     });
   } else {
     const placeholder = document.createElement('div');
