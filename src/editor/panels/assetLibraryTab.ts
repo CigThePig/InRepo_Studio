@@ -153,6 +153,7 @@ const STYLES = `
     font-size: 11px;
     cursor: pointer;
     min-height: 132px;
+    min-width: 0;
   }
 
   .asset-library__asset--selected {
@@ -170,6 +171,12 @@ const STYLES = `
   .asset-library__asset-name {
     font-size: 11px;
     color: #e6ecff;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
   }
 
   .asset-library__asset-meta {
@@ -198,6 +205,7 @@ const STYLES = `
     border-color: rgba(98, 150, 255, 0.45);
     background: rgba(40, 52, 95, 0.95);
     box-shadow: 0 0 0 1px rgba(98, 150, 255, 0.25) inset;
+    user-select: none;
   }
 
   .asset-library__drag-handle {
@@ -215,6 +223,7 @@ const STYLES = `
     display: grid;
     place-items: center;
     touch-action: none;
+    user-select: none;
     cursor: grab;
   }
 
@@ -394,6 +403,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     groupSlug: string;
     fromIndex: number;
     pointerId: number;
+    captureEl: HTMLElement;
     card: HTMLElement;
     grid: HTMLElement;
     ghost: HTMLElement;
@@ -401,6 +411,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     offsetX: number;
     offsetY: number;
     toIndex: number;
+    lastTargetIndex: number;
   };
   let dragState: DragState | null = null;
 
@@ -511,9 +522,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     grid: HTMLElement;
     group: AssetGroup;
     fromIndex: number;
+    captureEl: HTMLElement;
   }): void {
     if (dragState) return;
-    const { event, card, grid, group, fromIndex } = options;
+    const { event, card, grid, group, fromIndex, captureEl } = options;
     const rect = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('asset-library__ghost');
@@ -535,6 +547,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       groupSlug: group.slug,
       fromIndex,
       pointerId: event.pointerId,
+      captureEl,
       card,
       grid,
       ghost,
@@ -542,11 +555,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       offsetX: event.clientX - rect.left,
       offsetY: event.clientY - rect.top,
       toIndex: fromIndex,
+      lastTargetIndex: fromIndex,
     };
 
-    window.addEventListener('pointermove', handleDragMove);
-    window.addEventListener('pointerup', finishDrag);
-    window.addEventListener('pointercancel', finishDrag);
+    captureEl.addEventListener('pointermove', handleDragMove);
+    captureEl.addEventListener('pointerup', finishDrag);
+    captureEl.addEventListener('pointercancel', finishDrag);
+    captureEl.addEventListener('lostpointercapture', finishDragOnCaptureLoss);
   }
 
   function handleDragMove(event: PointerEvent): void {
@@ -560,11 +575,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     );
     const targetIndex = findClosestIndex(cardNodes, event.clientX, event.clientY);
     active.toIndex = targetIndex;
-    const nextTarget = cardNodes[targetIndex] ?? null;
-    if (nextTarget) {
-      active.grid.insertBefore(active.placeholder, nextTarget);
-    } else {
-      active.grid.appendChild(active.placeholder);
+    if (targetIndex !== active.lastTargetIndex) {
+      active.lastTargetIndex = targetIndex;
+      const nextTarget = cardNodes[targetIndex] ?? null;
+      if (nextTarget) {
+        active.grid.insertBefore(active.placeholder, nextTarget);
+      } else {
+        active.grid.appendChild(active.placeholder);
+      }
     }
 
     const edge = 72;
@@ -580,22 +598,29 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     const next = dragState;
     dragState = null;
-    window.removeEventListener('pointermove', handleDragMove);
-    window.removeEventListener('pointerup', finishDrag);
-    window.removeEventListener('pointercancel', finishDrag);
+    next.captureEl.removeEventListener('pointermove', handleDragMove);
+    next.captureEl.removeEventListener('pointerup', finishDrag);
+    next.captureEl.removeEventListener('pointercancel', finishDrag);
+    next.captureEl.removeEventListener('lostpointercapture', finishDragOnCaptureLoss);
 
     next.ghost.remove();
     next.placeholder.remove();
     next.card.style.display = '';
-    if (next.toIndex !== next.fromIndex) {
+    const didReorder = next.toIndex !== next.fromIndex;
+    if (didReorder) {
       assetRegistry.reorderAsset({
         groupType: next.groupType,
         groupSlug: next.groupSlug,
         fromIndex: next.fromIndex,
         toIndex: next.toIndex,
       });
+      refresh();
     }
-    refresh();
+  }
+
+  function finishDragOnCaptureLoss(event: Event): void {
+    if (!(event instanceof PointerEvent)) return;
+    finishDrag(event);
   }
 
   function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
@@ -617,7 +642,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         assetIndex: index,
         selectedAssetId,
         organizeMode,
-        groupKey: groupKey(group),
         openAssetSheet,
       }));
     });
@@ -655,10 +679,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetIndex: number;
     selectedAssetId: string | null;
     organizeMode: boolean;
-    groupKey: string;
     openAssetSheet: (assetId: string, view?: 'menu' | 'rename' | 'delete-confirm') => void;
   }): HTMLElement {
-    const { group, asset, assetIndex, selectedAssetId, organizeMode, groupKey: cardGroupKey, openAssetSheet } = options;
+    const { group, asset, assetIndex, selectedAssetId, organizeMode, openAssetSheet } = options;
     const card = document.createElement('div');
     card.className = 'asset-library__asset';
     card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
@@ -694,7 +717,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       dragHandle.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
         event.preventDefault();
-        beginDrag({ event, card, grid: card.parentElement as HTMLElement, group, fromIndex: assetIndex });
+        dragHandle.setPointerCapture(event.pointerId);
+        beginDrag({
+          event,
+          card,
+          grid: card.parentElement as HTMLElement,
+          group,
+          fromIndex: assetIndex,
+          captureEl: dragHandle,
+        });
       });
       card.appendChild(dragHandle);
 
@@ -706,7 +737,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         originX = event.clientX;
         originY = event.clientY;
         longPressTimer = window.setTimeout(() => {
-          beginDrag({ event, card, grid: card.parentElement as HTMLElement, group, fromIndex: assetIndex });
+          card.setPointerCapture(event.pointerId);
+          beginDrag({
+            event,
+            card,
+            grid: card.parentElement as HTMLElement,
+            group,
+            fromIndex: assetIndex,
+            captureEl: card,
+          });
           longPressTimer = null;
         }, 300);
       });
@@ -726,7 +765,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       };
       card.addEventListener('pointerup', clearLongPress);
       card.addEventListener('pointercancel', clearLongPress);
-    } else {
+    } else if (organizeGroupKey === null) {
       const moreButton = document.createElement('button');
       moreButton.type = 'button';
       moreButton.className = 'asset-library__asset-more';
@@ -742,7 +781,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }
 
     card.addEventListener('click', () => {
-      if (organizeGroupKey === cardGroupKey) return;
+      if (organizeGroupKey !== null) return;
       assetRegistry.setSelectedAsset(asset.id);
     });
 
