@@ -152,6 +152,7 @@ const STYLES = `
     color: #cfd8ff;
     font-size: 11px;
     cursor: pointer;
+    min-height: 132px;
   }
 
   .asset-library__asset--selected {
@@ -176,52 +177,127 @@ const STYLES = `
     color: #93a1d8;
   }
 
-  .asset-library__asset-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+  .asset-library__asset-more {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(83, 101, 164, 0.7);
+    background: rgba(11, 18, 40, 0.78);
+    color: #dbe4ff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  .asset-library__asset-action-btn {
-    min-height: 44px;
-    border: 1px solid rgba(83, 101, 164, 0.7);
-    border-radius: 10px;
-    background: rgba(27, 42, 82, 0.95);
+  .asset-library__asset--organizing {
+    border-color: rgba(98, 150, 255, 0.45);
+    background: rgba(40, 52, 95, 0.95);
+    box-shadow: 0 0 0 1px rgba(98, 150, 255, 0.25) inset;
+  }
+
+  .asset-library__drag-handle {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(98, 150, 255, 0.45);
+    background: rgba(17, 26, 53, 0.88);
     color: #dbe4ff;
-    font-size: 11px;
+    font-size: 18px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .asset-library__ghost {
+    position: fixed;
+    width: 84px;
+    pointer-events: none;
+    z-index: 80;
+    opacity: 0.9;
+    transform: scale(1.03);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .asset-library__placeholder {
+    border-radius: 12px;
+    border: 2px dashed rgba(116, 159, 255, 0.65);
+    background: rgba(25, 39, 72, 0.4);
+    min-height: 132px;
+  }
+
+  .asset-library__sheet-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+    z-index: 120;
+  }
+
+  .asset-library__sheet-scrim--open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .asset-library__sheet {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    border: 1px solid rgba(83, 101, 164, 0.65);
+    border-radius: 16px;
+    background: rgba(20, 30, 60, 0.95);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transform: translateY(12px);
+    transition: transform 140ms ease;
+  }
+
+  .asset-library__sheet-scrim--open .asset-library__sheet {
+    transform: translateY(0);
+  }
+
+  .asset-library__sheet-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e6ecff;
+    margin-bottom: 4px;
+  }
+
+  .asset-library__sheet-button {
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(83, 101, 164, 0.65);
+    background: rgba(27, 42, 82, 0.92);
+    color: #e6ecff;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
   }
 
-  .asset-library__asset-action-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
+  .asset-library__sheet-button--danger {
+    border-color: rgba(255, 128, 153, 0.8);
+    color: #ffc5d2;
   }
 
-  .asset-library__asset-rename-input {
-    min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.7);
-    background: rgba(16, 24, 48, 0.95);
-    color: #f2f5ff;
-    padding: 8px;
+  .asset-library__sheet-note {
     font-size: 12px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .asset-library__asset-delete {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: 999px;
-    border: none;
-    background: rgba(22, 30, 60, 0.9);
-    color: #ffb6c1;
-    font-size: 12px;
-    cursor: pointer;
+    color: #b9c5ef;
   }
 
   .asset-library__empty {
@@ -305,13 +381,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   const expandedGroups = new Set<string>();
-  const organizeGroups = new Set<string>();
+  let organizeGroupKey: string | null = null;
   const uploadStatus = new Map<
     string,
     { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
   >();
-  let editingAssetId: string | null = null;
-  let editingName = '';
+  let sheetAssetId: string | null = null;
+  let sheetView: 'menu' | 'rename' | 'delete-confirm' = 'menu';
+
+  type DragState = {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    fromIndex: number;
+    pointerId: number;
+    card: HTMLElement;
+    grid: HTMLElement;
+    ghost: HTMLElement;
+    placeholder: HTMLElement;
+    offsetX: number;
+    offsetY: number;
+    toIndex: number;
+  };
+  let dragState: DragState | null = null;
 
   const root = document.createElement('div');
   root.className = 'asset-library';
@@ -368,10 +459,143 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   librarySection.appendChild(libraryTitle);
   root.appendChild(librarySection);
 
+  const sheetScrim = document.createElement('div');
+  sheetScrim.className = 'asset-library__sheet-scrim';
+  sheetScrim.addEventListener('click', () => {
+    sheetAssetId = null;
+    refresh();
+  });
+  root.appendChild(sheetScrim);
+
   container.appendChild(root);
 
   function groupKey(group: AssetGroup): string {
     return `${group.type}:${group.slug}`;
+  }
+
+  function openAssetSheet(assetId: string, view: 'menu' | 'rename' | 'delete-confirm' = 'menu'): void {
+    sheetAssetId = assetId;
+    sheetView = view;
+    refresh();
+  }
+
+  function findClosestIndex(cards: HTMLElement[], pointerX: number, pointerY: number): number {
+    if (cards.length === 0) return 0;
+    let closestIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    cards.forEach((entry, index) => {
+      const rect = entry.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = pointerX - centerX;
+      const dy = pointerY - centerY;
+      const distance = Math.hypot(dx, dy);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    const closestRect = cards[closestIndex].getBoundingClientRect();
+    const centerX = closestRect.left + closestRect.width / 2;
+    const centerY = closestRect.top + closestRect.height / 2;
+    const horizontalBias = Math.abs(pointerX - centerX) > Math.abs(pointerY - centerY);
+    const after = horizontalBias ? pointerX > centerX : pointerY > centerY;
+    return after ? closestIndex + 1 : closestIndex;
+  }
+
+  function beginDrag(options: {
+    event: PointerEvent;
+    card: HTMLElement;
+    grid: HTMLElement;
+    group: AssetGroup;
+    fromIndex: number;
+  }): void {
+    if (dragState) return;
+    const { event, card, grid, group, fromIndex } = options;
+    const rect = card.getBoundingClientRect();
+    const ghost = card.cloneNode(true) as HTMLElement;
+    ghost.classList.add('asset-library__ghost');
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.height = `${rect.height}px`;
+    ghost.style.left = `${rect.left}px`;
+    ghost.style.top = `${rect.top}px`;
+    document.body.appendChild(ghost);
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'asset-library__placeholder';
+    placeholder.style.width = `${rect.width}px`;
+    placeholder.style.height = `${rect.height}px`;
+    grid.insertBefore(placeholder, card);
+    card.style.display = 'none';
+
+    dragState = {
+      groupType: group.type,
+      groupSlug: group.slug,
+      fromIndex,
+      pointerId: event.pointerId,
+      card,
+      grid,
+      ghost,
+      placeholder,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      toIndex: fromIndex,
+    };
+
+    window.addEventListener('pointermove', handleDragMove);
+    window.addEventListener('pointerup', finishDrag);
+    window.addEventListener('pointercancel', finishDrag);
+  }
+
+  function handleDragMove(event: PointerEvent): void {
+    if (!dragState || event.pointerId !== dragState.pointerId) return;
+    const active = dragState;
+    active.ghost.style.left = `${event.clientX - active.offsetX}px`;
+    active.ghost.style.top = `${event.clientY - active.offsetY}px`;
+
+    const cardNodes = Array.from(active.grid.querySelectorAll<HTMLElement>('.asset-library__asset')).filter(
+      (node) => node !== active.card
+    );
+    const targetIndex = findClosestIndex(cardNodes, event.clientX, event.clientY);
+    active.toIndex = targetIndex;
+    const nextTarget = cardNodes[targetIndex] ?? null;
+    if (nextTarget) {
+      active.grid.insertBefore(active.placeholder, nextTarget);
+    } else {
+      active.grid.appendChild(active.placeholder);
+    }
+
+    const edge = 72;
+    const bounds = container.getBoundingClientRect();
+    if (event.clientY < bounds.top + edge) {
+      container.scrollTop -= 10;
+    } else if (event.clientY > bounds.bottom - edge) {
+      container.scrollTop += 10;
+    }
+  }
+
+  function finishDrag(event: PointerEvent): void {
+    if (!dragState || event.pointerId !== dragState.pointerId) return;
+    const next = dragState;
+    dragState = null;
+    window.removeEventListener('pointermove', handleDragMove);
+    window.removeEventListener('pointerup', finishDrag);
+    window.removeEventListener('pointercancel', finishDrag);
+
+    next.ghost.remove();
+    next.placeholder.remove();
+    next.card.style.display = '';
+    if (next.toIndex !== next.fromIndex) {
+      assetRegistry.reorderAsset({
+        groupType: next.groupType,
+        groupSlug: next.groupSlug,
+        fromIndex: next.fromIndex,
+        toIndex: next.toIndex,
+      });
+    }
+    refresh();
   }
 
   function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
@@ -391,9 +615,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         group,
         asset,
         assetIndex: index,
-        assetCount: group.assets.length,
         selectedAssetId,
         organizeMode,
+        groupKey: groupKey(group),
+        openAssetSheet,
       }));
     });
     return wrapper;
@@ -428,11 +653,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     group: AssetGroup;
     asset: AssetEntry;
     assetIndex: number;
-    assetCount: number;
     selectedAssetId: string | null;
     organizeMode: boolean;
+    groupKey: string;
+    openAssetSheet: (assetId: string, view?: 'menu' | 'rename' | 'delete-confirm') => void;
   }): HTMLElement {
-    const { group, asset, assetIndex, assetCount, selectedAssetId, organizeMode } = options;
+    const { group, asset, assetIndex, selectedAssetId, organizeMode, groupKey: cardGroupKey, openAssetSheet } = options;
     const card = document.createElement('div');
     card.className = 'asset-library__asset';
     card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
@@ -446,53 +672,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       card.appendChild(img);
     }
 
-    const isEditingName = editingAssetId === asset.id;
-    if (isEditingName) {
-      const renameInput = document.createElement('input');
-      renameInput.className = 'asset-library__asset-rename-input';
-      renameInput.type = 'text';
-      renameInput.value = editingName;
-      renameInput.maxLength = 64;
-
-      const commitRename = () => {
-        assetRegistry.renameAsset(asset.id, renameInput.value);
-        editingAssetId = null;
-        editingName = '';
-        refresh();
-      };
-
-      const cancelRename = () => {
-        editingAssetId = null;
-        editingName = '';
-        refresh();
-      };
-
-      renameInput.addEventListener('input', () => {
-        editingName = renameInput.value;
-      });
-      renameInput.addEventListener('click', (event) => event.stopPropagation());
-      renameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
-      renameInput.addEventListener('keydown', (event) => {
-        event.stopPropagation();
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          commitRename();
-        }
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          cancelRename();
-        }
-      });
-      renameInput.addEventListener('blur', commitRename);
-
-      card.appendChild(renameInput);
-      queueMicrotask(() => renameInput.focus());
-    } else {
-      const name = document.createElement('div');
-      name.className = 'asset-library__asset-name';
-      name.textContent = asset.name;
-      card.appendChild(name);
-    }
+    const name = document.createElement('div');
+    name.className = 'asset-library__asset-name';
+    name.textContent = asset.name;
+    card.appendChild(name);
 
     const meta = document.createElement('div');
     meta.className = 'asset-library__asset-meta';
@@ -501,75 +684,65 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     const sliceLabel = asset.sourceAssetId ? ' · Slice' : '';
     meta.textContent = `${sizeLabel} · ${sourceLabel}${sliceLabel}`;
 
-    const deleteButton = document.createElement('button');
-    deleteButton.type = 'button';
-    deleteButton.className = 'asset-library__asset-delete';
-    deleteButton.textContent = '×';
-    deleteButton.addEventListener('click', (event) => {
-      event.stopPropagation();
-      assetRegistry.removeAsset(asset.id);
-    });
-
     card.appendChild(meta);
 
-    const actions = document.createElement('div');
-    actions.className = 'asset-library__asset-actions';
-
-    const renameButton = document.createElement('button');
-    renameButton.type = 'button';
-    renameButton.className = 'asset-library__asset-action-btn';
-    renameButton.textContent = isEditingName ? 'Cancel' : 'Rename';
-    renameButton.addEventListener('click', (event) => {
-      event.stopPropagation();
-      if (editingAssetId === asset.id) {
-        editingAssetId = null;
-        editingName = '';
-      } else {
-        editingAssetId = asset.id;
-        editingName = asset.name;
-      }
-      refresh();
-    });
-    actions.appendChild(renameButton);
-
     if (organizeMode) {
-      const moveUpButton = document.createElement('button');
-      moveUpButton.type = 'button';
-      moveUpButton.className = 'asset-library__asset-action-btn';
-      moveUpButton.textContent = 'Move Up';
-      moveUpButton.disabled = assetIndex <= 0;
-      moveUpButton.addEventListener('click', (event) => {
+      card.classList.add('asset-library__asset--organizing');
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'asset-library__drag-handle';
+      dragHandle.textContent = '≡';
+      dragHandle.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
-        assetRegistry.reorderAsset({
-          groupType: group.type,
-          groupSlug: group.slug,
-          fromIndex: assetIndex,
-          toIndex: assetIndex - 1,
-        });
+        event.preventDefault();
+        beginDrag({ event, card, grid: card.parentElement as HTMLElement, group, fromIndex: assetIndex });
       });
-      actions.appendChild(moveUpButton);
+      card.appendChild(dragHandle);
 
-      const moveDownButton = document.createElement('button');
-      moveDownButton.type = 'button';
-      moveDownButton.className = 'asset-library__asset-action-btn';
-      moveDownButton.textContent = 'Move Down';
-      moveDownButton.disabled = assetIndex >= assetCount - 1;
-      moveDownButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        assetRegistry.reorderAsset({
-          groupType: group.type,
-          groupSlug: group.slug,
-          fromIndex: assetIndex,
-          toIndex: assetIndex + 1,
-        });
+      let longPressTimer: number | null = null;
+      let originX = 0;
+      let originY = 0;
+      card.addEventListener('pointerdown', (event) => {
+        if (event.target === dragHandle) return;
+        originX = event.clientX;
+        originY = event.clientY;
+        longPressTimer = window.setTimeout(() => {
+          beginDrag({ event, card, grid: card.parentElement as HTMLElement, group, fromIndex: assetIndex });
+          longPressTimer = null;
+        }, 300);
       });
-      actions.appendChild(moveDownButton);
+      card.addEventListener('pointermove', (event) => {
+        if (longPressTimer === null) return;
+        const moved = Math.hypot(event.clientX - originX, event.clientY - originY);
+        if (moved > 8) {
+          window.clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      });
+      const clearLongPress = () => {
+        if (longPressTimer !== null) {
+          window.clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+      card.addEventListener('pointerup', clearLongPress);
+      card.addEventListener('pointercancel', clearLongPress);
+    } else {
+      const moreButton = document.createElement('button');
+      moreButton.type = 'button';
+      moreButton.className = 'asset-library__asset-more';
+      moreButton.textContent = '⋯';
+      moreButton.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      moreButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openAssetSheet(asset.id);
+      });
+      card.appendChild(moreButton);
     }
 
-    card.appendChild(actions);
-    card.appendChild(deleteButton);
-
     card.addEventListener('click', () => {
+      if (organizeGroupKey === cardGroupKey) return;
       assetRegistry.setSelectedAsset(asset.id);
     });
 
@@ -620,18 +793,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           <span class="asset-library__group-count">${group.assets.length} assets</span>
         `;
 
+        const organizeEnabled = organizeGroupKey === key;
+        if (organizeEnabled) {
+          expandedGroups.add(key);
+        }
+
         const organizeToggle = document.createElement('button');
         organizeToggle.type = 'button';
         organizeToggle.className = 'asset-library__button';
-        const organizeEnabled = organizeGroups.has(key);
         organizeToggle.textContent = organizeEnabled ? 'Done' : 'Organize';
         organizeToggle.addEventListener('click', (event) => {
           event.stopPropagation();
-          if (organizeGroups.has(key)) {
-            organizeGroups.delete(key);
-          } else {
-            organizeGroups.add(key);
-          }
+          organizeGroupKey = organizeEnabled ? null : key;
+          if (!organizeEnabled) expandedGroups.add(key);
           refresh();
         });
 
@@ -816,10 +990,130 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     librarySection.appendChild(grid);
   }
 
+  function renderSheet(): void {
+    sheetScrim.innerHTML = '';
+    if (!sheetAssetId) {
+      sheetScrim.classList.remove('asset-library__sheet-scrim--open');
+      return;
+    }
+
+    const state = assetRegistry.getState();
+    const activeGroup = state.groups.find((group) => group.assets.some((asset) => asset.id === sheetAssetId));
+    const activeAsset = activeGroup?.assets.find((asset) => asset.id === sheetAssetId);
+    if (!activeAsset || !activeGroup) {
+      sheetAssetId = null;
+      sheetScrim.classList.remove('asset-library__sheet-scrim--open');
+      return;
+    }
+
+    sheetScrim.classList.add('asset-library__sheet-scrim--open');
+    const sheet = document.createElement('div');
+    sheet.className = 'asset-library__sheet';
+    sheet.addEventListener('click', (event) => event.stopPropagation());
+
+    if (sheetView === 'menu') {
+      const actions: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
+        { label: 'Rename', onClick: () => openAssetSheet(activeAsset.id, 'rename') },
+        { label: 'Delete', onClick: () => openAssetSheet(activeAsset.id, 'delete-confirm'), danger: true },
+        {
+          label: 'Organize Group',
+          onClick: () => {
+            organizeGroupKey = groupKey(activeGroup);
+            expandedGroups.add(organizeGroupKey);
+            sheetAssetId = null;
+            refresh();
+          },
+        },
+        {
+          label: 'Cancel',
+          onClick: () => {
+            sheetAssetId = null;
+            refresh();
+          },
+        },
+      ];
+
+      actions.forEach((action) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `asset-library__sheet-button${action.danger ? ' asset-library__sheet-button--danger' : ''}`;
+        button.textContent = action.label;
+        button.addEventListener('click', action.onClick);
+        sheet.appendChild(button);
+      });
+    }
+
+    if (sheetView === 'rename') {
+      const title = document.createElement('div');
+      title.className = 'asset-library__sheet-title';
+      title.textContent = 'Rename Asset';
+      sheet.appendChild(title);
+
+      const input = document.createElement('input');
+      input.className = 'asset-library__input';
+      input.type = 'text';
+      input.value = activeAsset.name;
+      input.maxLength = 64;
+      sheet.appendChild(input);
+
+      const saveButton = document.createElement('button');
+      saveButton.type = 'button';
+      saveButton.className = 'asset-library__sheet-button';
+      saveButton.textContent = 'Save';
+      saveButton.addEventListener('click', () => {
+        assetRegistry.renameAsset(activeAsset.id, input.value);
+        sheetAssetId = null;
+        refresh();
+      });
+      sheet.appendChild(saveButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
+      sheet.appendChild(cancelButton);
+      queueMicrotask(() => input.focus());
+    }
+
+    if (sheetView === 'delete-confirm') {
+      const title = document.createElement('div');
+      title.className = 'asset-library__sheet-title';
+      title.textContent = 'Delete this asset?';
+      sheet.appendChild(title);
+
+      const note = document.createElement('div');
+      note.className = 'asset-library__sheet-note';
+      note.textContent = activeAsset.name;
+      sheet.appendChild(note);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'asset-library__sheet-button asset-library__sheet-button--danger';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', () => {
+        assetRegistry.removeAsset(activeAsset.id);
+        sheetAssetId = null;
+        refresh();
+      });
+      sheet.appendChild(deleteButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
+      sheet.appendChild(cancelButton);
+    }
+
+    sheetScrim.appendChild(sheet);
+  }
+
   function refresh(): void {
     const state = assetRegistry.getState();
     renderGroups(state.groups, state.selectedAssetId);
     renderAnimations();
+    renderSheet();
   }
 
   function handleCreateGroup(): void {
@@ -843,6 +1137,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     refresh,
     destroy: () => {
       unsubscribe();
+      sheetScrim.remove();
       container.removeChild(root);
     },
   };
