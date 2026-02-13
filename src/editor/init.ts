@@ -1533,6 +1533,7 @@ async function initPanels(): Promise<void> {
         createUtilitiesTab({
           container: toolsContainer,
           authManager: authManager ?? undefined,
+          assetRegistry: assetRegistry ?? undefined,
         });
       }
 

@@ -22,8 +22,12 @@
 import type { HotProject } from '@/storage';
 import type { Scene } from '@/types';
 import type { ShaStore } from './shaManager';
+import type { AssetRegistryState } from '@/editor/assets';
+import type { AssetGroupType } from '@/editor/assets/assetGroup';
+import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
 import { hashContent } from './utils';
+import { parseDataUrl, slugifyFileName, buildUniqueFileName, MIME_EXTENSION_MAP } from './assetUpload';
 
 export type FileChangeStatus = 'added' | 'modified' | 'deleted';
 
@@ -40,6 +44,7 @@ export interface ChangeDetectorConfig {
   getProject: () => Promise<HotProject | null>;
   getScenes: () => Promise<Scene[]>;
   getShaStore: () => Promise<ShaStore>;
+  getAssetRegistryState?: () => AssetRegistryState | null;
 }
 
 export interface ChangeDetector {
@@ -68,8 +73,22 @@ function detectContentChange(
   return previousHash !== currentHash;
 }
 
+/**
+ * Build the deploy path for a local asset within a group.
+ * Mirrors the path structure used by assetUpload.ts so that SHA tracking
+ * remains consistent across both upload mechanisms.
+ */
+function buildAssetDeployPath(
+  groupType: AssetGroupType,
+  groupSlug: string,
+  fileName: string
+): string {
+  const basePath = ASSET_GROUP_PATHS[groupType];
+  return `${basePath}/${groupSlug}/${fileName}`;
+}
+
 export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetector {
-  const { getProject, getScenes, getShaStore } = config;
+  const { getProject, getScenes, getShaStore, getAssetRegistryState } = config;
 
   return {
     async detectChanges() {
@@ -132,6 +151,45 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
           contentHash: sceneIndexHash,
           localSha: indexEntry?.sha ?? null,
         });
+      }
+
+      // Detect local image asset changes
+      const registryState = getAssetRegistryState?.() ?? null;
+      if (registryState) {
+        for (const group of registryState.groups) {
+          const usedNames = new Set<string>();
+          for (const asset of group.assets) {
+            if (asset.source !== 'local') continue;
+
+            const parsed = parseDataUrl(asset.dataUrl);
+            if (!parsed) continue;
+
+            const extension = MIME_EXTENSION_MAP[parsed.mimeType];
+            if (!extension) continue;
+
+            const fileName = buildUniqueFileName(
+              slugifyFileName(asset.name),
+              extension,
+              usedNames
+            );
+            const assetPath = buildAssetDeployPath(group.type, group.slug, fileName);
+            const contentHash = await hashContent(parsed.base64);
+            const entry = shaStore.get(assetPath);
+
+            currentPaths.add(assetPath);
+
+            if (detectContentChange(entry?.contentHash ?? null, contentHash)) {
+              changes.push({
+                path: assetPath,
+                status: entry ? 'modified' : 'added',
+                content: parsed.base64,
+                contentHash,
+                localSha: entry?.sha ?? null,
+                encoding: 'base64',
+              });
+            }
+          }
+        }
       }
 
       const storedEntries = shaStore.getAll();

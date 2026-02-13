@@ -11,7 +11,13 @@ export type {
 } from './changeDetector';
 export { createCommitter, deployChanges } from './commit';
 export type { CommitConfig, CommitProgress, CommitResult, Committer } from './commit';
-export { uploadAssetGroup } from './assetUpload';
+export {
+  uploadAssetGroup,
+  parseDataUrl,
+  slugifyFileName,
+  buildUniqueFileName,
+  MIME_EXTENSION_MAP,
+} from './assetUpload';
 export type {
   AssetUploadGroup,
   AssetUploadGroupType,
