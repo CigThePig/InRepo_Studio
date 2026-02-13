@@ -645,6 +645,10 @@ Micro-format (copy/paste):
   - Role: In-editor asset registry with grouped assets and selection state.
   - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode
 
+- `src/editor/assets/assetRegistry.test.ts`
+  - Role: Unit tests for asset registry rename/reorder behavior.
+  - Lists of truth: none
+
 - `src/editor/assets/spriteSlider.ts`
   - Role: Sprite sheet slicing logic for asset prep.
   - Lists of truth: none

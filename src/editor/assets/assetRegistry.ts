@@ -110,6 +110,13 @@ export interface AssetRegistry {
     groupName: string;
     assets: AssetEntryInput[];
   }): AssetEntry[];
+  renameAsset(assetId: string, nextName: string): void;
+  reorderAsset(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    fromIndex: number;
+    toIndex: number;
+  }): void;
   removeAsset(assetId: string): void;
   getAsset(assetId: string): AssetEntry | null;
   getSelectedAsset(): AssetEntry | null;
@@ -270,6 +277,22 @@ function syncSelectedAssetId(groups: AssetGroup[], selectedAssetId: string | nul
   if (!selectedAssetId) return null;
   const exists = groups.some((group) => group.assets.some((asset) => asset.id === selectedAssetId));
   return exists ? selectedAssetId : null;
+}
+
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex < 0
+    || toIndex < 0
+    || fromIndex >= items.length
+    || toIndex >= items.length
+    || fromIndex === toIndex
+  ) {
+    return items;
+  }
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
 }
 
 export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegistry {
@@ -455,6 +478,55 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     const nextAnimations = state.animations.filter((animation) => animation.id !== animationId);
     if (nextAnimations.length === state.animations.length) return;
     updateAnimations(nextAnimations);
+  }
+
+  function renameAsset(assetId: string, nextName: string): void {
+    const trimmedName = nextName.trim();
+    if (!trimmedName) return;
+
+    let hasChanges = false;
+    const nextGroups = state.groups.map((group) => {
+      const nextAssets = group.assets.map((asset) => {
+        if (asset.id !== assetId) return asset;
+        if (asset.name === trimmedName) return asset;
+        hasChanges = true;
+        return {
+          ...asset,
+          name: trimmedName,
+        };
+      });
+      return {
+        ...group,
+        assets: nextAssets,
+      };
+    });
+
+    if (!hasChanges) return;
+    updateGroups(nextGroups);
+  }
+
+  function reorderAsset(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    fromIndex: number;
+    toIndex: number;
+  }): void {
+    const groupIndex = findGroupIndex(options.groupType, options.groupSlug);
+    if (groupIndex < 0) return;
+
+    const targetGroup = state.groups[groupIndex];
+    const reorderedAssets = moveItem(targetGroup.assets, options.fromIndex, options.toIndex);
+    if (reorderedAssets === targetGroup.assets) return;
+
+    const nextGroups = state.groups.map((group, index) => {
+      if (index !== groupIndex) return group;
+      return {
+        ...group,
+        assets: reorderedAssets,
+      };
+    });
+
+    updateGroups(nextGroups);
   }
 
   function removeAsset(assetId: string): void {
@@ -665,6 +737,8 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     createGroup,
     deleteGroup,
     addAssets,
+    renameAsset,
+    reorderAsset,
     removeAsset,
     getAsset,
     getSelectedAsset: () => (state.selectedAssetId ? getAsset(state.selectedAssetId) : null),
