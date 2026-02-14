@@ -653,6 +653,10 @@ Micro-format (copy/paste):
   - Role: Sprite sheet slicing logic for asset prep.
   - Lists of truth: none
 
+- `src/editor/assets/spriteAtlasRehydrate.ts`
+  - Role: Rehydrate virtual atlas slice assets from project sprite atlas metadata.
+  - Lists of truth: none
+
 - `src/editor/settings/editorSettings.ts` (planned — Track 28)
   - Role: User preferences.
   - Lists of truth: EditorSettingsSchema

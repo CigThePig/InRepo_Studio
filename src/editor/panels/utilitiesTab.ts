@@ -1,7 +1,13 @@
 import type { AuthManager } from '@/deploy';
 import type { AssetRegistry } from '@/editor/assets';
 import type { StorageQuotaInfo } from '@/storage/hot';
-import { exportAllData, importAllData, checkStorageQuota } from '@/storage';
+import {
+  exportAllData,
+  importAllData,
+  checkStorageQuota,
+  clearAllData,
+  forceRefreshFromCold,
+} from '@/storage';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
 const STYLES = `
@@ -251,10 +257,40 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
     }
   });
 
+  const btnResetEnvironment = document.createElement('button');
+  btnResetEnvironment.className = 'utilities-tab__button';
+  btnResetEnvironment.textContent = 'Reset Environment';
+  btnResetEnvironment.addEventListener('click', async () => {
+    const confirmed = window.confirm(
+      'This clears local IndexedDB project/scenes/editor-state cache. '
+      + 'Repo token is kept. Unsaved local changes not deployed to the repo will be lost.'
+    );
+    if (!confirmed) {
+      dataStatus.textContent = 'Reset cancelled.';
+      return;
+    }
+
+    try {
+      if (navigator.onLine) {
+        dataStatus.textContent = 'Resetting local environment from repo...';
+        await forceRefreshFromCold();
+      } else {
+        dataStatus.textContent = 'Offline: clearing local hot storage only...';
+        await clearAllData();
+      }
+      dataStatus.textContent = 'Environment reset complete. Reloading...';
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      dataStatus.textContent = 'Reset failed (see console).';
+    }
+  });
+
   dataActions.appendChild(btnCheck);
   dataActions.appendChild(btnExport);
   dataActions.appendChild(btnCopy);
   dataActions.appendChild(btnImport);
+  dataActions.appendChild(btnResetEnvironment);
 
   dataSection.appendChild(dataTitle);
   dataSection.appendChild(dataDesc);

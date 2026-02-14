@@ -53,6 +53,7 @@ import {
 } from '@/editor/panels';
 import {
   createAssetRegistry,
+  rehydrateSpriteAtlasesIntoAssetRegistry,
   type AssetEntry,
   type AssetRegistry,
   type AssetRegistryState,
@@ -815,6 +816,12 @@ export async function initEditor(): Promise<void> {
     throw new Error('No project data available');
   }
   console.log(`${LOG_PREFIX} Project: "${currentProject.name}"`);
+  if (assetRegistry) {
+    rehydrateSpriteAtlasesIntoAssetRegistry({
+      project: currentProject,
+      assetRegistry,
+    });
+  }
   syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null);
   if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
     editorState.selectedEntityType = currentProject.entityTypes[0].name;
@@ -887,6 +894,12 @@ export async function initEditor(): Promise<void> {
         assetPaths: ASSET_GROUP_PATHS,
       });
       assetRegistry.refreshFromRepo(manifest);
+      if (currentProject) {
+        rehydrateSpriteAtlasesIntoAssetRegistry({
+          project: currentProject,
+          assetRegistry,
+        });
+      }
       editorState.repoAssetManifest = manifest;
       scheduleSave();
     } catch (error) {
