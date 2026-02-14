@@ -1,5 +1,6 @@
 export { computeNonEmptyTileMask, sliceImage, sliceImageRegions } from './spriteSlider';
 export type { SliceResult } from './spriteSlider';
+export { rehydrateSpriteAtlasesIntoAssetRegistry } from './spriteAtlasRehydrate';
 export { createAssetRegistry, DEFAULT_ASSET_REGISTRY_STATE } from './assetRegistry';
 export type {
   AssetEntry,

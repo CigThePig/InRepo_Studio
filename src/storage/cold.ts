@@ -57,11 +57,11 @@ export interface RepoAssetManifest {
 // --- Project Loading ---
 
 export async function fetchProject(): Promise<Project | null> {
-  const url = resolveGamePath(PROJECT_JSON_PATH);
+  const url = resolveAssetUrl(PROJECT_JSON_PATH);
   console.log(`${LOG_PREFIX} Fetching project from ${url}`);
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -89,11 +89,11 @@ export async function fetchProject(): Promise<Project | null> {
 // --- Scene Loading ---
 
 export async function fetchScene(sceneId: string): Promise<Scene | null> {
-  const url = resolveGamePath(`${SCENES_DIR}/${sceneId}.json`);
+  const url = resolveAssetUrl(`${SCENES_DIR}/${sceneId}.json`);
   console.log(`${LOG_PREFIX} Fetching scene from ${url}`);
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
       if (response.status === 404) {
