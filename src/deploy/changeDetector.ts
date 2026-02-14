@@ -21,6 +21,7 @@
 
 import type { HotProject } from '@/storage';
 import type { Scene } from '@/types';
+import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
 import type { ShaStore } from './shaManager';
 import type { AssetRegistryState } from '@/editor/assets';
 import type { AssetGroupType } from '@/editor/assets/assetGroup';
@@ -96,10 +97,107 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
       const changes: FileChange[] = [];
       const currentPaths = new Set<string>();
 
+      // --- Phase 1: Detect image asset changes ---
+      // Process assets before project.json so we can inject spriteAtlases
+      // metadata into the deployed project content.
+      const registryState = getAssetRegistryState?.() ?? null;
+      const spriteAtlases: SpriteAtlas[] = [];
+      const parentDeployPaths = new Map<string, string>();
+
+      if (registryState) {
+        // Upload only parent/standalone assets (skip slice assets that
+        // reference a parent via sourceAssetId — they share the same
+        // full-sheet dataUrl and would be uploaded redundantly).
+        for (const group of registryState.groups) {
+          const usedNames = new Set<string>();
+          for (const asset of group.assets) {
+            if (asset.source !== 'local') continue;
+            if (asset.sourceAssetId) continue;
+
+            const parsed = parseDataUrl(asset.dataUrl);
+            if (!parsed) continue;
+
+            const extension = MIME_EXTENSION_MAP[parsed.mimeType];
+            if (!extension) continue;
+
+            const fileName = buildUniqueFileName(
+              slugifyFileName(asset.name),
+              extension,
+              usedNames
+            );
+            const assetPath = buildAssetDeployPath(group.type, group.slug, fileName);
+            const contentHash = await hashContent(parsed.base64);
+            const entry = shaStore.get(assetPath);
+
+            currentPaths.add(assetPath);
+            parentDeployPaths.set(asset.id, assetPath);
+
+            if (detectContentChange(entry?.contentHash ?? null, contentHash)) {
+              changes.push({
+                path: assetPath,
+                status: entry ? 'modified' : 'added',
+                content: parsed.base64,
+                contentHash,
+                localSha: entry?.sha ?? null,
+                encoding: 'base64',
+              });
+            }
+          }
+        }
+
+        // Build spriteAtlases from slice assets that reference a parent.
+        const atlasMap = new Map<string, {
+          name: string;
+          parentPath: string;
+          slices: SpriteAtlasSlice[];
+          firstSliceSize: { width: number; height: number };
+        }>();
+
+        for (const group of registryState.groups) {
+          for (const asset of group.assets) {
+            if (asset.source !== 'local') continue;
+            if (!asset.sourceAssetId || !asset.rect) continue;
+
+            const parentPath = parentDeployPaths.get(asset.sourceAssetId);
+            if (!parentPath) continue;
+
+            if (!atlasMap.has(asset.sourceAssetId)) {
+              const parentAsset = group.assets.find((a) => a.id === asset.sourceAssetId);
+              atlasMap.set(asset.sourceAssetId, {
+                name: parentAsset?.name ?? asset.sourceAssetId,
+                parentPath: parentPath.replace(/^game\//, ''),
+                slices: [],
+                firstSliceSize: { width: asset.rect.w, height: asset.rect.h },
+              });
+            }
+
+            atlasMap.get(asset.sourceAssetId)!.slices.push({
+              name: asset.name,
+              rect: { x: asset.rect.x, y: asset.rect.y, w: asset.rect.w, h: asset.rect.h },
+            });
+          }
+        }
+
+        for (const [, atlas] of atlasMap) {
+          spriteAtlases.push({
+            name: atlas.name,
+            path: atlas.parentPath,
+            sliceSize: atlas.firstSliceSize,
+            slices: atlas.slices,
+          });
+        }
+      }
+
+      // --- Phase 2: Detect project.json changes ---
+      // Merge computed spriteAtlases into the deployed project content so
+      // the runtime can reconstruct sprite frames from the parent sheet.
       const hotProject = await getProject();
       if (hotProject) {
+        const projectData = spriteAtlases.length > 0
+          ? { ...hotProject.project, spriteAtlases }
+          : hotProject.project;
         const projectPath = PROJECT_JSON_PATH;
-        const projectContent = JSON.stringify(hotProject.project, null, 2);
+        const projectContent = JSON.stringify(projectData, null, 2);
         const contentHash = await hashContent(projectContent);
         const entry = shaStore.get(projectPath);
 
@@ -116,6 +214,7 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
         }
       }
 
+      // --- Phase 3: Detect scene changes ---
       const scenes = await getScenes();
       for (const scene of scenes) {
         const scenePath = `${SCENES_DIR}/${scene.id}.json`;
@@ -153,45 +252,7 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
         });
       }
 
-      // Detect local image asset changes
-      const registryState = getAssetRegistryState?.() ?? null;
-      if (registryState) {
-        for (const group of registryState.groups) {
-          const usedNames = new Set<string>();
-          for (const asset of group.assets) {
-            if (asset.source !== 'local') continue;
-
-            const parsed = parseDataUrl(asset.dataUrl);
-            if (!parsed) continue;
-
-            const extension = MIME_EXTENSION_MAP[parsed.mimeType];
-            if (!extension) continue;
-
-            const fileName = buildUniqueFileName(
-              slugifyFileName(asset.name),
-              extension,
-              usedNames
-            );
-            const assetPath = buildAssetDeployPath(group.type, group.slug, fileName);
-            const contentHash = await hashContent(parsed.base64);
-            const entry = shaStore.get(assetPath);
-
-            currentPaths.add(assetPath);
-
-            if (detectContentChange(entry?.contentHash ?? null, contentHash)) {
-              changes.push({
-                path: assetPath,
-                status: entry ? 'modified' : 'added',
-                content: parsed.base64,
-                contentHash,
-                localSha: entry?.sha ?? null,
-                encoding: 'base64',
-              });
-            }
-          }
-        }
-      }
-
+      // --- Phase 4: Detect deleted files ---
       const storedEntries = shaStore.getAll();
       Object.keys(storedEntries).forEach((path) => {
         if (!currentPaths.has(path)) {

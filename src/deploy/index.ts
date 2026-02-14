@@ -10,7 +10,7 @@ export type {
   ConflictResult,
 } from './changeDetector';
 export { createCommitter, deployChanges } from './commit';
-export type { CommitConfig, CommitProgress, CommitResult, Committer } from './commit';
+export type { CommitConfig, CommitProgress, CommitResult, Committer, AtomicCommitResult } from './commit';
 export {
   uploadAssetGroup,
   parseDataUrl,

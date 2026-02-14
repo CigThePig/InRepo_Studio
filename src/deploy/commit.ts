@@ -62,6 +62,11 @@ export interface Committer {
     remoteShas: Record<string, string | null>,
     onProgress?: (progress: CommitProgress) => void
   ): Promise<CommitResult[]>;
+  commitAtomic(
+    changes: FileChange[],
+    remoteShas: Record<string, string | null>,
+    onProgress?: (progress: CommitProgress) => void
+  ): Promise<AtomicCommitResult>;
 }
 
 export interface DeployOrchestratorConfig {
@@ -275,6 +280,18 @@ export function createCommitter(config: CommitConfig): Committer {
       }
 
       return results;
+    },
+
+    async commitAtomic(changes, remoteShas, onProgress) {
+      return commitFilesAtomically({
+        authManager,
+        repoOwner,
+        repoName,
+        branch,
+        changes,
+        expectedShas: remoteShas,
+        onProgress,
+      });
     },
   };
 }
@@ -818,17 +835,44 @@ export async function deployChanges(config: DeployOrchestratorConfig): Promise<v
       message: `Deploying ${filesToCommit.length} file(s)...`,
     });
 
-    const results = await committer.commitFiles(
-      filesToCommit,
-      remoteShas,
-      (progress) => {
-        deployUI.setStatus({
-          phase: 'committing',
-          message: `Deploying ${progress.current}/${progress.total}...`,
-          progress,
-        });
-      }
-    );
+    // Use a single atomic commit for all non-deletion changes so that
+    // every file lands in one commit instead of creating N separate commits.
+    const deletions = filesToCommit.filter((c) => c.status === 'deleted');
+    const nonDeletions = filesToCommit.filter((c) => c.status !== 'deleted');
+
+    const allResults: CommitResult[] = [];
+
+    if (nonDeletions.length > 0) {
+      const atomicResult = await committer.commitAtomic(
+        nonDeletions,
+        remoteShas,
+        (progress) => {
+          deployUI.setStatus({
+            phase: 'committing',
+            message: `Deploying ${progress.current}/${progress.total}...`,
+            progress,
+          });
+        }
+      );
+      allResults.push(...atomicResult.results);
+    }
+
+    if (deletions.length > 0) {
+      const deleteResults = await committer.commitFiles(
+        deletions,
+        remoteShas,
+        (progress) => {
+          deployUI.setStatus({
+            phase: 'committing',
+            message: `Deleting ${progress.current}/${progress.total}...`,
+            progress,
+          });
+        }
+      );
+      allResults.push(...deleteResults);
+    }
+
+    const results = allResults;
 
     const resultStore = await shaManager.createStore();
     for (const result of results) {
