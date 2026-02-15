@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Project, EntityType } from '@/types';
 import { resolveAssetUrl } from '@/shared/paths';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import type { UnifiedLoader } from '@/runtime/loader';
 
 const LOG_PREFIX = '[Runtime/ProjectLoader]';
@@ -12,9 +13,11 @@ type SpriteKeyMap = Map<string, string | null>;
 export interface ProjectRuntime {
   project: Project;
   tileTextureKeys: TextureKeyMap;
+  atlasTextureKeys: TextureKeyMap;
   entityTypes: Map<string, EntityType>;
   entitySpriteKeys: SpriteKeyMap;
   getTileTextureKey(category: string, index: number): string | null;
+  getAtlasTextureKey(category: string): string | null;
   getEntitySpriteKey(typeName: string): string | null;
 }
 
@@ -60,6 +63,14 @@ function buildTileRequests(project: Project): AssetRequest[] {
     }
   }
 
+  for (const atlas of project.spriteAtlases ?? []) {
+    const category = getAtlasCategoryName(atlas.path);
+    requests.push({
+      key: category,
+      url: resolveAssetUrl(atlas.path),
+    });
+  }
+
   return requests;
 }
 
@@ -100,6 +111,17 @@ function buildEntitySpriteKeys(project: Project): SpriteKeyMap {
   return keys;
 }
 
+function buildAtlasTextureKeys(project: Project): TextureKeyMap {
+  const keys: TextureKeyMap = new Map();
+
+  for (const atlas of project.spriteAtlases ?? []) {
+    const category = getAtlasCategoryName(atlas.path);
+    keys.set(category, category);
+  }
+
+  return keys;
+}
+
 export async function initProject(config: ProjectLoaderConfig): Promise<ProjectRuntime> {
   const { loader, phaserScene } = config;
 
@@ -116,15 +138,21 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   }
 
   const tileTextureKeys = buildTileTextureKeys(project);
+  const atlasTextureKeys = buildAtlasTextureKeys(project);
   const entitySpriteKeys = buildEntitySpriteKeys(project);
+  console.log(`${LOG_PREFIX} Loaded atlas sheets count: ${(project.spriteAtlases ?? []).length}`);
 
   return {
     project,
     tileTextureKeys,
+    atlasTextureKeys,
     entityTypes,
     entitySpriteKeys,
     getTileTextureKey(category, index) {
       return tileTextureKeys.get(`${category}:${index}`) ?? null;
+    },
+    getAtlasTextureKey(category) {
+      return atlasTextureKeys.get(category) ?? null;
     },
     getEntitySpriteKey(typeName) {
       return entitySpriteKeys.get(typeName) ?? null;

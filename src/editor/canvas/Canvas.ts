@@ -24,8 +24,9 @@ import {
   type TilemapRenderer,
 } from './renderer';
 import { createTileCache, type TileImageCache } from './tileCache';
+import { createAtlasCache, type AtlasCache } from './atlasCache';
 import { createBrushCursor, type BrushCursor } from './brushCursor';
-import type { Scene, LayerType, TileCategory } from '@/types';
+import type { Scene, LayerType, TileCategory, Project } from '@/types';
 
 const LOG_PREFIX = '[Canvas]';
 
@@ -90,6 +91,12 @@ export interface CanvasController {
 
   /** Preload tile images for categories */
   preloadCategories(categories: TileCategory[]): Promise<void>;
+
+  /** Set project reference for atlas-aware rendering */
+  setProject(project: Project | null): void;
+
+  /** Preload all paint assets used by a project (tile files + atlas sheets) */
+  preloadProject(project: Project): Promise<void>;
 
   /** Set brush cursor size */
   setBrushCursorSize(size: number): void;
@@ -157,8 +164,10 @@ export function createCanvas(
 
   // --- Tile Cache and Renderer ---
   const tileCache = createTileCache();
+  const atlasCache: AtlasCache = createAtlasCache();
   const renderer = createTilemapRenderer({
     tileCache,
+    atlasCache,
     onSpriteLoad: () => {
       isDirty = true;
       scheduleRender();
@@ -501,6 +510,12 @@ export function createCanvas(
       return tileCache;
     },
 
+    setProject(project: Project | null) {
+      atlasCache.setProject(project);
+      isDirty = true;
+      scheduleRender();
+    },
+
     getRenderer() {
       return renderer;
     },
@@ -521,6 +536,15 @@ export function createCanvas(
       for (const category of categories) {
         await tileCache.preloadCategory(category);
       }
+      isDirty = true;
+      scheduleRender();
+    },
+
+    async preloadProject(project: Project) {
+      for (const category of project.tileCategories ?? []) {
+        await tileCache.preloadCategory(category);
+      }
+      await atlasCache.preloadProjectAtlases(project);
       isDirty = true;
       scheduleRender();
     },

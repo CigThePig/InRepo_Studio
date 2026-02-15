@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
 import { getGidForTile } from '@/types/scene';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 const LOG_PREFIX = '[Runtime/TileMapFactory]';
 
@@ -96,6 +97,44 @@ function buildTilesets(
       if (tileset) {
         tilesets.push(tileset);
       }
+    }
+  }
+
+  for (const atlas of projectRuntime.project.spriteAtlases ?? []) {
+    if (atlas.sliceSize.width !== scene.tileSize || atlas.sliceSize.height !== scene.tileSize) {
+      console.warn(
+        `${LOG_PREFIX} Skipping atlas tileset "${atlas.path}" due to slice size mismatch (${atlas.sliceSize.width}x${atlas.sliceSize.height} vs scene ${scene.tileSize}x${scene.tileSize})`
+      );
+      continue;
+    }
+
+    const categoryName = getAtlasCategoryName(atlas.path);
+    const firstGid = getGidForTile(scene, categoryName, 0);
+    if (!firstGid) continue;
+
+    const textureKey = projectRuntime.getAtlasTextureKey(categoryName);
+    if (!textureKey) {
+      console.warn(`${LOG_PREFIX} Missing atlas texture key for ${categoryName}`);
+      continue;
+    }
+
+    if (!tilemap.scene.textures.exists(textureKey)) {
+      console.warn(`${LOG_PREFIX} Atlas texture not loaded for ${textureKey}`);
+      continue;
+    }
+
+    const tileset = tilemap.addTilesetImage(
+      textureKey,
+      textureKey,
+      scene.tileSize,
+      scene.tileSize,
+      0,
+      0,
+      firstGid
+    );
+
+    if (tileset) {
+      tilesets.push(tileset);
     }
   }
 

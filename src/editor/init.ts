@@ -60,6 +60,7 @@ import {
 } from '@/editor/assets';
 import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { setContentVersionToken } from '@/shared/paths';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
@@ -421,6 +422,17 @@ function normalizeAssetPath(value: string): string {
   return value.replace(/^\/+/, '').replace(/\/{2,}/g, '/');
 }
 
+function normalizeRepoRelativePath(value: string): string {
+  return normalizeAssetPath(value).replace(/^game\//, '');
+}
+
+function isRectEqual(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number }
+): boolean {
+  return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+}
+
 function resolveSelectedTileFromAsset(asset: AssetEntry, project: Project): SelectedTile | null {
   if (asset.type === 'entity') return null;
   if (/^data:/i.test(asset.dataUrl)) {
@@ -439,6 +451,54 @@ function resolveSelectedTileFromAsset(asset: AssetEntry, project: Project): Sele
         return { category: category.name, index };
       }
     }
+  }
+
+  if (asset.rect && !/^data:/i.test(asset.dataUrl)) {
+    const assetAtlasPath = normalizeRepoRelativePath(asset.dataUrl);
+    const atlas = (project.spriteAtlases ?? []).find(
+      (candidate) => normalizeRepoRelativePath(candidate.path) === assetAtlasPath
+    );
+    if (!atlas) {
+      return null;
+    }
+
+    const matchingSliceIndices = (atlas.slices ?? [])
+      .map((slice, index) => (isRectEqual(slice.rect, asset.rect!) ? index : -1))
+      .filter((value) => value >= 0);
+
+    if (matchingSliceIndices.length === 0) {
+      return null;
+    }
+
+    if (matchingSliceIndices.length > 1) {
+      console.warn('[AtlasSelect] Multiple atlas slices matched by rect; using first', {
+        atlas: atlas.path,
+        rect: asset.rect,
+        indices: matchingSliceIndices,
+      });
+    }
+
+    const sliceIndex = matchingSliceIndices[0];
+    console.log('[AtlasSelect] Selected atlas tile', { atlas: atlas.path, sliceIndex });
+    return { category: getAtlasCategoryName(atlas.path), index: sliceIndex };
+  }
+
+  return null;
+}
+
+function findAtlasByCategory(project: Project, category: string) {
+  return (project.spriteAtlases ?? []).find((atlas) => getAtlasCategoryName(atlas.path) === category) ?? null;
+}
+
+function getAtlasTileSizeMismatchReason(selection: SelectedTile): string | null {
+  if (!currentProject || !currentScene) return null;
+  if (!selection.category.startsWith('atlas:')) return null;
+
+  const atlas = findAtlasByCategory(currentProject, selection.category);
+  if (!atlas) return null;
+
+  if (atlas.sliceSize.width !== currentScene.tileSize || atlas.sliceSize.height !== currentScene.tileSize) {
+    return `"${atlas.name}" slice size is ${atlas.sliceSize.width}x${atlas.sliceSize.height}, but this scene uses ${currentScene.tileSize}x${currentScene.tileSize} tiles.`;
   }
 
   return null;
@@ -491,11 +551,19 @@ function syncSelectedAssetSelection(
     return;
   }
 
+  const atlasMismatchReason = getAtlasTileSizeMismatchReason(selection);
+  if (atlasMismatchReason) {
+    showAtlasMismatchNotice(`Can't paint atlas tile yet: ${atlasMismatchReason}`);
+    return;
+  }
+
   applySelectedTile(selection, options);
 }
 
 let localAssetNoticeEl: HTMLElement | null = null;
 let localAssetNoticeTimeout: number | null = null;
+let atlasMismatchNoticeEl: HTMLElement | null = null;
+let atlasMismatchNoticeTimeout: number | null = null;
 
 function showLocalAssetNotice(asset: AssetEntry): void {
   // Show a temporary toast explaining why the asset can't be painted
@@ -536,6 +604,47 @@ function showLocalAssetNotice(asset: AssetEntry): void {
     notice.remove();
     localAssetNoticeEl = null;
     localAssetNoticeTimeout = null;
+  }, 4000);
+}
+
+function showAtlasMismatchNotice(message: string): void {
+  const container = document.getElementById('canvas-container');
+  if (!container) return;
+
+  if (atlasMismatchNoticeEl) {
+    atlasMismatchNoticeEl.remove();
+    if (atlasMismatchNoticeTimeout !== null) {
+      window.clearTimeout(atlasMismatchNoticeTimeout);
+    }
+  }
+
+  const notice = document.createElement('div');
+  notice.style.cssText = `
+    position: absolute;
+    left: 50%;
+    bottom: 60px;
+    transform: translateX(-50%);
+    background: rgba(20, 24, 48, 0.95);
+    color: #ffddaa;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 185, 80, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    z-index: 30;
+    max-width: 320px;
+    text-align: center;
+    line-height: 1.4;
+  `;
+  notice.textContent = message;
+  container.appendChild(notice);
+  atlasMismatchNoticeEl = notice;
+
+  atlasMismatchNoticeTimeout = window.setTimeout(() => {
+    notice.remove();
+    atlasMismatchNoticeEl = null;
+    atlasMismatchNoticeTimeout = null;
   }, 4000);
 }
 
@@ -712,8 +821,9 @@ async function applyProjectUpdate(updatedProject: Project, commitSha: string | n
   }
 
   canvasController?.getTileCache().clear();
+  canvasController?.setProject(updatedProject);
   if (canvasController) {
-    await canvasController.preloadCategories(updatedProject.tileCategories ?? []);
+    await canvasController.preloadProject(updatedProject);
     canvasController.invalidateScene();
     canvasController.getRenderer().setEntityTypes(updatedProject.entityTypes ?? []);
   }
@@ -1057,14 +1167,13 @@ async function initCanvas(tileSize: number): Promise<void> {
 
   // Set initial selected category for rendering
   canvasController.setSelectedCategory(initialCategory);
+  canvasController.setProject(currentProject);
   canvasController.getRenderer().setEntityTypes(currentProject?.entityTypes ?? []);
   canvasController.getRenderer().setAssetRegistry(assetRegistry);
 
   // Preload tile images for all categories
-  if (currentProject?.tileCategories) {
-    await canvasController.preloadCategories(
-      currentProject.tileCategories
-    );
+  if (currentProject) {
+    await canvasController.preloadProject(currentProject);
   }
 
   // Wire up viewport persistence
