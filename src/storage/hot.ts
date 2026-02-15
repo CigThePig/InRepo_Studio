@@ -86,6 +86,8 @@ export interface EditorState {
   selectedEntityType: string | null;
   /** Selected entity IDs for manipulation */
   selectedEntityIds: string[];
+  /** Selected prop sprite IDs for manipulation */
+  selectedPropSpriteIds: string[];
   brushSize: BrushSize;
   /** Snap entity placement to grid */
   entitySnapToGrid: boolean;
@@ -339,6 +341,7 @@ const DEFAULT_EDITOR_STATE: EditorState = {
   selectedTile: null,
   selectedEntityType: null,
   selectedEntityIds: [],
+  selectedPropSpriteIds: [],
   brushSize: 1,
   entitySnapToGrid: true,
   viewport: {

@@ -4,7 +4,7 @@
  * Contextual selection actions rendered inside the bottom bar.
  */
 
-export type BottomContextSelection = 'none' | 'tiles' | 'entities' | 'triggers';
+export type BottomContextSelection = 'none' | 'tiles' | 'entities' | 'propSprites' | 'triggers';
 
 export interface BottomContextStripConfig {
   onMove: () => void;
@@ -16,6 +16,7 @@ export interface BottomContextStripConfig {
   onResize: () => void;
   onDuplicate: () => void;
   onClear: () => void;
+  onConvertToEntity: () => void;
 }
 
 export interface BottomContextStripController {
@@ -164,6 +165,20 @@ export function createBottomContextStrip(
   entityGroup.appendChild(entityDeleteButton);
   entityGroup.appendChild(clearButton);
 
+
+  const propSpriteGroup = document.createElement('div');
+  propSpriteGroup.className = 'bottom-context-strip__group';
+
+  const propDuplicateButton = buildButton('Duplicate', () => config.onDuplicate());
+  const moveToEntityButton = buildButton('Move to Entities', () => config.onConvertToEntity());
+  const propDeleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
+  const propClearButton = buildButton('✕', () => config.onClear(), 'ghost');
+
+  propSpriteGroup.appendChild(propDuplicateButton);
+  propSpriteGroup.appendChild(moveToEntityButton);
+  propSpriteGroup.appendChild(propDeleteButton);
+  propSpriteGroup.appendChild(propClearButton);
+
   const triggerGroup = document.createElement('div');
   triggerGroup.className = 'bottom-context-strip__group';
 
@@ -178,6 +193,7 @@ export function createBottomContextStrip(
   container.appendChild(label);
   container.appendChild(tileGroup);
   container.appendChild(entityGroup);
+  container.appendChild(propSpriteGroup);
   container.appendChild(triggerGroup);
 
   let selectionType: BottomContextSelection = 'none';
@@ -196,11 +212,19 @@ export function createBottomContextStrip(
       tileGroup.style.display = 'flex';
       entityGroup.style.display = 'none';
       triggerGroup.style.display = 'none';
+      propSpriteGroup.style.display = 'none';
     } else if (selectionType === 'entities') {
       label.textContent = `${selectionCount || 1} selected`;
       tileGroup.style.display = 'none';
       entityGroup.style.display = 'flex';
       triggerGroup.style.display = 'none';
+    } else if (selectionType === 'propSprites') {
+      label.textContent = `${selectionCount || 1} selected`;
+      tileGroup.style.display = 'none';
+      entityGroup.style.display = 'none';
+      propSpriteGroup.style.display = 'flex';
+      triggerGroup.style.display = 'none';
+      propSpriteGroup.style.display = 'none';
     } else if (selectionType === 'triggers') {
       label.textContent = 'Trigger';
       tileGroup.style.display = 'none';
@@ -212,11 +236,13 @@ export function createBottomContextStrip(
         tileGroup.style.display = 'flex';
         entityGroup.style.display = 'none';
         triggerGroup.style.display = 'none';
+        propSpriteGroup.style.display = 'none';
       } else {
         label.textContent = '';
         tileGroup.style.display = 'none';
         entityGroup.style.display = 'none';
         triggerGroup.style.display = 'none';
+        propSpriteGroup.style.display = 'none';
       }
     }
 
@@ -244,7 +270,7 @@ export function createBottomContextStrip(
 
   function setSelectionCount(count: number): void {
     selectionCount = count;
-    if (selectionType === 'entities') {
+    if (selectionType === 'entities' || selectionType === 'propSprites') {
       label.textContent = `${selectionCount || 1} selected`;
     }
   }

@@ -306,8 +306,8 @@ Micro-format (copy/paste):
   - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema
 
 - `src/types/scene.ts`
-  - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema.
-  - Lists of truth: SceneSchema, LayerDataSchema, EntityInstanceSchema, LayerType
+  - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema, PropSpriteInstanceSchema.
+  - Lists of truth: SceneSchema, LayerDataSchema, EntityInstanceSchema, PropSpriteInstanceSchema, LayerType
 
 - `src/types/entity.ts`
   - Role: PropertyDefinitionSchema, PropertyConstraintsSchema.
@@ -344,7 +344,7 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks, RepoAssetManifest
+  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks, RepoAssetManifest, SelectedPropSpriteIds
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -408,7 +408,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/canvas/renderer.ts`
-  - Role: Tilemap rendering with layer support, culling, and dimming.
+  - Role: Tilemap + prop-sprite + entity rendering with layer support and culling.
   - Lists of truth: LAYER_RENDER_ORDER, LAYER_COLORS
 
 - `src/editor/canvas/entityRenderer.ts`
@@ -432,8 +432,8 @@ Micro-format (copy/paste):
   - Lists of truth: ToolType
 
 - `src/editor/panels/bottomContextStrip.ts`
-  - Role: Bottom bar context strip for selection actions.
-  - Lists of truth: none
+  - Role: Bottom bar context strip for tile/entity/prop-sprite selection actions.
+  - Lists of truth: BottomContextSelection
 
 - `src/editor/panels/deployPanel.ts`
   - Role: Deploy panel with authentication status.
@@ -569,7 +569,11 @@ Micro-format (copy/paste):
   - Role: Scene dropdown selector UI in top panel.
   - Lists of truth: SceneAction
 
-- `src/editor/tools/paint.ts`
+- `src/editor/props/propSpriteManager.ts`
+  - Role: CRUD + conversion manager for sprite-sized prop objects in scenes.
+  - Lists of truth: none
+
+- `src/editor/tools/paint.ts
   - Role: Tile painting logic with single-tap and drag support.
   - Lists of truth: none
 
@@ -595,6 +599,14 @@ Micro-format (copy/paste):
 
 - `src/editor/tools/selectEntityController.ts`
   - Role: Entity selection/move/delete controller for select tool.
+  - Lists of truth: none
+
+- `src/editor/tools/propSprite.ts`
+  - Role: Place sprite-sized props as world-space prop objects.
+  - Lists of truth: none
+
+- `src/editor/tools/selectPropSpriteController.ts`
+  - Role: Select/move/delete/duplicate controller for prop sprite objects.
   - Lists of truth: none
 
 - `src/editor/history/index.ts`
@@ -753,7 +765,7 @@ Micro-format (copy/paste):
   - Lists of truth: MoveVectorState
 
 - `src/runtime/tileMapFactory.ts`
-  - Role: Create Phaser tilemaps and overlays from scene data.
+  - Role: Create Phaser tilemaps + atlas render textures + overlays from scene data.
   - Lists of truth: none
 
 - `src/runtime/entityRegistry.ts`
@@ -765,7 +777,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/runtime/sceneManager.ts`
-  - Role: Scene transitions + runtime environment binding (scene/player/camera).
+  - Role: Scene transitions + runtime environment binding + prop sprite spawning.
   - Lists of truth: none
 
 ### Runtime Presets (Track 34)

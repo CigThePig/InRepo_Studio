@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
-import { getGidForTile } from '@/types/scene';
+import { getGidForTile, resolveTileGid } from '@/types/scene';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 const LOG_PREFIX = '[Runtime/TileMapFactory]';
@@ -31,40 +31,28 @@ interface OverlayConfig {
   depth: number;
 }
 
-function createOverlay(
-  scene: Phaser.Scene,
-  config: OverlayConfig
-): Phaser.GameObjects.Graphics | null {
+function createOverlay(scene: Phaser.Scene, config: OverlayConfig): Phaser.GameObjects.Graphics | null {
   const { layer, tileSize, color, alpha, depth } = config;
   let hasTiles = false;
-
   const graphics = scene.add.graphics();
   graphics.fillStyle(color, alpha);
-
   for (let y = 0; y < layer.length; y += 1) {
-    const row = layer[y];
-    for (let x = 0; x < row.length; x += 1) {
-      if (row[x] > 0) {
+    for (let x = 0; x < layer[y].length; x += 1) {
+      if (layer[y][x] > 0) {
         graphics.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
         hasTiles = true;
       }
     }
   }
-
   if (!hasTiles) {
     graphics.destroy();
     return null;
   }
-
   graphics.setDepth(depth);
   return graphics;
 }
 
-function buildTilesets(
-  tilemap: Phaser.Tilemaps.Tilemap,
-  sceneRuntime: SceneRuntime,
-  projectRuntime: ProjectRuntime
-): Phaser.Tilemaps.Tileset[] {
+function buildTilesets(tilemap: Phaser.Tilemaps.Tilemap, sceneRuntime: SceneRuntime, projectRuntime: ProjectRuntime): Phaser.Tilemaps.Tileset[] {
   const tilesets: Phaser.Tilemaps.Tileset[] = [];
   const { scene } = sceneRuntime;
 
@@ -72,88 +60,51 @@ function buildTilesets(
     for (const [index] of category.files.entries()) {
       const gid = getGidForTile(scene, category.name, index);
       if (!gid) continue;
-
       const textureKey = projectRuntime.getTileTextureKey(category.name, index);
-      if (!textureKey) {
-        console.warn(`${LOG_PREFIX} Missing texture key for ${category.name}:${index}`);
-        continue;
-      }
-
-      if (!tilemap.scene.textures.exists(textureKey)) {
-        console.warn(`${LOG_PREFIX} Texture not loaded for ${textureKey}`);
-        continue;
-      }
-
-      const tileset = tilemap.addTilesetImage(
-        textureKey,
-        textureKey,
-        scene.tileSize,
-        scene.tileSize,
-        0,
-        0,
-        gid
-      );
-
-      if (tileset) {
-        tilesets.push(tileset);
-      }
-    }
-  }
-
-  for (const atlas of projectRuntime.project.spriteAtlases ?? []) {
-    if (atlas.sliceSize.width !== scene.tileSize || atlas.sliceSize.height !== scene.tileSize) {
-      console.warn(
-        `${LOG_PREFIX} Skipping atlas tileset "${atlas.path}" due to slice size mismatch (${atlas.sliceSize.width}x${atlas.sliceSize.height} vs scene ${scene.tileSize}x${scene.tileSize})`
-      );
-      continue;
-    }
-
-    const categoryName = getAtlasCategoryName(atlas.path);
-    const firstGid = getGidForTile(scene, categoryName, 0);
-    if (!firstGid) continue;
-
-    const textureKey = projectRuntime.getAtlasTextureKey(categoryName);
-    if (!textureKey) {
-      console.warn(`${LOG_PREFIX} Missing atlas texture key for ${categoryName}`);
-      continue;
-    }
-
-    if (!tilemap.scene.textures.exists(textureKey)) {
-      console.warn(`${LOG_PREFIX} Atlas texture not loaded for ${textureKey}`);
-      continue;
-    }
-
-    const tileset = tilemap.addTilesetImage(
-      textureKey,
-      textureKey,
-      scene.tileSize,
-      scene.tileSize,
-      0,
-      0,
-      firstGid
-    );
-
-    if (tileset) {
-      tilesets.push(tileset);
+      if (!textureKey || !tilemap.scene.textures.exists(textureKey)) continue;
+      const tileset = tilemap.addTilesetImage(textureKey, textureKey, scene.tileSize, scene.tileSize, 0, 0, gid);
+      if (tileset) tilesets.push(tileset);
     }
   }
 
   return tilesets;
 }
 
-function paintLayer(
-  layer: Phaser.Tilemaps.TilemapLayer | null,
-  data: number[][]
-): void {
+function paintLayer(layer: Phaser.Tilemaps.TilemapLayer | null, data: number[][], sceneRuntime: SceneRuntime): void {
   if (!layer) return;
+  const { scene } = sceneRuntime;
+  for (let y = 0; y < data.length; y += 1) {
+    for (let x = 0; x < data[y].length; x += 1) {
+      const gid = data[y][x];
+      if (gid <= 0) continue;
+      const resolved = resolveTileGid(scene, gid);
+      if (!resolved || resolved.category.startsWith('atlas:')) continue;
+      layer.putTileAt(gid, x, y);
+    }
+  }
+}
+
+function paintAtlasLayer(rt: Phaser.GameObjects.RenderTexture, data: number[][], config: TileMapConfig): void {
+  const { sceneRuntime, projectRuntime, phaserScene } = config;
+  const { scene } = sceneRuntime;
 
   for (let y = 0; y < data.length; y += 1) {
-    const row = data[y];
-    for (let x = 0; x < row.length; x += 1) {
-      const tileIndex = row[x];
-      if (tileIndex > 0) {
-        layer.putTileAt(tileIndex, x, y);
-      }
+    for (let x = 0; x < data[y].length; x += 1) {
+      const gid = data[y][x];
+      if (gid <= 0) continue;
+      const resolved = resolveTileGid(scene, gid);
+      if (!resolved || !resolved.category.startsWith('atlas:')) continue;
+
+      const atlas = (projectRuntime.project.spriteAtlases ?? []).find((item) => getAtlasCategoryName(item.path) === resolved.category);
+      const textureKey = projectRuntime.getAtlasTextureKey(resolved.category);
+      const slice = atlas?.slices?.[resolved.index];
+      if (!textureKey || !slice || !phaserScene.textures.exists(textureKey)) continue;
+
+      const stamp = phaserScene.add.image(0, 0, textureKey).setOrigin(0, 0).setVisible(false);
+      stamp.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
+      stamp.setDisplaySize(scene.tileSize, scene.tileSize);
+      rt.draw(stamp, x * scene.tileSize, y * scene.tileSize);
+      stamp.destroy();
     }
   }
 }
@@ -170,19 +121,22 @@ export function createTileMap(config: TileMapConfig): TileMapResult {
   });
 
   const tilesets = buildTilesets(tilemap, sceneRuntime, projectRuntime);
-
   const groundLayer = tilemap.createBlankLayer('ground', tilesets) ?? null;
   const propsLayer = tilemap.createBlankLayer('props', tilesets) ?? null;
+  groundLayer?.setDepth(0);
+  propsLayer?.setDepth(1);
 
-  if (groundLayer) {
-    groundLayer.setDepth(0);
-  }
-  if (propsLayer) {
-    propsLayer.setDepth(1);
-  }
+  paintLayer(groundLayer, scene.layers.ground, sceneRuntime);
+  paintLayer(propsLayer, scene.layers.props, sceneRuntime);
 
-  paintLayer(groundLayer, scene.layers.ground);
-  paintLayer(propsLayer, scene.layers.props);
+  const groundAtlas = phaserScene.add.renderTexture(0, 0, scene.width * scene.tileSize, scene.height * scene.tileSize)
+    .setOrigin(0, 0)
+    .setDepth(0.5);
+  const propsAtlas = phaserScene.add.renderTexture(0, 0, scene.width * scene.tileSize, scene.height * scene.tileSize)
+    .setOrigin(0, 0)
+    .setDepth(1.5);
+  paintAtlasLayer(groundAtlas, scene.layers.ground, config);
+  paintAtlasLayer(propsAtlas, scene.layers.props, config);
 
   const collisionOverlay = createOverlay(phaserScene, {
     layer: scene.layers.collision,
@@ -200,17 +154,16 @@ export function createTileMap(config: TileMapConfig): TileMapResult {
     depth: 3,
   });
 
+  console.log(`${LOG_PREFIX} created tile map for scene ${scene.id}`);
+
   return {
     tilemap,
-    layers: {
-      ground: groundLayer,
-      props: propsLayer,
-      collision: collisionOverlay,
-      triggers: triggerOverlay,
-    },
+    layers: { ground: groundLayer, props: propsLayer, collision: collisionOverlay, triggers: triggerOverlay },
     destroy() {
       groundLayer?.destroy();
       propsLayer?.destroy();
+      groundAtlas.destroy();
+      propsAtlas.destroy();
       collisionOverlay?.destroy();
       triggerOverlay?.destroy();
       tilemap.destroy();
