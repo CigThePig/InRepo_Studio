@@ -25,6 +25,7 @@
  */
 
 import type { Project } from './project';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 
 // --- Layer Types ---
@@ -113,14 +114,15 @@ export function getGidForTile(scene: Scene, category: string, index: number): nu
  */
 export function computeDefaultTilesets(project: Project): TilesetReference[] {
   const refs: TilesetReference[] = [];
+  const categories = getAllTileCategoryNames(project);
 
-  for (let i = 0; i < project.tileCategories.length; i++) {
-    const cat = project.tileCategories[i];
+  for (let i = 0; i < categories.length; i++) {
+    const cat = categories[i];
     const firstGid = 1 + i * DEFAULT_TILESET_BLOCK_SIZE;
 
-    if ((cat.files?.length ?? 0) > DEFAULT_TILESET_BLOCK_SIZE) {
+    if ((cat.count ?? 0) > DEFAULT_TILESET_BLOCK_SIZE) {
       console.warn(
-        `[SceneSchema] Tile category "${cat.name}" has ${(cat.files?.length ?? 0)} tiles, which exceeds DEFAULT_TILESET_BLOCK_SIZE=${DEFAULT_TILESET_BLOCK_SIZE}. ` +
+        `[SceneSchema] Tile category "${cat.name}" has ${(cat.count ?? 0)} tiles, which exceeds DEFAULT_TILESET_BLOCK_SIZE=${DEFAULT_TILESET_BLOCK_SIZE}. ` +
           `Consider manually increasing firstGid spacing in scene.tilesets to avoid overlap.`
       );
     }
@@ -131,10 +133,31 @@ export function computeDefaultTilesets(project: Project): TilesetReference[] {
   return refs;
 }
 
+function getAllTileCategoryNames(project: Project): Array<{ name: string; count: number }> {
+  const categories: Array<{ name: string; count: number }> = project.tileCategories.map((cat) => ({
+    name: cat.name,
+    count: cat.files?.length ?? 0,
+  }));
+
+  for (const atlas of project.spriteAtlases ?? []) {
+    categories.push({
+      name: getAtlasCategoryName(atlas.path),
+      count: atlas.slices?.length ?? 0,
+    });
+  }
+
+  return categories;
+}
+
 function getCategoryTileCount(project: Project, categoryName: string): number | null {
   const cat = project.tileCategories.find(c => c.name === categoryName);
-  if (!cat) return null;
-  return cat.files?.length ?? 0;
+  if (cat) return cat.files?.length ?? 0;
+
+  const atlas = (project.spriteAtlases ?? []).find(
+    (candidate) => getAtlasCategoryName(candidate.path) === categoryName
+  );
+  if (!atlas) return null;
+  return atlas.slices?.length ?? 0;
 }
 
 function computeTilesetEndExclusive(project: Project, ts: TilesetReference): number {
@@ -212,12 +235,12 @@ export function ensureSceneTilesets(scene: Scene, project: Project): EnsureTiles
 
   let tilesets: TilesetReference[] = cleanedTilesets;
 
-  const projectCategories = project.tileCategories.map(c => c.name);
+  const projectCategories = getAllTileCategoryNames(project).map(c => c.name);
 
   // Warn on tilesets that reference unknown categories
   for (const ts of tilesets) {
     if (!projectCategories.includes(ts.category)) {
-      warnings.push(`Scene tileset references unknown category "${ts.category}" (not in project.tileCategories).`);
+      warnings.push(`Scene tileset references unknown category "${ts.category}" (not in project categories/atlases).`);
     }
   }
 
@@ -282,7 +305,7 @@ export function ensureSceneTilesets(scene: Scene, project: Project): EnsureTiles
 
   // Append missing categories without changing existing firstGids
   const existing = new Set(tilesets.map(t => t.category));
-  const missing = project.tileCategories.filter(c => !existing.has(c.name));
+  const missing = getAllTileCategoryNames(project).filter(c => !existing.has(c.name));
 
   if (missing.length > 0) {
     // Choose the next block boundary at or after the current max end.

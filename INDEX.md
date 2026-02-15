@@ -403,6 +403,10 @@ Micro-format (copy/paste):
   - Role: Shared tile image cache for renderer and tile picker.
   - Lists of truth: none
 
+- `src/editor/canvas/atlasCache.ts`
+  - Role: Atlas sheet + slice cache used by canvas renderer for atlas-backed tiles.
+  - Lists of truth: none
+
 - `src/editor/canvas/renderer.ts`
   - Role: Tilemap rendering with layer support, culling, and dimming.
   - Lists of truth: LAYER_RENDER_ORDER, LAYER_COLORS
@@ -707,6 +711,10 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 ### Shared
+- `src/shared/atlasNaming.ts`
+  - Role: Stable atlas category naming helpers (`atlas:<groupSlug>`) for editor/runtime/scene mapping.
+  - Lists of truth: none
+
 - `src/shared/paths.ts`
   - Role: Centralized content path constants + URL resolver.
   - Lists of truth: ContentPathContract

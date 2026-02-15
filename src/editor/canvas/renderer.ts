@@ -25,6 +25,7 @@ import type { ViewportState } from './viewport';
 import { getVisibleTileRange, tileToScreen } from './viewport';
 import { getTile, LAYER_ORDER } from '@/types/scene';
 import type { TileImageCache } from './tileCache';
+import type { AtlasCache } from './atlasCache';
 import type { LayerVisibility, LayerLocks } from '@/storage/hot';
 import { createEntityRenderer, type EntityPreview } from './entityRenderer';
 import type { AssetRegistry } from '@/editor/assets/assetRegistry';
@@ -64,6 +65,8 @@ export { TOUCH_OFFSET_Y } from './touchConfig';
 export interface TilemapRendererConfig {
   /** Tile image cache for loading tile images */
   tileCache: TileImageCache;
+  /** Atlas image cache for slice-based rendering */
+  atlasCache: AtlasCache;
   /** Callback when entity sprites load */
   onSpriteLoad?: () => void;
 }
@@ -170,7 +173,37 @@ export interface TilemapRenderer {
 // --- Factory ---
 
 export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRenderer {
-  const { tileCache } = config;
+  const { tileCache, atlasCache } = config;
+
+  function drawResolvedTile(
+    ctx: CanvasRenderingContext2D,
+    category: string,
+    index: number,
+    x: number,
+    y: number,
+    size: number
+  ): void {
+    const atlasSlice = atlasCache.getAtlasSlice(category, index);
+    if (atlasSlice) {
+      ctx.drawImage(
+        atlasSlice.img,
+        atlasSlice.rect.x,
+        atlasSlice.rect.y,
+        atlasSlice.rect.w,
+        atlasSlice.rect.h,
+        x,
+        y,
+        size,
+        size
+      );
+      return;
+    }
+
+    const img = tileCache.getTileImage(category, index);
+    if (img) {
+      ctx.drawImage(img, x, y, size, size);
+    }
+  }
 
   // Renderer state
   let scene: Scene | null = null;
@@ -283,16 +316,14 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           if (!scene) continue;
           const resolved = resolveTileGid(scene, tileValue);
           if (!resolved) continue;
-          const img = tileCache.getTileImage(resolved.category, resolved.index);
-          if (img) {
-            ctx.drawImage(
-              img,
-              screenPos.x,
-              screenPos.y,
-              screenTileSize,
-              screenTileSize
-            );
-          }
+          drawResolvedTile(
+            ctx,
+            resolved.category,
+            resolved.index,
+            screenPos.x,
+            screenPos.y,
+            screenTileSize
+          );
           // If image not loaded, skip (will render on next frame when loaded)
         }
       }
@@ -416,10 +447,14 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
         const resolved = resolveTileGid(scene, value);
         if (!resolved) continue;
-        const img = tileCache.getTileImage(resolved.category, resolved.index);
-        if (img) {
-          ctx.drawImage(img, screenPos.x, screenPos.y, screenTileSize, screenTileSize);
-        }
+        drawResolvedTile(
+          ctx,
+          resolved.category,
+          resolved.index,
+          screenPos.x,
+          screenPos.y,
+          screenTileSize
+        );
       }
     }
 
