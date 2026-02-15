@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { EntityInstance } from '@/types';
 import type { EntityRegistry } from '@/runtime/entityRegistry';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 const LOG_PREFIX = '[Runtime/EntitySpawner]';
 const PLACEHOLDER_KEY = 'entity:placeholder';
@@ -31,11 +32,55 @@ function ensurePlaceholderTexture(scene: Phaser.Scene, size: number): string {
   return PLACEHOLDER_KEY;
 }
 
+
+function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): SpawnedEntity | null {
+  const { phaserScene, projectRuntime } = config;
+  const spriteCategory = entity.properties?.spriteCategory;
+  const spriteIndex = entity.properties?.spriteIndex;
+  if (typeof spriteCategory !== 'string' || typeof spriteIndex !== 'number') {
+    return null;
+  }
+
+  if (spriteCategory.startsWith('atlas:')) {
+    const atlas = (projectRuntime.project.spriteAtlases ?? []).find((entry) => getAtlasCategoryName(entry.path) === spriteCategory);
+    const slice = atlas?.slices?.[spriteIndex];
+    const textureKey = projectRuntime.getAtlasTextureKey(spriteCategory);
+    if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return null;
+    const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5);
+    image.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
+    image.setDisplaySize(slice.rect.w, slice.rect.h);
+    return {
+      instance: entity,
+      gameObject: image,
+      destroy() {
+        image.destroy();
+      },
+    };
+  }
+
+  const textureKey = projectRuntime.getTileTextureKey(spriteCategory, spriteIndex);
+  if (!textureKey || !phaserScene.textures.exists(textureKey)) return null;
+  const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5);
+  return {
+    instance: entity,
+    gameObject: image,
+    destroy() {
+      image.destroy();
+    },
+  };
+}
+
 export function spawnEntity(
   config: SpawnConfig,
   entity: EntityInstance
 ): SpawnedEntity | null {
   const { phaserScene, entityRegistry, projectRuntime } = config;
+
+  if (entity.type === 'sprite' || entity.type === 'inrepo_sprite') {
+    const spriteSpawn = trySpawnSpriteEntity(config, entity);
+    if (spriteSpawn) return spriteSpawn;
+  }
+
   const entityType = entityRegistry.getType(entity.type);
 
   if (!entityType) {

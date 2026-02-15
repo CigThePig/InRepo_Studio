@@ -7,6 +7,7 @@
  * - SceneSchema — JSON shape for scene files (type: json-shape)
  * - LayerDataSchema — tilemap layer structure (type: schema)
  * - EntityInstanceSchema — placed entity in scene (type: schema)
+ * - PropSpriteInstanceSchema — placed prop sprite object in scene (type: schema)
  * - TilesetReference — tileset reference (type: schema)
  *
  * Canonical key set:
@@ -215,6 +216,11 @@ export function ensureSceneTilesets(scene: Scene, project: Project): EnsureTiles
   let changed = false;
   let migratedLegacyTileValues = false;
 
+  if (!Array.isArray(scene.propSprites)) {
+    scene = { ...scene, propSprites: [] };
+    changed = true;
+  }
+
   const originalTilesets = scene.tilesets ?? [];
 
   // De-dupe tilesets by category (keep the first)
@@ -375,6 +381,24 @@ export interface EntityInstance {
   properties: Record<string, string | number | boolean>;
 }
 
+export interface SpriteRef {
+  /** Tile or atlas category name */
+  category: string;
+  /** Index in the category list / atlas slices list */
+  index: number;
+}
+
+export interface PropSpriteInstance {
+  /** Unique ID within the scene */
+  id: string;
+  /** Source sprite reference */
+  sprite: SpriteRef;
+  /** Top-left world X position (pixels) */
+  x: number;
+  /** Top-left world Y position (pixels) */
+  y: number;
+}
+
 // --- Scene Schema ---
 
 export interface Scene {
@@ -394,6 +418,8 @@ export interface Scene {
   layers: LayerData;
   /** Entity instances */
   entities: EntityInstance[];
+  /** Sprite-sized prop objects (top-left anchored world pixels) */
+  propSprites: PropSpriteInstance[];
 }
 
 // --- Factory Functions ---
@@ -455,6 +481,7 @@ export function createScene(
     tilesets,
     layers: createEmptyLayerData(width, height),
     entities: [],
+    propSprites: [],
   };
 }
 
@@ -463,6 +490,10 @@ export function createScene(
  */
 export function generateEntityId(): string {
   return `e_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+}
+
+export function generatePropSpriteId(): string {
+  return `p_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 // --- Validation ---
@@ -491,6 +522,16 @@ export function validateScene(scene: unknown): scene is Scene {
     if (!validateEntityInstance(ent)) return false;
     if (entityIds.has(ent.id)) return false; // Duplicate ID
     entityIds.add(ent.id);
+  }
+
+  if (s.propSprites !== undefined) {
+    if (!Array.isArray(s.propSprites)) return false;
+    const propSpriteIds = new Set<string>();
+    for (const propSprite of s.propSprites) {
+      if (!validatePropSpriteInstance(propSprite)) return false;
+      if (propSpriteIds.has(propSprite.id)) return false;
+      propSpriteIds.add(propSprite.id);
+    }
   }
 
   return true;
@@ -546,6 +587,24 @@ export function validateEntityInstance(entity: unknown): entity is EntityInstanc
   if (typeof e.y !== 'number') return false;
   if (!e.properties || typeof e.properties !== 'object') return false;
 
+  return true;
+}
+
+export function validateSpriteRef(sprite: unknown): sprite is SpriteRef {
+  if (!sprite || typeof sprite !== 'object') return false;
+  const s = sprite as Record<string, unknown>;
+  if (typeof s.category !== 'string') return false;
+  if (typeof s.index !== 'number' || !Number.isInteger(s.index) || s.index < 0) return false;
+  return true;
+}
+
+export function validatePropSpriteInstance(instance: unknown): instance is PropSpriteInstance {
+  if (!instance || typeof instance !== 'object') return false;
+  const i = instance as Record<string, unknown>;
+  if (typeof i.id !== 'string') return false;
+  if (typeof i.x !== 'number') return false;
+  if (typeof i.y !== 'number') return false;
+  if (!validateSpriteRef(i.sprite)) return false;
   return true;
 }
 

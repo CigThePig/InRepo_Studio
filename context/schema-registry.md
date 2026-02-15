@@ -48,13 +48,17 @@ Rules:
 
 - `/src/types/scene.ts`
   - `SceneSchema` — JSON shape for scene files
-    - Keys: id, name, width, height, tileSize, tilesets[], layers{}, entities[]
+    - Keys: id, name, width, height, tileSize, tilesets[], layers{}, entities[], propSprites[]
     - Invariant: layer data arrays match width × height
   - `LayerDataSchema` — tilemap layer structure
     - Keys: ground, props, collision, triggers (each a 2D array)
   - `EntityInstanceSchema` — placed entity in scene
     - Keys: id, type, x, y, properties{}
     - Invariant: type must reference valid entityType from project
+  - `SpriteRefSchema` — category/index sprite reference
+    - Keys: category, index
+  - `PropSpriteInstanceSchema` — placed sprite-sized prop object in scene
+    - Keys: id, sprite{category,index}, x, y
 
 
 - `/game/scenes/index.json`
@@ -73,7 +77,7 @@ Rules:
 
 - `/src/storage/hot.ts`
   - `EditorStateSchema` — persisted editor state
-    - Keys: currentSceneId, currentTool, intent, domain, payload{}, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}, contentVersionToken
+    - Keys: currentSceneId, currentTool, intent, domain, payload{}, editorMode, rightBerryOpen, leftBerryOpen, activeLayer, assetRegistry{}, repoAssetManifest{}, selectedTile{}, selectedEntityType, selectedEntityIds[], selectedPropSpriteIds[], brushSize, entitySnapToGrid, viewport{}, panelStates{}, recentTiles[], layerVisibility{}, layerLocks{}, contentVersionToken
     - Apply mode: live (restored on load)
     - `activeLayer`: 'ground' | 'props' | 'collision' | 'triggers' (default: 'ground')
     - `rightBerryOpen`: boolean (default: false)

@@ -6,6 +6,7 @@ import { createTileMap, type TileMapResult } from '@/runtime/tileMapFactory';
 import { createEntityRegistry } from '@/runtime/entityRegistry';
 import { spawnEntities, type SpawnedEntity } from '@/runtime/entitySpawner';
 import { setRuntimeEnv, clearRuntimeEnv } from '@/runtime/presets/runtimeEnv';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import Phaser from 'phaser';
 
 const LOG_PREFIX = '[Runtime/SceneManager]';
@@ -32,6 +33,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
   let currentSceneRuntime: SceneRuntime | null = null;
   let currentTilemap: TileMapResult | null = null;
   let currentEntities: SpawnedEntity[] = [];
+  let currentPropSprites: Phaser.GameObjects.Image[] = [];
   let currentPlayerSprite: Phaser.GameObjects.Sprite | null = null;
   let fallbackPlayerTextureKey: string | null = null;
 
@@ -83,6 +85,9 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
       currentTilemap = null;
     }
 
+    for (const sprite of currentPropSprites) sprite.destroy();
+    currentPropSprites = [];
+
     currentSceneRuntime = null;
     if (currentPlayerSprite && currentPlayerSprite.active) {
       const isFallback = currentPlayerSprite.name === '__inrepo_placeholder_player';
@@ -92,6 +97,29 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     }
     currentPlayerSprite = null;
     clearRuntimeEnv();
+  };
+
+
+  const spawnPropSprites = (): void => {
+    if (!currentSceneRuntime) return;
+    const propSprites = currentSceneRuntime.scene.propSprites ?? [];
+    currentPropSprites = propSprites.flatMap((propSprite) => {
+      if (propSprite.sprite.category.startsWith('atlas:')) {
+        const atlas = (projectRuntime.project.spriteAtlases ?? []).find((entry) => getAtlasCategoryName(entry.path) === propSprite.sprite.category);
+        const slice = atlas?.slices?.[propSprite.sprite.index];
+        const textureKey = projectRuntime.getAtlasTextureKey(propSprite.sprite.category);
+        if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return [];
+        const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey).setOrigin(0, 0).setDepth(2);
+        image.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
+        image.setDisplaySize(slice.rect.w, slice.rect.h);
+        return [image];
+      }
+
+      const textureKey = projectRuntime.getTileTextureKey(propSprite.sprite.category, propSprite.sprite.index);
+      if (!textureKey || !phaserScene.textures.exists(textureKey)) return [];
+      const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey).setOrigin(0, 0).setDepth(2);
+      return [image];
+    });
   };
 
   const applyCameraBounds = (sceneRuntime: SceneRuntime, options?: { x?: number; y?: number }) => {
@@ -118,6 +146,8 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         sceneRuntime: currentSceneRuntime,
         projectRuntime,
       });
+
+      spawnPropSprites();
 
       currentEntities = spawnEntities(
         { phaserScene, entityRegistry, projectRuntime },

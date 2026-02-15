@@ -297,6 +297,11 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
           id: generateEntityId(),
           properties: { ...e.properties },
         })),
+        propSprites: (original.propSprites ?? []).map((propSprite) => ({
+          ...propSprite,
+          id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` ,
+          sprite: { ...propSprite.sprite },
+        })),
       };
 
       await saveScene(duplicate);

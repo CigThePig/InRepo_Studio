@@ -20,7 +20,7 @@
  * - [ ] Inactive layers are dimmed
  */
 
-import { resolveTileGid, type Scene, type LayerType, type TileLayer, type EntityType } from '@/types';
+import { resolveTileGid, type Scene, type LayerType, type TileLayer, type EntityType, type SpriteRef } from '@/types';
 import type { ViewportState } from './viewport';
 import { getVisibleTileRange, tileToScreen } from './viewport';
 import { getTile, LAYER_ORDER } from '@/types/scene';
@@ -74,6 +74,13 @@ export interface TilemapRendererConfig {
 export interface HoverStyle {
   fill: string;
   border: string;
+}
+
+
+export interface PropSpritePreview {
+  sprite: SpriteRef;
+  x: number;
+  y: number;
 }
 
 interface SelectionOverlayState {
@@ -148,6 +155,8 @@ export interface TilemapRenderer {
 
   /** Set entity placement preview */
   setEntityPreview(preview: EntityPreview | null): void;
+  setPropSpritePreview(preview: PropSpritePreview | null): void;
+  setPropSpriteSelectionIds(ids: string[]): void;
 
   /** Highlight a recently placed entity */
   setEntityHighlightId(id: string | null): void;
@@ -205,6 +214,45 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     }
   }
 
+
+  function resolveSpriteSize(sprite: SpriteRef, tileSize: number): { width: number; height: number } {
+    const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
+    if (atlasSlice) return { width: atlasSlice.rect.w, height: atlasSlice.rect.h };
+    const img = tileCache.getTileImage(sprite.category, sprite.index);
+    if (img) return { width: img.naturalWidth || tileSize, height: img.naturalHeight || tileSize };
+    return { width: tileSize, height: tileSize };
+  }
+
+  function drawPropSprite(ctx: CanvasRenderingContext2D, viewport: ViewportState, tileSize: number, sprite: SpriteRef, x: number, y: number, alpha = 1): void {
+    const worldX = (x - viewport.panX) * viewport.zoom;
+    const worldY = (y - viewport.panY) * viewport.zoom;
+    const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
+    const prev = ctx.globalAlpha;
+    ctx.globalAlpha = prev * alpha;
+    if (atlasSlice) {
+      ctx.drawImage(
+        atlasSlice.img,
+        atlasSlice.rect.x,
+        atlasSlice.rect.y,
+        atlasSlice.rect.w,
+        atlasSlice.rect.h,
+        worldX,
+        worldY,
+        atlasSlice.rect.w * viewport.zoom,
+        atlasSlice.rect.h * viewport.zoom,
+      );
+      ctx.globalAlpha = prev;
+      return;
+    }
+    const img = tileCache.getTileImage(sprite.category, sprite.index);
+    if (img) {
+      const width = img.naturalWidth || tileSize;
+      const height = img.naturalHeight || tileSize;
+      ctx.drawImage(img, worldX, worldY, width * viewport.zoom, height * viewport.zoom);
+    }
+    ctx.globalAlpha = prev;
+  }
+
   // Renderer state
   let scene: Scene | null = null;
   let activeLayer: LayerType = 'ground';
@@ -235,6 +283,8 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     previewTiles: null,
   };
   let entityPreview: EntityPreview | null = null;
+  let propSpritePreview: PropSpritePreview | null = null;
+  let selectedPropSpriteIds: string[] = [];
   let dirty = true;
   const entityRenderer = createEntityRenderer({
     onSpriteLoad: () => {
@@ -600,6 +650,16 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       dirty = true;
     },
 
+    setPropSpritePreview(preview: PropSpritePreview | null): void {
+      propSpritePreview = preview;
+      dirty = true;
+    },
+
+    setPropSpriteSelectionIds(ids: string[]): void {
+      selectedPropSpriteIds = [...ids];
+      dirty = true;
+    },
+
     setEntitySelectionIds(ids: string[]): void {
       entityRenderer.setSelectedIds(ids);
       dirty = true;
@@ -638,6 +698,25 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           sceneHeight,
           layerType === activeLayer
         );
+      }
+
+      const propSprites = scene.propSprites ?? [];
+      if (propSprites.length > 0) {
+        for (const propSprite of propSprites) {
+          drawPropSprite(ctx, viewport, tileSize, propSprite.sprite, propSprite.x, propSprite.y);
+          if (selectedPropSpriteIds.includes(propSprite.id)) {
+            const size = resolveSpriteSize(propSprite.sprite, tileSize);
+            const posX = (propSprite.x - viewport.panX) * viewport.zoom;
+            const posY = (propSprite.y - viewport.panY) * viewport.zoom;
+            ctx.strokeStyle = SELECTION_MOVE_BORDER;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(posX, posY, size.width * viewport.zoom, size.height * viewport.zoom);
+          }
+        }
+      }
+
+      if (propSpritePreview) {
+        drawPropSprite(ctx, viewport, tileSize, propSpritePreview.sprite, propSpritePreview.x, propSpritePreview.y, 0.7);
       }
 
       if (scene.entities?.length || entityPreview) {

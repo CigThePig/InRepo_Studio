@@ -28,7 +28,7 @@ import type {
   StorageQuotaInfo,
   UpdateCheckResult,
 } from '@/storage';
-import { ensureSceneTilesets, type Scene, type Project, type LayerType } from '@/types';
+import { ensureSceneTilesets, type Scene, type Project, type LayerType, type SpriteRef } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
   createTopPanel,
@@ -69,6 +69,7 @@ import {
   type SelectEntityController,
 } from '@/editor/tools/selectEntityController';
 import { createEntityTool, type EntityTool } from '@/editor/tools/entity';
+import { createPropSpriteTool, type PropSpriteTool } from '@/editor/tools/propSprite';
 import { createClipboard, type Clipboard } from '@/editor/tools/clipboard';
 import { createHistoryManager, type HistoryManager } from '@/editor/history';
 import {
@@ -100,6 +101,7 @@ import {
   type SceneAction,
 } from '@/editor/scenes';
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
+import { createPropSpriteManager, type PropSpriteManager } from '@/editor/props/propSpriteManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
 import { EDITOR_V2_FLAGS, isV2Enabled, setV2Flag } from '@/editor/v2/featureFlags';
 import {
@@ -134,6 +136,7 @@ let paintTool: PaintTool | null = null;
 let eraseTool: EraseTool | null = null;
 let selectTool: SelectTool | null = null;
 let entityTool: EntityTool | null = null;
+let propSpriteTool: PropSpriteTool | null = null;
 let clipboard: Clipboard | null = null;
 let currentBrushSize: BrushSize = 1;
 let authManager: AuthManager | null = null;
@@ -144,6 +147,7 @@ let sceneSelector: SceneSelector | null = null;
 let layerPanelController: LayerPanelController | null = null;
 let entityManager: EntityManager | null = null;
 let entitySelection: EntitySelection | null = null;
+let propSpriteManager: PropSpriteManager | null = null;
 let tileSelectionActive = false;
 let rightBerryController: RightBerryController | null = null;
 let leftBerryController: LeftBerryController | null = null;
@@ -246,6 +250,9 @@ function applyToolChange(tool: EditorState['currentTool'], updateUI = false): vo
     canvasController?.getRenderer().setEntityHighlightId(null);
     canvasController?.invalidateScene();
   }
+  if (tool !== 'paint') {
+    canvasController?.getRenderer().setPropSpritePreview(null);
+  }
   updateBottomContextStrip();
 }
 
@@ -263,10 +270,41 @@ function setPayload(nextPayload: EditorPayload | null): void {
   scheduleSave();
 }
 
+function resolveSelectionPixelSize(selection: SelectedTile | null): { width: number; height: number } | null {
+  if (!selection || !currentProject) return null;
+  if (selection.category.startsWith('atlas:')) {
+    const atlas = findAtlasByCategory(currentProject, selection.category);
+    const sliceRect = atlas?.slices?.[selection.index]?.rect;
+    if (sliceRect && sliceRect.w > 0 && sliceRect.h > 0) {
+      return { width: sliceRect.w, height: sliceRect.h };
+    }
+    if (atlas?.sliceSize) {
+      return { width: atlas.sliceSize.width, height: atlas.sliceSize.height };
+    }
+    return null;
+  }
+  if (currentScene) {
+    return { width: currentScene.tileSize, height: currentScene.tileSize };
+  }
+  return null;
+}
+
+
+function resolveSpriteRefPixelSize(sprite: SpriteRef): { width: number; height: number } | null {
+  return resolveSelectionPixelSize({ category: sprite.category, index: sprite.index });
+}
+
 function buildTilePayload(domain: EditorDomain, selection: SelectedTile | null): EditorPayload | null {
   if (!selection) return null;
-  const kind = domain === 'props' ? 'prop' : 'tile';
-  return { kind, id: `${selection.category}:${selection.index}` };
+  if (domain === 'props') {
+    const size = resolveSelectionPixelSize(selection);
+    const isTileSized = size && currentScene
+      ? size.width === currentScene.tileSize && size.height === currentScene.tileSize
+      : true;
+    const kind = isTileSized ? 'prop' : 'propSprite';
+    return { kind, id: `${selection.category}:${selection.index}` };
+  }
+  return { kind: 'tile', id: `${selection.category}:${selection.index}` };
 }
 
 function buildEntityPayload(typeName: string | null): EditorPayload | null {
@@ -277,7 +315,7 @@ function buildEntityPayload(typeName: string | null): EditorPayload | null {
 function isPayloadCompatible(domain: EditorDomain, payload: EditorPayload | null): boolean {
   if (!payload) return true;
   if (domain === 'ground') return payload.kind === 'tile';
-  if (domain === 'props') return payload.kind === 'prop';
+  if (domain === 'props') return payload.kind === 'prop' || payload.kind === 'propSprite';
   if (domain === 'entities') return payload.kind === 'entity';
   if (domain === 'collision') return payload.kind === 'collision';
   return payload.kind === 'trigger';
@@ -373,6 +411,13 @@ function updateBottomContextStrip(): void {
   if (selectedIds.length > 0 && toolAllowsEntitySelection) {
     bottomContextStrip.setSelectionType('entities');
     bottomContextStrip.setSelectionCount(selectedIds.length);
+    return;
+  }
+
+  const selectedPropSpriteIds = editorState.selectedPropSpriteIds ?? [];
+  if (selectedPropSpriteIds.length > 0 && editorState.currentTool === 'select') {
+    bottomContextStrip.setSelectionType('propSprites');
+    bottomContextStrip.setSelectionCount(selectedPropSpriteIds.length);
     return;
   }
 
@@ -497,8 +542,12 @@ function getAtlasTileSizeMismatchReason(selection: SelectedTile): string | null 
   const atlas = findAtlasByCategory(currentProject, selection.category);
   if (!atlas) return null;
 
-  if (atlas.sliceSize.width !== currentScene.tileSize || atlas.sliceSize.height !== currentScene.tileSize) {
-    return `"${atlas.name}" slice size is ${atlas.sliceSize.width}x${atlas.sliceSize.height}, but this scene uses ${currentScene.tileSize}x${currentScene.tileSize} tiles.`;
+  const rect = atlas.slices?.[selection.index]?.rect;
+  const width = rect?.w ?? atlas.sliceSize.width;
+  const height = rect?.h ?? atlas.sliceSize.height;
+
+  if (width !== currentScene.tileSize || height !== currentScene.tileSize) {
+    return `"${atlas.name}" slice ${selection.index} is ${width}x${height}, but this scene uses ${currentScene.tileSize}x${currentScene.tileSize} tiles.`;
   }
 
   return null;
@@ -553,8 +602,13 @@ function syncSelectedAssetSelection(
 
   const atlasMismatchReason = getAtlasTileSizeMismatchReason(selection);
   if (atlasMismatchReason) {
-    showAtlasMismatchNotice(`Can't paint atlas tile yet: ${atlasMismatchReason}`);
-    return;
+    if (editorState.domain === 'ground') {
+      showAtlasMismatchNotice(`Can't paint atlas tile yet: ${atlasMismatchReason}`);
+      return;
+    }
+    if (editorState.domain === 'props') {
+      showAtlasMismatchNotice(`Placing as Prop object: ${atlasMismatchReason}`);
+    }
   }
 
   applySelectedTile(selection, options);
@@ -652,6 +706,7 @@ function updateEntitySelectionUI(): void {
   if (!editorState || !canvasController || !currentScene || !entitySelection) return;
   const renderer = canvasController.getRenderer();
   const selectedIds = editorState.selectedEntityIds ?? [];
+  const selectedPropSpriteIds = editorState.selectedPropSpriteIds ?? [];
   entitiesTab?.setSelection(selectedIds);
   if (leftBerryController?.getActiveTab() === 'animation') {
     leftBerryController.refreshTab('animation');
@@ -664,6 +719,7 @@ function updateEntitySelectionUI(): void {
 
   if (!allowEntitySelection || selectedIds.length === 0) {
     renderer.setEntitySelectionIds([]);
+    renderer.setPropSpriteSelectionIds(selectedPropSpriteIds);
     canvasController.invalidateScene();
     updateBottomContextStrip();
     return;
@@ -681,6 +737,7 @@ function updateEntitySelectionUI(): void {
   }
 
   renderer.setEntitySelectionIds(selectedIds);
+  renderer.setPropSpriteSelectionIds(selectedPropSpriteIds);
   canvasController.invalidateScene();
 
   updateBottomContextStrip();
@@ -1221,6 +1278,15 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
   });
 
+  propSpriteManager = createPropSpriteManager({
+    getScene: () => currentScene,
+    onSceneChange: (scene) => {
+      handleSceneChange(scene);
+      updateEntitySelectionUI();
+    },
+    entityManager,
+  });
+
   entitySelection = createEntitySelection({
     getEditorState: () => editorState,
     onSelectionChange: () => {
@@ -1256,6 +1322,8 @@ async function initCanvas(tileSize: number): Promise<void> {
     history: historyManager,
     entityManager,
     entitySelection,
+    propSpriteManager,
+    getProject: () => currentProject,
     onEntitySelectionChange: () => {
       updateEntitySelectionUI();
     },
@@ -1285,6 +1353,17 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
     onEntityPlaced: (entityId) => {
       canvasController?.getRenderer().setEntityHighlightId(entityId);
+      canvasController?.invalidateScene();
+    },
+  });
+
+  propSpriteTool = createPropSpriteTool({
+    getEditorState: () => editorState,
+    getScene: () => currentScene,
+    propSpriteManager,
+    history: historyManager,
+    onPreviewChange: (preview) => {
+      canvasController?.getRenderer().setPropSpritePreview(preview);
       canvasController?.invalidateScene();
     },
   });
@@ -1324,8 +1403,12 @@ async function initCanvas(tileSize: number): Promise<void> {
 
       if (editorState?.currentTool === 'select' && selectTool) {
         selectTool.start(x, y, canvasController!.getViewport(), tileSize);
-      } else if (editorState?.currentTool === 'paint' && paintTool) {
-        paintTool.start(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'paint') {
+        if (editorState.domain === 'props' && editorState.payload?.kind === 'propSprite' && propSpriteTool) {
+          propSpriteTool.start(x, y, canvasController!.getViewport(), tileSize);
+        } else if (paintTool) {
+          paintTool.start(x, y, canvasController!.getViewport(), tileSize);
+        }
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
@@ -1350,8 +1433,12 @@ async function initCanvas(tileSize: number): Promise<void> {
       }
       if (editorState?.currentTool === 'select' && selectTool) {
         selectTool.move(x, y, canvasController!.getViewport(), tileSize);
-      } else if (editorState?.currentTool === 'paint' && paintTool) {
-        paintTool.move(x, y, canvasController!.getViewport(), tileSize);
+      } else if (editorState?.currentTool === 'paint') {
+        if (editorState.domain === 'props' && editorState.payload?.kind === 'propSprite' && propSpriteTool) {
+          propSpriteTool.move(x, y, canvasController!.getViewport(), tileSize);
+        } else if (paintTool) {
+          paintTool.move(x, y, canvasController!.getViewport(), tileSize);
+        }
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
@@ -1381,6 +1468,9 @@ async function initCanvas(tileSize: number): Promise<void> {
       }
       if (paintTool) {
         paintTool.end();
+      }
+      if (propSpriteTool) {
+        propSpriteTool.end();
       }
       if (eraseTool) {
         eraseTool.end();
@@ -1570,6 +1660,9 @@ async function initPanels(): Promise<void> {
             if ((editorState?.selectedEntityIds ?? []).length > 0) {
               selectTool?.deleteEntities();
               updateEntitySelectionUI();
+            } else if ((editorState?.selectedPropSpriteIds ?? []).length > 0) {
+              selectTool?.deletePropSprites();
+              updateEntitySelectionUI();
             } else {
               selectTool?.deleteSelection();
             }
@@ -1591,6 +1684,12 @@ async function initPanels(): Promise<void> {
               updateEntitySelectionUI();
               return;
             }
+            const propIds = editorState?.selectedPropSpriteIds ?? [];
+            if (propIds.length > 0) {
+              selectTool?.duplicatePropSprites();
+              updateEntitySelectionUI();
+              return;
+            }
 
             const selectionLayer = selectTool?.getSelection()?.layer;
             if (selectionLayer === 'triggers') {
@@ -1601,6 +1700,27 @@ async function initPanels(): Promise<void> {
           },
           onClear: () => {
             entitySelection?.clear();
+            if (editorState) editorState.selectedPropSpriteIds = [];
+            updateEntitySelectionUI();
+          },
+
+          onConvertToEntity: () => {
+            const propIds = editorState?.selectedPropSpriteIds ?? [];
+            if (propIds.length === 0 || !propSpriteManager || !currentProject) return;
+
+            const spriteEntityType = 'sprite';
+            const hasSpriteType = currentProject.entityTypes.some((type) => type.name === spriteEntityType);
+            if (!hasSpriteType) {
+              currentProject.entityTypes.push({ name: spriteEntityType, displayName: 'Sprite', properties: [] });
+              void saveProject(currentProject);
+              canvasController?.getRenderer().setEntityTypes(currentProject.entityTypes ?? []);
+            }
+
+            propSpriteManager.convertPropSpritesToEntities(propIds, {
+              entityType: spriteEntityType,
+              resolveSpriteSize: (sprite: SpriteRef) => resolveSpriteRefPixelSize(sprite) ?? { width: currentScene?.tileSize ?? 32, height: currentScene?.tileSize ?? 32 },
+            });
+            editorState!.selectedPropSpriteIds = [];
             updateEntitySelectionUI();
           },
         }

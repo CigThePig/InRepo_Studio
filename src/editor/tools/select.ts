@@ -10,6 +10,10 @@ import type { Scene } from '@/types';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import type { EntitySelection } from '@/editor/entities/entitySelection';
 import {
+  createSelectPropSpriteController,
+} from '@/editor/tools/selectPropSpriteController';
+import type { PropSpriteManager } from '@/editor/props/propSpriteManager';
+import {
   createSelectEntityController,
   type SelectEntityController,
 } from '@/editor/tools/selectEntityController';
@@ -45,6 +49,8 @@ export interface SelectToolConfig {
   history: HistoryManager;
   entityManager: EntityManager;
   entitySelection: EntitySelection;
+  propSpriteManager: PropSpriteManager;
+  getProject: () => import('@/types').Project | null;
 }
 
 export interface SelectTool {
@@ -63,6 +69,8 @@ export interface SelectTool {
   armResize(): void;
   deleteEntities(): void;
   duplicateEntities(): void;
+  deletePropSprites(): void;
+  duplicatePropSprites(): void;
   isSelecting(): boolean;
   isMoving(): boolean;
 }
@@ -79,6 +87,8 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
     history,
     entityManager,
     entitySelection,
+    propSpriteManager,
+    getProject,
   } = config;
 
   const tileController: SelectTileController = createSelectTileController({
@@ -102,6 +112,18 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
     history,
   });
 
+
+  const propSpriteController = createSelectPropSpriteController({
+    getEditorState,
+    getScene,
+    getProject,
+    propSpriteManager,
+    history,
+    onSelectionChange: () => {
+      onEntitySelectionChange?.([]);
+    },
+  });
+
   const tool: SelectTool = {
     start(screenX, screenY, viewport, tileSize): void {
       const editorState = getEditorState();
@@ -112,11 +134,22 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
 
       if (entityController.handlePointerStart(viewport, screenX, screenY, tileSize)) {
         tileController.clearSelection();
+        propSpriteController.clearSelection();
+        return;
+      }
+
+      if (propSpriteController.handlePointerStart(viewport, screenX, screenY, tileSize)) {
+        tileController.clearSelection();
+        entityController.clearSelection();
         return;
       }
 
       if (entityController.hasSelection()) {
         entityController.clearSelection();
+        return;
+      }
+      if (propSpriteController.hasSelection()) {
+        propSpriteController.clearSelection();
         return;
       }
 
@@ -133,6 +166,9 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       if (entityController.handlePointerMove(viewport, screenX, screenY, tileSize)) {
         return;
       }
+      if (propSpriteController.handlePointerMove(viewport, screenX, screenY, tileSize)) {
+        return;
+      }
 
       tileController.move(screenX, screenY, viewport, tileSize);
     },
@@ -144,6 +180,9 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       }
 
       if (entityController.handlePointerEnd()) {
+        return;
+      }
+      if (propSpriteController.handlePointerEnd()) {
         return;
       }
 
@@ -170,6 +209,8 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
 
     clearSelection(): void {
       tileController.clearSelection();
+      entityController.clearSelection();
+      propSpriteController.clearSelection();
     },
 
     startMove(screenX, screenY, viewport, tileSize): void {
@@ -208,6 +249,16 @@ export function createSelectTool(config: SelectToolConfig): SelectTool {
       const scene = getScene();
       if (!scene) return;
       entityController.duplicateSelected(scene.tileSize);
+    },
+
+    deletePropSprites(): void {
+      propSpriteController.deleteSelected();
+    },
+
+    duplicatePropSprites(): void {
+      const scene = getScene();
+      if (!scene) return;
+      propSpriteController.duplicateSelected(scene.tileSize);
     },
 
     isSelecting(): boolean {
