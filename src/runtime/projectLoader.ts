@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Project, EntityType } from '@/types';
+import type { Project, EntityType, ProjectAnimation } from '@/types';
 import { resolveAssetUrl } from '@/shared/paths';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import type { UnifiedLoader } from '@/runtime/loader';
@@ -16,9 +16,19 @@ export interface ProjectRuntime {
   atlasTextureKeys: TextureKeyMap;
   entityTypes: Map<string, EntityType>;
   entitySpriteKeys: SpriteKeyMap;
+  /** Animation id -> ProjectAnimation */
+  animationsById: Map<string, ProjectAnimation>;
+  /** Animation id -> Phaser runtime key (`anim:${id}`) */
+  animationKeyById: Map<string, string>;
+  /** Lowercase animation name -> Phaser runtime key */
+  animationKeyByName: Map<string, string>;
   getTileTextureKey(category: string, index: number): string | null;
   getAtlasTextureKey(category: string): string | null;
   getEntitySpriteKey(typeName: string): string | null;
+  /** Resolve an animation id or name to its Phaser runtime key. */
+  resolveAnimationKey(value: string): string | null;
+  /** Get the pivot for an animation by its runtime key. */
+  getAnimationPivotByKey(key: string): { x: number; y: number } | null;
 }
 
 export interface ProjectLoaderConfig {
@@ -123,6 +133,56 @@ function buildAtlasTextureKeys(project: Project): TextureKeyMap {
 }
 
 
+function registerProjectAnimations(
+  phaserScene: Phaser.Scene,
+  project: Project,
+  animationsById: Map<string, ProjectAnimation>,
+  animationKeyById: Map<string, string>,
+  animationKeyByName: Map<string, string>,
+  pivotByKey: Map<string, { x: number; y: number }>,
+): void {
+  const animations = project.animations ?? [];
+  const namesSeen = new Map<string, string>(); // lowercaseName -> first id
+
+  for (const anim of animations) {
+    const key = `anim:${anim.id}`;
+
+    animationsById.set(anim.id, anim);
+    animationKeyById.set(anim.id, key);
+
+    if (anim.pivot) {
+      pivotByKey.set(key, { x: anim.pivot.x, y: anim.pivot.y });
+    }
+
+    // Name -> key mapping (case-insensitive, first wins)
+    const lowerName = anim.name.toLowerCase();
+    if (namesSeen.has(lowerName)) {
+      console.warn(
+        `${LOG_PREFIX} Duplicate animation name "${anim.name}" (id: ${anim.id}), ` +
+        `already registered for id: ${namesSeen.get(lowerName)}`
+      );
+    } else {
+      namesSeen.set(lowerName, anim.id);
+      animationKeyByName.set(lowerName, key);
+    }
+
+    // Skip if Phaser already has this animation registered
+    if (phaserScene.anims.exists(key)) continue;
+
+    const frames = anim.frames.map((f) => ({ key: f.textureKey, frame: f.frame }));
+
+    phaserScene.anims.create({
+      key,
+      frames,
+      frameRate: anim.fps,
+      repeat: anim.loopMode === 'loop' ? -1 : 0,
+      yoyo: anim.loopMode === 'pingpong',
+    });
+  }
+
+  console.log(`${LOG_PREFIX} Registered ${animations.length} animation(s)`);
+}
+
 function registerAtlasFrames(phaserScene: Phaser.Scene, project: Project): void {
   for (const atlas of project.spriteAtlases ?? []) {
     const textureKey = getAtlasCategoryName(atlas.path);
@@ -172,12 +232,26 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   const entitySpriteKeys = buildEntitySpriteKeys(project);
   console.log(`${LOG_PREFIX} Loaded atlas sheets count: ${(project.spriteAtlases ?? []).length}`);
 
+  // Register project animations AFTER atlas frames are available
+  const animationsById = new Map<string, ProjectAnimation>();
+  const animationKeyById = new Map<string, string>();
+  const animationKeyByName = new Map<string, string>();
+  const pivotByKey = new Map<string, { x: number; y: number }>();
+
+  registerProjectAnimations(
+    phaserScene, project,
+    animationsById, animationKeyById, animationKeyByName, pivotByKey,
+  );
+
   return {
     project,
     tileTextureKeys,
     atlasTextureKeys,
     entityTypes,
     entitySpriteKeys,
+    animationsById,
+    animationKeyById,
+    animationKeyByName,
     getTileTextureKey(category, index) {
       return tileTextureKeys.get(`${category}:${index}`) ?? null;
     },
@@ -186,6 +260,20 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
     },
     getEntitySpriteKey(typeName) {
       return entitySpriteKeys.get(typeName) ?? null;
+    },
+    resolveAnimationKey(value: string): string | null {
+      // Try by id first
+      const byId = animationKeyById.get(value);
+      if (byId) return byId;
+      // Try by name (case-insensitive)
+      const byName = animationKeyByName.get(value.toLowerCase());
+      if (byName) return byName;
+      // Try as raw Phaser key (already prefixed)
+      if (value.startsWith('anim:')) return value;
+      return null;
+    },
+    getAnimationPivotByKey(key: string): { x: number; y: number } | null {
+      return pivotByKey.get(key) ?? null;
     },
   };
 }

@@ -4,6 +4,7 @@ import type {
   PresetInstance,
   PresetApiRegistrar,
 } from '../presetInstance';
+import { getRuntimeEnv } from '../runtimeEnv';
 
 export const definition: PresetDefinition = {
   id: 'animation-driver',
@@ -122,33 +123,69 @@ export const definition: PresetDefinition = {
   },
 };
 
+const MOVE_EPSILON = 0.5;
+
 export const factory: PresetFactory = (def): PresetInstance => {
-  let currentAnim = '';
+  let currentAnimKey: string | null = null;
   let isPlaying = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  // Knob values (populated via applyConfig)
+  let idleAnimKey = 'idle';
+  let walkAnimKey = 'walk';
+
+  function resolveKey(value: string): string {
+    const env = getRuntimeEnv();
+    return env?.resolveAnimationKey?.(value) ?? value;
+  }
+
+  function playOnSprite(key: string, ignoreIfPlaying = false): void {
+    const env = getRuntimeEnv();
+    const sprite = env?.getPlayerSprite();
+    if (!sprite) return;
+
+    if (ignoreIfPlaying && currentAnimKey === key && isPlaying) return;
+
+    const pivot = env?.getAnimationPivotByKey?.(key);
+    if (pivot) sprite.setOrigin(pivot.x, pivot.y);
+
+    sprite.anims.play(key, true);
+    currentAnimKey = key;
+    isPlaying = true;
+  }
 
   return {
     definition: def,
 
-    applyConfig() {
-      // Config stored but no runtime-settable knobs in v1 stub
+    applyConfig(config: Record<string, unknown>) {
+      if (typeof config.idleAnim === 'string') idleAnimKey = config.idleAnim;
+      if (typeof config.walkAnim === 'string') walkAnimKey = config.walkAnim;
     },
 
     registerApi(registrar: PresetApiRegistrar) {
+
       registrar.registerCommand('animation.play', (args) => {
-        currentAnim = (args.key as string) || '';
-        isPlaying = true;
-        // Stub: no actual animation until Phaser integration
+        const rawKey = (args.key as string) || '';
+        if (!rawKey) return undefined;
+        const resolved = resolveKey(rawKey);
+        playOnSprite(resolved);
+        registrar.emitEvent('animation.started', { key: resolved });
         return undefined;
       });
 
       registrar.registerCommand('animation.stop', () => {
+        const env = getRuntimeEnv();
+        const sprite = env?.getPlayerSprite();
+        if (sprite) sprite.anims.stop();
         isPlaying = false;
+        registrar.emitEvent('animation.stopped', {});
         return undefined;
       });
 
       registrar.registerState(
         'animation.currentAnim',
-        () => currentAnim,
+        () => currentAnimKey ?? '',
       );
       registrar.registerState(
         'animation.isPlaying',
@@ -156,9 +193,32 @@ export const factory: PresetFactory = (def): PresetInstance => {
       );
     },
 
+    update(_delta: number) {
+      const env = getRuntimeEnv();
+      const player = env?.getPlayerSprite();
+      if (!env || !player) return;
+
+      const dx = player.x - lastX;
+      const dy = player.y - lastY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const moved = dist > MOVE_EPSILON;
+
+      const desiredRaw = moved ? walkAnimKey : idleAnimKey;
+      const desired = resolveKey(desiredRaw);
+
+      if (desired !== currentAnimKey) {
+        playOnSprite(desired, false);
+      }
+
+      lastX = player.x;
+      lastY = player.y;
+    },
+
     dispose() {
-      currentAnim = '';
+      currentAnimKey = null;
       isPlaying = false;
+      lastX = 0;
+      lastY = 0;
     },
   };
 };

@@ -42,30 +42,37 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
     return null;
   }
 
+  let sprite: Phaser.GameObjects.Sprite;
+
   if (spriteCategory.startsWith('atlas:')) {
     const atlas = (projectRuntime.project.spriteAtlases ?? []).find((entry) => getAtlasCategoryName(entry.path) === spriteCategory);
     const slice = atlas?.slices?.[spriteIndex];
     const textureKey = projectRuntime.getAtlasTextureKey(spriteCategory);
     if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return null;
-    // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.
-    const image = phaserScene.add.image(entity.x, entity.y, textureKey, slice.name).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
-    return {
-      instance: entity,
-      gameObject: image,
-      destroy() {
-        image.destroy();
-      },
-    };
+    // Use Sprite (not Image) so atlas entities can play animations.
+    sprite = phaserScene.add.sprite(entity.x, entity.y, textureKey, slice.name).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
+  } else {
+    const textureKey = projectRuntime.getTileTextureKey(spriteCategory, spriteIndex);
+    if (!textureKey || !phaserScene.textures.exists(textureKey)) return null;
+    sprite = phaserScene.add.sprite(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
   }
 
-  const textureKey = projectRuntime.getTileTextureKey(spriteCategory, spriteIndex);
-  if (!textureKey || !phaserScene.textures.exists(textureKey)) return null;
-  const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
+  // Auto-play animation if entity has animationId property
+  const animRef = entity.properties?.animationId;
+  if (typeof animRef === 'string' && animRef.length > 0) {
+    const animKey = projectRuntime.resolveAnimationKey(animRef);
+    if (animKey) {
+      const pivot = projectRuntime.getAnimationPivotByKey(animKey);
+      if (pivot) sprite.setOrigin(pivot.x, pivot.y);
+      sprite.anims.play(animKey, true);
+    }
+  }
+
   return {
     instance: entity,
-    gameObject: image,
+    gameObject: sprite,
     destroy() {
-      image.destroy();
+      sprite.destroy();
     },
   };
 }

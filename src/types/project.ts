@@ -25,6 +25,7 @@
  */
 
 import { validatePropertyDefinition, type PropertyDefinition } from './entity';
+import type { ProjectAnimation, ProjectAnimationSet } from './animation';
 
 // --- Tile Category ---
 
@@ -106,6 +107,10 @@ export interface Project {
   entityTypes: EntityType[];
   /** Sprite atlas definitions for non-destructive spritesheet imports */
   spriteAtlases?: SpriteAtlas[];
+  /** Compiled animation definitions for runtime playback */
+  animations?: ProjectAnimation[];
+  /** Directional animation groupings (reserved for future use) */
+  animationSets?: ProjectAnimationSet[];
   /** Project-wide settings */
   settings: ProjectSettings;
 }
@@ -125,6 +130,8 @@ export function createDefaultProject(name: string = 'Untitled Project'): Project
     tileCategories: [],
     entityTypes: [],
     spriteAtlases: [],
+    animations: [],
+    animationSets: [],
     settings: { ...DEFAULT_PROJECT_SETTINGS },
   };
 }
@@ -169,7 +176,52 @@ export function validateProject(project: unknown): project is Project {
     }
   }
 
+  // Validate optional animations
+  if (p.animations !== undefined) {
+    if (!Array.isArray(p.animations)) return false;
+    const animIds = new Set<string>();
+    for (const anim of p.animations) {
+      if (!validateProjectAnimation(anim)) return false;
+      if (animIds.has(anim.id)) return false;
+      animIds.add(anim.id);
+    }
+  }
+
   return validateProjectSettings(p.settings);
+}
+
+const VALID_LOOP_MODES = new Set(['loop', 'once', 'pingpong']);
+
+export function validateProjectAnimation(anim: unknown): anim is ProjectAnimation {
+  if (!anim || typeof anim !== 'object') return false;
+  const a = anim as Record<string, unknown>;
+
+  if (typeof a.id !== 'string' || a.id.length === 0) return false;
+  if (typeof a.name !== 'string') return false;
+  if (typeof a.fps !== 'number' || a.fps < 1 || a.fps > 60) return false;
+  if (typeof a.loopMode !== 'string' || !VALID_LOOP_MODES.has(a.loopMode)) return false;
+  if (!Array.isArray(a.frames) || a.frames.length === 0) return false;
+
+  for (const frame of a.frames) {
+    if (!validateProjectAnimationFrame(frame)) return false;
+  }
+
+  if (a.pivot !== undefined) {
+    if (!a.pivot || typeof a.pivot !== 'object') return false;
+    const pv = a.pivot as Record<string, unknown>;
+    if (typeof pv.x !== 'number' || typeof pv.y !== 'number') return false;
+    if (pv.x < 0 || pv.x > 1 || pv.y < 0 || pv.y > 1) return false;
+  }
+
+  return true;
+}
+
+export function validateProjectAnimationFrame(frame: unknown): frame is import('./animation').ProjectAnimationFrame {
+  if (!frame || typeof frame !== 'object') return false;
+  const f = frame as Record<string, unknown>;
+  if (typeof f.textureKey !== 'string') return false;
+  if (typeof f.frame !== 'string') return false;
+  return true;
 }
 
 export function validateTileCategory(cat: unknown): cat is TileCategory {
