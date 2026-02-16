@@ -9,7 +9,7 @@ import {
   deployChanges,
 } from '@/deploy';
 import type { AssetRegistry } from '@/editor/assets';
-import { getAllScenes, getHotProject } from '@/storage';
+import { loadWorkspaceContent } from '@/storage';
 
 export interface DeployPanelConfig {
   container: HTMLElement;
@@ -342,8 +342,7 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
 
       const shaManager = createShaManager({ authManager, repoOwner: owner, repoName: repo });
       const changeDetector = createChangeDetector({
-        getProject: getHotProject,
-        getScenes: getAllScenes,
+        getWorkspace: loadWorkspaceContent,
         getShaStore: () => shaManager.createStore(),
         getAssetRegistryState: assetRegistry
           ? () => assetRegistry.getState()

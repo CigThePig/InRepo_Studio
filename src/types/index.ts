@@ -156,3 +156,19 @@ export {
   mergeCategoryConfig,
   isCategoryConfigModified,
 } from './presetDefaults';
+
+// Workspace + editor UI state types
+export type {
+  WorkspaceMeta,
+  WorkspaceContent,
+  EditorUIState,
+  ViewportState,
+  PanelStates,
+  SelectedTile,
+  BrushSize,
+  EditorIntent,
+  EditorDomain,
+  EditorPayload,
+  LayerVisibility,
+  LayerLocks,
+} from './workspace';

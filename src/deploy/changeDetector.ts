@@ -19,14 +19,13 @@
  * - [ ] Ignores unchanged files (content hash match)
  */
 
-import type { HotProject } from '@/storage';
-import type { Scene } from '@/types';
-import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
+import type { WorkspaceContent } from '@/types/workspace';
 import type { ShaStore } from './shaManager';
 import type { AssetRegistryState } from '@/editor/assets';
 import type { AssetGroupType } from '@/editor/assets/assetGroup';
 import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { PROJECT_JSON_PATH, SCENE_INDEX_JSON_PATH, SCENES_DIR } from '@/shared/paths';
+import { buildProjectPack } from '@/pack/buildProjectPack';
 import { hashContent } from './utils';
 import { parseDataUrl, slugifyFileName, buildUniqueFileName, MIME_EXTENSION_MAP } from './assetUpload';
 
@@ -42,8 +41,7 @@ export interface FileChange {
 }
 
 export interface ChangeDetectorConfig {
-  getProject: () => Promise<HotProject | null>;
-  getScenes: () => Promise<Scene[]>;
+  getWorkspace: () => Promise<WorkspaceContent>;
   getShaStore: () => Promise<ShaStore>;
   getAssetRegistryState?: () => AssetRegistryState | null;
 }
@@ -88,19 +86,8 @@ function buildAssetDeployPath(
   return `${basePath}/${groupSlug}/${fileName}`;
 }
 
-function findParentInGroups(
-  groups: AssetRegistryState['groups'],
-  parentId: string
-): { asset: AssetRegistryState['groups'][number]['assets'][number]; groupIndex: number } | null {
-  for (let gi = 0; gi < groups.length; gi++) {
-    const asset = groups[gi].assets.find((a) => a.id === parentId);
-    if (asset) return { asset, groupIndex: gi };
-  }
-  return null;
-}
-
 export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetector {
-  const { getProject, getScenes, getShaStore, getAssetRegistryState } = config;
+  const { getWorkspace, getShaStore, getAssetRegistryState } = config;
 
   return {
     async detectChanges() {
@@ -112,7 +99,6 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
       // Process assets before project.json so we can inject spriteAtlases
       // metadata into the deployed project content.
       const registryState = getAssetRegistryState?.() ?? null;
-      const spriteAtlases: SpriteAtlas[] = [];
       const parentDeployPaths = new Map<string, string>();
 
       if (registryState) {
@@ -156,135 +142,37 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
           }
         }
 
-        // Build spriteAtlases from ALL slice assets (local + repo) that
-        // reference a parent. This preserves per-slice category overrides
-        // so that after deploy + reload, slices rehydrate into the correct
-        // Asset Library category.
-        const atlasMap = new Map<string, {
-          name: string;
-          parentPath: string;
-          parentGroupKey: string;
-          slices: Array<SpriteAtlasSlice & { _groupKey: string }>;
-          firstSliceSize: { width: number; height: number };
-        }>();
-
-        // Build a lookup: assetId → group for fast parent/slice group resolution
-        const assetGroupLookup = new Map<string, { type: AssetGroupType; slug: string }>();
-        for (const group of registryState.groups) {
-          for (const asset of group.assets) {
-            assetGroupLookup.set(asset.id, { type: group.type, slug: group.slug });
-          }
-        }
-
-        for (const group of registryState.groups) {
-          for (const asset of group.assets) {
-            if (!asset.sourceAssetId || !asset.rect) continue;
-
-            // Resolve parent path:
-            // - local parent: use computed deploy path, strip "game/" prefix
-            // - repo parent: dataUrl is already repo-relative
-            let parentPath: string | null = null;
-            if (parentDeployPaths.has(asset.sourceAssetId)) {
-              parentPath = parentDeployPaths.get(asset.sourceAssetId)!.replace(/^game\//, '');
-            } else {
-              // Find the parent asset to get its dataUrl (repo asset path)
-              const parentInfo = findParentInGroups(registryState.groups, asset.sourceAssetId);
-              if (parentInfo) {
-                parentPath = parentInfo.asset.dataUrl;
-              }
-            }
-            if (!parentPath) continue;
-
-            if (!atlasMap.has(asset.sourceAssetId)) {
-              const parentInfo = findParentInGroups(registryState.groups, asset.sourceAssetId);
-              const parentGroup = assetGroupLookup.get(asset.sourceAssetId);
-              const parentGroupKey = parentGroup
-                ? `${parentGroup.type}:${parentGroup.slug}`
-                : `${group.type}:${group.slug}`;
-              atlasMap.set(asset.sourceAssetId, {
-                name: parentInfo?.asset.name ?? asset.sourceAssetId,
-                parentPath,
-                parentGroupKey,
-                slices: [],
-                firstSliceSize: { width: asset.rect.w, height: asset.rect.h },
-              });
-            }
-
-            const sliceGroupKey = `${group.type}:${group.slug}`;
-            atlasMap.get(asset.sourceAssetId)!.slices.push({
-              name: asset.name,
-              rect: { x: asset.rect.x, y: asset.rect.y, w: asset.rect.w, h: asset.rect.h },
-              _groupKey: sliceGroupKey,
-            });
-          }
-        }
-
-        for (const [, atlas] of atlasMap) {
-          // Sort slices for stable output across runs
-          atlas.slices.sort((a, b) =>
-            a.rect.y - b.rect.y
-            || a.rect.x - b.rect.x
-            || a.rect.h - b.rect.h
-            || a.rect.w - b.rect.w
-            || a.name.localeCompare(b.name)
-          );
-
-          const defaultGroup = atlas.parentGroupKey;
-          const outputSlices: SpriteAtlasSlice[] = atlas.slices.map((s) => {
-            const slice: SpriteAtlasSlice = {
-              name: s.name,
-              rect: s.rect,
-            };
-            // Only set per-slice group override when it differs from atlas default
-            if (s._groupKey !== defaultGroup) {
-              slice.group = s._groupKey;
-            }
-            return slice;
-          });
-
-          const spriteAtlas: SpriteAtlas = {
-            name: atlas.name,
-            path: atlas.parentPath,
-            sliceSize: atlas.firstSliceSize,
-            slices: outputSlices,
-            defaultGroup,
-          };
-
-          spriteAtlases.push(spriteAtlas);
-        }
-
-        // Sort atlases by path for stable JSON output
-        spriteAtlases.sort((a, b) => a.path.localeCompare(b.path));
+        // Atlas metadata is now built by buildProjectPack(workspace).
       }
 
       // --- Phase 2: Detect project.json changes ---
-      // Merge computed spriteAtlases into the deployed project content so
-      // the runtime can reconstruct sprite frames from the parent sheet.
-      const hotProject = await getProject();
-      if (hotProject) {
-        const projectData = spriteAtlases.length > 0
-          ? { ...hotProject.project, spriteAtlases }
-          : hotProject.project;
-        const projectPath = PROJECT_JSON_PATH;
-        const projectContent = JSON.stringify(projectData, null, 2);
-        const contentHash = await hashContent(projectContent);
-        const entry = shaStore.get(projectPath);
+      // Build deterministic runtime pack and deploy from that same derived source.
+      const workspace = await getWorkspace();
+      const pack = buildProjectPack(workspace, {
+        resolveAssetPathForDeploy(assetId) {
+          return parentDeployPaths.get(assetId) ?? null;
+        },
+      });
 
-        currentPaths.add(projectPath);
+      const projectPath = PROJECT_JSON_PATH;
+      const projectContent = JSON.stringify(pack.project, null, 2);
+      const contentHash = await hashContent(projectContent);
+      const entry = shaStore.get(projectPath);
 
-        if (detectContentChange(entry?.contentHash ?? null, contentHash)) {
-          changes.push({
-            path: projectPath,
-            status: entry ? 'modified' : 'added',
-            content: projectContent,
-            contentHash,
-            localSha: entry?.sha ?? null,
-          });
-        }
+      currentPaths.add(projectPath);
+
+      if (detectContentChange(entry?.contentHash ?? null, contentHash)) {
+        changes.push({
+          path: projectPath,
+          status: entry ? 'modified' : 'added',
+          content: projectContent,
+          contentHash,
+          localSha: entry?.sha ?? null,
+        });
       }
 
       // --- Phase 3: Detect scene changes ---
-      const scenes = await getScenes();
+      const scenes = Object.values(pack.scenes);
       for (const scene of scenes) {
         const scenePath = `${SCENES_DIR}/${scene.id}.json`;
         const sceneContent = JSON.stringify(scene, null, 2);

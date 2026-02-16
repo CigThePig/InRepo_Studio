@@ -23,6 +23,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { ScriptFile } from '@/types/script';
+import type { WorkspaceContent } from '@/types/workspace';
 
 // --- Constants ---
 
@@ -31,6 +32,24 @@ const DB_VERSION = 1;
 const STORE_NAME = 'scripts';
 
 const LOG_PREFIX = '[Storage/Scripts]';
+const STUDIO_DB_NAME = 'inrepo-studio';
+const STUDIO_DB_VERSION = 2;
+
+interface StudioWorkspaceDB extends DBSchema {
+  workspace: {
+    key: string;
+    value: WorkspaceContent;
+  };
+}
+
+async function updateWorkspaceScripts(mutator: (scripts: Record<string, ScriptFile>) => void): Promise<void> {
+  const studioDb = await openDB<StudioWorkspaceDB>(STUDIO_DB_NAME, STUDIO_DB_VERSION);
+  const workspace = await studioDb.get('workspace', 'current');
+  if (!workspace) return;
+  const scripts = { ...(workspace.scripts ?? {}) };
+  mutator(scripts);
+  await studioDb.put('workspace', { ...workspace, scripts }, 'current');
+}
 
 // --- Database Schema ---
 
@@ -85,6 +104,9 @@ function getDB(): IDBPDatabase<ScriptStoreDB> {
 export async function saveScript(script: ScriptFile): Promise<void> {
   const database = getDB();
   await database.put(STORE_NAME, script, script.scriptId);
+  await updateWorkspaceScripts((scripts) => {
+    scripts[script.scriptId] = script;
+  });
   console.log(`${LOG_PREFIX} Script "${script.scriptId}" saved`);
 }
 
@@ -111,6 +133,9 @@ export async function loadScript(scriptId: string): Promise<ScriptFile | null> {
 export async function deleteScript(scriptId: string): Promise<void> {
   const database = getDB();
   await database.delete(STORE_NAME, scriptId);
+  await updateWorkspaceScripts((scripts) => {
+    delete scripts[scriptId];
+  });
   console.log(`${LOG_PREFIX} Script "${scriptId}" deleted`);
 }
 
@@ -122,6 +147,11 @@ export async function listScriptIds(): Promise<string[]> {
   return await database.getAllKeys(STORE_NAME);
 }
 
+export async function listScripts(): Promise<ScriptFile[]> {
+  const database = getDB();
+  return await database.getAll(STORE_NAME);
+}
+
 /**
  * Check if a script exists in hot storage.
  */
@@ -129,4 +159,15 @@ export async function hasScript(scriptId: string): Promise<boolean> {
   const database = getDB();
   const script = await database.get(STORE_NAME, scriptId);
   return script !== undefined;
+}
+
+export async function clearScriptStorage(): Promise<void> {
+  const database = getDB();
+  await database.clear(STORE_NAME);
+  const studioDb = await openDB<StudioWorkspaceDB>(STUDIO_DB_NAME, STUDIO_DB_VERSION);
+  const workspace = await studioDb.get('workspace', 'current');
+  if (workspace) {
+    await studioDb.put('workspace', { ...workspace, scripts: {} }, 'current');
+  }
+  console.log(`${LOG_PREFIX} Cleared all scripts`);
 }

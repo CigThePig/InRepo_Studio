@@ -7,6 +7,8 @@
 
 import {
   loadEditorState,
+  loadWorkspaceContent,
+  saveWorkspaceContent,
   loadProject,
   loadScene,
   saveProject,
@@ -28,6 +30,7 @@ import type {
   StorageQuotaInfo,
   UpdateCheckResult,
 } from '@/storage';
+import type { WorkspaceContent } from '@/types/workspace';
 import { ensureSceneTilesets, type Scene, type Project, type LayerType, type SpriteRef } from '@/types';
 import { createCanvas, type CanvasController } from '@/editor/canvas';
 import {
@@ -126,6 +129,7 @@ const LOG_PREFIX = '[Editor]';
 // --- Editor State ---
 
 let editorState: EditorState | null = null;
+let workspaceContent: WorkspaceContent | null = null;
 let currentProject: Project | null = null;
 let canvasController: CanvasController | null = null;
 let topPanelController: TopPanelController | TopBarV2Controller | null = null;
@@ -834,6 +838,7 @@ function setCurrentScene(scene: Scene | null, options: { clearHistory?: boolean 
 
 let saveTimeout: number | null = null;
 let sceneSaveTimeout: number | null = null;
+let workspaceSaveTimeout: number | null = null;
 const SAVE_DEBOUNCE_MS = 500;
 const SCENE_SAVE_DEBOUNCE_MS = 500;
 
@@ -847,6 +852,17 @@ function scheduleSave(): void {
       await saveEditorState(editorState);
       console.log(`${LOG_PREFIX} Editor state saved`);
     }
+  }, SAVE_DEBOUNCE_MS);
+}
+
+function scheduleWorkspaceSave(): void {
+  if (workspaceSaveTimeout !== null) {
+    window.clearTimeout(workspaceSaveTimeout);
+  }
+  workspaceSaveTimeout = window.setTimeout(async () => {
+    workspaceSaveTimeout = null;
+    if (!workspaceContent) return;
+    await saveWorkspaceContent(workspaceContent);
   }, SAVE_DEBOUNCE_MS);
 }
 
@@ -892,6 +908,8 @@ async function applyProjectUpdate(updatedProject: Project, commitSha: string | n
 
 export async function initEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Initializing editor...`);
+
+  workspaceContent = await loadWorkspaceContent();
 
   // Load editor state
   editorState = await loadEditorState();
@@ -948,13 +966,15 @@ export async function initEditor(): Promise<void> {
   };
 
   assetRegistry = createAssetRegistry({
-    initialState: editorState.assetRegistry as AssetRegistryState | undefined,
+    initialState: workspaceContent?.assetRegistry as AssetRegistryState | undefined,
     uploadHandler: assetUploadHandler,
   });
   assetRegistry.onChange((nextState) => {
-    if (!editorState) return;
-    const previousSelectedAssetId = editorState.assetRegistry?.selectedAssetId ?? null;
-    editorState.assetRegistry = nextState;
+    if (!editorState || !workspaceContent) return;
+    const previousSelectedAssetId = editorState.selectedAssetId ?? null;
+    editorState.selectedAssetId = nextState.selectedAssetId;
+    workspaceContent = { ...workspaceContent, assetRegistry: nextState };
+    scheduleWorkspaceSave();
     scheduleSave();
     if (previousSelectedAssetId !== nextState.selectedAssetId) {
       const shouldPlace = editorState.domain === 'ground' || editorState.domain === 'props';
@@ -966,9 +986,6 @@ export async function initEditor(): Promise<void> {
     canvasController?.getRenderer().setAssetRegistry(assetRegistry);
     canvasController?.invalidateScene();
   });
-  if (editorState.repoAssetManifest) {
-    assetRegistry.refreshFromRepo(editorState.repoAssetManifest);
-  }
 
   historyManager = createHistoryManager({
     maxSize: 50,
@@ -989,7 +1006,7 @@ export async function initEditor(): Promise<void> {
       assetRegistry,
     });
   }
-  syncSelectedAssetSelection(editorState.assetRegistry?.selectedAssetId ?? null);
+  syncSelectedAssetSelection(editorState.selectedAssetId ?? null);
   if (!editorState.selectedEntityType && currentProject.entityTypes.length > 0) {
     editorState.selectedEntityType = currentProject.entityTypes[0].name;
     scheduleSave();
@@ -1067,8 +1084,7 @@ export async function initEditor(): Promise<void> {
           assetRegistry,
         });
       }
-      editorState.repoAssetManifest = manifest;
-      scheduleSave();
+      scheduleWorkspaceSave();
     } catch (error) {
       console.warn(`${LOG_PREFIX} Failed to scan repo assets:`, error);
     }
