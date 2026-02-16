@@ -98,11 +98,14 @@ Local instruction files (present):
 - `script.ts`
   - Role: Logic script envelope types
   - Owns: ScriptFile, ScriptLogicTarget, resolveScriptPath, resolveScriptId
+- `workspace.ts`
+  - Role: WorkspaceContent + EditorUIState local persistence schemas
+  - Owns: WorkspaceContent, EditorUIState, WorkspaceMeta
 
 ### Storage (`src/storage/`)
 - `hot.ts`
-  - Role: IndexedDB operations (project, scenes, editorState)
-  - Owns: EditorStateSchema, HotProjectSchema
+  - Role: IndexedDB operations (workspace content + editor UI state + legacy compatibility)
+  - Owns: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema
 - `cold.ts`
   - Role: fetch operations (read from repository)
   - Owns: FreshnessCheckSchema
@@ -156,7 +159,11 @@ Local instruction files (present):
 
 ### Runtime (`src/runtime/`)
 - `loader.ts`
-  - Role: load project/scene from hot or cold storage
+  - Role: load project/scene from hot or cold storage (hot mode uses Project Pack Builder)
+
+### Pack (`src/pack/`)
+- `buildProjectPack.ts`
+  - Role: deterministic build step that derives runtime-ready project pack from workspace content
 - `projectLoader.ts`
   - Role: load project data and runtime assets
 - `sceneLoader.ts`

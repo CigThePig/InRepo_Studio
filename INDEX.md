@@ -337,14 +337,18 @@ Micro-format (copy/paste):
   - Role: Script envelope validation and factory utilities.
   - Lists of truth: SCRIPT_FORMAT_VERSION, createEmptyScriptFile, validateScriptFile
 
+- `src/types/workspace.ts`
+  - Role: Canonical local WorkspaceContent + EditorUIState schemas.
+  - Lists of truth: WorkspaceContent, EditorUIState, WorkspaceMeta
+
 ### Storage (Tracks 2-3 — exists)
 - `src/storage/index.ts`
   - Role: Re-exports all storage functions.
   - Lists of truth: none
 
 - `src/storage/hot.ts`
-  - Role: IndexedDB operations (project, scenes, editorState).
-  - Lists of truth: EditorStateSchema, HotProjectSchema, ViewportState, PanelStates, SelectedTile, LayerVisibility, LayerLocks, RepoAssetManifest, SelectedPropSpriteIds
+  - Role: IndexedDB operations for workspace content, editor UI state, and legacy migration compatibility.
+  - Lists of truth: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -736,6 +740,10 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
+- `src/pack/buildProjectPack.ts`
+  - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent.
+  - Lists of truth: ProjectPack
+
 - `src/runtime/init.ts`
   - Role: Runtime initialization (Phaser boot + scene manager).
   - Lists of truth: none

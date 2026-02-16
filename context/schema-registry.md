@@ -479,6 +479,20 @@ Rules:
     - Keys: blocks, inspect
     - Apply mode: live (tabs render on Blockly Mode enter)
 
+- `/src/types/workspace.ts`
+  - `WorkspaceContent` — canonical local-first content bundle for project/scenes/assets/scripts/presets (schema)
+    - Keys: version, project, scenes, assetRegistry, presetConfig, scripts, meta
+    - Apply mode: live (consumed by deploy + runtime pack builder)
+  - `EditorUIState` — UI-only persisted editor state (schema)
+    - Keys: currentSceneId, currentTool, intent/domain, selection/layout fields, selectedAssetId, viewport/panel states
+    - Invariant: project content payloads are excluded (assetRegistry/scripts/presetConfig not stored here)
+    - Apply mode: live (editor restore)
+
+- `/src/pack/buildProjectPack.ts`
+  - `ProjectPack` — deterministic derived runtime-ready pack from WorkspaceContent (schema)
+    - Keys: project, scenes, diagnostics
+    - Apply mode: live (used by hot runtime and deploy serialization)
+
 ---
 
 ## Invariants checklist for schema-driven work

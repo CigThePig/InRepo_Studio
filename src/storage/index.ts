@@ -23,9 +23,15 @@ export {
   getAllSceneIds,
   saveEditorState,
   loadEditorState,
+  saveEditorUIState,
+  loadEditorUIState,
+  saveWorkspaceContent,
+  loadWorkspaceContent,
   checkStorageQuota,
   exportAllData,
   importAllData,
+  exportWorkspaceBundle,
+  importWorkspaceBundle,
   clearAllData,
   hasHotData,
 } from './hot';
@@ -43,6 +49,7 @@ export type {
   ColdBaseline,
   StorageQuotaInfo,
   ExportData,
+  WorkspaceBundle,
 } from './hot';
 
 // Cold storage (fetch)
@@ -65,7 +72,9 @@ export {
   loadScript,
   deleteScript,
   listScriptIds,
+  listScripts,
   hasScript,
+  clearScriptStorage,
 } from './scriptStorage';
 
 // Script storage (cold)

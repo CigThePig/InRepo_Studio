@@ -23,7 +23,8 @@
  */
 
 import type { Project, Scene } from '@/types';
-import { loadProject, loadScene, fetchProject, fetchScene } from '@/storage';
+import { loadWorkspaceContent, fetchProject, fetchScene } from '@/storage';
+import { buildProjectPack } from '@/pack/buildProjectPack';
 
 const LOG_PREFIX = '[Runtime/Loader]';
 
@@ -36,6 +37,15 @@ export interface UnifiedLoader {
 }
 
 export function createUnifiedLoader(mode: DataSourceMode): UnifiedLoader {
+  let hotPack: ReturnType<typeof buildProjectPack> | null = null;
+
+  async function getHotPack(): Promise<ReturnType<typeof buildProjectPack>> {
+    if (hotPack) return hotPack;
+    const workspace = await loadWorkspaceContent();
+    hotPack = buildProjectPack(workspace);
+    return hotPack;
+  }
+
   return {
     getMode() {
       return mode;
@@ -43,7 +53,7 @@ export function createUnifiedLoader(mode: DataSourceMode): UnifiedLoader {
 
     async loadProject() {
       if (mode === 'hot') {
-        const project = await loadProject();
+        const project = (await getHotPack()).project;
         if (!project) {
           throw new Error(`${LOG_PREFIX} No project data in hot storage`);
         }
@@ -59,7 +69,7 @@ export function createUnifiedLoader(mode: DataSourceMode): UnifiedLoader {
 
     async loadScene(sceneId: string) {
       if (mode === 'hot') {
-        const scene = await loadScene(sceneId);
+        const scene = (await getHotPack()).scenes[sceneId] ?? null;
         if (!scene) {
           throw new Error(`${LOG_PREFIX} Scene "${sceneId}" not found in hot storage`);
         }

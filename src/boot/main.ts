@@ -20,7 +20,15 @@ import {
   getPlaytestSceneId,
   switchMode,
 } from './modeRouter';
-import { initHotStorage, needsMigration, migrateFromCold, forceRefreshFromCold, loadProject } from '@/storage';
+import {
+  initHotStorage,
+  initScriptStorage,
+  clearScriptStorage,
+  needsMigration,
+  migrateFromCold,
+  forceRefreshFromCold,
+  loadProject,
+} from '@/storage';
 
 const LOG_PREFIX = '[Boot]';
 
@@ -140,6 +148,8 @@ async function boot(): Promise<void> {
       updateLoadingText('Resetting local data...');
       console.log(`${LOG_PREFIX} Reset requested via query param`);
       try {
+        await initScriptStorage();
+        await clearScriptStorage();
         await forceRefreshFromCold();
       } catch (e) {
         console.warn(`${LOG_PREFIX} Reset failed:`, e);
