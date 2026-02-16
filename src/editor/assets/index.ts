@@ -15,3 +15,4 @@ export type {
   AssetRegistryState,
 } from './assetRegistry';
 export type { AssetGroup, AssetGroupType } from './assetGroup';
+export { makeGroupKey, parseGroupKey } from './groupKey';

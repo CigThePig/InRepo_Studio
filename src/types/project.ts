@@ -57,6 +57,12 @@ export interface SpriteAtlasSlice {
   name: string;
   /** Region within the spritesheet image */
   rect: { x: number; y: number; w: number; h: number };
+  /**
+   * Override group assignment for this slice (format: "type:slug", e.g. "props:base").
+   * When set, this slice appears in a different Asset Library category than the
+   * atlas default. Omitted when the slice belongs to the atlas's defaultGroup.
+   */
+  group?: string;
 }
 
 export interface SpriteAtlas {
@@ -68,6 +74,12 @@ export interface SpriteAtlas {
   sliceSize: { width: number; height: number };
   /** Individual slice definitions */
   slices: SpriteAtlasSlice[];
+  /**
+   * Default group for all slices in this atlas (format: "type:slug", e.g. "tilesets:base").
+   * Slices without an explicit `group` override inherit this. Falls back to the group
+   * inferred from atlas.path when omitted (backwards compatibility).
+   */
+  defaultGroup?: string;
 }
 
 // --- Project Settings ---
@@ -191,6 +203,7 @@ export function validateSpriteAtlasSlice(slice: unknown): slice is SpriteAtlasSl
   if (!slice || typeof slice !== 'object') return false;
   const s = slice as Record<string, unknown>;
   if (typeof s.name !== 'string') return false;
+  if (s.group !== undefined && typeof s.group !== 'string') return false;
   if (!s.rect || typeof s.rect !== 'object') return false;
   const r = s.rect as Record<string, unknown>;
   return (
@@ -206,6 +219,7 @@ export function validateSpriteAtlas(atlas: unknown): atlas is SpriteAtlas {
   const a = atlas as Record<string, unknown>;
   if (typeof a.name !== 'string') return false;
   if (typeof a.path !== 'string') return false;
+  if (a.defaultGroup !== undefined && typeof a.defaultGroup !== 'string') return false;
   if (!a.sliceSize || typeof a.sliceSize !== 'object') return false;
   const sz = a.sliceSize as Record<string, unknown>;
   if (typeof sz.width !== 'number' || typeof sz.height !== 'number') return false;

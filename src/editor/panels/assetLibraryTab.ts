@@ -1,4 +1,5 @@
 import type { AssetRegistry, AssetEntry, AssetGroup, AssetGroupType } from '@/editor/assets';
+import { makeGroupKey } from '@/editor/assets/groupKey';
 import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
@@ -315,6 +316,58 @@ const STYLES = `
     padding: 4px 0;
   }
 
+  .asset-library__move-type-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .asset-library__move-type-btn {
+    flex: 1;
+    min-height: 40px;
+    border-radius: 10px;
+    border: 2px solid rgba(83, 101, 164, 0.5);
+    background: rgba(22, 30, 60, 0.85);
+    color: #dbe4ff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .asset-library__move-type-btn--active {
+    border-color: #4a9eff;
+    background: rgba(47, 59, 102, 0.9);
+  }
+
+  .asset-library__move-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .asset-library__move-group-btn {
+    min-height: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.5);
+    background: rgba(22, 30, 60, 0.85);
+    color: #dbe4ff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    padding: 8px 12px;
+  }
+
+  .asset-library__move-group-btn:active {
+    background: rgba(47, 59, 102, 0.9);
+  }
+
+  .asset-library__move-group-btn--current {
+    opacity: 0.4;
+    cursor: default;
+  }
+
   .asset-library__animations {
     margin-top: 12px;
     display: grid;
@@ -396,11 +449,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
   >();
   let sheetAssetId: string | null = null;
-  let sheetView: 'menu' | 'rename' | 'delete-confirm' = 'menu';
+  let sheetView: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu';
+  let moveToType: AssetGroupType = 'tilesets';
 
   type DragState = {
     groupType: AssetGroupType;
     groupSlug: string;
+    assetId: string;
     fromIndex: number;
     pointerId: number;
     captureEl: HTMLElement;
@@ -412,6 +467,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     offsetY: number;
     toIndex: number;
     lastTargetIndex: number;
+    /** When dragging across groups, tracks the current target group */
+    targetGroupType: AssetGroupType;
+    targetGroupSlug: string;
+    targetGrid: HTMLElement;
   };
   let dragState: DragState | null = null;
 
@@ -484,7 +543,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return `${group.type}:${group.slug}`;
   }
 
-  function openAssetSheet(assetId: string, view: 'menu' | 'rename' | 'delete-confirm' = 'menu'): void {
+  function openAssetSheet(assetId: string, view: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu'): void {
     sheetAssetId = assetId;
     sheetView = view;
     refresh();
@@ -522,10 +581,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     grid: HTMLElement;
     group: AssetGroup;
     fromIndex: number;
+    assetId: string;
     captureEl: HTMLElement;
   }): void {
     if (dragState) return;
-    const { event, card, grid, group, fromIndex, captureEl } = options;
+    const { event, card, grid, group, fromIndex, assetId, captureEl } = options;
     const rect = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('asset-library__ghost');
@@ -545,6 +605,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     dragState = {
       groupType: group.type,
       groupSlug: group.slug,
+      assetId,
       fromIndex,
       pointerId: event.pointerId,
       captureEl,
@@ -556,6 +617,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       offsetY: event.clientY - rect.top,
       toIndex: fromIndex,
       lastTargetIndex: fromIndex,
+      targetGroupType: group.type,
+      targetGroupSlug: group.slug,
+      targetGrid: grid,
     };
 
     captureEl.addEventListener('pointermove', handleDragMove);
@@ -570,7 +634,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     active.ghost.style.left = `${event.clientX - active.offsetX}px`;
     active.ghost.style.top = `${event.clientY - active.offsetY}px`;
 
-    const cardNodes = Array.from(active.grid.querySelectorAll<HTMLElement>('.asset-library__asset')).filter(
+    // Detect cross-group movement: find which group grid the pointer is over
+    const elementUnderPointer = document.elementFromPoint(event.clientX, event.clientY);
+    const gridUnderPointer = elementUnderPointer?.closest<HTMLElement>('[data-group-key]');
+    if (gridUnderPointer && gridUnderPointer !== active.targetGrid) {
+      const keyAttr = gridUnderPointer.getAttribute('data-group-key');
+      if (keyAttr) {
+        const colonIdx = keyAttr.indexOf(':');
+        if (colonIdx > 0) {
+          const newType = keyAttr.slice(0, colonIdx) as AssetGroupType;
+          const newSlug = keyAttr.slice(colonIdx + 1);
+          // Move placeholder to the new grid
+          active.placeholder.remove();
+          gridUnderPointer.appendChild(active.placeholder);
+          active.targetGrid = gridUnderPointer;
+          active.targetGroupType = newType;
+          active.targetGroupSlug = newSlug;
+          active.lastTargetIndex = -1; // Force recalc
+        }
+      }
+    }
+
+    const cardNodes = Array.from(active.targetGrid.querySelectorAll<HTMLElement>('.asset-library__asset')).filter(
       (node) => node !== active.card
     );
     const targetIndex = findClosestIndex(cardNodes, event.clientX, event.clientY);
@@ -579,9 +664,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       active.lastTargetIndex = targetIndex;
       const nextTarget = cardNodes[targetIndex] ?? null;
       if (nextTarget) {
-        active.grid.insertBefore(active.placeholder, nextTarget);
+        active.targetGrid.insertBefore(active.placeholder, nextTarget);
       } else {
-        active.grid.appendChild(active.placeholder);
+        active.targetGrid.appendChild(active.placeholder);
       }
     }
 
@@ -606,15 +691,31 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     next.ghost.remove();
     next.placeholder.remove();
     next.card.style.display = '';
-    const didReorder = next.toIndex !== next.fromIndex;
-    if (didReorder) {
-      assetRegistry.reorderAsset({
-        groupType: next.groupType,
-        groupSlug: next.groupSlug,
-        fromIndex: next.fromIndex,
+
+    const crossGroup =
+      next.targetGroupType !== next.groupType ||
+      next.targetGroupSlug !== next.groupSlug;
+
+    if (crossGroup) {
+      // Cross-group move
+      assetRegistry.moveAsset({
+        assetId: next.assetId,
+        toGroupType: next.targetGroupType,
+        toGroupSlug: next.targetGroupSlug,
         toIndex: next.toIndex,
       });
       refresh();
+    } else {
+      const didReorder = next.toIndex !== next.fromIndex;
+      if (didReorder) {
+        assetRegistry.reorderAsset({
+          groupType: next.groupType,
+          groupSlug: next.groupSlug,
+          fromIndex: next.fromIndex,
+          toIndex: next.toIndex,
+        });
+        refresh();
+      }
     }
   }
 
@@ -626,6 +727,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'asset-library__assets';
+    wrapper.setAttribute('data-group-key', makeGroupKey(group.type, group.slug));
 
     if (group.assets.length === 0) {
       const empty = document.createElement('div');
@@ -679,7 +781,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetIndex: number;
     selectedAssetId: string | null;
     organizeMode: boolean;
-    openAssetSheet: (assetId: string, view?: 'menu' | 'rename' | 'delete-confirm') => void;
+    openAssetSheet: (assetId: string, view?: 'menu' | 'rename' | 'delete-confirm' | 'move-to') => void;
   }): HTMLElement {
     const { group, asset, assetIndex, selectedAssetId, organizeMode, openAssetSheet } = options;
     const card = document.createElement('div');
@@ -724,6 +826,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           grid: card.parentElement as HTMLElement,
           group,
           fromIndex: assetIndex,
+          assetId: asset.id,
           captureEl: dragHandle,
         });
       });
@@ -744,6 +847,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             grid: card.parentElement as HTMLElement,
             group,
             fromIndex: assetIndex,
+            assetId: asset.id,
             captureEl: card,
           });
           longPressTimer = null;
@@ -1053,6 +1157,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     if (sheetView === 'menu') {
       const actions: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
         { label: 'Rename', onClick: () => openAssetSheet(activeAsset.id, 'rename') },
+        {
+          label: 'Move to\u2026',
+          onClick: () => {
+            moveToType = activeGroup.type;
+            openAssetSheet(activeAsset.id, 'move-to');
+          },
+        },
         { label: 'Delete', onClick: () => openAssetSheet(activeAsset.id, 'delete-confirm'), danger: true },
         {
           label: 'Organize Group',
@@ -1136,6 +1247,67 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         refresh();
       });
       sheet.appendChild(deleteButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
+      sheet.appendChild(cancelButton);
+    }
+
+    if (sheetView === 'move-to') {
+      const title = document.createElement('div');
+      title.className = 'asset-library__sheet-title';
+      title.textContent = 'Move to\u2026';
+      sheet.appendChild(title);
+
+      // Category type selector row
+      const typeRow = document.createElement('div');
+      typeRow.className = 'asset-library__move-type-row';
+      const types: AssetGroupType[] = ['tilesets', 'props', 'entities'];
+      types.forEach((type) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'asset-library__move-type-btn';
+        btn.classList.toggle('asset-library__move-type-btn--active', type === moveToType);
+        btn.textContent = GROUP_TYPE_LABELS[type];
+        btn.addEventListener('click', () => {
+          moveToType = type;
+          openAssetSheet(activeAsset.id, 'move-to');
+        });
+        typeRow.appendChild(btn);
+      });
+      sheet.appendChild(typeRow);
+
+      // Group list for the selected type
+      const groupList = document.createElement('div');
+      groupList.className = 'asset-library__move-group-list';
+      const groupsOfType = assetRegistry.getGroupsByType(moveToType);
+      const currentKey = groupKey(activeGroup);
+
+      groupsOfType.forEach((grp) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'asset-library__move-group-btn';
+        const key = groupKey(grp);
+        const isCurrent = key === currentKey;
+        btn.classList.toggle('asset-library__move-group-btn--current', isCurrent);
+        btn.textContent = `${grp.name}${isCurrent ? ' (current)' : ''}`;
+        if (!isCurrent) {
+          btn.addEventListener('click', () => {
+            assetRegistry.moveAsset({
+              assetId: activeAsset.id,
+              toGroupType: grp.type,
+              toGroupSlug: grp.slug,
+            });
+            sheetAssetId = null;
+            refresh();
+          });
+        }
+        groupList.appendChild(btn);
+      });
+      sheet.appendChild(groupList);
 
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
