@@ -100,8 +100,8 @@ function paintAtlasLayer(rt: Phaser.GameObjects.RenderTexture, data: number[][],
       const slice = atlas?.slices?.[resolved.index];
       if (!textureKey || !slice || !phaserScene.textures.exists(textureKey)) continue;
 
-      const stamp = phaserScene.add.image(0, 0, textureKey).setOrigin(0, 0).setVisible(false);
-      stamp.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
+      // Atlas sheets are loaded as a single image; slices are registered as frames in projectLoader.
+      const stamp = phaserScene.add.image(0, 0, textureKey, slice.name).setOrigin(0, 0).setVisible(false);
       stamp.setDisplaySize(scene.tileSize, scene.tileSize);
       rt.draw(stamp, x * scene.tileSize, y * scene.tileSize);
       stamp.destroy();

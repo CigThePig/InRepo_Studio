@@ -109,9 +109,8 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         const slice = atlas?.slices?.[propSprite.sprite.index];
         const textureKey = projectRuntime.getAtlasTextureKey(propSprite.sprite.category);
         if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return [];
-        const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey).setOrigin(0, 0).setDepth(2);
-        image.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
-        image.setDisplaySize(slice.rect.w, slice.rect.h);
+        // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.
+        const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey, slice.name).setOrigin(0, 0).setDepth(2);
         return [image];
       }
 

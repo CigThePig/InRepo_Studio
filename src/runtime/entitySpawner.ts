@@ -46,9 +46,8 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
     const slice = atlas?.slices?.[spriteIndex];
     const textureKey = projectRuntime.getAtlasTextureKey(spriteCategory);
     if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return null;
-    const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5);
-    image.setCrop(slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
-    image.setDisplaySize(slice.rect.w, slice.rect.h);
+    // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.
+    const image = phaserScene.add.image(entity.x, entity.y, textureKey, slice.name).setOrigin(0.5, 0.5);
     return {
       instance: entity,
       gameObject: image,

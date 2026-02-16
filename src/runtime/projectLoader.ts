@@ -122,6 +122,26 @@ function buildAtlasTextureKeys(project: Project): TextureKeyMap {
   return keys;
 }
 
+
+function registerAtlasFrames(phaserScene: Phaser.Scene, project: Project): void {
+  for (const atlas of project.spriteAtlases ?? []) {
+    const textureKey = getAtlasCategoryName(atlas.path);
+    if (!phaserScene.textures.exists(textureKey)) continue;
+
+    const texture = phaserScene.textures.get(textureKey);
+    for (const slice of atlas.slices ?? []) {
+      // Frame names only need to be unique within this texture.
+      // If already registered, skip.
+      const hasFrame = (texture as any).has
+        ? (texture as any).has(slice.name)
+        : Boolean((texture as any).frames?.[slice.name]);
+      if (hasFrame) continue;
+
+      texture.add(slice.name, 0, slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
+    }
+  }
+}
+
 export async function initProject(config: ProjectLoaderConfig): Promise<ProjectRuntime> {
   const { loader, phaserScene } = config;
 
@@ -131,6 +151,10 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   const tileRequests = buildTileRequests(project);
   const entityRequests = buildEntitySpriteRequests(project);
   await loadAssets(phaserScene, [...tileRequests, ...entityRequests]);
+
+  // Sprite atlases are loaded as a single sheet image. Register per-slice frames so
+  // runtime rendering can reference slices by frame name (avoids crop+scale bugs).
+  registerAtlasFrames(phaserScene, project);
 
   const entityTypes = new Map<string, EntityType>();
   for (const entityType of project.entityTypes) {
