@@ -135,6 +135,21 @@ export function createTileMap(config: TileMapConfig): TileMapResult {
   const propsAtlas = phaserScene.add.renderTexture(0, 0, scene.width * scene.tileSize, scene.height * scene.tileSize)
     .setOrigin(0, 0)
     .setDepth(1.5);
+
+  // RenderTextures default to linear filtering; when combined with normal TilemapLayers this can
+  // cause faint seams at edges where atlas tiles meet non-atlas tiles. Force nearest filtering.
+  const setRtNearest = (rt: Phaser.GameObjects.RenderTexture) => {
+    const tex: any = (rt as any).texture;
+    if (tex && typeof tex.setFilter === 'function') {
+      tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      return;
+    }
+    const key = tex?.key;
+    const runtimeTex: any = key && phaserScene.textures.exists(key) ? phaserScene.textures.get(key) : null;
+    runtimeTex?.setFilter?.(Phaser.Textures.FilterMode.NEAREST);
+  };
+  setRtNearest(groundAtlas);
+  setRtNearest(propsAtlas);
   paintAtlasLayer(groundAtlas, scene.layers.ground, config);
   paintAtlasLayer(propsAtlas, scene.layers.props, config);
 

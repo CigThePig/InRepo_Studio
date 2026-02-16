@@ -87,6 +87,7 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
     }
 
     create(): void {
+      this.cameras.main.setRoundPixels(true);
       void this.bootstrap();
     }
 
@@ -167,10 +168,16 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
     width: window.innerWidth,
     height: window.innerHeight,
     backgroundColor: '#0a0a1a',
+    pixelArt: true,
+    antialias: false,
+    antialiasGL: false,
+    roundPixels: true,
+    resolution: window.devicePixelRatio || 1,
     scene: [RuntimeScene],
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      autoRound: true,
     },
   });
 

@@ -130,6 +130,11 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     } else {
       camera.centerOn(sceneRuntime.widthPx / 2, sceneRuntime.heightPx / 2);
     }
+
+    // Pixel-perfect: avoid sub-pixel scroll which can introduce faint seams between layers.
+    const z = camera.zoom || 1;
+    camera.scrollX = Math.round(camera.scrollX * z) / z;
+    camera.scrollY = Math.round(camera.scrollY * z) / z;
   };
 
   return {

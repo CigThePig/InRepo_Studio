@@ -152,6 +152,14 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   const entityRequests = buildEntitySpriteRequests(project);
   await loadAssets(phaserScene, [...tileRequests, ...entityRequests]);
 
+  // Force nearest filtering for pixel-art textures (prevents blur and edge seams when scaled).
+  for (const req of [...tileRequests, ...entityRequests]) {
+    if (!phaserScene.textures.exists(req.key)) continue;
+    const tex: any = phaserScene.textures.get(req.key);
+    tex?.setFilter?.(Phaser.Textures.FilterMode.NEAREST);
+  }
+
+
   // Sprite atlases are loaded as a single sheet image. Register per-slice frames so
   // runtime rendering can reference slices by frame name (avoids crop+scale bugs).
   registerAtlasFrames(phaserScene, project);
