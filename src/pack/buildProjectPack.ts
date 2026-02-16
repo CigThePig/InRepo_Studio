@@ -1,5 +1,7 @@
 import type { WorkspaceContent } from '@/types/workspace';
 import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
+import type { ProjectAnimation, ProjectAnimationFrame } from '@/types/animation';
+import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 export interface BuildProjectPackOptions {
   resolveAssetPathForDeploy?: (assetId: string) => string | null;
@@ -109,13 +111,133 @@ export function buildProjectPack(
 
   spriteAtlases.sort((a, b) => a.path.localeCompare(b.path));
 
+  // --- Compile animations ---
+  const compiledAnimations = compileAnimations(registryState, atlasMap, diagnostics);
+
   return {
     project: {
       ...workspace.project,
       spriteAtlases,
+      animations: compiledAnimations,
     },
     scenes: workspace.scenes,
     diagnostics,
   };
+}
+
+/**
+ * Build a lookup from (sourceAssetId + rect) -> { sliceName, parentAssetId }
+ * and a map from parentAssetId -> deployPath (textureKey).
+ */
+function compileAnimations(
+  registryState: WorkspaceContent['assetRegistry'],
+  atlasMap: Map<string, {
+    name: string;
+    parentPath: string;
+    parentGroupKey: string;
+    slices: Array<SpriteAtlasSlice & { _groupKey: string }>;
+    firstSliceSize: { width: number; height: number };
+  }>,
+  diagnostics: string[],
+): ProjectAnimation[] {
+  const animations = registryState.animations ?? [];
+  if (animations.length === 0) return [];
+
+  // A) Build slice lookup: `${sourceAssetId}:${x},${y},${w},${h}` -> { sliceName, parentAssetId, w, h }
+  const sliceLookup = new Map<string, { sliceName: string; parentAssetId: string; w: number; h: number }>();
+  for (const group of registryState.groups) {
+    for (const asset of group.assets) {
+      if (!asset.sourceAssetId || !asset.rect) continue;
+      const key = `${asset.sourceAssetId}:${asset.rect.x},${asset.rect.y},${asset.rect.w},${asset.rect.h}`;
+      sliceLookup.set(key, {
+        sliceName: asset.name,
+        parentAssetId: asset.sourceAssetId,
+        w: asset.rect.w,
+        h: asset.rect.h,
+      });
+    }
+  }
+
+  // B) Build parentAssetId -> textureKey (via atlasMap deploy paths)
+  const parentIdToTextureKey = new Map<string, string>();
+  for (const [mapKey, entry] of atlasMap.entries()) {
+    // mapKey format: `${parentAssetId}::${deployPath}`
+    const parentAssetId = mapKey.split('::')[0];
+    const textureKey = getAtlasCategoryName(entry.parentPath);
+    parentIdToTextureKey.set(parentAssetId, textureKey);
+  }
+
+  // C) Compile each animation
+  const compiled: ProjectAnimation[] = [];
+
+  for (const anim of animations) {
+    let allResolved = true;
+    const frames: ProjectAnimationFrame[] = [];
+    const frameSizes = new Set<string>();
+
+    for (let fi = 0; fi < anim.frames.length; fi++) {
+      const frameRef = anim.frames[fi];
+      const lookupKey = `${frameRef.sourceAssetId}:${frameRef.rect.x},${frameRef.rect.y},${frameRef.rect.w},${frameRef.rect.h}`;
+      const sliceInfo = sliceLookup.get(lookupKey);
+
+      if (!sliceInfo) {
+        diagnostics.push(
+          `[Animation] Unresolved frame ${fi} in animation "${anim.name}" (id: ${anim.id}) – sourceAssetId: ${frameRef.sourceAssetId}, rect: ${frameRef.rect.x},${frameRef.rect.y},${frameRef.rect.w},${frameRef.rect.h}`
+        );
+        console.warn(
+          `[BuildPack] Unresolved animation frame: animation="${anim.name}" (${anim.id}), frame index ${fi}`
+        );
+        allResolved = false;
+        break;
+      }
+
+      const textureKey = parentIdToTextureKey.get(sliceInfo.parentAssetId);
+      if (!textureKey) {
+        diagnostics.push(
+          `[Animation] Cannot resolve texture key for parent asset ${sliceInfo.parentAssetId} in animation "${anim.name}" frame ${fi}`
+        );
+        console.warn(
+          `[BuildPack] Cannot resolve texture key for animation "${anim.name}" (${anim.id}), frame ${fi}`
+        );
+        allResolved = false;
+        break;
+      }
+
+      frames.push({
+        textureKey,
+        frame: sliceInfo.sliceName,
+        offset: frameRef.offset ? { ...frameRef.offset } : undefined,
+      });
+      frameSizes.add(`${sliceInfo.w}x${sliceInfo.h}`);
+    }
+
+    if (!allResolved) continue;
+
+    const projectAnim: ProjectAnimation = {
+      id: anim.id,
+      name: anim.name,
+      fps: anim.fps,
+      loopMode: anim.loopMode,
+      pivot: { x: anim.pivot.x, y: anim.pivot.y },
+      frames,
+    };
+
+    // Set frameSize if all frames share the same dimensions
+    if (frameSizes.size === 1) {
+      const [sizeStr] = frameSizes;
+      const [w, h] = sizeStr.split('x').map(Number);
+      projectAnim.frameSize = { width: w, height: h };
+    }
+
+    compiled.push(projectAnim);
+  }
+
+  // E) Deterministic sort by name then id
+  compiled.sort((a, b) => {
+    const nameCompare = a.name.localeCompare(b.name);
+    return nameCompare !== 0 ? nameCompare : a.id.localeCompare(b.id);
+  });
+
+  return compiled;
 }
 

@@ -19,6 +19,10 @@ export interface RuntimeEnv {
   scene: Phaser.Scene;
   getPlayerSprite(): Phaser.GameObjects.Sprite | null;
   getMainCamera(): Phaser.Cameras.Scene2D.Camera;
+  /** Resolve an animation id or name to its Phaser runtime key. */
+  resolveAnimationKey?(value: string): string | null;
+  /** Get the pivot for an animation by its runtime key. */
+  getAnimationPivotByKey?(key: string): { x: number; y: number } | null;
 }
 
 let currentEnv: RuntimeEnv | null = null;

@@ -24,7 +24,18 @@ export {
   validateProjectSettings,
   validateSpriteAtlas,
   validateSpriteAtlasSlice,
+  validateProjectAnimation,
+  validateProjectAnimationFrame,
 } from './project';
+
+// Animation types
+export type {
+  ProjectAnimationLoopMode,
+  ProjectAnimationFrame,
+  ProjectAnimation,
+  Facing4,
+  ProjectAnimationSet,
+} from './animation';
 
 // Scene types
 export type {

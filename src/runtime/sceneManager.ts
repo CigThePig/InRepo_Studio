@@ -192,6 +192,8 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         scene: phaserScene,
         getPlayerSprite: () => playerSprite.active ? playerSprite : null,
         getMainCamera: () => phaserScene.cameras.main,
+        resolveAnimationKey: (value: string) => projectRuntime.resolveAnimationKey(value),
+        getAnimationPivotByKey: (key: string) => projectRuntime.getAnimationPivotByKey(key),
       });
 
       phaserScene.events.once('shutdown', () => {
