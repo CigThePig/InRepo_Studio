@@ -784,6 +784,14 @@ Micro-format (copy/paste):
   - Role: Runtime tileset registry mapping scene tile refs to Phaser runtime GIDs (atlas + packed cut tiles) with non-eligible fallback metadata.
   - Lists of truth: RuntimeTilesetRegistry
 
+- `src/runtime/tiles/texturePixelSize.ts`
+  - Role: Pure duck-typed helpers to read pixel dimensions from Phaser texture source images without DOM globals.
+  - Lists of truth: none
+
+- `src/runtime/tiles/texturePixelSize.test.ts`
+  - Role: Unit tests for texture pixel-width extraction fallback behavior.
+  - Lists of truth: none
+
 - `src/runtime/entityRegistry.ts`
   - Role: Entity type registry for runtime.
   - Lists of truth: none

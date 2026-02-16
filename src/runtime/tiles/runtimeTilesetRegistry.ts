@@ -4,6 +4,7 @@ import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ResolvedTileRef } from '@/types/scene';
 import { resolveTileGid } from '@/types/scene';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { getPixelWidthFromImageLike } from './texturePixelSize';
 
 const LOG_PREFIX = '[Runtime/TilesetRegistry]';
 const RUNTIME_CUT_TILESET_TEXTURE_KEY = '__runtime:cut-tileset';
@@ -108,6 +109,28 @@ function isAtlasTilemapEligible(
   );
 }
 
+function getAtlasSheetPixelWidth(phaserScene: Phaser.Scene, textureKey: string): number {
+  const frame = phaserScene.textures.getFrame(textureKey);
+  const texture = phaserScene.textures.get(textureKey);
+  const sourceIndex = frame?.sourceIndex ?? 0;
+
+  const candidates = [
+    getPixelWidthFromImageLike(frame?.source?.image),
+    getPixelWidthFromImageLike(texture?.getSourceImage?.()),
+    getPixelWidthFromImageLike(texture?.source?.[sourceIndex]?.image),
+    texture?.source?.[sourceIndex]?.width ?? 0,
+    frame?.source?.width ?? 0,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate > 0) {
+      return candidate;
+    }
+  }
+
+  return 0;
+}
+
 function ensureCutTilesetTexture(
   phaserScene: Phaser.Scene,
   projectRuntime: ProjectRuntime,
@@ -210,6 +233,7 @@ export function buildRuntimeTilesetRegistry(
   let nextFirstGid = 1;
 
   const atlasCategories = [...usedAtlasRefsByCategory.keys()].sort((a, b) => a.localeCompare(b));
+  let hasLoggedMissingAtlasPixelWidth = false;
 
   for (const atlasCategory of atlasCategories) {
     const atlas = (projectRuntime.project.spriteAtlases ?? []).find(
@@ -221,8 +245,22 @@ export function buildRuntimeTilesetRegistry(
     }
 
     const frame = phaserScene.textures.getFrame(textureKey);
-    const sheetWidth = frame?.source?.width ?? 0;
-    const cols = Math.max(1, Math.floor(sheetWidth / tileSize));
+    const sheetPixelWidth = getAtlasSheetPixelWidth(phaserScene, textureKey);
+    const cols = Math.max(1, Math.floor(sheetPixelWidth / tileSize));
+
+    if (sheetPixelWidth === 0 && !hasLoggedMissingAtlasPixelWidth) {
+      console.warn(
+        `${LOG_PREFIX} Unable to determine atlas sheet pixel width for ${textureKey}. Falling back may cause tile mismatch.`,
+      );
+      hasLoggedMissingAtlasPixelWidth = true;
+    }
+
+    if (frame?.source?.width && frame.source.width !== sheetPixelWidth && sheetPixelWidth > 0) {
+      console.debug(
+        `${LOG_PREFIX} Atlas pixel width differs from frame source width for ${textureKey}.`,
+        { frameSourceWidth: frame.source.width, sheetPixelWidth },
+      );
+    }
 
     let maxTileIndex = -1;
     const usages = usedAtlasRefsByCategory.get(atlasCategory) ?? [];
@@ -230,7 +268,7 @@ export function buildRuntimeTilesetRegistry(
       const slice = atlas.slices?.[usage.tileRef.index];
       if (!slice) continue;
 
-      if (!isAtlasTilemapEligible(slice.rect, sheetWidth, tileSize)) {
+      if (!isAtlasTilemapEligible(slice.rect, sheetPixelWidth, tileSize)) {
         nonTilemapUsageByKey.set(tileRefKey(usage.tileRef), {
           key: tileRefKey(usage.tileRef),
           reason: `Atlas slice "${slice.name}" in ${atlas.path} is not ${tileSize}x${tileSize} grid-aligned.`,
