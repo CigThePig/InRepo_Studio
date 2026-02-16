@@ -162,13 +162,17 @@ Local instruction files (present):
 - `sceneLoader.ts`
   - Role: load scene data for runtime use
 - `tileMapFactory.ts`
-  - Role: create Phaser tilemaps from scene data
+  - Role: create Phaser tilemaps from scene data using a unified runtime tileset registry
+- `depthBands.ts`
+  - Role: shared depth band constants for ground/props/entities/UI
+- `tiles/runtimeTilesetRegistry.ts`
+  - Role: map scene tile refs to runtime tileset GIDs (atlas + packed cut tiles) and fallback metadata
 - `entityRegistry.ts`
   - Role: manage entity type definitions
 - `entitySpawner.ts`
-  - Role: instantiate entities from scene data
+  - Role: instantiate entities from scene data with initial depth assignment
 - `sceneManager.ts`
-  - Role: scene transitions
+  - Role: scene transitions + runtime depth synchronization
 - `presets/` (planned)
   - Role: Preset definitions, registry, PresetManager engine
   - `defs/*.ts`: individual preset definition files

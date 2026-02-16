@@ -1,8 +1,17 @@
 import Phaser from 'phaser';
 import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
-import { getGidForTile, resolveTileGid } from '@/types/scene';
+import { resolveTileGid } from '@/types/scene';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import {
+  buildRuntimeTilesetRegistry,
+  type NonTilemapTileUsage,
+} from '@/runtime/tiles/runtimeTilesetRegistry';
+import {
+  DEPTH_GROUND,
+  DEPTH_GROUND_DETAIL,
+  DEPTH_PROPS,
+} from '@/runtime/depthBands';
 
 const LOG_PREFIX = '[Runtime/TileMapFactory]';
 
@@ -19,6 +28,7 @@ export interface TileMapResult {
     props: Phaser.Tilemaps.TilemapLayer | null;
     collision: Phaser.GameObjects.Graphics | null;
     triggers: Phaser.GameObjects.Graphics | null;
+    tileSpriteFallbackLayer: Phaser.GameObjects.Container | null;
   };
   destroy(): void;
 }
@@ -52,61 +62,97 @@ function createOverlay(scene: Phaser.Scene, config: OverlayConfig): Phaser.GameO
   return graphics;
 }
 
-function buildTilesets(tilemap: Phaser.Tilemaps.Tilemap, sceneRuntime: SceneRuntime, projectRuntime: ProjectRuntime): Phaser.Tilemaps.Tileset[] {
+function addTilesets(
+  tilemap: Phaser.Tilemaps.Tilemap,
+  registry: ReturnType<typeof buildRuntimeTilesetRegistry>,
+  tileSize: number,
+): Phaser.Tilemaps.Tileset[] {
   const tilesets: Phaser.Tilemaps.Tileset[] = [];
-  const { scene } = sceneRuntime;
-
-  for (const category of projectRuntime.project.tileCategories) {
-    for (const [index] of category.files.entries()) {
-      const gid = getGidForTile(scene, category.name, index);
-      if (!gid) continue;
-      const textureKey = projectRuntime.getTileTextureKey(category.name, index);
-      if (!textureKey || !tilemap.scene.textures.exists(textureKey)) continue;
-      const tileset = tilemap.addTilesetImage(textureKey, textureKey, scene.tileSize, scene.tileSize, 0, 0, gid);
-      if (tileset) tilesets.push(tileset);
+  for (const entry of registry.tilesets) {
+    const tileset = tilemap.addTilesetImage(
+      entry.key,
+      entry.textureKey,
+      tileSize,
+      tileSize,
+      0,
+      0,
+      entry.firstGid,
+    );
+    if (tileset) {
+      tilesets.push(tileset);
     }
   }
-
   return tilesets;
 }
 
-function paintLayer(layer: Phaser.Tilemaps.TilemapLayer | null, data: number[][], sceneRuntime: SceneRuntime): void {
+function paintTileLayer(
+  layer: Phaser.Tilemaps.TilemapLayer | null,
+  data: number[][],
+  sceneRuntime: SceneRuntime,
+  registry: ReturnType<typeof buildRuntimeTilesetRegistry>,
+): void {
   if (!layer) return;
-  const { scene } = sceneRuntime;
+
   for (let y = 0; y < data.length; y += 1) {
     for (let x = 0; x < data[y].length; x += 1) {
-      const gid = data[y][x];
-      if (gid <= 0) continue;
-      const resolved = resolveTileGid(scene, gid);
-      if (!resolved || resolved.category.startsWith('atlas:')) continue;
-      layer.putTileAt(gid, x, y);
+      const sourceGid = data[y][x];
+      if (sourceGid <= 0) continue;
+      const tileRef = resolveTileGid(sceneRuntime.scene, sourceGid);
+      const runtimeGid = registry.resolveGid(tileRef);
+      if (runtimeGid <= 0) continue;
+      layer.putTileAt(runtimeGid, x, y);
     }
   }
 }
 
-function paintAtlasLayer(rt: Phaser.GameObjects.RenderTexture, data: number[][], config: TileMapConfig): void {
-  const { sceneRuntime, projectRuntime, phaserScene } = config;
-  const { scene } = sceneRuntime;
+function spawnFallbackSprites(
+  phaserScene: Phaser.Scene,
+  sceneRuntime: SceneRuntime,
+  projectRuntime: ProjectRuntime,
+  usages: NonTilemapTileUsage[],
+): Phaser.GameObjects.Container | null {
+  if (usages.length === 0) return null;
 
-  for (let y = 0; y < data.length; y += 1) {
-    for (let x = 0; x < data[y].length; x += 1) {
-      const gid = data[y][x];
-      if (gid <= 0) continue;
-      const resolved = resolveTileGid(scene, gid);
-      if (!resolved || !resolved.category.startsWith('atlas:')) continue;
+  const container = phaserScene.add.container(0, 0).setDepth(DEPTH_GROUND_DETAIL);
+  const tileSize = sceneRuntime.scene.tileSize;
 
-      const atlas = (projectRuntime.project.spriteAtlases ?? []).find((item) => getAtlasCategoryName(item.path) === resolved.category);
-      const textureKey = projectRuntime.getAtlasTextureKey(resolved.category);
-      const slice = atlas?.slices?.[resolved.index];
-      if (!textureKey || !slice || !phaserScene.textures.exists(textureKey)) continue;
+  for (const usage of usages) {
+    const separatorIndex = usage.key.lastIndexOf(':');
+    const category = separatorIndex >= 0 ? usage.key.slice(0, separatorIndex) : usage.key;
+    const indexRaw = separatorIndex >= 0 ? usage.key.slice(separatorIndex + 1) : '';
+    const index = Number(indexRaw);
+    if (!category.startsWith('atlas:') || !Number.isFinite(index)) continue;
 
-      // Atlas sheets are loaded as a single image; slices are registered as frames in projectLoader.
-      const stamp = phaserScene.add.image(0, 0, textureKey, slice.name).setOrigin(0, 0).setVisible(false);
-      stamp.setDisplaySize(scene.tileSize, scene.tileSize);
-      rt.draw(stamp, x * scene.tileSize, y * scene.tileSize);
-      stamp.destroy();
+    const atlas = (projectRuntime.project.spriteAtlases ?? []).find(
+      (item) => getAtlasCategoryName(item.path) === category,
+    );
+    const slice = atlas?.slices?.[index];
+    const textureKey = projectRuntime.getAtlasTextureKey(category);
+    if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) continue;
+
+    for (const placement of usage.placements) {
+      const sprite = phaserScene.add
+        .image(
+          placement.x * tileSize + tileSize / 2,
+          placement.y * tileSize + tileSize / 2,
+          textureKey,
+          slice.name,
+        )
+        .setDisplaySize(tileSize, tileSize)
+        .setOrigin(0.5, 0.5);
+      container.add(sprite);
+    }
+
+    const isGroundPlacement = usage.placements.some((placement) => {
+      const sourceGid = sceneRuntime.scene.layers.ground[placement.y]?.[placement.x] ?? 0;
+      return sourceGid > 0;
+    });
+    if (isGroundPlacement) {
+      console.warn(`${LOG_PREFIX} Ground layer using non-tilemap atlas fallback. Seams can reappear.`, usage);
     }
   }
+
+  return container;
 }
 
 export function createTileMap(config: TileMapConfig): TileMapResult {
@@ -120,45 +166,30 @@ export function createTileMap(config: TileMapConfig): TileMapResult {
     height: scene.height,
   });
 
-  const tilesets = buildTilesets(tilemap, sceneRuntime, projectRuntime);
+  const registry = buildRuntimeTilesetRegistry(phaserScene, projectRuntime, sceneRuntime);
+  const tilesets = addTilesets(tilemap, registry, scene.tileSize);
+
   const groundLayer = tilemap.createBlankLayer('ground', tilesets) ?? null;
   const propsLayer = tilemap.createBlankLayer('props', tilesets) ?? null;
-  groundLayer?.setDepth(0);
-  propsLayer?.setDepth(1);
+  groundLayer?.setPosition(0, 0).setDepth(DEPTH_GROUND);
+  propsLayer?.setPosition(0, 0).setDepth(DEPTH_PROPS);
 
-  paintLayer(groundLayer, scene.layers.ground, sceneRuntime);
-  paintLayer(propsLayer, scene.layers.props, sceneRuntime);
+  paintTileLayer(groundLayer, scene.layers.ground, sceneRuntime, registry);
+  paintTileLayer(propsLayer, scene.layers.props, sceneRuntime, registry);
 
-  const groundAtlas = phaserScene.add.renderTexture(0, 0, scene.width * scene.tileSize, scene.height * scene.tileSize)
-    .setOrigin(0, 0)
-    .setDepth(0.5);
-  const propsAtlas = phaserScene.add.renderTexture(0, 0, scene.width * scene.tileSize, scene.height * scene.tileSize)
-    .setOrigin(0, 0)
-    .setDepth(1.5);
-
-  // RenderTextures default to linear filtering; when combined with normal TilemapLayers this can
-  // cause faint seams at edges where atlas tiles meet non-atlas tiles. Force nearest filtering.
-  const setRtNearest = (rt: Phaser.GameObjects.RenderTexture) => {
-    const tex: any = (rt as any).texture;
-    if (tex && typeof tex.setFilter === 'function') {
-      tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
-      return;
-    }
-    const key = tex?.key;
-    const runtimeTex: any = key && phaserScene.textures.exists(key) ? phaserScene.textures.get(key) : null;
-    runtimeTex?.setFilter?.(Phaser.Textures.FilterMode.NEAREST);
-  };
-  setRtNearest(groundAtlas);
-  setRtNearest(propsAtlas);
-  paintAtlasLayer(groundAtlas, scene.layers.ground, config);
-  paintAtlasLayer(propsAtlas, scene.layers.props, config);
+  const fallbackLayer = spawnFallbackSprites(
+    phaserScene,
+    sceneRuntime,
+    projectRuntime,
+    registry.nonTilemapTileUsages,
+  );
 
   const collisionOverlay = createOverlay(phaserScene, {
     layer: scene.layers.collision,
     tileSize: scene.tileSize,
     color: 0xff3b3b,
     alpha: 0.35,
-    depth: 2,
+    depth: DEPTH_PROPS + 1,
   });
 
   const triggerOverlay = createOverlay(phaserScene, {
@@ -166,21 +197,27 @@ export function createTileMap(config: TileMapConfig): TileMapResult {
     tileSize: scene.tileSize,
     color: 0x2ecc71,
     alpha: 0.35,
-    depth: 3,
+    depth: DEPTH_PROPS + 2,
   });
 
-  console.log(`${LOG_PREFIX} created tile map for scene ${scene.id}`);
+  console.log(`${LOG_PREFIX} created tile map for scene ${scene.id}`, registry.debugInfo);
 
   return {
     tilemap,
-    layers: { ground: groundLayer, props: propsLayer, collision: collisionOverlay, triggers: triggerOverlay },
+    layers: {
+      ground: groundLayer,
+      props: propsLayer,
+      collision: collisionOverlay,
+      triggers: triggerOverlay,
+      tileSpriteFallbackLayer: fallbackLayer,
+    },
     destroy() {
       groundLayer?.destroy();
       propsLayer?.destroy();
-      groundAtlas.destroy();
-      propsAtlas.destroy();
+      fallbackLayer?.destroy(true);
       collisionOverlay?.destroy();
       triggerOverlay?.destroy();
+      registry.destroy();
       tilemap.destroy();
     },
   };

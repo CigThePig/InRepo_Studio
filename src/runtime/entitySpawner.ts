@@ -3,6 +3,7 @@ import type { EntityInstance } from '@/types';
 import type { EntityRegistry } from '@/runtime/entityRegistry';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { DEPTH_ENTITIES_BASE } from '@/runtime/depthBands';
 
 const LOG_PREFIX = '[Runtime/EntitySpawner]';
 const PLACEHOLDER_KEY = 'entity:placeholder';
@@ -47,7 +48,7 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
     const textureKey = projectRuntime.getAtlasTextureKey(spriteCategory);
     if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return null;
     // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.
-    const image = phaserScene.add.image(entity.x, entity.y, textureKey, slice.name).setOrigin(0.5, 0.5);
+    const image = phaserScene.add.image(entity.x, entity.y, textureKey, slice.name).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
     return {
       instance: entity,
       gameObject: image,
@@ -59,7 +60,7 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
 
   const textureKey = projectRuntime.getTileTextureKey(spriteCategory, spriteIndex);
   if (!textureKey || !phaserScene.textures.exists(textureKey)) return null;
-  const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5);
+  const image = phaserScene.add.image(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
   return {
     instance: entity,
     gameObject: image,
@@ -96,6 +97,7 @@ export function spawnEntity(
     spriteKey && phaserScene.textures.exists(spriteKey) ? spriteKey : fallbackKey;
 
   const sprite = phaserScene.add.sprite(entity.x, entity.y, textureKey);
+  sprite.setDepth(DEPTH_ENTITIES_BASE + entity.y);
   sprite.setName(entity.id);
 
   for (const [key, value] of Object.entries(entity.properties)) {

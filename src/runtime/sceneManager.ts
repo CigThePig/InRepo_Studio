@@ -8,6 +8,7 @@ import { spawnEntities, type SpawnedEntity } from '@/runtime/entitySpawner';
 import { setRuntimeEnv, clearRuntimeEnv } from '@/runtime/presets/runtimeEnv';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import Phaser from 'phaser';
+import { DEPTH_ENTITIES_BASE, DEPTH_PROPS } from '@/runtime/depthBands';
 
 const LOG_PREFIX = '[Runtime/SceneManager]';
 
@@ -36,6 +37,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
   let currentPropSprites: Phaser.GameObjects.Image[] = [];
   let currentPlayerSprite: Phaser.GameObjects.Sprite | null = null;
   let fallbackPlayerTextureKey: string | null = null;
+  let depthSyncHandler: (() => void) | null = null;
 
   const ensureFallbackPlayerSprite = (): Phaser.GameObjects.Sprite => {
     if (!fallbackPlayerTextureKey || !phaserScene.textures.exists(fallbackPlayerTextureKey)) {
@@ -50,6 +52,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     }
 
     const sprite = phaserScene.add.sprite(0, 0, fallbackPlayerTextureKey);
+    sprite.setDepth(DEPTH_ENTITIES_BASE);
     sprite.setName('__inrepo_placeholder_player');
     return sprite;
   };
@@ -74,6 +77,22 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     return null;
   };
 
+  const syncEntityDepth = (): void => {
+    for (const entity of currentEntities) {
+      const gameObject = entity.gameObject as Phaser.GameObjects.GameObject & {
+        y?: number;
+        setDepth?: (depth: number) => unknown;
+      };
+      if (typeof gameObject.setDepth !== 'function') continue;
+      const y = typeof gameObject.y === 'number' ? gameObject.y : 0;
+      gameObject.setDepth(DEPTH_ENTITIES_BASE + y);
+    }
+
+    if (currentPlayerSprite?.active) {
+      currentPlayerSprite.setDepth(DEPTH_ENTITIES_BASE + currentPlayerSprite.y);
+    }
+  };
+
   const cleanup = (): void => {
     for (const entity of currentEntities) {
       entity.destroy();
@@ -87,6 +106,11 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
 
     for (const sprite of currentPropSprites) sprite.destroy();
     currentPropSprites = [];
+
+    if (depthSyncHandler) {
+      phaserScene.events.off('postupdate', depthSyncHandler);
+      depthSyncHandler = null;
+    }
 
     currentSceneRuntime = null;
     if (currentPlayerSprite && currentPlayerSprite.active) {
@@ -110,13 +134,13 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         const textureKey = projectRuntime.getAtlasTextureKey(propSprite.sprite.category);
         if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return [];
         // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.
-        const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey, slice.name).setOrigin(0, 0).setDepth(2);
+        const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey, slice.name).setOrigin(0, 0).setDepth(DEPTH_PROPS + propSprite.y);
         return [image];
       }
 
       const textureKey = projectRuntime.getTileTextureKey(propSprite.sprite.category, propSprite.sprite.index);
       if (!textureKey || !phaserScene.textures.exists(textureKey)) return [];
-      const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey).setOrigin(0, 0).setDepth(2);
+      const image = phaserScene.add.image(propSprite.x, propSprite.y, textureKey).setOrigin(0, 0).setDepth(DEPTH_PROPS + propSprite.y);
       return [image];
     });
   };
@@ -160,6 +184,10 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
 
       const playerSprite = resolvePlayerSprite() ?? ensureFallbackPlayerSprite();
       currentPlayerSprite = playerSprite;
+      syncEntityDepth();
+      depthSyncHandler = () => syncEntityDepth();
+      phaserScene.events.on('postupdate', depthSyncHandler);
+
       setRuntimeEnv({
         scene: phaserScene,
         getPlayerSprite: () => playerSprite.active ? playerSprite : null,
