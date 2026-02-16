@@ -132,9 +132,7 @@ function registerAtlasFrames(phaserScene: Phaser.Scene, project: Project): void 
     for (const slice of atlas.slices ?? []) {
       // Frame names only need to be unique within this texture.
       // If already registered, skip.
-      const hasFrame = (texture as any).has
-        ? (texture as any).has(slice.name)
-        : Boolean((texture as any).frames?.[slice.name]);
+      const hasFrame = texture.has(slice.name);
       if (hasFrame) continue;
 
       texture.add(slice.name, 0, slice.rect.x, slice.rect.y, slice.rect.w, slice.rect.h);
@@ -155,8 +153,8 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   // Force nearest filtering for pixel-art textures (prevents blur and edge seams when scaled).
   for (const req of [...tileRequests, ...entityRequests]) {
     if (!phaserScene.textures.exists(req.key)) continue;
-    const tex: any = phaserScene.textures.get(req.key);
-    tex?.setFilter?.(Phaser.Textures.FilterMode.NEAREST);
+    const texture = phaserScene.textures.get(req.key);
+    texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
   }
 
 

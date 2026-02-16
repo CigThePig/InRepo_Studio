@@ -172,7 +172,6 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
     antialias: false,
     antialiasGL: false,
     roundPixels: true,
-    resolution: window.devicePixelRatio || 1,
     scene: [RuntimeScene],
     scale: {
       mode: Phaser.Scale.RESIZE,
