@@ -765,19 +765,27 @@ Micro-format (copy/paste):
   - Lists of truth: MoveVectorState
 
 - `src/runtime/tileMapFactory.ts`
-  - Role: Create Phaser tilemaps + atlas render textures + overlays from scene data.
+  - Role: Build runtime tilemap layers from unified registry (atlas + packed cut tiles), fallback sprite layer, and debug overlays.
   - Lists of truth: none
+
+- `src/runtime/depthBands.ts`
+  - Role: Shared runtime depth band constants for tile layers, props, entities, and UI.
+  - Lists of truth: RuntimeDepthBands
+
+- `src/runtime/tiles/runtimeTilesetRegistry.ts`
+  - Role: Runtime tileset registry mapping scene tile refs to Phaser runtime GIDs (atlas + packed cut tiles) with non-eligible fallback metadata.
+  - Lists of truth: RuntimeTilesetRegistry
 
 - `src/runtime/entityRegistry.ts`
   - Role: Entity type registry for runtime.
   - Lists of truth: none
 
 - `src/runtime/entitySpawner.ts`
-  - Role: Instantiate entities from scene data.
+  - Role: Instantiate entities from scene data and assign runtime depth ordering.
   - Lists of truth: none
 
 - `src/runtime/sceneManager.ts`
-  - Role: Scene transitions + runtime environment binding + prop sprite spawning.
+  - Role: Scene transitions + runtime environment binding + prop sprite spawning + depth sync.
   - Lists of truth: none
 
 ### Runtime Presets (Track 34)
