@@ -88,6 +88,17 @@ function buildAssetDeployPath(
   return `${basePath}/${groupSlug}/${fileName}`;
 }
 
+function findParentInGroups(
+  groups: AssetRegistryState['groups'],
+  parentId: string
+): { asset: AssetRegistryState['groups'][number]['assets'][number]; groupIndex: number } | null {
+  for (let gi = 0; gi < groups.length; gi++) {
+    const asset = groups[gi].assets.find((a) => a.id === parentId);
+    if (asset) return { asset, groupIndex: gi };
+  }
+  return null;
+}
+
 export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetector {
   const { getProject, getScenes, getShaStore, getAssetRegistryState } = config;
 
@@ -145,47 +156,105 @@ export function createChangeDetector(config: ChangeDetectorConfig): ChangeDetect
           }
         }
 
-        // Build spriteAtlases from slice assets that reference a parent.
+        // Build spriteAtlases from ALL slice assets (local + repo) that
+        // reference a parent. This preserves per-slice category overrides
+        // so that after deploy + reload, slices rehydrate into the correct
+        // Asset Library category.
         const atlasMap = new Map<string, {
           name: string;
           parentPath: string;
-          slices: SpriteAtlasSlice[];
+          parentGroupKey: string;
+          slices: Array<SpriteAtlasSlice & { _groupKey: string }>;
           firstSliceSize: { width: number; height: number };
         }>();
 
+        // Build a lookup: assetId → group for fast parent/slice group resolution
+        const assetGroupLookup = new Map<string, { type: AssetGroupType; slug: string }>();
         for (const group of registryState.groups) {
           for (const asset of group.assets) {
-            if (asset.source !== 'local') continue;
+            assetGroupLookup.set(asset.id, { type: group.type, slug: group.slug });
+          }
+        }
+
+        for (const group of registryState.groups) {
+          for (const asset of group.assets) {
             if (!asset.sourceAssetId || !asset.rect) continue;
 
-            const parentPath = parentDeployPaths.get(asset.sourceAssetId);
+            // Resolve parent path:
+            // - local parent: use computed deploy path, strip "game/" prefix
+            // - repo parent: dataUrl is already repo-relative
+            let parentPath: string | null = null;
+            if (parentDeployPaths.has(asset.sourceAssetId)) {
+              parentPath = parentDeployPaths.get(asset.sourceAssetId)!.replace(/^game\//, '');
+            } else {
+              // Find the parent asset to get its dataUrl (repo asset path)
+              const parentInfo = findParentInGroups(registryState.groups, asset.sourceAssetId);
+              if (parentInfo) {
+                parentPath = parentInfo.asset.dataUrl;
+              }
+            }
             if (!parentPath) continue;
 
             if (!atlasMap.has(asset.sourceAssetId)) {
-              const parentAsset = group.assets.find((a) => a.id === asset.sourceAssetId);
+              const parentInfo = findParentInGroups(registryState.groups, asset.sourceAssetId);
+              const parentGroup = assetGroupLookup.get(asset.sourceAssetId);
+              const parentGroupKey = parentGroup
+                ? `${parentGroup.type}:${parentGroup.slug}`
+                : `${group.type}:${group.slug}`;
               atlasMap.set(asset.sourceAssetId, {
-                name: parentAsset?.name ?? asset.sourceAssetId,
-                parentPath: parentPath.replace(/^game\//, ''),
+                name: parentInfo?.asset.name ?? asset.sourceAssetId,
+                parentPath,
+                parentGroupKey,
                 slices: [],
                 firstSliceSize: { width: asset.rect.w, height: asset.rect.h },
               });
             }
 
+            const sliceGroupKey = `${group.type}:${group.slug}`;
             atlasMap.get(asset.sourceAssetId)!.slices.push({
               name: asset.name,
               rect: { x: asset.rect.x, y: asset.rect.y, w: asset.rect.w, h: asset.rect.h },
+              _groupKey: sliceGroupKey,
             });
           }
         }
 
         for (const [, atlas] of atlasMap) {
-          spriteAtlases.push({
+          // Sort slices for stable output across runs
+          atlas.slices.sort((a, b) =>
+            a.rect.y - b.rect.y
+            || a.rect.x - b.rect.x
+            || a.rect.h - b.rect.h
+            || a.rect.w - b.rect.w
+            || a.name.localeCompare(b.name)
+          );
+
+          const defaultGroup = atlas.parentGroupKey;
+          const outputSlices: SpriteAtlasSlice[] = atlas.slices.map((s) => {
+            const slice: SpriteAtlasSlice = {
+              name: s.name,
+              rect: s.rect,
+            };
+            // Only set per-slice group override when it differs from atlas default
+            if (s._groupKey !== defaultGroup) {
+              slice.group = s._groupKey;
+            }
+            return slice;
+          });
+
+          const spriteAtlas: SpriteAtlas = {
             name: atlas.name,
             path: atlas.parentPath,
             sliceSize: atlas.firstSliceSize,
-            slices: atlas.slices,
-          });
+            slices: outputSlices,
+            defaultGroup,
+          };
+
+          spriteAtlases.push(spriteAtlas);
         }
+
+        // Sort atlases by path for stable JSON output
+        spriteAtlases.sort((a, b) => a.path.localeCompare(b.path));
       }
 
       // --- Phase 2: Detect project.json changes ---

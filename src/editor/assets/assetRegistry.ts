@@ -104,6 +104,12 @@ export interface AssetRegistry {
   getGroups(): AssetGroup[];
   getGroupsByType(type: AssetGroupType): AssetGroup[];
   createGroup(type: AssetGroupType, name: string): AssetGroup;
+  /**
+   * Ensure a group with the exact slug exists. Creates it if missing.
+   * Used by rehydrate to materialise groups referenced by slice category overrides
+   * that may not correspond to any repo folder.
+   */
+  ensureGroup(type: AssetGroupType, slug: string, name?: string): AssetGroup;
   deleteGroup(type: AssetGroupType, slug: string): void;
   addAssets(options: {
     groupType: AssetGroupType;
@@ -116,6 +122,16 @@ export interface AssetRegistry {
     groupSlug: string;
     fromIndex: number;
     toIndex: number;
+  }): void;
+  /**
+   * Move an asset from its current group to a different group (possibly a
+   * different category type). Creates the destination group if it doesn't exist.
+   */
+  moveAsset(options: {
+    assetId: string;
+    toGroupType: AssetGroupType;
+    toGroupSlug: string;
+    toIndex?: number;
   }): void;
   removeAsset(assetId: string): void;
   getAsset(assetId: string): AssetEntry | null;
@@ -342,6 +358,102 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
 
     updateGroups([...state.groups, group]);
     return group;
+  }
+
+  function ensureGroup(type: AssetGroupType, slug: string, name?: string): AssetGroup {
+    const existing = state.groups.find(
+      (group) => group.type === type && group.slug === slug
+    );
+    if (existing) return cloneGroup(existing);
+
+    const displayName = name ?? normalizeGroupName(slug);
+    const group: AssetGroup = {
+      type,
+      name: displayName,
+      slug,
+      assets: [],
+    };
+    updateGroups([...state.groups, group]);
+    return cloneGroup(group);
+  }
+
+  function moveAsset(options: {
+    assetId: string;
+    toGroupType: AssetGroupType;
+    toGroupSlug: string;
+    toIndex?: number;
+  }): void {
+    const { assetId, toGroupType, toGroupSlug } = options;
+
+    // Find the asset and its current group
+    let asset: AssetEntry | null = null;
+    let sourceGroupIndex = -1;
+    let sourceAssetIndex = -1;
+
+    for (let gi = 0; gi < state.groups.length; gi++) {
+      const group = state.groups[gi];
+      const ai = group.assets.findIndex((a) => a.id === assetId);
+      if (ai >= 0) {
+        asset = group.assets[ai];
+        sourceGroupIndex = gi;
+        sourceAssetIndex = ai;
+        break;
+      }
+    }
+
+    if (!asset || sourceGroupIndex < 0) return;
+
+    // Ensure destination group exists
+    let destGroupIndex = state.groups.findIndex(
+      (g) => g.type === toGroupType && g.slug === toGroupSlug
+    );
+    const groups = state.groups.map((g) => cloneGroup(g));
+
+    if (destGroupIndex < 0) {
+      const newGroup: AssetGroup = {
+        type: toGroupType,
+        name: normalizeGroupName(toGroupSlug),
+        slug: toGroupSlug,
+        assets: [],
+      };
+      groups.push(newGroup);
+      destGroupIndex = groups.length - 1;
+    }
+
+    // Update asset type to match destination group
+    const typeMap: Record<AssetGroupType, AssetEntryType> = {
+      tilesets: 'tile',
+      props: 'sprite',
+      entities: 'entity',
+    };
+    const movedAsset: AssetEntry = {
+      ...asset,
+      type: typeMap[toGroupType],
+    };
+
+    // Remove from source group
+    // Recalculate sourceGroupIndex in the cloned array (same position)
+    groups[sourceGroupIndex] = {
+      ...groups[sourceGroupIndex],
+      assets: groups[sourceGroupIndex].assets.filter((_, i) => i !== sourceAssetIndex),
+    };
+
+    // Insert into destination group
+    const destAssets = [...groups[destGroupIndex].assets];
+    const insertIndex = options.toIndex !== undefined
+      ? Math.min(Math.max(0, options.toIndex), destAssets.length)
+      : destAssets.length;
+    destAssets.splice(insertIndex, 0, movedAsset);
+    groups[destGroupIndex] = {
+      ...groups[destGroupIndex],
+      assets: destAssets,
+    };
+
+    emit({
+      ...state,
+      groups,
+      selectedAssetId: state.selectedAssetId,
+    });
   }
 
   function deleteGroup(type: AssetGroupType, slug: string): void {
@@ -735,10 +847,12 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     getGroupsByType: (type) =>
       state.groups.filter((group) => group.type === type).map((group) => cloneGroup(group)),
     createGroup,
+    ensureGroup,
     deleteGroup,
     addAssets,
     renameAsset,
     reorderAsset,
+    moveAsset,
     removeAsset,
     getAsset,
     getSelectedAsset: () => (state.selectedAssetId ? getAsset(state.selectedAssetId) : null),

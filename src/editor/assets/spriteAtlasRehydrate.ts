@@ -1,6 +1,7 @@
 import type { Project } from '@/types';
 import type { AssetEntry, AssetEntryType, AssetRegistry } from './assetRegistry';
 import type { AssetGroupType } from './assetGroup';
+import { makeGroupKey, parseGroupKey } from './groupKey';
 
 const LOG_PREFIX = '[Atlas/Rehydrate]';
 
@@ -87,16 +88,24 @@ export function rehydrateSpriteAtlasesIntoAssetRegistry(options: {
       continue;
     }
 
-    let parent = findParentAsset(assetRegistry, parsed.normalizedPath);
-    const assetType = resolveAssetType(parsed.groupType);
+    // Storage group: where the sheet file lives (derived from atlas.path)
+    const storageGroupKey = makeGroupKey(parsed.groupType, parsed.groupSlug);
 
+    // Default group for slices: atlas.defaultGroup if set, otherwise the storage group
+    const defaultGroupKey = atlas.defaultGroup ?? storageGroupKey;
+
+    let parent = findParentAsset(assetRegistry, parsed.normalizedPath);
+
+    // Parent sheet always goes into the storage group (matching its file path)
     if (!parent) {
+      const storageType = resolveAssetType(parsed.groupType);
+      assetRegistry.ensureGroup(parsed.groupType, parsed.groupSlug);
       const created = assetRegistry.addAssets({
         groupType: parsed.groupType,
         groupName: parsed.groupSlug,
         assets: [{
           name: atlas.name || parsed.fileName.replace(/\.[^/.]+$/, ''),
-          type: assetType,
+          type: storageType,
           source: 'repo',
           dataUrl: parsed.normalizedPath,
           width: 0,
@@ -129,22 +138,44 @@ export function rehydrateSpriteAtlasesIntoAssetRegistry(options: {
       continue;
     }
 
-    const createdSlices = assetRegistry.addAssets({
-      groupType: parsed.groupType,
-      groupName: parsed.groupSlug,
-      assets: missingSlices.map((slice) => ({
-        name: slice.name,
-        type: assetType,
-        source: 'repo',
-        dataUrl: parent.dataUrl,
-        sourceAssetId: parent.id,
-        rect: { ...slice.rect },
-        width: parent.width ?? 0,
-        height: parent.height ?? 0,
-      })),
-    });
+    // Group slices by their target group key so we can batch addAssets calls
+    const slicesByGroup = new Map<string, typeof missingSlices>();
+    for (const slice of missingSlices) {
+      const sliceGroupKey = slice.group ?? defaultGroupKey;
+      if (!slicesByGroup.has(sliceGroupKey)) {
+        slicesByGroup.set(sliceGroupKey, []);
+      }
+      slicesByGroup.get(sliceGroupKey)!.push(slice);
+    }
 
-    addedSlices += createdSlices.length;
+    for (const [gKey, slicesForGroup] of slicesByGroup) {
+      const parsedKey = parseGroupKey(gKey);
+      // Fall back to default group if key is invalid
+      const targetType = parsedKey?.type ?? parsed.groupType;
+      const targetSlug = parsedKey?.slug ?? parsed.groupSlug;
+      const assetType = resolveAssetType(targetType);
+
+      // Ensure the target group exists (critical for metadata-only groups
+      // that don't correspond to any repo folder)
+      assetRegistry.ensureGroup(targetType, targetSlug);
+
+      const createdSlices = assetRegistry.addAssets({
+        groupType: targetType,
+        groupName: targetSlug,
+        assets: slicesForGroup.map((slice) => ({
+          name: slice.name,
+          type: assetType,
+          source: 'repo',
+          dataUrl: parent.dataUrl,
+          sourceAssetId: parent.id,
+          rect: { ...slice.rect },
+          width: parent.width ?? 0,
+          height: parent.height ?? 0,
+        })),
+      });
+
+      addedSlices += createdSlices.length;
+    }
   }
 
   const selectedStillExists = previousSelectedAssetId
