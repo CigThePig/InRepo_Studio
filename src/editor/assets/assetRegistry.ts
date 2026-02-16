@@ -407,7 +407,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     let destGroupIndex = state.groups.findIndex(
       (g) => g.type === toGroupType && g.slug === toGroupSlug
     );
-    let groups = state.groups.map((g) => cloneGroup(g));
+    const groups = state.groups.map((g) => cloneGroup(g));
 
     if (destGroupIndex < 0) {
       const newGroup: AssetGroup = {
