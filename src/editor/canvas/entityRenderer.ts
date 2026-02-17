@@ -18,6 +18,7 @@ import type { EntityInstance, EntityType } from '@/types';
 import { worldToScreen, type ViewportState } from './viewport';
 import { resolveAssetUrl } from '@/shared/paths';
 import type { AssetRegistry, AnimationFrameRef } from '@/editor/assets/assetRegistry';
+import type { AnimationClock } from './animationClock';
 
 const LOG_PREFIX = '[EntityRenderer]';
 
@@ -86,6 +87,7 @@ function createSpriteCache(config: EntityRendererConfig): SpriteCache {
 export interface EntityRenderer {
   setEntityTypes(types: EntityType[]): void;
   setAssetRegistry(assetRegistry: AssetRegistry | null): void;
+  setAnimationClock(animationClock: AnimationClock | null): void;
   setPreview(preview: EntityPreview | null): void;
   setHighlightId(id: string | null): void;
   setSelectedIds(ids: string[]): void;
@@ -102,6 +104,7 @@ export interface EntityRenderer {
 export function createEntityRenderer(config: EntityRendererConfig): EntityRenderer {
   let entityTypes: EntityType[] = [];
   let assetRegistry: AssetRegistry | null = null;
+  let animationClock: AnimationClock | null = null;
   let preview: EntityPreview | null = null;
   let highlightId: string | null = null;
   let selectedIds = new Set<string>();
@@ -236,6 +239,12 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
         const dims = rectToTileDims(animationFrame.frame.rect, tileSize);
         const drawW = dims.tw * baseTileScreen;
         const drawH = dims.th * baseTileScreen;
+        const offset = animationFrame.frame.offset;
+        const offsetX = (offset?.x ?? 0) * viewport.zoom;
+        const offsetY = (offset?.y ?? 0) * viewport.zoom;
+        const pivot = animationFrame.pivot;
+        const drawX = screenPos.x - drawW * pivot.x + offsetX;
+        const drawY = screenPos.y - drawH * pivot.y + offsetY;
 
         if (!isCulledRect(screenPos.x, screenPos.y, drawW, drawH, canvasWidth, canvasHeight)) {
           ctx.save();
@@ -246,8 +255,8 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
             animationFrame.frame.rect.y,
             animationFrame.frame.rect.w,
             animationFrame.frame.rect.h,
-            screenPos.x - drawW / 2,
-            screenPos.y - drawH / 2,
+            drawX,
+            drawY,
             drawW,
             drawH
           );
@@ -327,24 +336,29 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     }
   }
 
-  function getAnimationFrame(entity: EntityInstance): { source: string; frame: AnimationFrameRef } | null {
+  function getAnimationFrame(
+    entity: EntityInstance
+  ): { source: string; frame: AnimationFrameRef; pivot: { x: number; y: number } } | null {
     const animationId = entity.properties?.animationId;
     if (typeof animationId !== 'string' || !animationId.trim() || !assetRegistry) {
       return null;
     }
 
-    const animation = assetRegistry.getAnimation(animationId);
-    const firstFrame = animation?.frames?.[0];
-    if (!firstFrame || firstFrame.rect.w <= 0 || firstFrame.rect.h <= 0) {
+    const frameSnapshot = animationClock?.getCurrentFrameSnapshot(animationId);
+    const fallbackAnimation = frameSnapshot ? null : assetRegistry.getAnimation(animationId);
+    const frame = frameSnapshot?.frame ?? fallbackAnimation?.frames?.[0] ?? null;
+    const pivot = frameSnapshot?.pivot ?? fallbackAnimation?.pivot ?? { x: 0.5, y: 0.5 };
+
+    if (!frame || frame.rect.w <= 0 || frame.rect.h <= 0) {
       return null;
     }
 
-    const sourceAsset = assetRegistry.getAsset(firstFrame.sourceAssetId);
+    const sourceAsset = assetRegistry.getAsset(frame.sourceAssetId);
     if (!sourceAsset?.dataUrl) {
       return null;
     }
 
-    return { source: sourceAsset.dataUrl, frame: firstFrame };
+    return { source: sourceAsset.dataUrl, frame, pivot };
   }
 
   return {
@@ -353,6 +367,9 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
     },
     setAssetRegistry(nextRegistry: AssetRegistry | null): void {
       assetRegistry = nextRegistry;
+    },
+    setAnimationClock(nextAnimationClock: AnimationClock | null): void {
+      animationClock = nextAnimationClock;
     },
     setPreview(nextPreview: EntityPreview | null): void {
       preview = nextPreview;
