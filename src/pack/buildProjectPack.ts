@@ -49,15 +49,21 @@ function stableMergeAtlasSlices(
     byNameAndRect.set(`${slice.name}::${key}`, index);
   });
 
+  const usedTileIds = new Set<number>();
   let maxTileId = -1;
   for (const slice of out) {
     if (Number.isFinite(slice.tileId) && Number.isInteger(slice.tileId) && (slice.tileId as number) >= 0) {
-      maxTileId = Math.max(maxTileId, slice.tileId as number);
+      const normalizedTileId = slice.tileId as number;
+      usedTileIds.add(normalizedTileId);
+      maxTileId = Math.max(maxTileId, normalizedTileId);
     }
   }
 
   const nextTileId = (): number => {
-    maxTileId += 1;
+    do {
+      maxTileId += 1;
+    } while (usedTileIds.has(maxTileId));
+    usedTileIds.add(maxTileId);
     return maxTileId;
   };
 
@@ -71,7 +77,12 @@ function stableMergeAtlasSlices(
       const existingSlice = out[index];
       out[index] = {
         ...generated,
-        tileId: Number.isFinite(existingSlice.tileId) ? existingSlice.tileId : index,
+        tileId:
+          Number.isFinite(existingSlice.tileId)
+          && Number.isInteger(existingSlice.tileId)
+          && (existingSlice.tileId as number) >= 0
+            ? existingSlice.tileId
+            : nextTileId(),
         rect: { ...generated.rect },
       };
       if (stats) stats.replaced += 1;

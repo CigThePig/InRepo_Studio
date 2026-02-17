@@ -192,7 +192,7 @@ function registerProjectAnimations(
     phaserScene.anims.create({
       key,
       frames,
-      frameRate: hasDurationOverrides ? undefined : anim.fps,
+      frameRate: anim.fps,
       repeat: anim.loopMode === 'loop' ? -1 : 0,
       yoyo: anim.loopMode === 'pingpong',
     });

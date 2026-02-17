@@ -5,6 +5,7 @@ import type { AssetEntryInput, AssetRegistry } from '@/editor/assets';
 import type { EditorState } from '@/storage/hot';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import type { HistoryManager } from '@/editor/history';
+import type { Scene } from '@/types';
 import { createAnimationTab, type AnimationTabController } from './animationTab';
 import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from '@/editor/presets/presetConfigStore';
@@ -18,6 +19,7 @@ export interface LeftBerryConfig {
   assetLibraryEnabled?: boolean;
   assetUploadEnabled?: boolean;
   getEditorState?: () => EditorState | null;
+  getCurrentScene?: () => Scene | null;
   entityManager?: EntityManager;
   history?: HistoryManager;
   presetRegistry?: PresetRegistry;
@@ -476,6 +478,8 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
         container: assetsContainer,
         assetRegistry,
         uploadEnabled: assetUploadEnabled,
+        getCurrentScene: config.getCurrentScene,
+        entityManager,
         onOpenAnimation: (id) => {
           setActiveTab('animation');
           animationTabController?.openAnimation(id);

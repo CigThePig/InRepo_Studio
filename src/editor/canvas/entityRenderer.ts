@@ -246,7 +246,9 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
         const drawX = screenPos.x - drawW * pivot.x + offsetX;
         const drawY = screenPos.y - drawH * pivot.y + offsetY;
 
-        if (!isCulledRect(screenPos.x, screenPos.y, drawW, drawH, canvasWidth, canvasHeight)) {
+        const drawCenterX = drawX + drawW / 2;
+        const drawCenterY = drawY + drawH / 2;
+        if (!isCulledRect(drawCenterX, drawCenterY, drawW, drawH, canvasWidth, canvasHeight)) {
           ctx.save();
           ctx.globalAlpha = alpha;
           ctx.drawImage(
@@ -263,7 +265,7 @@ export function createEntityRenderer(config: EntityRendererConfig): EntityRender
           ctx.restore();
 
           if (highlight) {
-            drawHighlightRect(ctx, screenPos.x, screenPos.y, drawW, drawH, viewport.zoom);
+            drawHighlightRect(ctx, drawCenterX, drawCenterY, drawW, drawH, viewport.zoom);
           }
         }
         return;

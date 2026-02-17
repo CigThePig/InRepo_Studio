@@ -1784,6 +1784,7 @@ async function initPanels(): Promise<void> {
         assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
         assetUploadEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_UPLOAD),
         getEditorState: () => editorState,
+        getCurrentScene: () => currentScene,
         entityManager: entityManager ?? undefined,
         history: historyManager ?? undefined,
         presetRegistry,
