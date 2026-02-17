@@ -1,4 +1,5 @@
 import type { PresetDefinition } from '../../../types/preset';
+import type { Facing4 } from '@/types';
 import type {
   PresetFactory,
   PresetInstance,
@@ -31,6 +32,22 @@ export const definition: PresetDefinition = {
       description: 'Animation key to play when moving.',
       type: 'string',
       default: 'walk',
+      group: 'Basics',
+    },
+    {
+      id: 'idleSet',
+      label: 'Idle Animation Set',
+      description: 'Directional animation set used when standing still.',
+      type: 'string',
+      default: '',
+      group: 'Basics',
+    },
+    {
+      id: 'walkSet',
+      label: 'Walk Animation Set',
+      description: 'Directional animation set used when moving.',
+      type: 'string',
+      default: '',
       group: 'Basics',
     },
     {
@@ -134,10 +151,25 @@ export const factory: PresetFactory = (def): PresetInstance => {
   // Knob values (populated via applyConfig)
   let idleAnimKey = 'idle';
   let walkAnimKey = 'walk';
+  let idleSetId = '';
+  let walkSetId = '';
+  let lastFacing: Facing4 = 'down';
 
   function resolveKey(value: string): string {
     const env = getRuntimeEnv();
     return env?.resolveAnimationKey?.(value) ?? value;
+  }
+
+  function getFacing(dx: number, dy: number): Facing4 {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? 'right' : 'left';
+    }
+    return dy > 0 ? 'down' : 'up';
+  }
+
+  function resolveDirectionalKey(setIdOrName: string, facing: Facing4): string | null {
+    const env = getRuntimeEnv();
+    return env?.resolveAnimationSetKey?.(setIdOrName, facing) ?? null;
   }
 
   function playOnSprite(key: string, ignoreIfPlaying = false): void {
@@ -161,6 +193,8 @@ export const factory: PresetFactory = (def): PresetInstance => {
     applyConfig(config: Record<string, unknown>) {
       if (typeof config.idleAnim === 'string') idleAnimKey = config.idleAnim;
       if (typeof config.walkAnim === 'string') walkAnimKey = config.walkAnim;
+      if (typeof config.idleSet === 'string') idleSetId = config.idleSet;
+      if (typeof config.walkSet === 'string') walkSetId = config.walkSet;
     },
 
     registerApi(registrar: PresetApiRegistrar) {
@@ -203,8 +237,14 @@ export const factory: PresetFactory = (def): PresetInstance => {
       const dist = Math.sqrt(dx * dx + dy * dy);
       const moved = dist > MOVE_EPSILON;
 
-      const desiredRaw = moved ? walkAnimKey : idleAnimKey;
-      const desired = resolveKey(desiredRaw);
+      if (moved) {
+        lastFacing = getFacing(dx, dy);
+      }
+
+      const setId = moved ? walkSetId : idleSetId;
+      const desired = setId
+        ? (resolveDirectionalKey(setId, lastFacing) ?? resolveKey(moved ? walkAnimKey : idleAnimKey))
+        : resolveKey(moved ? walkAnimKey : idleAnimKey);
 
       if (desired !== currentAnimKey) {
         playOnSprite(desired, false);

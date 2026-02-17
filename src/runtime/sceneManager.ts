@@ -194,6 +194,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         getPlayerSprite: () => playerSprite.active ? playerSprite : null,
         getMainCamera: () => phaserScene.cameras.main,
         resolveAnimationKey: (value: string) => projectRuntime.resolveAnimationKey(value),
+        resolveAnimationSetKey: (setIdOrName, facing) => projectRuntime.resolveAnimationSetKey(setIdOrName, facing),
         getAnimationPivotByKey: (key: string) => projectRuntime.getAnimationPivotByKey(key),
       });
 

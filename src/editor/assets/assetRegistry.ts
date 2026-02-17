@@ -38,6 +38,7 @@ import {
 export type AssetEntryType = 'tile' | 'sprite' | 'entity';
 export type AssetEntrySource = 'local' | 'repo';
 export type AnimationLoopMode = 'loop' | 'once' | 'pingpong';
+export type Facing4 = 'down' | 'up' | 'left' | 'right';
 
 export interface AnimationFrameRef {
   sourceAssetId: string;
@@ -54,6 +55,17 @@ export interface AnimationAsset {
   loopMode: AnimationLoopMode;
   pivot: { x: number; y: number };
   posterDataUrl?: string;
+  createdAt: number;
+}
+
+export interface AnimationSetAsset {
+  id: string;
+  name: string;
+  /**
+   * Direction map intentionally uses Partial so existing sets remain valid if
+   * facing options expand in future tracks.
+   */
+  directions: Partial<Record<Facing4, string>>;
   createdAt: number;
 }
 
@@ -76,6 +88,7 @@ export interface AssetRegistryState {
   groups: AssetGroup[];
   selectedAssetId: string | null;
   animations: AnimationAsset[];
+  animationSets: AnimationSetAsset[];
 }
 
 export interface AssetEntryInput {
@@ -98,6 +111,11 @@ export interface AnimationAssetInput {
   loopMode: AnimationLoopMode;
   pivot: { x: number; y: number };
   posterDataUrl?: string;
+}
+
+export interface AnimationSetAssetInput {
+  name: string;
+  directions: Partial<Record<Facing4, string>>;
 }
 
 export interface AssetRegistry {
@@ -145,6 +163,16 @@ export interface AssetRegistry {
   duplicateAnimation(animationId: string): AnimationAsset | null;
   removeAnimation(animationId: string): void;
   onAnimationsChanged(callback: () => void): () => void;
+  getAnimationSets(): AnimationSetAsset[];
+  getAnimationSet(animationSetId: string): AnimationSetAsset | null;
+  addAnimationSet(input: AnimationSetAssetInput): AnimationSetAsset;
+  updateAnimationSet(
+    animationSetId: string,
+    updates: Partial<AnimationSetAssetInput>
+  ): AnimationSetAsset | null;
+  removeAnimationSet(animationSetId: string): void;
+  clearAnimationFromSets(animationId: string): void;
+  onAnimationSetsChanged(callback: () => void): () => void;
   refreshFromRepo(manifest: RepoAssetManifest): void;
   uploadGroup(options: {
     groupType: AssetGroupType;
@@ -158,6 +186,7 @@ export const DEFAULT_ASSET_REGISTRY_STATE: AssetRegistryState = {
   groups: DEFAULT_ASSET_GROUPS,
   selectedAssetId: null,
   animations: [],
+  animationSets: [],
 };
 
 export type AssetGroupUploadHandler = (options: {
@@ -193,6 +222,13 @@ function cloneAnimation(animation: AnimationAsset): AnimationAsset {
       offset: frame.offset ? { ...frame.offset } : undefined,
       durationMs: frame.durationMs,
     })),
+  };
+}
+
+function cloneAnimationSet(animationSet: AnimationSetAsset): AnimationSetAsset {
+  return {
+    ...animationSet,
+    directions: { ...animationSet.directions },
   };
 }
 
@@ -256,12 +292,35 @@ function generateAnimationId(): string {
   return generateAssetId();
 }
 
+function generateAnimationSetId(): string {
+  return generateAssetId();
+}
+
 function buildRepoAssetId(type: AssetGroupType, slug: string, fileName: string): string {
   return `repo:${type}:${slug}:${fileName}`;
 }
 
 export function makeUniqueAnimationName(baseName: string, existingNames: Iterable<string>): string {
   const normalized = baseName.trim() || 'Animation';
+  const used = new Set(Array.from(existingNames, (name) => name.trim().toLowerCase()));
+  if (!used.has(normalized.toLowerCase())) {
+    return normalized;
+  }
+
+  const copyBase = `${normalized} (copy)`;
+  if (!used.has(copyBase.toLowerCase())) {
+    return copyBase;
+  }
+
+  let index = 2;
+  while (used.has(`${normalized} (copy ${index})`.toLowerCase())) {
+    index += 1;
+  }
+  return `${normalized} (copy ${index})`;
+}
+
+export function makeUniqueAnimationSetName(baseName: string, existingNames: Iterable<string>): string {
+  const normalized = baseName.trim() || 'Animation Set';
   const used = new Set(Array.from(existingNames, (name) => name.trim().toLowerCase()));
   if (!used.has(normalized.toLowerCase())) {
     return normalized;
@@ -342,10 +401,12 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     ...initialState,
     groups: ensureDefaultGroups(initialState?.groups ?? DEFAULT_ASSET_REGISTRY_STATE.groups),
     animations: initialState?.animations?.map((animation) => cloneAnimation(animation)) ?? [],
+    animationSets: initialState?.animationSets?.map((set) => cloneAnimationSet(set)) ?? [],
   };
 
   const listeners = new Set<(state: AssetRegistryState) => void>();
   const animationListeners = new Set<() => void>();
+  const animationSetListeners = new Set<() => void>();
 
   function emit(next: AssetRegistryState): void {
     state = next;
@@ -365,6 +426,14 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       animations: nextAnimations,
     });
     animationListeners.forEach((listener) => listener());
+  }
+
+  function updateAnimationSets(nextAnimationSets: AnimationSetAsset[]): void {
+    emit({
+      ...state,
+      animationSets: nextAnimationSets,
+    });
+    animationSetListeners.forEach((listener) => listener());
   }
 
   function findGroupIndex(type: AssetGroupType, slug: string): number {
@@ -649,6 +718,85 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     updateAnimations(nextAnimations);
   }
 
+  function getAnimationSets(): AnimationSetAsset[] {
+    return state.animationSets.map((set) => cloneAnimationSet(set));
+  }
+
+  function getAnimationSet(animationSetId: string): AnimationSetAsset | null {
+    const found = state.animationSets.find((set) => set.id === animationSetId);
+    return found ? cloneAnimationSet(found) : null;
+  }
+
+  function addAnimationSet(input: AnimationSetAssetInput): AnimationSetAsset {
+    const uniqueName = makeUniqueAnimationSetName(
+      input.name,
+      state.animationSets.map((set) => set.name)
+    );
+
+    const animationSet: AnimationSetAsset = {
+      id: generateAnimationSetId(),
+      name: uniqueName,
+      directions: { ...input.directions },
+      createdAt: Date.now(),
+    };
+
+    updateAnimationSets([...state.animationSets, animationSet]);
+    return cloneAnimationSet(animationSet);
+  }
+
+  function updateAnimationSet(
+    animationSetId: string,
+    updates: Partial<AnimationSetAssetInput>
+  ): AnimationSetAsset | null {
+    const index = state.animationSets.findIndex((set) => set.id === animationSetId);
+    if (index === -1) return null;
+
+    const current = state.animationSets[index];
+    const uniqueName = updates.name
+      ? makeUniqueAnimationSetName(
+        updates.name,
+        state.animationSets
+          .filter((set) => set.id !== animationSetId)
+          .map((set) => set.name)
+      )
+      : current.name;
+
+    const next: AnimationSetAsset = {
+      ...current,
+      name: uniqueName,
+      directions: updates.directions ? { ...updates.directions } : { ...current.directions },
+    };
+
+    const nextAnimationSets = state.animationSets.map((set, idx) =>
+      idx === index ? next : set
+    );
+    updateAnimationSets(nextAnimationSets);
+    return cloneAnimationSet(next);
+  }
+
+  function clearAnimationFromSets(animationId: string): void {
+    let changed = false;
+    const nextAnimationSets = state.animationSets.map((set) => {
+      const nextDirections: Partial<Record<Facing4, string>> = { ...set.directions };
+      (Object.keys(nextDirections) as Facing4[]).forEach((facing) => {
+        if (nextDirections[facing] === animationId) {
+          delete nextDirections[facing];
+          changed = true;
+        }
+      });
+      return changed ? { ...set, directions: nextDirections } : set;
+    });
+
+    if (!changed) return;
+    updateAnimationSets(nextAnimationSets);
+  }
+
+  function removeAnimationSet(animationSetId: string): void {
+    const nextAnimationSets = state.animationSets.filter((set) => set.id !== animationSetId);
+    if (nextAnimationSets.length === state.animationSets.length) return;
+    updateAnimationSets(nextAnimationSets);
+  }
+
   function renameAsset(assetId: string, nextName: string): void {
     const trimmedName = nextName.trim();
     if (!trimmedName) return;
@@ -920,6 +1068,12 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     updateAnimation,
     duplicateAnimation,
     removeAnimation,
+    getAnimationSets,
+    getAnimationSet,
+    addAnimationSet,
+    updateAnimationSet,
+    removeAnimationSet,
+    clearAnimationFromSets,
     refreshFromRepo,
     uploadGroup,
     onChange: (callback) => {
@@ -929,6 +1083,10 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     onAnimationsChanged: (callback) => {
       animationListeners.add(callback);
       return () => animationListeners.delete(callback);
+    },
+    onAnimationSetsChanged: (callback) => {
+      animationSetListeners.add(callback);
+      return () => animationSetListeners.delete(callback);
     },
   };
 }

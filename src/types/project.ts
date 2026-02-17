@@ -25,7 +25,7 @@
  */
 
 import { validatePropertyDefinition, type PropertyDefinition } from './entity';
-import type { ProjectAnimation, ProjectAnimationSet } from './animation';
+import type { Facing4, ProjectAnimation, ProjectAnimationSet } from './animation';
 
 // --- Tile Category ---
 
@@ -178,6 +178,17 @@ export function validateProject(project: unknown): project is Project {
     }
   }
 
+  // Validate optional animation sets
+  if (p.animationSets !== undefined) {
+    if (!Array.isArray(p.animationSets)) return false;
+    const setIds = new Set<string>();
+    for (const animationSet of p.animationSets) {
+      if (!validateProjectAnimationSet(animationSet)) return false;
+      if (setIds.has(animationSet.id)) return false;
+      setIds.add(animationSet.id);
+    }
+  }
+
   // Validate optional animations
   if (p.animations !== undefined) {
     if (!Array.isArray(p.animations)) return false;
@@ -223,6 +234,25 @@ export function validateProjectAnimationFrame(frame: unknown): frame is import('
   const f = frame as Record<string, unknown>;
   if (typeof f.textureKey !== 'string') return false;
   if (typeof f.frame !== 'string') return false;
+  return true;
+}
+
+const VALID_FACING4 = new Set<Facing4>(['down', 'up', 'left', 'right']);
+
+export function validateProjectAnimationSet(animationSet: unknown): animationSet is ProjectAnimationSet {
+  if (!animationSet || typeof animationSet !== 'object') return false;
+  const value = animationSet as Record<string, unknown>;
+
+  if (typeof value.id !== 'string' || value.id.length === 0) return false;
+  if (typeof value.name !== 'string') return false;
+  if (!value.directions || typeof value.directions !== 'object') return false;
+
+  const directions = value.directions as Record<string, unknown>;
+  for (const [facing, animationId] of Object.entries(directions)) {
+    if (!VALID_FACING4.has(facing as Facing4)) return false;
+    if (typeof animationId !== 'string') return false;
+  }
+
   return true;
 }
 

@@ -9,8 +9,11 @@ export type {
   AssetEntrySource,
   AnimationAsset,
   AnimationAssetInput,
+  AnimationSetAsset,
+  AnimationSetAssetInput,
   AnimationFrameRef,
   AnimationLoopMode,
+  Facing4,
   AssetRegistry,
   AssetRegistryState,
 } from './assetRegistry';

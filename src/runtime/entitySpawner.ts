@@ -58,15 +58,19 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
     sprite = phaserScene.add.sprite(entity.x, entity.y, textureKey).setOrigin(0.5, 0.5).setDepth(DEPTH_ENTITIES_BASE + entity.y);
   }
 
-  // Auto-play animation if entity has animationId property
+  // Auto-play animation if entity has animationSetId (preferred) or animationId.
+  const animationSetId = entity.properties?.animationSetId;
   const animRef = entity.properties?.animationId;
-  if (typeof animRef === 'string' && animRef.length > 0) {
-    const animKey = projectRuntime.resolveAnimationKey(animRef);
-    if (animKey) {
-      const pivot = projectRuntime.getAnimationPivotByKey(animKey);
-      if (pivot) sprite.setOrigin(pivot.x, pivot.y);
-      sprite.anims.play(animKey, true);
-    }
+  const animKey = typeof animationSetId === 'string' && animationSetId.length > 0
+    ? projectRuntime.resolveAnimationSetKey(animationSetId, 'down')
+    : typeof animRef === 'string' && animRef.length > 0
+      ? projectRuntime.resolveAnimationKey(animRef)
+      : null;
+
+  if (animKey) {
+    const pivot = projectRuntime.getAnimationPivotByKey(animKey);
+    if (pivot) sprite.setOrigin(pivot.x, pivot.y);
+    sprite.anims.play(animKey, true);
   }
 
   return {

@@ -14,6 +14,7 @@
  */
 
 import type Phaser from 'phaser';
+import type { Facing4 } from '@/types';
 
 export interface RuntimeEnv {
   scene: Phaser.Scene;
@@ -21,6 +22,8 @@ export interface RuntimeEnv {
   getMainCamera(): Phaser.Cameras.Scene2D.Camera;
   /** Resolve an animation id or name to its Phaser runtime key. */
   resolveAnimationKey?(value: string): string | null;
+  /** Resolve an animation set id/name + facing to a Phaser runtime key. */
+  resolveAnimationSetKey?(setIdOrName: string, facing: Facing4): string | null;
   /** Get the pivot for an animation by its runtime key. */
   getAnimationPivotByKey?(key: string): { x: number; y: number } | null;
 }
