@@ -332,6 +332,70 @@ describe('buildProjectPack atlas ordering stability', () => {
     expect(slices.map((entry) => entry.tileId)).toEqual([10, 11, 12, 13]);
   });
 
+  it('reserves legacy fallback tileIds before assigning appended slices', () => {
+    const workspace = createWorkspace({
+      projectSpriteAtlases: [{
+        name: 'terrain',
+        path: 'assets/terrain.png',
+        defaultGroup: 'tilesets:ground',
+        sliceSize: { width: 16, height: 16 },
+        slices: [slice('A', 0), slice('B', 16)],
+      }],
+      groups: [
+        {
+          type: 'tilesets',
+          name: 'Ground',
+          slug: 'ground',
+          assets: [{
+            id: 'atlas-terrain',
+            name: 'terrain',
+            type: 'tile',
+            source: 'local',
+            dataUrl: 'assets/terrain.png',
+            width: 48,
+            height: 16,
+            createdAt: 1,
+          }],
+        },
+        {
+          type: 'tilesets',
+          name: 'Ground Slices',
+          slug: 'ground-slices',
+          assets: [
+            {
+              id: 'slice-a',
+              name: 'A',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,a',
+              width: 16,
+              height: 16,
+              createdAt: 2,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 0, y: 0, w: 16, h: 16 },
+            },
+            {
+              id: 'slice-c',
+              name: 'C',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,c',
+              width: 16,
+              height: 16,
+              createdAt: 3,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 32, y: 0, w: 16, h: 16 },
+            },
+          ],
+        },
+      ],
+    });
+
+    const atlas = buildProjectPack(workspace).project.spriteAtlases?.[0];
+    expect(atlas?.slices.map((entry) => entry.tileId)).toEqual([0, 1, 2]);
+    expect(resolveAtlasSliceByLocalId(atlas!, 2)?.name).toBe('C');
+  });
+
   it('resolveAtlasSliceByLocalId falls back to legacy slice index', () => {
     const atlas = {
       name: 'legacy',

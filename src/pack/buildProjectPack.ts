@@ -28,6 +28,10 @@ function rectKey(rect: SpriteAtlasSlice['rect']): string {
   return `${rect.x},${rect.y},${rect.w},${rect.h}`;
 }
 
+function isValidTileId(tileId: unknown): tileId is number {
+  return Number.isFinite(tileId) && Number.isInteger(tileId) && (tileId as number) >= 0;
+}
+
 function stableMergeAtlasSlices(
   existingSlices: SpriteAtlasSlice[],
   generatedSlices: SpriteAtlasSlice[],
@@ -50,10 +54,19 @@ function stableMergeAtlasSlices(
   });
 
   let maxTileId = -1;
-  for (const slice of out) {
-    if (Number.isFinite(slice.tileId) && Number.isInteger(slice.tileId) && (slice.tileId as number) >= 0) {
-      maxTileId = Math.max(maxTileId, slice.tileId as number);
+  for (let index = 0; index < out.length; index++) {
+    const slice = out[index];
+    if (isValidTileId(slice.tileId)) {
+      maxTileId = Math.max(maxTileId, slice.tileId);
+      continue;
     }
+
+    // Reserve legacy fallback ids up-front so appended slices do not reuse them.
+    out[index] = {
+      ...slice,
+      tileId: index,
+    };
+    maxTileId = Math.max(maxTileId, index);
   }
 
   const nextTileId = (): number => {
@@ -71,7 +84,7 @@ function stableMergeAtlasSlices(
       const existingSlice = out[index];
       out[index] = {
         ...generated,
-        tileId: Number.isFinite(existingSlice.tileId) ? existingSlice.tileId : index,
+        tileId: isValidTileId(existingSlice.tileId) ? existingSlice.tileId : index,
         rect: { ...generated.rect },
       };
       if (stats) stats.replaced += 1;
