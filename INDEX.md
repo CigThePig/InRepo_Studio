@@ -739,6 +739,10 @@ Micro-format (copy/paste):
   - Role: Append-only helpers for project.json updates.
   - Lists of truth: none
 
+- `src/shared/atlasTileIds.ts`
+  - Role: Atlas tileId migration + local-id lookup helpers for editor/runtime/pack.
+  - Lists of truth: none
+
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/pack/buildProjectPack.ts`
   - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent.

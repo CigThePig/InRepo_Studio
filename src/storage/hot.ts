@@ -26,6 +26,7 @@ import { DEFAULT_ASSET_REGISTRY_STATE } from '@/editor/assets';
 import type { RepoAssetManifest } from '@/storage/cold';
 import type { EditorUIState, WorkspaceContent, WorkspaceMeta } from '@/types/workspace';
 import { initScriptStorage, listScripts, saveScript, clearScriptStorage } from './scriptStorage';
+import { ensureAtlasSliceTileIds } from '@/shared/atlasTileIds';
 
 export type {
   BrushSize,
@@ -235,12 +236,23 @@ export async function loadWorkspaceContent(): Promise<WorkspaceContent> {
   const workspace = await database.get('workspace', 'current');
   if (!workspace) return createDefaultWorkspaceContent();
 
-  if (Object.keys(workspace.scripts ?? {}).length === 0) {
+  let currentWorkspace = workspace;
+
+  const normalizedProject = ensureAtlasSliceTileIds(currentWorkspace.project);
+  if (normalizedProject.changed) {
+    currentWorkspace = {
+      ...currentWorkspace,
+      project: normalizedProject.project,
+    };
+    await database.put('workspace', currentWorkspace, 'current');
+  }
+
+  if (Object.keys(currentWorkspace.scripts ?? {}).length === 0) {
     await initScriptStorage();
     const scripts = await listScripts();
     if (scripts.length > 0) {
       const upgraded: WorkspaceContent = {
-        ...workspace,
+        ...currentWorkspace,
         scripts: Object.fromEntries(scripts.map((script) => [script.scriptId, script])),
       };
       await database.put('workspace', upgraded, 'current');
@@ -248,7 +260,7 @@ export async function loadWorkspaceContent(): Promise<WorkspaceContent> {
     }
   }
 
-  return workspace;
+  return currentWorkspace;
 }
 
 export async function saveWorkspaceContent(next: WorkspaceContent): Promise<void> {

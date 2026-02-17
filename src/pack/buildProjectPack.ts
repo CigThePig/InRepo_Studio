@@ -3,9 +3,8 @@ import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
 import type { ProjectAnimation, ProjectAnimationFrame } from '@/types/animation';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
-// NOTE: Atlas tile references in scenes are numeric indices into `spriteAtlases[].slices[]`.
-// Never sort atlas slices or atlas entries during pack build. Reordering causes index drift,
-// which makes runtime/playtest render different atlas tiles than the editor.
+// NOTE: Indices used by scenes are stable local tile ids (`slice.tileId`).
+// Slice ordering is now free to change without breaking scenes.
 
 export interface BuildProjectPackOptions {
   resolveAssetPathForDeploy?: (assetId: string) => string | null;
@@ -50,6 +49,18 @@ function stableMergeAtlasSlices(
     byNameAndRect.set(`${slice.name}::${key}`, index);
   });
 
+  let maxTileId = -1;
+  for (const slice of out) {
+    if (Number.isFinite(slice.tileId) && Number.isInteger(slice.tileId) && (slice.tileId as number) >= 0) {
+      maxTileId = Math.max(maxTileId, slice.tileId as number);
+    }
+  }
+
+  const nextTileId = (): number => {
+    maxTileId += 1;
+    return maxTileId;
+  };
+
   for (const generated of generatedSlices) {
     const key = rectKey(generated.rect);
     const rectIndex = byRect.get(key);
@@ -57,8 +68,10 @@ function stableMergeAtlasSlices(
     const index = rectIndex ?? nameAndRectIndex;
 
     if (index !== undefined) {
+      const existingSlice = out[index];
       out[index] = {
         ...generated,
+        tileId: Number.isFinite(existingSlice.tileId) ? existingSlice.tileId : index,
         rect: { ...generated.rect },
       };
       if (stats) stats.replaced += 1;
@@ -67,6 +80,7 @@ function stableMergeAtlasSlices(
 
     out.push({
       ...generated,
+      tileId: nextTileId(),
       rect: { ...generated.rect },
     });
     const nextIndex = out.length - 1;
@@ -181,7 +195,10 @@ export function buildProjectPack(
     const normalizedPath = normalizeAtlasPath(generated.path);
     const existing = existingByPath.get(normalizedPath);
     if (!existing) {
-      generatedByPath.set(normalizedPath, generated);
+      generatedByPath.set(normalizedPath, {
+        ...generated,
+        slices: (generated.slices ?? []).map((slice, index) => ({ ...slice, tileId: index })),
+      });
       continue;
     }
 

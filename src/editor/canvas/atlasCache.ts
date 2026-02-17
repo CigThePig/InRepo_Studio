@@ -7,6 +7,7 @@ const LOG_PREFIX = '[AtlasCache]';
 interface AtlasCategoryEntry {
   atlasPath: string;
   slices: SpriteAtlasSlice[];
+  sliceByLocalId: Map<number, SpriteAtlasSlice>;
 }
 
 export interface AtlasSliceImage {
@@ -39,9 +40,18 @@ export function createAtlasCache(): AtlasCache {
   function rebuildCategoryIndex(): void {
     categories.clear();
     for (const atlas of project?.spriteAtlases ?? []) {
+      const slices = atlas.slices ?? [];
+      const sliceByLocalId = new Map<number, SpriteAtlasSlice>();
+      slices.forEach((slice, legacyIndex) => {
+        const localId = Number.isFinite(slice.tileId) ? (slice.tileId as number) : legacyIndex;
+        if (!sliceByLocalId.has(localId)) {
+          sliceByLocalId.set(localId, slice);
+        }
+      });
       categories.set(getAtlasCategoryName(atlas.path), {
         atlasPath: atlas.path,
-        slices: atlas.slices ?? [],
+        slices,
+        sliceByLocalId,
       });
     }
   }
@@ -93,7 +103,7 @@ export function createAtlasCache(): AtlasCache {
       const entry = findAtlas(category);
       if (!entry) return null;
 
-      const slice = entry.slices[index];
+      const slice = entry.sliceByLocalId.get(index) ?? entry.slices[index];
       if (!slice) return null;
 
       const cachedImage = atlasImages.get(entry.atlasPath);

@@ -64,6 +64,7 @@ import {
 import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { setContentVersionToken } from '@/shared/paths';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 import { createPaintTool, type PaintTool } from '@/editor/tools/paint';
 import { createEraseTool, type EraseTool } from '@/editor/tools/erase';
 import { createSelectTool, type SelectTool } from '@/editor/tools/select';
@@ -278,7 +279,7 @@ function resolveSelectionPixelSize(selection: SelectedTile | null): { width: num
   if (!selection || !currentProject) return null;
   if (selection.category.startsWith('atlas:')) {
     const atlas = findAtlasByCategory(currentProject, selection.category);
-    const sliceRect = atlas?.slices?.[selection.index]?.rect;
+    const sliceRect = resolveAtlasSliceByLocalId(atlas, selection.index)?.rect;
     if (sliceRect && sliceRect.w > 0 && sliceRect.h > 0) {
       return { width: sliceRect.w, height: sliceRect.h };
     }
@@ -511,25 +512,28 @@ function resolveSelectedTileFromAsset(asset: AssetEntry, project: Project): Sele
       return null;
     }
 
-    const matchingSliceIndices = (atlas.slices ?? [])
-      .map((slice, index) => (isRectEqual(slice.rect, asset.rect!) ? index : -1))
+    const matchingSliceIds = (atlas.slices ?? [])
+      .map((slice, index) => {
+        if (!isRectEqual(slice.rect, asset.rect!)) return -1;
+        return Number.isFinite(slice.tileId) ? (slice.tileId as number) : index;
+      })
       .filter((value) => value >= 0);
 
-    if (matchingSliceIndices.length === 0) {
+    if (matchingSliceIds.length === 0) {
       return null;
     }
 
-    if (matchingSliceIndices.length > 1) {
+    if (matchingSliceIds.length > 1) {
       console.warn('[AtlasSelect] Multiple atlas slices matched by rect; using first', {
         atlas: atlas.path,
         rect: asset.rect,
-        indices: matchingSliceIndices,
+        indices: matchingSliceIds,
       });
     }
 
-    const sliceIndex = matchingSliceIndices[0];
-    console.log('[AtlasSelect] Selected atlas tile', { atlas: atlas.path, sliceIndex });
-    return { category: getAtlasCategoryName(atlas.path), index: sliceIndex };
+    const localTileId = matchingSliceIds[0];
+    console.log('[AtlasSelect] Selected atlas tile', { atlas: atlas.path, localTileId });
+    return { category: getAtlasCategoryName(atlas.path), index: localTileId };
   }
 
   return null;
@@ -546,7 +550,7 @@ function getAtlasTileSizeMismatchReason(selection: SelectedTile): string | null 
   const atlas = findAtlasByCategory(currentProject, selection.category);
   if (!atlas) return null;
 
-  const rect = atlas.slices?.[selection.index]?.rect;
+  const rect = resolveAtlasSliceByLocalId(atlas, selection.index)?.rect;
   const width = rect?.w ?? atlas.sliceSize.width;
   const height = rect?.h ?? atlas.sliceSize.height;
 
