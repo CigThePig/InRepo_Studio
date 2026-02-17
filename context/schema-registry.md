@@ -355,8 +355,8 @@ Rules:
   - `GAME_PROFILES` — v1 profile definitions (topdown, platformer, custom)
     - Invariant: profile IDs are stable
 
-- `/src/runtime/presets/defs/*.ts` — v1 preset stub definitions
-  - 6 stubs: controls-topdown, controls-platformer, movement-topdown, movement-platformer, camera-follow, animation-driver
+- `/src/runtime/presets/defs/*.ts` — v1 preset definitions
+  - 7 defs: controls-topdown, controls-platformer, movement-topdown, movement-platformer, camera-follow, animation-driver, animation-entity-animator
   - Each exports: `definition: PresetDefinition` + `factory: PresetFactory`
   - Invariant: all definitions pass validatePresetDefinition()
   - Invariant: preset IDs are stable (category-prefix naming)

@@ -885,6 +885,10 @@ Micro-format (copy/paste):
   - Role: Animation driver preset definition + runtime factory for clip/set-based facing selection.
   - Lists of truth: PresetDefinition (animation-driver)
 
+- `src/runtime/presets/defs/animation-entity-animator.ts`
+  - Role: Entity animation controller preset definition + runtime factory for per-entity play/stop/autofacing behavior.
+  - Lists of truth: PresetDefinition (animation-entity-animator)
+
 ### Runtime ApiContext (Track 35)
 - `src/runtime/apiContext/index.ts`
   - Role: Public exports for ApiContext module.

@@ -231,6 +231,7 @@ export const factory: PresetFactory = (def): PresetInstance => {
       const env = getRuntimeEnv();
       const player = env?.getPlayerSprite();
       if (!env || !player) return;
+      if (env.isPlayerAnimationOverrideActive?.()) return;
 
       const dx = player.x - lastX;
       const dy = player.y - lastY;

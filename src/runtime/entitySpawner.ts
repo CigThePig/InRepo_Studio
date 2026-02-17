@@ -73,6 +73,8 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
     sprite.anims.play(animKey, true);
   }
 
+  sprite.setName(entity.id);
+
   return {
     instance: entity,
     gameObject: sprite,
