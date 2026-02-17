@@ -43,6 +43,7 @@ export interface AnimationFrameRef {
   sourceAssetId: string;
   rect: { x: number; y: number; w: number; h: number };
   offset?: { x: number; y: number };
+  durationMs?: number;
 }
 
 export interface AnimationAsset {
@@ -190,6 +191,7 @@ function cloneAnimation(animation: AnimationAsset): AnimationAsset {
       sourceAssetId: frame.sourceAssetId,
       rect: { ...frame.rect },
       offset: frame.offset ? { ...frame.offset } : undefined,
+      durationMs: frame.durationMs,
     })),
   };
 }
@@ -566,6 +568,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
         sourceAssetId: frame.sourceAssetId,
         rect: { ...frame.rect },
         offset: frame.offset ? { ...frame.offset } : undefined,
+        durationMs: frame.durationMs,
       })),
       fps: input.fps,
       loopMode: input.loopMode,
@@ -602,11 +605,13 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
           sourceAssetId: frame.sourceAssetId,
           rect: { ...frame.rect },
           offset: frame.offset ? { ...frame.offset } : undefined,
+          durationMs: frame.durationMs,
         }))
         : current.frames.map((frame) => ({
           sourceAssetId: frame.sourceAssetId,
           rect: { ...frame.rect },
           offset: frame.offset ? { ...frame.offset } : undefined,
+          durationMs: frame.durationMs,
         })),
       fps: updates.fps ?? current.fps,
       loopMode: updates.loopMode ?? current.loopMode,

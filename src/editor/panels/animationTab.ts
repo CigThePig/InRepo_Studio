@@ -9,6 +9,7 @@ import type { EditorState } from '@/storage/hot';
 import type { EntityManager } from '@/editor/entities/entityManager';
 import type { HistoryManager, Operation } from '@/editor/history';
 import { generateOperationId } from '@/editor/history';
+import { parseAtlasJson } from '@/editor/assets/atlasImporter';
 import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
@@ -494,6 +495,21 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function readFileAsJson(file: File): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        resolve(JSON.parse(String(reader.result)) as unknown);
+      } catch {
+        reject(new Error('Invalid JSON file.'));
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read JSON file.'));
+    reader.readAsText(file);
+  });
+}
+
 function createFrameThumbnail(image: HTMLImageElement, rect: AnimationFrameRef['rect']): string {
   const canvas = document.createElement('canvas');
   canvas.width = rect.w;
@@ -814,6 +830,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   frameFilesInput.style.display = 'none';
   container.appendChild(frameFilesInput);
 
+  const atlasJsonInput = document.createElement('input');
+  atlasJsonInput.type = 'file';
+  atlasJsonInput.accept = '.json,application/json';
+  atlasJsonInput.style.display = 'none';
+  container.appendChild(atlasJsonInput);
+
   function setSheetOpen(open: boolean): void {
     state.sheetOpen = open;
     sheetOverlay.classList.toggle('animation-tab__sheet--open', open);
@@ -993,6 +1015,75 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       state.animationName = 'New Animation';
     }
     render();
+  }
+
+  function makeUniqueAssetName(baseName: string): string {
+    const normalized = baseName.trim() || 'frame';
+    const existing = new Set(
+      assetRegistry
+        .getGroups()
+        .flatMap((group) => group.assets)
+        .map((asset) => asset.name.toLowerCase())
+    );
+    if (!existing.has(normalized.toLowerCase())) return normalized;
+    let index = 2;
+    while (existing.has(`${normalized} ${index}`.toLowerCase())) {
+      index += 1;
+    }
+    return `${normalized} ${index}`;
+  }
+
+  async function handleImportAtlasJsonFile(file: File): Promise<void> {
+    if (!state.sourceAssetId) {
+      alert('Select a source image before importing atlas JSON.');
+      return;
+    }
+    const sourceAsset = assetRegistry.getAsset(state.sourceAssetId);
+    if (!sourceAsset) {
+      alert('Source asset is missing. Re-select the source image and try again.');
+      return;
+    }
+
+    const json = await readFileAsJson(file);
+    const parsed = parseAtlasJson(json, sourceAsset.id);
+
+    if (parsed.frames.length === 0) {
+      alert('No usable frame entries found in atlas JSON.');
+      return;
+    }
+
+    const importedFrames: AnimationFrameState[] = [];
+    for (const entry of parsed.frames) {
+      const created = assetRegistry.addAssets({
+        groupType: 'props',
+        groupName: SOURCE_GROUP_NAME,
+        assets: [{
+          name: makeUniqueAssetName(entry.name),
+          type: 'sprite',
+          dataUrl: sourceAsset.dataUrl,
+          width: entry.ref.rect.w,
+          height: entry.ref.rect.h,
+          source: sourceAsset.source,
+          sourceAssetId: sourceAsset.id,
+          rect: { ...entry.ref.rect },
+        }],
+      })[0];
+
+      importedFrames.push({
+        ref: {
+          sourceAssetId: created.id,
+          rect: { ...entry.ref.rect },
+          durationMs: entry.ref.durationMs,
+        },
+        thumbnailDataUrl: state.sourceImage ? createFrameThumbnail(state.sourceImage, entry.ref.rect) : '',
+      });
+    }
+
+    state.frames = [...state.frames, ...importedFrames];
+    state.currentFrame = Math.max(0, state.frames.length - importedFrames.length);
+    state.dirty = true;
+    render();
+    alert(`Imported ${importedFrames.length} frame(s) from ${parsed.format}.`);
   }
 
   function openAssetPicker(): void {
@@ -1873,6 +1964,23 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
       button.addEventListener('click', () => {
         state.currentFrame = index;
+        const nextDuration = window.prompt(
+          'Frame duration override (ms). Leave blank to use animation FPS default.',
+          typeof frame.ref.durationMs === 'number' ? String(frame.ref.durationMs) : ''
+        );
+        if (nextDuration !== null) {
+          const trimmed = nextDuration.trim();
+          if (!trimmed) {
+            delete frame.ref.durationMs;
+            state.dirty = true;
+          } else {
+            const parsedDuration = Number(trimmed);
+            if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+              frame.ref.durationMs = Math.round(parsedDuration);
+              state.dirty = true;
+            }
+          }
+        }
         render();
       });
 
@@ -2007,6 +2115,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       addFilesButton.textContent = 'Add Files as Frames';
       addFilesButton.addEventListener('click', () => frameFilesInput.click());
 
+      const atlasButton = document.createElement('button');
+      atlasButton.type = 'button';
+      atlasButton.className = 'animation-tab__button';
+      atlasButton.textContent = 'Import Atlas JSON';
+      atlasButton.addEventListener('click', () => atlasJsonInput.click());
+
       const sourceButton = document.createElement('button');
       sourceButton.type = 'button';
       sourceButton.className = 'animation-tab__button';
@@ -2015,6 +2129,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
       row.appendChild(sliceButton);
       row.appendChild(addFilesButton);
+      row.appendChild(atlasButton);
       row.appendChild(sourceButton);
 
       contextSection.appendChild(hint);
@@ -2054,6 +2169,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     clearButton.textContent = 'Clear Frames';
     clearButton.addEventListener('click', clearAllFrames);
 
+    const atlasButton = document.createElement('button');
+    atlasButton.type = 'button';
+    atlasButton.className = 'animation-tab__button';
+    atlasButton.textContent = 'Import Atlas JSON';
+    atlasButton.addEventListener('click', () => atlasJsonInput.click());
+
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
     resetButton.className = 'animation-tab__button animation-tab__button--ghost';
@@ -2072,6 +2193,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       row.appendChild(backButton);
     }
     row.appendChild(sliceButton);
+    row.appendChild(atlasButton);
     row.appendChild(clearButton);
     row.appendChild(resetButton);
 
@@ -2257,6 +2379,14 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     target.value = '';
   });
 
+  atlasJsonInput.addEventListener('change', async (event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+    await handleImportAtlasJsonFile(file);
+    target.value = '';
+  });
+
   sheetOverlay.addEventListener('click', (event) => {
     if (event.target === sheetOverlay) {
       closeSheet();
@@ -2285,6 +2415,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       sheetOverlay.remove();
       fileInput.remove();
       frameFilesInput.remove();
+      atlasJsonInput.remove();
       sourceImageCache.clear();
     },
   };

@@ -247,6 +247,27 @@ describe('groupKey helpers', () => {
 
 
 describe('assetRegistry animations', () => {
+  it('preserves frame durationMs through create/update/duplicate', () => {
+    const registry = createAssetRegistry();
+    const created = registry.addAnimation({
+      name: 'Attack',
+      fps: 10,
+      loopMode: 'once',
+      pivot: { x: 0.5, y: 1 },
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 }, durationMs: 120 }],
+    });
+
+    expect(created.frames[0].durationMs).toBe(120);
+
+    const updated = registry.updateAnimation(created.id, {
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 }, durationMs: 80 }],
+    });
+    expect(updated?.frames[0].durationMs).toBe(80);
+
+    const duplicated = registry.duplicateAnimation(created.id);
+    expect(duplicated?.frames[0].durationMs).toBe(80);
+  });
+
   it('duplicates an animation with a unique copy name', () => {
     const registry = createAssetRegistry();
     const created = registry.addAnimation({

@@ -339,6 +339,7 @@ function compileAnimations(
       frames.push({
         textureKey,
         frame: sliceInfo.sliceName,
+        durationMs: frameRef.durationMs,
         offset: frameRef.offset ? { ...frameRef.offset } : undefined,
       });
       frameSizes.add(`${sliceInfo.w}x${sliceInfo.h}`);
