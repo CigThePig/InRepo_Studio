@@ -26,6 +26,7 @@
 
 import { validatePropertyDefinition, type PropertyDefinition } from './entity';
 import type { Facing4, ProjectAnimation, ProjectAnimationSet } from './animation';
+import type { AnimStateMachine } from './animStateMachine';
 
 // --- Tile Category ---
 
@@ -113,6 +114,8 @@ export interface Project {
   animations?: ProjectAnimation[];
   /** Directional animation groupings (reserved for future use) */
   animationSets?: ProjectAnimationSet[];
+  /** Animation state machine definitions for visual state-based animation control */
+  animStateMachines?: AnimStateMachine[];
   /** Project-wide settings */
   settings: ProjectSettings;
 }

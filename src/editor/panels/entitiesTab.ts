@@ -643,6 +643,8 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
     const animations = assetRegistry?.getAnimations() ?? [];
     const animationSets = assetRegistry?.getAnimationSets() ?? [];
+    const stateMachines = assetRegistry?.getAnimStateMachines() ?? [];
+
     for (const animationSet of animationSets) {
       const option = document.createElement('option');
       option.value = animationSet.id;
@@ -657,6 +659,20 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       animationSelect.appendChild(option);
     }
 
+    const stateMachineSelect = document.createElement('select');
+    stateMachineSelect.className = 'entities-tab__input';
+    const noSmOption = document.createElement('option');
+    noSmOption.value = '';
+    noSmOption.textContent = 'State Machine: None';
+    stateMachineSelect.appendChild(noSmOption);
+
+    for (const sm of stateMachines) {
+      const option = document.createElement('option');
+      option.value = sm.id;
+      option.textContent = `${sm.name} (${sm.id})`;
+      stateMachineSelect.appendChild(option);
+    }
+
     const currentAnimationSetId = String(entity.properties?.animationSetId ?? '');
     animationSetSelect.value = currentAnimationSetId;
     if (animationSetSelect.value !== currentAnimationSetId) {
@@ -669,12 +685,18 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       animationSelect.value = '';
     }
 
+    const currentStateMachineId = String(entity.properties?.animStateMachineId ?? '');
+    stateMachineSelect.value = currentStateMachineId;
+    if (stateMachineSelect.value !== currentStateMachineId) {
+      stateMachineSelect.value = '';
+    }
+
     const animationHint = document.createElement('div');
     animationHint.className = 'entities-tab__hint';
     animationHint.textContent = assetRegistry
-      ? animationSets.length > 0 || animations.length > 0
-        ? 'Animation sets override single animation clips when both are set.'
-        : 'No saved animations or sets yet. Create them in the Animation tab.'
+      ? animationSets.length > 0 || animations.length > 0 || stateMachines.length > 0
+        ? 'State machines override sets. Sets override single clips.'
+        : 'No saved animations, sets, or state machines yet. Create them in the Animation tab.'
       : 'Animation assignment is unavailable without the asset registry.';
 
     const animationActionRow = document.createElement('div');
@@ -692,16 +714,24 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       config.onEditAnimation?.(animationId);
     });
 
-    const applyAnimationChange = (nextAnimationId: string, nextAnimationSetId: string): void => {
+    const applyAnimationChange = (
+      nextAnimationId: string,
+      nextAnimationSetId: string,
+      nextStateMachineId: string
+    ): void => {
       const previousAnimationIdRaw = entity.properties?.animationId;
       const previousAnimationSetIdRaw = entity.properties?.animationSetId;
+      const previousStateMachineIdRaw = entity.properties?.animStateMachineId;
       const previousAnimationId =
         typeof previousAnimationIdRaw === 'string' ? previousAnimationIdRaw : undefined;
       const previousAnimationSetId =
         typeof previousAnimationSetIdRaw === 'string' ? previousAnimationSetIdRaw : undefined;
+      const previousStateMachineId =
+        typeof previousStateMachineIdRaw === 'string' ? previousStateMachineIdRaw : undefined;
       if (
         previousAnimationId === (nextAnimationId || undefined)
         && previousAnimationSetId === (nextAnimationSetId || undefined)
+        && previousStateMachineId === (nextStateMachineId || undefined)
       ) {
         editAnimationButton.disabled = !nextAnimationId;
         return;
@@ -710,7 +740,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       const previousStateRaw = entity.properties?.animationState;
       const previousAnimationState =
         typeof previousStateRaw === 'string' ? previousStateRaw : undefined;
-      const nextAnimationState = (nextAnimationId || nextAnimationSetId)
+      const nextAnimationState = (nextAnimationId || nextAnimationSetId || nextStateMachineId)
         ? previousAnimationState ?? 'idle'
         : undefined;
 
@@ -719,6 +749,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         properties: {
           animationId: nextAnimationId || undefined,
           animationSetId: nextAnimationSetId || undefined,
+          animStateMachineId: nextStateMachineId || undefined,
           animationState: nextAnimationState,
         },
       };
@@ -728,6 +759,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         properties: {
           animationId: previousAnimationId,
           animationSetId: previousAnimationSetId,
+          animStateMachineId: previousStateMachineId,
           animationState: previousAnimationState,
         },
       };
@@ -737,11 +769,13 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       const operation: Operation = {
         id: generateOperationId(),
         type: 'entity_property_change',
-        description: nextAnimationSetId
-          ? 'Assign entity animation set'
-          : nextAnimationId
-            ? 'Assign entity animation'
-            : 'Clear entity animation',
+        description: nextStateMachineId
+          ? 'Assign entity state machine'
+          : nextAnimationSetId
+            ? 'Assign entity animation set'
+            : nextAnimationId
+              ? 'Assign entity animation'
+              : 'Clear entity animation',
         execute: () => {
           entityManager.updateEntityProperties([nextUpdates]);
         },
@@ -754,20 +788,36 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       editAnimationButton.disabled = !nextAnimationId;
     };
 
+    stateMachineSelect.disabled = !assetRegistry;
+    stateMachineSelect.addEventListener('change', () => {
+      applyAnimationChange(
+        animationSelect.value,
+        animationSetSelect.value,
+        stateMachineSelect.value
+      );
+    });
+
     animationSetSelect.disabled = !assetRegistry;
     animationSetSelect.addEventListener('change', () => {
-      const nextAnimationSetId = animationSetSelect.value;
-      applyAnimationChange(animationSelect.value, nextAnimationSetId);
+      applyAnimationChange(
+        animationSelect.value,
+        animationSetSelect.value,
+        stateMachineSelect.value
+      );
     });
 
     animationSelect.disabled = !assetRegistry;
     animationSelect.addEventListener('change', () => {
-      const nextAnimationId = animationSelect.value;
-      applyAnimationChange(nextAnimationId, animationSetSelect.value);
+      applyAnimationChange(
+        animationSelect.value,
+        animationSetSelect.value,
+        stateMachineSelect.value
+      );
     });
 
     animationActionRow.appendChild(editAnimationButton);
     animationRow.appendChild(animationLabel);
+    animationRow.appendChild(stateMachineSelect);
     animationRow.appendChild(animationSetSelect);
     animationRow.appendChild(animationSelect);
     animationRow.appendChild(animationHint);
