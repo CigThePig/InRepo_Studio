@@ -1,3 +1,4 @@
+import type Phaser from 'phaser';
 import type { PresetDefinition } from '../../../types/preset';
 import type { AnimStateMachine, AnimTransition, TransitionCondition } from '@/types/animStateMachine';
 import type {

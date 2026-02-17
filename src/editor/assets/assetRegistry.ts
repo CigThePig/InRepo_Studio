@@ -35,7 +35,6 @@ import {
   type AssetGroupType,
 } from './assetGroup';
 import type {
-  AnimStateMachine,
   AnimState,
   AnimTransition,
 } from '@/types/animStateMachine';
