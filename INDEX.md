@@ -480,7 +480,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/assetLibraryTab.ts`
-  - Role: Left berry Assets Library tab UI for grouped assets.
+  - Role: Left berry Assets Library tab UI for grouped assets and animation management actions.
   - Lists of truth: none
 
 - `src/editor/panels/assetPalette.ts`
@@ -667,6 +667,14 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetRegistry.test.ts`
   - Role: Unit tests for asset registry rename/reorder behavior.
+  - Lists of truth: none
+
+- `src/editor/assets/animationRefs.ts`
+  - Role: Pure helper for collecting animation references in scene entities.
+  - Lists of truth: AnimationReferenceHit
+
+- `src/editor/assets/animationRefs.test.ts`
+  - Role: Unit tests for animation reference collection.
   - Lists of truth: none
 
 - `src/editor/assets/spriteSlider.ts`

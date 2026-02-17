@@ -141,7 +141,9 @@ export interface AssetRegistry {
   getAnimation(animationId: string): AnimationAsset | null;
   addAnimation(input: AnimationAssetInput): AnimationAsset;
   updateAnimation(animationId: string, updates: Partial<AnimationAssetInput>): AnimationAsset | null;
+  duplicateAnimation(animationId: string): AnimationAsset | null;
   removeAnimation(animationId: string): void;
+  onAnimationsChanged(callback: () => void): () => void;
   refreshFromRepo(manifest: RepoAssetManifest): void;
   uploadGroup(options: {
     groupType: AssetGroupType;
@@ -256,6 +258,25 @@ function buildRepoAssetId(type: AssetGroupType, slug: string, fileName: string):
   return `repo:${type}:${slug}:${fileName}`;
 }
 
+export function makeUniqueAnimationName(baseName: string, existingNames: Iterable<string>): string {
+  const normalized = baseName.trim() || 'Animation';
+  const used = new Set(Array.from(existingNames, (name) => name.trim().toLowerCase()));
+  if (!used.has(normalized.toLowerCase())) {
+    return normalized;
+  }
+
+  const copyBase = `${normalized} (copy)`;
+  if (!used.has(copyBase.toLowerCase())) {
+    return copyBase;
+  }
+
+  let index = 2;
+  while (used.has(`${normalized} (copy ${index})`.toLowerCase())) {
+    index += 1;
+  }
+  return `${normalized} (copy ${index})`;
+}
+
 function getUniqueSlug(groups: AssetGroup[], type: AssetGroupType, name: string): string {
   const base = createGroupSlug(name);
   let slug = base;
@@ -322,6 +343,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
   };
 
   const listeners = new Set<(state: AssetRegistryState) => void>();
+  const animationListeners = new Set<() => void>();
 
   function emit(next: AssetRegistryState): void {
     state = next;
@@ -340,6 +362,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       ...state,
       animations: nextAnimations,
     });
+    animationListeners.forEach((listener) => listener());
   }
 
   function findGroupIndex(type: AssetGroupType, slug: string): number {
@@ -532,9 +555,13 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
   }
 
   function addAnimation(input: AnimationAssetInput): AnimationAsset {
+    const uniqueName = makeUniqueAnimationName(
+      input.name,
+      state.animations.map((animation) => animation.name)
+    );
     const animation: AnimationAsset = {
       id: generateAnimationId(),
-      name: input.name,
+      name: uniqueName,
       frames: input.frames.map((frame) => ({
         sourceAssetId: frame.sourceAssetId,
         rect: { ...frame.rect },
@@ -559,9 +586,17 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     if (index === -1) return null;
 
     const current = state.animations[index];
+    const uniqueName = updates.name
+      ? makeUniqueAnimationName(
+        updates.name,
+        state.animations
+          .filter((animation) => animation.id !== animationId)
+          .map((animation) => animation.name)
+      )
+      : current.name;
     const next: AnimationAsset = {
       ...current,
-      name: updates.name ?? current.name,
+      name: uniqueName,
       frames: updates.frames
         ? updates.frames.map((frame) => ({
           sourceAssetId: frame.sourceAssetId,
@@ -584,6 +619,23 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     );
     updateAnimations(nextAnimations);
     return cloneAnimation(next);
+  }
+
+  function duplicateAnimation(animationId: string): AnimationAsset | null {
+    const source = state.animations.find((animation) => animation.id === animationId);
+    if (!source) return null;
+
+    const copy: AnimationAsset = {
+      ...cloneAnimation(source),
+      id: generateAnimationId(),
+      name: makeUniqueAnimationName(
+        source.name,
+        state.animations.map((animation) => animation.name)
+      ),
+      createdAt: Date.now(),
+    };
+    updateAnimations([...state.animations, copy]);
+    return cloneAnimation(copy);
   }
 
   function removeAnimation(animationId: string): void {
@@ -861,12 +913,17 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     getAnimation,
     addAnimation,
     updateAnimation,
+    duplicateAnimation,
     removeAnimation,
     refreshFromRepo,
     uploadGroup,
     onChange: (callback) => {
       listeners.add(callback);
       return () => listeners.delete(callback);
+    },
+    onAnimationsChanged: (callback) => {
+      animationListeners.add(callback);
+      return () => animationListeners.delete(callback);
     },
   };
 }

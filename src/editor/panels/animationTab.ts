@@ -466,6 +466,7 @@ export interface AnimationTabConfig {
   getEditorState: () => EditorState | null;
   entityManager?: EntityManager;
   history?: HistoryManager;
+  onBackToList?: () => void;
 }
 
 export interface AnimationTabController {
@@ -548,7 +549,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function createAnimationTab(config: AnimationTabConfig): AnimationTabController {
-  const { container, assetRegistry, getEditorState, entityManager, history } = config;
+  const { container, assetRegistry, getEditorState, entityManager, history, onBackToList } = config;
 
   if (!document.getElementById('animation-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -2061,6 +2062,15 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     row.appendChild(saveButton);
     row.appendChild(attachButton);
+
+    if (onBackToList) {
+      const backButton = document.createElement('button');
+      backButton.type = 'button';
+      backButton.className = 'animation-tab__button';
+      backButton.textContent = '← Back to List';
+      backButton.addEventListener('click', () => onBackToList());
+      row.appendChild(backButton);
+    }
     row.appendChild(sliceButton);
     row.appendChild(clearButton);
     row.appendChild(resetButton);
