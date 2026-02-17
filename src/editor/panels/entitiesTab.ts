@@ -626,20 +626,41 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     animationLabel.className = 'entities-tab__label';
     animationLabel.textContent = 'Animation';
 
+    const animationSetSelect = document.createElement('select');
+    animationSetSelect.className = 'entities-tab__input';
+    const noSetOption = document.createElement('option');
+    noSetOption.value = '';
+    noSetOption.textContent = 'Animation Set: None';
+    animationSetSelect.appendChild(noSetOption);
+
     const animationSelect = document.createElement('select');
     animationSelect.className = 'entities-tab__input';
 
     const noneOption = document.createElement('option');
     noneOption.value = '';
-    noneOption.textContent = 'None';
+    noneOption.textContent = 'Animation Clip: None';
     animationSelect.appendChild(noneOption);
 
     const animations = assetRegistry?.getAnimations() ?? [];
+    const animationSets = assetRegistry?.getAnimationSets() ?? [];
+    for (const animationSet of animationSets) {
+      const option = document.createElement('option');
+      option.value = animationSet.id;
+      option.textContent = `${animationSet.name} (${animationSet.id})`;
+      animationSetSelect.appendChild(option);
+    }
+
     for (const animation of animations) {
       const option = document.createElement('option');
       option.value = animation.id;
       option.textContent = `${animation.name} (${animation.id})`;
       animationSelect.appendChild(option);
+    }
+
+    const currentAnimationSetId = String(entity.properties?.animationSetId ?? '');
+    animationSetSelect.value = currentAnimationSetId;
+    if (animationSetSelect.value !== currentAnimationSetId) {
+      animationSetSelect.value = '';
     }
 
     const currentAnimationId = String(entity.properties?.animationId ?? '');
@@ -651,9 +672,9 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     const animationHint = document.createElement('div');
     animationHint.className = 'entities-tab__hint';
     animationHint.textContent = assetRegistry
-      ? animations.length > 0
-        ? 'Select a saved animation for this entity.'
-        : 'No saved animations yet. Create one in the Animation tab.'
+      ? animationSets.length > 0 || animations.length > 0
+        ? 'Animation sets override single animation clips when both are set.'
+        : 'No saved animations or sets yet. Create them in the Animation tab.'
       : 'Animation assignment is unavailable without the asset registry.';
 
     const animationActionRow = document.createElement('div');
@@ -671,13 +692,17 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       config.onEditAnimation?.(animationId);
     });
 
-    animationSelect.disabled = !assetRegistry;
-    animationSelect.addEventListener('change', () => {
-      const nextAnimationId = animationSelect.value;
+    const applyAnimationChange = (nextAnimationId: string, nextAnimationSetId: string): void => {
       const previousAnimationIdRaw = entity.properties?.animationId;
+      const previousAnimationSetIdRaw = entity.properties?.animationSetId;
       const previousAnimationId =
         typeof previousAnimationIdRaw === 'string' ? previousAnimationIdRaw : undefined;
-      if (previousAnimationId === nextAnimationId || (!previousAnimationId && nextAnimationId === '')) {
+      const previousAnimationSetId =
+        typeof previousAnimationSetIdRaw === 'string' ? previousAnimationSetIdRaw : undefined;
+      if (
+        previousAnimationId === (nextAnimationId || undefined)
+        && previousAnimationSetId === (nextAnimationSetId || undefined)
+      ) {
         editAnimationButton.disabled = !nextAnimationId;
         return;
       }
@@ -685,7 +710,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       const previousStateRaw = entity.properties?.animationState;
       const previousAnimationState =
         typeof previousStateRaw === 'string' ? previousStateRaw : undefined;
-      const nextAnimationState = nextAnimationId
+      const nextAnimationState = (nextAnimationId || nextAnimationSetId)
         ? previousAnimationState ?? 'idle'
         : undefined;
 
@@ -693,6 +718,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         id: entity.id,
         properties: {
           animationId: nextAnimationId || undefined,
+          animationSetId: nextAnimationSetId || undefined,
           animationState: nextAnimationState,
         },
       };
@@ -701,6 +727,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
         id: entity.id,
         properties: {
           animationId: previousAnimationId,
+          animationSetId: previousAnimationSetId,
           animationState: previousAnimationState,
         },
       };
@@ -710,7 +737,11 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       const operation: Operation = {
         id: generateOperationId(),
         type: 'entity_property_change',
-        description: nextAnimationId ? 'Assign entity animation' : 'Clear entity animation',
+        description: nextAnimationSetId
+          ? 'Assign entity animation set'
+          : nextAnimationId
+            ? 'Assign entity animation'
+            : 'Clear entity animation',
         execute: () => {
           entityManager.updateEntityProperties([nextUpdates]);
         },
@@ -721,10 +752,23 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
       history.push(operation);
       editAnimationButton.disabled = !nextAnimationId;
+    };
+
+    animationSetSelect.disabled = !assetRegistry;
+    animationSetSelect.addEventListener('change', () => {
+      const nextAnimationSetId = animationSetSelect.value;
+      applyAnimationChange(animationSelect.value, nextAnimationSetId);
+    });
+
+    animationSelect.disabled = !assetRegistry;
+    animationSelect.addEventListener('change', () => {
+      const nextAnimationId = animationSelect.value;
+      applyAnimationChange(nextAnimationId, animationSetSelect.value);
     });
 
     animationActionRow.appendChild(editAnimationButton);
     animationRow.appendChild(animationLabel);
+    animationRow.appendChild(animationSetSelect);
     animationRow.appendChild(animationSelect);
     animationRow.appendChild(animationHint);
     animationRow.appendChild(animationActionRow);

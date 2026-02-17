@@ -1,4 +1,5 @@
 import type { Scene } from '@/types';
+import type { AnimationSetAsset, Facing4 } from './assetRegistry';
 
 export interface AnimationEntityReferenceHit {
   kind: 'entity';
@@ -7,11 +8,18 @@ export interface AnimationEntityReferenceHit {
   field: 'animationId' | 'animationSetId' | 'animStateMachineId';
 }
 
-export type AnimationReferenceHit = AnimationEntityReferenceHit;
+export interface AnimationSetReferenceHit {
+  kind: 'animationSet';
+  setId: string;
+  facing?: Facing4;
+}
+
+export type AnimationReferenceHit = AnimationEntityReferenceHit | AnimationSetReferenceHit;
 
 export function collectAnimationReferences(
   animationId: string,
-  scenes: Record<string, Scene>
+  scenes: Record<string, Scene>,
+  animationSets: AnimationSetAsset[] = []
 ): AnimationReferenceHit[] {
   const target = animationId.trim();
   if (!target) return [];
@@ -29,6 +37,17 @@ export function collectAnimationReferences(
         field: 'animationId',
       });
     }
+  }
+
+  for (const animationSet of animationSets) {
+    (Object.entries(animationSet.directions) as Array<[Facing4, string]>).forEach(([facing, value]) => {
+      if (value !== target) return;
+      hits.push({
+        kind: 'animationSet',
+        setId: animationSet.id,
+        facing,
+      });
+    });
   }
 
   return hits;

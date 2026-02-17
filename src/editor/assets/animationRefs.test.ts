@@ -38,4 +38,20 @@ describe('collectAnimationReferences', () => {
       { kind: 'entity', sceneId: 's2', entityId: 'e3', field: 'animationId' },
     ]);
   });
+
+  it('includes animation set direction hits', () => {
+    const hits = collectAnimationReferences('anim-run', {}, [
+      {
+        id: 'set-1',
+        name: 'Player Walk',
+        createdAt: 1,
+        directions: { down: 'anim-idle', left: 'anim-run', right: 'anim-run' },
+      },
+    ]);
+
+    expect(hits).toEqual([
+      { kind: 'animationSet', setId: 'set-1', facing: 'left' },
+      { kind: 'animationSet', setId: 'set-1', facing: 'right' },
+    ]);
+  });
 });

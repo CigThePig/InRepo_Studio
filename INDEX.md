@@ -303,7 +303,7 @@ Micro-format (copy/paste):
 
 - `src/types/project.ts`
   - Role: ProjectSchema, TileCategorySchema, EntityTypeSchema.
-  - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema
+  - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema, ProjectAnimationSchema, ProjectAnimationSetSchema
 
 - `src/types/scene.ts`
   - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema, PropSpriteInstanceSchema.
@@ -348,7 +348,7 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations for workspace content, editor UI state, and legacy migration compatibility.
-  - Lists of truth: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema
+  - Lists of truth: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema, AssetRegistrySnapshot
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -488,7 +488,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/assetLibraryTab.ts`
-  - Role: Left berry Assets Library tab UI for grouped assets and animation management actions.
+  - Role: Left berry Assets Library tab UI for grouped assets, animation clips, and directional animation sets.
   - Lists of truth: none
 
 - `src/editor/panels/assetPalette.ts`
@@ -500,7 +500,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/entitiesTab.ts`
-  - Role: Entities mode tab UI for palette, selection, and inline property editing.
+  - Role: Entities mode tab UI for palette, selection, and inline property editing including animation set binding.
   - Lists of truth: none
 
 - `src/editor/presets/AGENTS.md`
@@ -671,14 +671,14 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetRegistry.ts`
   - Role: In-editor asset registry with grouped assets and selection state.
-  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode
+  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode, AnimationSetAsset, Facing4
 
 - `src/editor/assets/assetRegistry.test.ts`
   - Role: Unit tests for asset registry rename/reorder behavior.
   - Lists of truth: none
 
 - `src/editor/assets/animationRefs.ts`
-  - Role: Pure helper for collecting animation references in scene entities.
+  - Role: Pure helper for collecting animation references in scene entities and animation sets.
   - Lists of truth: AnimationReferenceHit
 
 - `src/editor/assets/animationRefs.test.ts`
@@ -769,7 +769,7 @@ Micro-format (copy/paste):
 
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/pack/buildProjectPack.ts`
-  - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent.
+  - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent including animations and animation sets.
   - Lists of truth: ProjectPack
 
 - `src/runtime/init.ts`
@@ -785,7 +785,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/runtime/projectLoader.ts`
-  - Role: Load project data and runtime assets.
+  - Role: Load project data and runtime assets, including animation set resolution.
   - Lists of truth: none
 
 - `src/runtime/sceneLoader.ts`
@@ -882,7 +882,7 @@ Micro-format (copy/paste):
   - Lists of truth: PresetDefinition (camera-follow)
 
 - `src/runtime/presets/defs/animation-driver.ts`
-  - Role: Animation driver preset definition + stub factory.
+  - Role: Animation driver preset definition + runtime factory for clip/set-based facing selection.
   - Lists of truth: PresetDefinition (animation-driver)
 
 ### Runtime ApiContext (Track 35)

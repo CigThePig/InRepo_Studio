@@ -93,6 +93,10 @@ function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState 
         durationMs: frame.durationMs,
       })),
     })),
+    animationSets: (state.animationSets ?? []).map((animationSet) => ({
+      ...animationSet,
+      directions: { ...animationSet.directions },
+    })),
   };
 }
 

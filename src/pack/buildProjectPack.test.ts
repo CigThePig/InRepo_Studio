@@ -27,6 +27,7 @@ function createWorkspace(overrides?: {
       groups: overrides?.groups ?? [],
       selectedAssetId: null,
       animations: [],
+      animationSets: [],
     },
     presetConfig: null,
     scripts: {},
@@ -98,6 +99,25 @@ describe('buildProjectPack atlas ordering stability', () => {
 
     const result = buildProjectPack(workspace);
     expect(result.project.animations?.[0]?.frames[0]?.durationMs).toBe(140);
+  });
+
+
+
+  it('compiles animation sets from asset registry state', () => {
+    const workspace = createWorkspace();
+    workspace.assetRegistry.animationSets = [{
+      id: 'set-player-walk',
+      name: 'Player Walk',
+      createdAt: 1,
+      directions: { down: 'anim-down', up: 'anim-up' },
+    }];
+
+    const result = buildProjectPack(workspace);
+    expect(result.project.animationSets).toEqual([{
+      id: 'set-player-walk',
+      name: 'Player Walk',
+      directions: { down: 'anim-down', up: 'anim-up' },
+    }]);
   });
 
   it('preserves existing slice index order even when registry order differs', () => {

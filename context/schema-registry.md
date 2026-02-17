@@ -147,7 +147,7 @@ Rules:
 
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state
-    - Keys: groups[], selectedAssetId, animations[]
+    - Keys: groups[], selectedAssetId, animations[], animationSets[]
     - Apply mode: live
   - `AssetEntry` — asset metadata stored in groups
     - Keys: id, name, type, source, dataUrl, width, height, createdAt
@@ -159,6 +159,8 @@ Rules:
     - Keys: sourceAssetId, rect{x,y,w,h}, offset?
   - `AnimationLoopMode` — animation looping behavior
     - Values: loop, once, pingpong
+  - `AnimationSetAsset` — directional animation-set metadata
+    - Keys: id, name, directions{down?,up?,left?,right?}, createdAt
 
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets
