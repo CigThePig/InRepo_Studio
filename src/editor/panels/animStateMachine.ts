@@ -309,7 +309,7 @@ export function createAnimStateMachineEditor(
     cursorY: 0,
   };
 
-  let animFrameId = 0;
+  const animFrameId = 0;
 
   // --- Canvas Sizing ---
 
