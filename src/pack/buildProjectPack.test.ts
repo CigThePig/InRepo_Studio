@@ -28,6 +28,7 @@ function createWorkspace(overrides?: {
       selectedAssetId: null,
       animations: [],
       animationSets: [],
+      animStateMachines: [],
     },
     presetConfig: null,
     scripts: {},

@@ -620,7 +620,6 @@ export function createAnimStateMachineEditor(
   let lastPointerX = 0;
   let lastPointerY = 0;
   let isPanning = false;
-  let pointerDownTime = 0;
 
   function onPointerDown(e: PointerEvent): void {
     const rect = canvas.getBoundingClientRect();
@@ -632,7 +631,6 @@ export function createAnimStateMachineEditor(
     lastPointerX = sx;
     lastPointerY = sy;
     isPanning = false;
-    pointerDownTime = Date.now();
 
     canvas.setPointerCapture(e.pointerId);
 
@@ -866,7 +864,7 @@ export function createAnimStateMachineEditor(
     inspector.appendChild(title);
 
     // Name field
-    const nameField = createField('Name', 'input', state.name, (value) => {
+    const nameField = createField('Name', state.name, (value) => {
       state.name = value;
       render();
     });
@@ -996,7 +994,6 @@ export function createAnimStateMachineEditor(
     if (transition.condition.type === 'exitTime') {
       const exitTimeField = createField(
         'Normalized Time (0-1)',
-        'input',
         String(transition.condition.normalizedTime),
         (value) => {
           const num = parseFloat(value);
@@ -1012,7 +1009,6 @@ export function createAnimStateMachineEditor(
     if (transition.condition.type === 'event') {
       const eventIdField = createField(
         'Event ID',
-        'input',
         transition.condition.eventId,
         (value) => {
           if (transition.condition.type === 'event') {
@@ -1027,7 +1023,6 @@ export function createAnimStateMachineEditor(
     if (transition.condition.type === 'state') {
       const stateIdField = createField(
         'State ID',
-        'input',
         transition.condition.stateId,
         (value) => {
           if (transition.condition.type === 'state') {
@@ -1061,7 +1056,6 @@ export function createAnimStateMachineEditor(
 
       const valueField = createField(
         'Value',
-        'input',
         String(transition.condition.value),
         (value) => {
           if (transition.condition.type === 'state') {
@@ -1081,7 +1075,6 @@ export function createAnimStateMachineEditor(
     // Priority
     const priorityField = createField(
       'Priority',
-      'input',
       String(transition.priority),
       (value) => {
         const num = parseInt(value, 10);
@@ -1107,7 +1100,6 @@ export function createAnimStateMachineEditor(
 
   function createField(
     label: string,
-    type: 'input',
     value: string,
     onChange: (value: string) => void
   ): HTMLElement {

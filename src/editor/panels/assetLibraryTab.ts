@@ -1226,16 +1226,18 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           event.stopPropagation();
           const scenes = await getAllScenes();
           const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
-          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets());
+          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets(), assetRegistry.getAnimStateMachines());
           if (hits.length === 0) {
             window.alert('No references found.');
             return;
           }
           const details = hits
             .slice(0, 12)
-            .map((hit) => hit.kind === 'entity'
-              ? `• Scene ${hit.sceneId} → Entity ${hit.entityId}`
-              : `• Animation Set ${hit.setId} (${hit.facing ?? 'unknown'})`)
+            .map((hit) => {
+              if (hit.kind === 'entity') return `• Scene ${hit.sceneId} → Entity ${hit.entityId}`;
+              if (hit.kind === 'animationSet') return `• Animation Set ${hit.setId} (${hit.facing ?? 'unknown'})`;
+              return `• State Machine ${hit.smId} → State ${hit.stateId ?? 'unknown'}`;
+            })
             .join('\n');
           const overflow = hits.length > 12 ? `\n…and ${hits.length - 12} more.` : '';
           window.alert(`Used in ${hits.length} place(s):\n${details}${overflow}`);
@@ -1253,7 +1255,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         deleteButton.addEventListener('click', async () => {
           const scenes = await getAllScenes();
           const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
-          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets());
+          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets(), assetRegistry.getAnimStateMachines());
           const confirmed = window.confirm(
             hits.length > 0
               ? `Delete "${animation.name}" and clear ${hits.length} reference(s)?`
@@ -1291,6 +1293,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           }
 
           assetRegistry.clearAnimationFromSets(animation.id);
+          assetRegistry.clearAnimationFromStateMachines(animation.id);
           assetRegistry.removeAnimation(animation.id);
         });
         deleteButton.addEventListener('pointerdown', (event) => {
