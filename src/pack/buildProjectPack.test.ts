@@ -48,6 +48,58 @@ function slice(name: string, x: number, tileId?: number): SpriteAtlasSlice {
 }
 
 describe('buildProjectPack atlas ordering stability', () => {
+  it('compiles animation frame duration overrides', () => {
+    const workspace = createWorkspace({
+      groups: [
+        {
+          type: 'props',
+          name: 'Sources',
+          slug: 'sources',
+          assets: [
+            {
+              id: 'atlas-terrain',
+              name: 'terrain',
+              type: 'sprite',
+              source: 'local',
+              dataUrl: 'assets/terrain.png',
+              width: 64,
+              height: 16,
+              createdAt: 1,
+            },
+            {
+              id: 'slice-a',
+              name: 'A',
+              type: 'sprite',
+              source: 'local',
+              dataUrl: 'assets/terrain.png',
+              width: 16,
+              height: 16,
+              createdAt: 2,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 0, y: 0, w: 16, h: 16 },
+            },
+          ],
+        },
+      ],
+    });
+    workspace.assetRegistry.animations = [{
+      id: 'anim-1',
+      name: 'idle',
+      fps: 8,
+      loopMode: 'loop',
+      pivot: { x: 0.5, y: 0.5 },
+      createdAt: 1,
+      frames: [{
+        sourceAssetId: 'atlas-terrain',
+        rect: { x: 0, y: 0, w: 16, h: 16 },
+        durationMs: 140,
+      }],
+    }];
+
+    const result = buildProjectPack(workspace);
+    expect(result.project.animations?.[0]?.frames[0]?.durationMs).toBe(140);
+  });
+
   it('preserves existing slice index order even when registry order differs', () => {
     const existingSlices = [slice('A', 0), slice('B', 16), slice('C', 32)];
 

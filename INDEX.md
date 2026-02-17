@@ -685,6 +685,14 @@ Micro-format (copy/paste):
   - Role: Unit tests for animation reference collection.
   - Lists of truth: none
 
+- `src/editor/assets/atlasImporter.ts`
+  - Role: Atlas JSON format detection/parsing for animation frame import.
+  - Lists of truth: AtlasImportFormat
+
+- `src/editor/assets/atlasImporter.test.ts`
+  - Role: Unit tests for atlas JSON parser coverage across supported formats.
+  - Lists of truth: none
+
 - `src/editor/assets/spriteSlider.ts`
   - Role: Sprite sheet slicing logic for asset prep.
   - Lists of truth: none

@@ -169,12 +169,24 @@ function registerProjectAnimations(
     // Skip if Phaser already has this animation registered
     if (phaserScene.anims.exists(key)) continue;
 
-    const frames = anim.frames.map((f) => ({ key: f.textureKey, frame: f.frame }));
+    const hasDurationOverrides = anim.frames.some((frame) =>
+      typeof frame.durationMs === 'number' && Number.isFinite(frame.durationMs)
+    );
+    const frames = anim.frames.map((f) => {
+      const frame: { key: string; frame: string; duration?: number } = {
+        key: f.textureKey,
+        frame: f.frame,
+      };
+      if (hasDurationOverrides && typeof f.durationMs === 'number' && Number.isFinite(f.durationMs)) {
+        frame.duration = Math.max(1, f.durationMs);
+      }
+      return frame;
+    });
 
     phaserScene.anims.create({
       key,
       frames,
-      frameRate: anim.fps,
+      frameRate: hasDurationOverrides ? undefined : anim.fps,
       repeat: anim.loopMode === 'loop' ? -1 : 0,
       yoyo: anim.loopMode === 'pingpong',
     });
