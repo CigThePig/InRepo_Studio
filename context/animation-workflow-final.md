@@ -156,6 +156,8 @@ Clear behavior:
 
 ### Track B — Animated Entity Preview on Canvas
 
+**Status:** ✅ Implemented (editor canvas now uses clock-driven animated frames for visible entities).
+
 **Goal:** Entities with assigned animations play their animation on the editor canvas instead of showing a static first frame.
 
 **Why second:** This is the single biggest gap in the current experience. Users create animations and assign them to entities but never see them move on the map until they hit Play.

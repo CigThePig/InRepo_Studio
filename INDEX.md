@@ -403,6 +403,10 @@ Micro-format (copy/paste):
   - Role: Main canvas controller (orchestrates viewport, gestures, rendering).
   - Lists of truth: none
 
+- `src/editor/canvas/animationClock.ts`
+  - Role: Shared animation playback clock for editor canvas entity previews.
+  - Lists of truth: AnimationClock, AnimationFrameSnapshot
+
 - `src/editor/canvas/tileCache.ts`
   - Role: Shared tile image cache for renderer and tile picker.
   - Lists of truth: none
@@ -418,6 +422,10 @@ Micro-format (copy/paste):
 - `src/editor/canvas/entityRenderer.ts`
   - Role: Entity rendering on canvas (sprites, placeholders, preview).
   - Lists of truth: EntityRendererConfig, EntityPreview
+
+- `src/editor/canvas/animationClock.test.ts`
+  - Role: Unit tests for editor canvas animation clock playback behavior.
+  - Lists of truth: none
 
 - `src/editor/panels/index.ts`
   - Role: Public exports for panels module.

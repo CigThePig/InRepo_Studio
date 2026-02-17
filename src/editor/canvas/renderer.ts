@@ -28,6 +28,7 @@ import type { TileImageCache } from './tileCache';
 import type { AtlasCache } from './atlasCache';
 import type { LayerVisibility, LayerLocks } from '@/storage/hot';
 import { createEntityRenderer, type EntityPreview } from './entityRenderer';
+import type { AnimationClock } from './animationClock';
 import type { AssetRegistry } from '@/editor/assets/assetRegistry';
 
 const LOG_PREFIX = '[Renderer]';
@@ -56,6 +57,7 @@ const SELECTION_BORDER = 'rgba(74, 158, 255, 0.9)';
 const SELECTION_FILL = 'rgba(74, 158, 255, 0.2)';
 const SELECTION_BORDER_WIDTH = 2;
 const SELECTION_MOVE_BORDER = 'rgba(114, 255, 196, 0.9)';
+const MAX_TRACKED_ANIMATIONS = 60;
 
 // Re-export TOUCH_OFFSET_Y for backwards compatibility
 export { TOUCH_OFFSET_Y } from './touchConfig';
@@ -152,6 +154,9 @@ export interface TilemapRenderer {
 
   /** Set asset registry used for animation frame previews */
   setAssetRegistry(assetRegistry: AssetRegistry | null): void;
+  setAnimationClock(animationClock: AnimationClock | null): void;
+  syncAnimationClock(viewport: ViewportState, canvasWidth: number, canvasHeight: number, deltaMs: number): boolean;
+  hasActiveAnimations(): boolean;
 
   /** Set entity placement preview */
   setEntityPreview(preview: EntityPreview | null): void;
@@ -285,6 +290,10 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   let entityPreview: EntityPreview | null = null;
   let propSpritePreview: PropSpritePreview | null = null;
   let selectedPropSpriteIds: string[] = [];
+  let assetRegistry: AssetRegistry | null = null;
+  let animationClock: AnimationClock | null = null;
+  let unsubscribeAnimationsChanged: (() => void) | null = null;
+  const trackedAnimationIds = new Set<string>();
   let dirty = true;
   const entityRenderer = createEntityRenderer({
     onSpriteLoad: () => {
@@ -381,6 +390,33 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
     // Reset opacity
     ctx.globalAlpha = 1.0;
+  }
+
+  function getVisibleAnimationIds(
+    viewport: ViewportState,
+    canvasWidth: number,
+    canvasHeight: number
+  ): Set<string> {
+    const ids = new Set<string>();
+    if (!scene?.entities?.length) return ids;
+
+    const pad = scene.tileSize * 2;
+    const minX = viewport.panX - pad;
+    const minY = viewport.panY - pad;
+    const maxX = viewport.panX + canvasWidth / viewport.zoom + pad;
+    const maxY = viewport.panY + canvasHeight / viewport.zoom + pad;
+
+    for (const entity of scene.entities) {
+      if (entity.x < minX || entity.x > maxX || entity.y < minY || entity.y > maxY) {
+        continue;
+      }
+      const animationId = entity.properties?.animationId;
+      if (typeof animationId === 'string' && animationId.trim()) {
+        ids.add(animationId);
+      }
+    }
+
+    return ids;
   }
 
   function renderHoverHighlight(
@@ -634,9 +670,77 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
       dirty = true;
     },
 
-    setAssetRegistry(assetRegistry: AssetRegistry | null): void {
-      entityRenderer.setAssetRegistry(assetRegistry);
+    setAssetRegistry(nextAssetRegistry: AssetRegistry | null): void {
+      entityRenderer.setAssetRegistry(nextAssetRegistry);
+      unsubscribeAnimationsChanged?.();
+      unsubscribeAnimationsChanged = null;
+      if (animationClock) {
+        for (const animationId of trackedAnimationIds) {
+          animationClock.unregister(animationId);
+        }
+      }
+      trackedAnimationIds.clear();
+      assetRegistry = nextAssetRegistry;
+      if (assetRegistry) {
+        unsubscribeAnimationsChanged = assetRegistry.onAnimationsChanged(() => {
+          if (animationClock) {
+            for (const animationId of trackedAnimationIds) {
+              animationClock.unregister(animationId);
+            }
+          }
+          trackedAnimationIds.clear();
+          dirty = true;
+        });
+      }
       dirty = true;
+    },
+
+    setAnimationClock(nextAnimationClock: AnimationClock | null): void {
+      animationClock = nextAnimationClock;
+      entityRenderer.setAnimationClock(nextAnimationClock);
+      trackedAnimationIds.clear();
+      dirty = true;
+    },
+
+    syncAnimationClock(
+      viewport: ViewportState,
+      canvasWidth: number,
+      canvasHeight: number,
+      deltaMs: number
+    ): boolean {
+      if (!animationClock || !assetRegistry) return false;
+
+      const visibleAnimationIds = getVisibleAnimationIds(viewport, canvasWidth, canvasHeight);
+      for (const animationId of trackedAnimationIds) {
+        if (!visibleAnimationIds.has(animationId)) {
+          animationClock.unregister(animationId);
+          trackedAnimationIds.delete(animationId);
+        }
+      }
+
+      for (const animationId of visibleAnimationIds) {
+        if (trackedAnimationIds.has(animationId)) continue;
+        if (trackedAnimationIds.size >= MAX_TRACKED_ANIMATIONS) break;
+        const animation = assetRegistry.getAnimation(animationId);
+        if (!animation) continue;
+        animationClock.register(animationId, animation);
+        trackedAnimationIds.add(animationId);
+      }
+
+      if (trackedAnimationIds.size === 0) return false;
+      const dirtyAnimationIds = animationClock.tick(deltaMs);
+      for (const animationId of dirtyAnimationIds) {
+        if (visibleAnimationIds.has(animationId)) {
+          dirty = true;
+          return true;
+        }
+      }
+      return false;
+    },
+
+
+    hasActiveAnimations(): boolean {
+      return trackedAnimationIds.size > 0;
     },
 
     setEntityPreview(preview: EntityPreview | null): void {
