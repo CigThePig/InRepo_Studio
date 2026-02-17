@@ -48,6 +48,7 @@ const CATEGORY_COLOURS: Record<PresetCategoryId, number> = {
   movement: 160,
   camera: 30,
   animation: 290,
+  'entity-animation': 290,
 };
 
 const DEFAULT_COLOUR = 230;

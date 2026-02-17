@@ -44,6 +44,7 @@ const VALID_CATEGORIES: readonly PresetCategoryId[] = [
   'movement',
   'camera',
   'animation',
+  'entity-animation',
 ];
 
 const VALID_KNOB_TYPES: readonly KnobType[] = [

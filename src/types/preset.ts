@@ -14,7 +14,7 @@
  * - PresetSavedConfig — persisted preset configuration (/game/presets.json shape)
  *
  * Canonical key set:
- * - Category IDs: controls, movement, camera, animation
+ * - Category IDs: controls, movement, camera, animation, entity-animation
  * - Naming: category prefix on all command/event/state IDs
  *
  * Apply/Rebuild semantics:
@@ -28,7 +28,7 @@
 
 // --- Preset Categories (v1) ---
 
-export type PresetCategoryId = 'controls' | 'movement' | 'camera' | 'animation';
+export type PresetCategoryId = 'controls' | 'movement' | 'camera' | 'animation' | 'entity-animation';
 
 // --- Knob Types ---
 

@@ -129,6 +129,7 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
             camera: registry.getById('camera-follow')?.definition.id
               ?? registry.getDefaultForCategory('camera'),
             animation: registry.getDefaultForCategory('animation'),
+            'entity-animation': registry.getDefaultForCategory('entity-animation'),
           };
 
           for (const [category, presetId] of Object.entries(defaultPresetByCategory)) {

@@ -40,7 +40,7 @@ import type { LeftBerryController } from '@/editor/panels/leftBerry';
 const LOG_PREFIX = '[BlocklyCockpit]';
 
 /** Preset category IDs used for building the preset target group. */
-const PRESET_CATEGORIES = ['controls', 'movement', 'camera', 'animation'] as const;
+const PRESET_CATEGORIES = ['controls', 'movement', 'camera', 'animation', 'entity-animation'] as const;
 
 // --- Types ---
 

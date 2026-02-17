@@ -4,7 +4,7 @@
  * Purpose: Entity animation preset definition + runtime behavior.
  *
  * Defines:
- * - PresetDefinition (animation-entity-animator)
+ * - PresetDefinition (entity-animation-animator)
  *
  * Canonical key set:
  * - Knobs: defaultAnim, autoFacing, phaseMode
@@ -26,8 +26,8 @@ import type {
 import { getRuntimeEnv } from '../runtimeEnv';
 
 export const definition: PresetDefinition = {
-  id: 'animation-entity-animator',
-  category: 'animation',
+  id: 'entity-animation-animator',
+  category: 'entity-animation',
   label: 'Entity Animator',
   description:
     'Controls non-player entity animations with Blockly commands. If you target the player entity, this preset temporarily suppresses Animation Driver auto-selection.',
@@ -117,6 +117,7 @@ export const definition: PresetDefinition = {
       'movement-platformer',
       'camera-follow',
       'animation-driver',
+      'entity-animation-animator',
     ],
   },
 };
@@ -181,6 +182,8 @@ export const factory: PresetFactory = (def): PresetInstance => {
     if (!env || !sprite) return;
 
     const animationKey = resolveAnimationKey(rawAnimationKey);
+    if (!sprite.scene.anims.exists(animationKey)) return;
+
     const pivot = env.getAnimationPivotByKey?.(animationKey);
     if (pivot) sprite.setOrigin(pivot.x, pivot.y);
 

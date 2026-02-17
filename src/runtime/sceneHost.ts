@@ -92,7 +92,7 @@ export class SceneHost {
         apiVersion: API_VERSION,
         schemaVersion: SCHEMA_VERSION,
         logicTarget: { type: 'game', id: 'main', label: 'Game Logic' },
-        categories: ['controls', 'movement', 'camera', 'animation'],
+        categories: ['controls', 'movement', 'camera', 'animation', 'entity-animation'],
         capabilities: {},
       },
       onCall: (commandId, args) => this.presetManager.handleCall(commandId, args),
