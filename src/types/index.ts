@@ -37,6 +37,14 @@ export type {
   ProjectAnimationSet,
 } from './animation';
 
+// Animation state machine types
+export type {
+  AnimStateMachine,
+  AnimState,
+  AnimTransition,
+  TransitionCondition,
+} from './animStateMachine';
+
 // Scene types
 export type {
   Scene,

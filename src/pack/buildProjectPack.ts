@@ -1,6 +1,7 @@
 import type { WorkspaceContent } from '@/types/workspace';
 import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
 import type { ProjectAnimation, ProjectAnimationFrame, ProjectAnimationSet } from '@/types/animation';
+import type { AnimStateMachine } from '@/types/animStateMachine';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 // NOTE: Indices used by scenes are stable local tile ids (`slice.tileId`).
@@ -258,6 +259,7 @@ export function buildProjectPack(
   // --- Compile animations ---
   const compiledAnimations = compileAnimations(registryState, atlasMap, diagnostics);
   const compiledAnimationSets = compileAnimationSets(registryState);
+  const compiledStateMachines = compileStateMachines(registryState);
 
   return {
     project: {
@@ -265,6 +267,7 @@ export function buildProjectPack(
       spriteAtlases,
       animations: compiledAnimations,
       animationSets: compiledAnimationSets,
+      animStateMachines: compiledStateMachines,
     },
     scenes: workspace.scenes,
     diagnostics,
@@ -405,4 +408,37 @@ function compileAnimations(
   });
 
   return compiled;
+}
+
+
+function compileStateMachines(
+  registryState: WorkspaceContent['assetRegistry']
+): AnimStateMachine[] {
+  const stateMachines = registryState.animStateMachines ?? [];
+  if (stateMachines.length === 0) return [];
+
+  return stateMachines
+    .map((sm) => ({
+      id: sm.id,
+      name: sm.name,
+      initialStateId: sm.initialStateId,
+      states: sm.states.map((s) => ({
+        id: s.id,
+        name: s.name,
+        animationId: s.animationId,
+        loop: s.loop,
+        position: { x: s.position.x, y: s.position.y },
+      })),
+      transitions: sm.transitions.map((t) => ({
+        id: t.id,
+        fromStateId: t.fromStateId,
+        toStateId: t.toStateId,
+        condition: { ...t.condition },
+        priority: t.priority,
+      })),
+    }))
+    .sort((a, b) => {
+      const nameCompare = a.name.localeCompare(b.name);
+      return nameCompare !== 0 ? nameCompare : a.id.localeCompare(b.id);
+    });
 }

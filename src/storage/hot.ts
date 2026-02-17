@@ -97,6 +97,17 @@ function cloneAssetRegistryState(state: AssetRegistryState): AssetRegistryState 
       ...animationSet,
       directions: { ...animationSet.directions },
     })),
+    animStateMachines: (state.animStateMachines ?? []).map((sm) => ({
+      ...sm,
+      states: sm.states.map((s) => ({
+        ...s,
+        position: { ...s.position },
+      })),
+      transitions: sm.transitions.map((t) => ({
+        ...t,
+        condition: { ...t.condition },
+      })),
+    })),
   };
 }
 

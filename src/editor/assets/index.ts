@@ -11,6 +11,8 @@ export type {
   AnimationAssetInput,
   AnimationSetAsset,
   AnimationSetAssetInput,
+  AnimStateMachineAsset,
+  AnimStateMachineAssetInput,
   AnimationFrameRef,
   AnimationLoopMode,
   Facing4,
@@ -21,4 +23,4 @@ export type { AssetGroup, AssetGroupType } from './assetGroup';
 export { makeGroupKey, parseGroupKey } from './groupKey';
 
 export { collectAnimationReferences } from './animationRefs';
-export type { AnimationReferenceHit } from './animationRefs';
+export type { AnimationReferenceHit, AnimStateMachineReferenceHit } from './animationRefs';

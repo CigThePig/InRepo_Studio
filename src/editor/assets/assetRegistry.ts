@@ -34,6 +34,11 @@ import {
   type AssetGroup,
   type AssetGroupType,
 } from './assetGroup';
+import type {
+  AnimStateMachine,
+  AnimState,
+  AnimTransition,
+} from '@/types/animStateMachine';
 
 export type AssetEntryType = 'tile' | 'sprite' | 'entity';
 export type AssetEntrySource = 'local' | 'repo';
@@ -89,6 +94,7 @@ export interface AssetRegistryState {
   selectedAssetId: string | null;
   animations: AnimationAsset[];
   animationSets: AnimationSetAsset[];
+  animStateMachines: AnimStateMachineAsset[];
 }
 
 export interface AssetEntryInput {
@@ -116,6 +122,22 @@ export interface AnimationAssetInput {
 export interface AnimationSetAssetInput {
   name: string;
   directions: Partial<Record<Facing4, string>>;
+}
+
+export interface AnimStateMachineAsset {
+  id: string;
+  name: string;
+  initialStateId: string;
+  states: AnimState[];
+  transitions: AnimTransition[];
+  createdAt: number;
+}
+
+export interface AnimStateMachineAssetInput {
+  name: string;
+  initialStateId: string;
+  states: AnimState[];
+  transitions: AnimTransition[];
 }
 
 export interface AssetRegistry {
@@ -173,6 +195,16 @@ export interface AssetRegistry {
   removeAnimationSet(animationSetId: string): void;
   clearAnimationFromSets(animationId: string): void;
   onAnimationSetsChanged(callback: () => void): () => void;
+  getAnimStateMachines(): AnimStateMachineAsset[];
+  getAnimStateMachine(stateMachineId: string): AnimStateMachineAsset | null;
+  addAnimStateMachine(input: AnimStateMachineAssetInput): AnimStateMachineAsset;
+  updateAnimStateMachine(
+    stateMachineId: string,
+    updates: Partial<AnimStateMachineAssetInput>
+  ): AnimStateMachineAsset | null;
+  removeAnimStateMachine(stateMachineId: string): void;
+  clearAnimationFromStateMachines(animationId: string): void;
+  onAnimStateMachinesChanged(callback: () => void): () => void;
   refreshFromRepo(manifest: RepoAssetManifest): void;
   uploadGroup(options: {
     groupType: AssetGroupType;
@@ -187,6 +219,7 @@ export const DEFAULT_ASSET_REGISTRY_STATE: AssetRegistryState = {
   selectedAssetId: null,
   animations: [],
   animationSets: [],
+  animStateMachines: [],
 };
 
 export type AssetGroupUploadHandler = (options: {
@@ -229,6 +262,20 @@ function cloneAnimationSet(animationSet: AnimationSetAsset): AnimationSetAsset {
   return {
     ...animationSet,
     directions: { ...animationSet.directions },
+  };
+}
+
+function cloneAnimStateMachine(sm: AnimStateMachineAsset): AnimStateMachineAsset {
+  return {
+    ...sm,
+    states: sm.states.map((state) => ({
+      ...state,
+      position: { ...state.position },
+    })),
+    transitions: sm.transitions.map((transition) => ({
+      ...transition,
+      condition: { ...transition.condition },
+    })),
   };
 }
 
@@ -296,6 +343,10 @@ function generateAnimationSetId(): string {
   return generateAssetId();
 }
 
+function generateStateMachineId(): string {
+  return generateAssetId();
+}
+
 function buildRepoAssetId(type: AssetGroupType, slug: string, fileName: string): string {
   return `repo:${type}:${slug}:${fileName}`;
 }
@@ -321,6 +372,25 @@ export function makeUniqueAnimationName(baseName: string, existingNames: Iterabl
 
 export function makeUniqueAnimationSetName(baseName: string, existingNames: Iterable<string>): string {
   const normalized = baseName.trim() || 'Animation Set';
+  const used = new Set(Array.from(existingNames, (name) => name.trim().toLowerCase()));
+  if (!used.has(normalized.toLowerCase())) {
+    return normalized;
+  }
+
+  const copyBase = `${normalized} (copy)`;
+  if (!used.has(copyBase.toLowerCase())) {
+    return copyBase;
+  }
+
+  let index = 2;
+  while (used.has(`${normalized} (copy ${index})`.toLowerCase())) {
+    index += 1;
+  }
+  return `${normalized} (copy ${index})`;
+}
+
+export function makeUniqueStateMachineName(baseName: string, existingNames: Iterable<string>): string {
+  const normalized = baseName.trim() || 'State Machine';
   const used = new Set(Array.from(existingNames, (name) => name.trim().toLowerCase()));
   if (!used.has(normalized.toLowerCase())) {
     return normalized;
@@ -402,11 +472,13 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     groups: ensureDefaultGroups(initialState?.groups ?? DEFAULT_ASSET_REGISTRY_STATE.groups),
     animations: initialState?.animations?.map((animation) => cloneAnimation(animation)) ?? [],
     animationSets: initialState?.animationSets?.map((set) => cloneAnimationSet(set)) ?? [],
+    animStateMachines: initialState?.animStateMachines?.map((sm) => cloneAnimStateMachine(sm)) ?? [],
   };
 
   const listeners = new Set<(state: AssetRegistryState) => void>();
   const animationListeners = new Set<() => void>();
   const animationSetListeners = new Set<() => void>();
+  const stateMachineListeners = new Set<() => void>();
 
   function emit(next: AssetRegistryState): void {
     state = next;
@@ -434,6 +506,14 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       animationSets: nextAnimationSets,
     });
     animationSetListeners.forEach((listener) => listener());
+  }
+
+  function updateAnimStateMachines(nextStateMachines: AnimStateMachineAsset[]): void {
+    emit({
+      ...state,
+      animStateMachines: nextStateMachines,
+    });
+    stateMachineListeners.forEach((listener) => listener());
   }
 
   function findGroupIndex(type: AssetGroupType, slug: string): number {
@@ -797,6 +877,99 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     updateAnimationSets(nextAnimationSets);
   }
 
+  function getAnimStateMachines(): AnimStateMachineAsset[] {
+    return state.animStateMachines.map((sm) => cloneAnimStateMachine(sm));
+  }
+
+  function getAnimStateMachine(stateMachineId: string): AnimStateMachineAsset | null {
+    const found = state.animStateMachines.find((sm) => sm.id === stateMachineId);
+    return found ? cloneAnimStateMachine(found) : null;
+  }
+
+  function addAnimStateMachine(input: AnimStateMachineAssetInput): AnimStateMachineAsset {
+    const uniqueName = makeUniqueStateMachineName(
+      input.name,
+      state.animStateMachines.map((sm) => sm.name)
+    );
+
+    const stateMachine: AnimStateMachineAsset = {
+      id: generateStateMachineId(),
+      name: uniqueName,
+      initialStateId: input.initialStateId,
+      states: input.states.map((s) => ({
+        ...s,
+        position: { ...s.position },
+      })),
+      transitions: input.transitions.map((t) => ({
+        ...t,
+        condition: { ...t.condition },
+      })),
+      createdAt: Date.now(),
+    };
+
+    updateAnimStateMachines([...state.animStateMachines, stateMachine]);
+    return cloneAnimStateMachine(stateMachine);
+  }
+
+  function updateAnimStateMachine(
+    stateMachineId: string,
+    updates: Partial<AnimStateMachineAssetInput>
+  ): AnimStateMachineAsset | null {
+    const index = state.animStateMachines.findIndex((sm) => sm.id === stateMachineId);
+    if (index === -1) return null;
+
+    const current = state.animStateMachines[index];
+    const uniqueName = updates.name
+      ? makeUniqueStateMachineName(
+        updates.name,
+        state.animStateMachines
+          .filter((sm) => sm.id !== stateMachineId)
+          .map((sm) => sm.name)
+      )
+      : current.name;
+
+    const next: AnimStateMachineAsset = {
+      ...current,
+      name: uniqueName,
+      initialStateId: updates.initialStateId ?? current.initialStateId,
+      states: updates.states
+        ? updates.states.map((s) => ({ ...s, position: { ...s.position } }))
+        : current.states.map((s) => ({ ...s, position: { ...s.position } })),
+      transitions: updates.transitions
+        ? updates.transitions.map((t) => ({ ...t, condition: { ...t.condition } }))
+        : current.transitions.map((t) => ({ ...t, condition: { ...t.condition } })),
+    };
+
+    const nextStateMachines = state.animStateMachines.map((sm, idx) =>
+      idx === index ? next : sm
+    );
+    updateAnimStateMachines(nextStateMachines);
+    return cloneAnimStateMachine(next);
+  }
+
+  function removeAnimStateMachine(stateMachineId: string): void {
+    const nextStateMachines = state.animStateMachines.filter((sm) => sm.id !== stateMachineId);
+    if (nextStateMachines.length === state.animStateMachines.length) return;
+    updateAnimStateMachines(nextStateMachines);
+  }
+
+  function clearAnimationFromStateMachines(animationId: string): void {
+    let changed = false;
+    const nextStateMachines = state.animStateMachines.map((sm) => {
+      const nextStates = sm.states.map((s) => {
+        if (s.animationId === animationId) {
+          changed = true;
+          return { ...s, animationId: '', position: { ...s.position } };
+        }
+        return s;
+      });
+      return changed ? { ...sm, states: nextStates } : sm;
+    });
+
+    if (!changed) return;
+    updateAnimStateMachines(nextStateMachines);
+  }
+
   function renameAsset(assetId: string, nextName: string): void {
     const trimmedName = nextName.trim();
     if (!trimmedName) return;
@@ -1087,6 +1260,16 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     onAnimationSetsChanged: (callback) => {
       animationSetListeners.add(callback);
       return () => animationSetListeners.delete(callback);
+    },
+    getAnimStateMachines,
+    getAnimStateMachine,
+    addAnimStateMachine,
+    updateAnimStateMachine,
+    removeAnimStateMachine,
+    clearAnimationFromStateMachines,
+    onAnimStateMachinesChanged: (callback) => {
+      stateMachineListeners.add(callback);
+      return () => stateMachineListeners.delete(callback);
     },
   };
 }
