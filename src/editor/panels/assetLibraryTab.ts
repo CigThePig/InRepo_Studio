@@ -1,5 +1,7 @@
 import type { AssetRegistry, AssetEntry, AssetGroup, AssetGroupType } from '@/editor/assets';
 import { makeGroupKey } from '@/editor/assets/groupKey';
+import { collectAnimationReferences } from '@/editor/assets/animationRefs';
+import { getAllScenes, saveScene } from '@/storage/hot';
 import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
@@ -410,6 +412,23 @@ const STYLES = `
     background: rgba(22, 30, 60, 0.9);
     color: #ffb6c1;
     font-size: 12px;
+    cursor: pointer;
+  }
+
+  .asset-library__animation-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .asset-library__animation-action {
+    min-height: 32px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    border-radius: 8px;
+    background: rgba(18, 26, 52, 0.85);
+    color: #dbe4ff;
+    font-size: 11px;
+    padding: 4px 8px;
     cursor: pointer;
   }
 `;
@@ -1113,11 +1132,100 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
       card.appendChild(meta);
 
+      const actions = document.createElement('div');
+      actions.className = 'asset-library__animation-actions';
+
+      const renameButton = document.createElement('button');
+      renameButton.type = 'button';
+      renameButton.className = 'asset-library__animation-action';
+      renameButton.textContent = 'Rename';
+      renameButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nextName = window.prompt('Rename animation', animation.name);
+        if (!nextName) return;
+        assetRegistry.updateAnimation(animation.id, { name: nextName });
+      });
+
+      const duplicateButton = document.createElement('button');
+      duplicateButton.type = 'button';
+      duplicateButton.className = 'asset-library__animation-action';
+      duplicateButton.textContent = 'Duplicate';
+      duplicateButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const duplicated = assetRegistry.duplicateAnimation(animation.id);
+        if (duplicated) {
+          onOpenAnimation?.(duplicated.id);
+        }
+      });
+
+      const whereUsedButton = document.createElement('button');
+      whereUsedButton.type = 'button';
+      whereUsedButton.className = 'asset-library__animation-action';
+      whereUsedButton.textContent = 'Where Used';
+      whereUsedButton.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const scenes = await getAllScenes();
+        const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+        const hits = collectAnimationReferences(animation.id, sceneMap);
+        if (hits.length === 0) {
+          window.alert('No entity references found.');
+          return;
+        }
+        const details = hits
+          .slice(0, 12)
+          .map((hit) => `• Scene ${hit.sceneId} → Entity ${hit.entityId}`)
+          .join('\n');
+        const overflow = hits.length > 12 ? `\n…and ${hits.length - 12} more.` : '';
+        window.alert(`Used in ${hits.length} place(s):\n${details}${overflow}`);
+      });
+
+      actions.appendChild(renameButton);
+      actions.appendChild(duplicateButton);
+      actions.appendChild(whereUsedButton);
+      card.appendChild(actions);
+
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'asset-library__animation-delete';
       deleteButton.textContent = '×';
-      deleteButton.addEventListener('click', () => {
+      deleteButton.addEventListener('click', async () => {
+        const scenes = await getAllScenes();
+        const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+        const hits = collectAnimationReferences(animation.id, sceneMap);
+        const confirmed = window.confirm(
+          hits.length > 0
+            ? `Delete "${animation.name}" and clear ${hits.length} entity reference(s)?`
+            : `Delete "${animation.name}"?`
+        );
+        if (!confirmed) return;
+
+        if (hits.length > 0) {
+          const updatesByScene = new Map<string, Set<string>>();
+          for (const hit of hits) {
+            if (!updatesByScene.has(hit.sceneId)) {
+              updatesByScene.set(hit.sceneId, new Set());
+            }
+            updatesByScene.get(hit.sceneId)?.add(hit.entityId);
+          }
+
+          for (const scene of scenes) {
+            const ids = updatesByScene.get(scene.id);
+            if (!ids || ids.size === 0) continue;
+            let changed = false;
+            const nextEntities = scene.entities.map((entity) => {
+              if (!ids.has(entity.id)) return entity;
+              if (entity.properties?.animationId !== animation.id) return entity;
+              changed = true;
+              const nextProperties = { ...(entity.properties ?? {}) };
+              delete nextProperties.animationId;
+              return { ...entity, properties: nextProperties };
+            });
+            if (changed) {
+              await saveScene({ ...scene, entities: nextEntities });
+            }
+          }
+        }
+
         assetRegistry.removeAnimation(animation.id);
       });
       deleteButton.addEventListener('pointerdown', (event) => {

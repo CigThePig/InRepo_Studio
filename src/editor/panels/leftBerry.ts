@@ -460,6 +460,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
         getEditorState: getEditorState ?? (() => null),
         entityManager,
         history,
+        onBackToList: () => setActiveTab('assets'),
       });
     } else {
       animationContainer.appendChild(

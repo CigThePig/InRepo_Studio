@@ -16,3 +16,6 @@ export type {
 } from './assetRegistry';
 export type { AssetGroup, AssetGroupType } from './assetGroup';
 export { makeGroupKey, parseGroupKey } from './groupKey';
+
+export { collectAnimationReferences } from './animationRefs';
+export type { AnimationReferenceHit } from './animationRefs';
