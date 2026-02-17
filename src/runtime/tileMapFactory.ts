@@ -6,6 +6,7 @@ import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import {
   buildRuntimeTilesetRegistry,
   type NonTilemapTileUsage,
+  type RuntimeTilesetRegistry,
 } from '@/runtime/tiles/runtimeTilesetRegistry';
 import {
   DEPTH_GROUND,
@@ -64,32 +65,28 @@ function createOverlay(scene: Phaser.Scene, config: OverlayConfig): Phaser.GameO
 
 function addTilesets(
   tilemap: Phaser.Tilemaps.Tilemap,
-  registry: ReturnType<typeof buildRuntimeTilesetRegistry>,
+  registry: RuntimeTilesetRegistry,
   tileSize: number,
 ): Phaser.Tilemaps.Tileset[] {
-  const tilesets: Phaser.Tilemaps.Tileset[] = [];
-  for (const entry of registry.tilesets) {
-    const tileset = tilemap.addTilesetImage(
-      entry.key,
-      entry.textureKey,
-      tileSize,
-      tileSize,
-      0,
-      0,
-      entry.firstGid,
-    );
-    if (tileset) {
-      tilesets.push(tileset);
-    }
-  }
-  return tilesets;
+  if (registry.tilesets.length === 0) return [];
+
+  const binding = registry.tilesets[0];
+  const tileset = tilemap.addTilesetImage(
+    binding.key,
+    binding.textureKey,
+    tileSize,
+    tileSize,
+    0,
+    0,
+  );
+  return tileset ? [tileset] : [];
 }
 
 function paintTileLayer(
   layer: Phaser.Tilemaps.TilemapLayer | null,
   data: number[][],
   sceneRuntime: SceneRuntime,
-  registry: ReturnType<typeof buildRuntimeTilesetRegistry>,
+  registry: RuntimeTilesetRegistry,
 ): void {
   if (!layer) return;
 
@@ -98,9 +95,9 @@ function paintTileLayer(
       const sourceGid = data[y][x];
       if (sourceGid <= 0) continue;
       const tileRef = resolveTileGid(sceneRuntime.scene, sourceGid);
-      const runtimeGid = registry.resolveGid(tileRef);
-      if (runtimeGid <= 0) continue;
-      layer.putTileAt(runtimeGid, x, y);
+      const runtimeIndex = registry.resolveTileIndex(tileRef);
+      if (runtimeIndex < 0) continue;
+      layer.putTileAt(runtimeIndex, x, y);
     }
   }
 }
@@ -121,14 +118,24 @@ function spawnFallbackSprites(
     const category = separatorIndex >= 0 ? usage.key.slice(0, separatorIndex) : usage.key;
     const indexRaw = separatorIndex >= 0 ? usage.key.slice(separatorIndex + 1) : '';
     const index = Number(indexRaw);
-    if (!category.startsWith('atlas:') || !Number.isFinite(index)) continue;
+    if (!Number.isFinite(index)) continue;
 
-    const atlas = (projectRuntime.project.spriteAtlases ?? []).find(
-      (item) => getAtlasCategoryName(item.path) === category,
-    );
-    const slice = atlas?.slices?.[index];
-    const textureKey = projectRuntime.getAtlasTextureKey(category);
-    if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) continue;
+    let textureKey: string | null = null;
+    let frameName: string | undefined;
+
+    if (category.startsWith('atlas:')) {
+      const atlas = (projectRuntime.project.spriteAtlases ?? []).find(
+        (item) => getAtlasCategoryName(item.path) === category,
+      );
+      const slice = atlas?.slices?.[index];
+      textureKey = projectRuntime.getAtlasTextureKey(category);
+      if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) continue;
+      frameName = slice.name;
+    } else {
+      textureKey = projectRuntime.getTileTextureKey(category, index);
+      if (!textureKey || !phaserScene.textures.exists(textureKey)) continue;
+      frameName = undefined;
+    }
 
     for (const placement of usage.placements) {
       const sprite = phaserScene.add
@@ -136,7 +143,7 @@ function spawnFallbackSprites(
           placement.x * tileSize + tileSize / 2,
           placement.y * tileSize + tileSize / 2,
           textureKey,
-          slice.name,
+          frameName,
         )
         .setDisplaySize(tileSize, tileSize)
         .setOrigin(0.5, 0.5);
@@ -148,7 +155,7 @@ function spawnFallbackSprites(
       return sourceGid > 0;
     });
     if (isGroundPlacement) {
-      console.warn(`${LOG_PREFIX} Ground layer using non-tilemap atlas fallback. Seams can reappear.`, usage);
+      console.warn(`${LOG_PREFIX} Ground layer using sprite fallback (seams can reappear).`, usage);
     }
   }
 
