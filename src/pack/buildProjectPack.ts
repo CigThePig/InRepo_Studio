@@ -3,6 +3,10 @@ import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
 import type { ProjectAnimation, ProjectAnimationFrame } from '@/types/animation';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
+// NOTE: Atlas tile references in scenes are numeric indices into `spriteAtlases[].slices[]`.
+// Never sort atlas slices or atlas entries during pack build. Reordering causes index drift,
+// which makes runtime/playtest render different atlas tiles than the editor.
+
 export interface BuildProjectPackOptions {
   resolveAssetPathForDeploy?: (assetId: string) => string | null;
 }
@@ -11,6 +15,67 @@ export interface ProjectPack {
   project: WorkspaceContent['project'];
   scenes: WorkspaceContent['scenes'];
   diagnostics: string[];
+}
+
+function normalizeAtlasPath(path: string): string {
+  return path
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/^game\//, '')
+    .replace(/\/+/g, '/');
+}
+
+function rectKey(rect: SpriteAtlasSlice['rect']): string {
+  return `${rect.x},${rect.y},${rect.w},${rect.h}`;
+}
+
+function stableMergeAtlasSlices(
+  existingSlices: SpriteAtlasSlice[],
+  generatedSlices: SpriteAtlasSlice[],
+  stats?: { replaced: number; appended: number }
+): SpriteAtlasSlice[] {
+  const out = existingSlices.map((slice) => ({
+    ...slice,
+    rect: { ...slice.rect },
+  }));
+
+  const byRect = new Map<string, number>();
+  const byNameAndRect = new Map<string, number>();
+
+  out.forEach((slice, index) => {
+    const key = rectKey(slice.rect);
+    if (!byRect.has(key)) {
+      byRect.set(key, index);
+    }
+    byNameAndRect.set(`${slice.name}::${key}`, index);
+  });
+
+  for (const generated of generatedSlices) {
+    const key = rectKey(generated.rect);
+    const rectIndex = byRect.get(key);
+    const nameAndRectIndex = byNameAndRect.get(`${generated.name}::${key}`);
+    const index = rectIndex ?? nameAndRectIndex;
+
+    if (index !== undefined) {
+      out[index] = {
+        ...generated,
+        rect: { ...generated.rect },
+      };
+      if (stats) stats.replaced += 1;
+      continue;
+    }
+
+    out.push({
+      ...generated,
+      rect: { ...generated.rect },
+    });
+    const nextIndex = out.length - 1;
+    byRect.set(key, nextIndex);
+    byNameAndRect.set(`${generated.name}::${key}`, nextIndex);
+    if (stats) stats.appended += 1;
+  }
+
+  return out;
 }
 
 function findParentInGroups(
@@ -30,7 +95,7 @@ export function buildProjectPack(
 ): ProjectPack {
   const diagnostics: string[] = [];
   const registryState = workspace.assetRegistry;
-  const spriteAtlases: SpriteAtlas[] = [];
+  const generatedSpriteAtlases: SpriteAtlas[] = [];
   const atlasMap = new Map<string, {
     name: string;
     parentPath: string;
@@ -91,13 +156,8 @@ export function buildProjectPack(
   }
 
   for (const atlasEntry of atlasMap.values()) {
-    atlasEntry.slices.sort((a, b) => {
-      const g = a._groupKey.localeCompare(b._groupKey);
-      return g !== 0 ? g : a.name.localeCompare(b.name);
-    });
-
     const slices = atlasEntry.slices.map(({ _groupKey, ...slice }) => slice);
-    spriteAtlases.push({
+    generatedSpriteAtlases.push({
       name: atlasEntry.name,
       path: atlasEntry.parentPath,
       defaultGroup: atlasEntry.parentGroupKey,
@@ -109,7 +169,63 @@ export function buildProjectPack(
     });
   }
 
-  spriteAtlases.sort((a, b) => a.path.localeCompare(b.path));
+  const existingAtlases = workspace.project.spriteAtlases ?? [];
+  const generatedByPath = new Map<string, SpriteAtlas>();
+  const existingByPath = new Map<string, SpriteAtlas>();
+
+  for (const existing of existingAtlases) {
+    existingByPath.set(normalizeAtlasPath(existing.path), existing);
+  }
+
+  for (const generated of generatedSpriteAtlases) {
+    const normalizedPath = normalizeAtlasPath(generated.path);
+    const existing = existingByPath.get(normalizedPath);
+    if (!existing) {
+      generatedByPath.set(normalizedPath, generated);
+      continue;
+    }
+
+    const mergeStats = { replaced: 0, appended: 0 };
+    const stabilizedSlices = stableMergeAtlasSlices(existing.slices, generated.slices, mergeStats);
+    if (
+      existing.slices.length !== generated.slices.length
+      && (mergeStats.replaced > 0 || mergeStats.appended > 0)
+    ) {
+      diagnostics.push(
+        `[BuildPack] Atlas slice merge adjusted "${generated.path}" (existing=${existing.slices.length}, generated=${generated.slices.length}, replaced=${mergeStats.replaced}, appended=${mergeStats.appended}).`
+      );
+    }
+
+    generatedByPath.set(normalizedPath, {
+      ...generated,
+      defaultGroup: existing.defaultGroup ?? generated.defaultGroup,
+      sliceSize: existing.sliceSize ?? generated.sliceSize,
+      slices: stabilizedSlices,
+    });
+  }
+
+  const spriteAtlases: SpriteAtlas[] = [];
+  const consumedPaths = new Set<string>();
+
+  for (const existing of existingAtlases) {
+    const normalizedPath = normalizeAtlasPath(existing.path);
+    const generated = generatedByPath.get(normalizedPath);
+    if (generated) {
+      spriteAtlases.push(generated);
+      consumedPaths.add(normalizedPath);
+      continue;
+    }
+    spriteAtlases.push(existing);
+  }
+
+  for (const generated of generatedSpriteAtlases) {
+    const normalizedPath = normalizeAtlasPath(generated.path);
+    if (consumedPaths.has(normalizedPath) || existingByPath.has(normalizedPath)) {
+      continue;
+    }
+    spriteAtlases.push(generated);
+    consumedPaths.add(normalizedPath);
+  }
 
   // --- Compile animations ---
   const compiledAnimations = compileAnimations(registryState, atlasMap, diagnostics);
@@ -240,4 +356,3 @@ function compileAnimations(
 
   return compiled;
 }
-
