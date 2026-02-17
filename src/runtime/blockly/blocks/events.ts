@@ -25,8 +25,7 @@ const CORE_DEPENDENCY: BlockDependency = {
 const whenSceneStartsDef: BlockDefinition = {
   type: 'inrepo_event_scene_started',
   message0: '🎩 When scene starts %1',
-  args0: [{ type: 'input_dummy', name: 'DUMMY' }],
-  nextStatement: null,
+  args0: [{ type: 'input_statement', name: 'DO' }],
   colour: COLOUR,
   tooltip: 'Runs once when the scene starts.',
   helpUrl: '',
