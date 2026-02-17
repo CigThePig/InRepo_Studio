@@ -37,6 +37,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
   let currentEntities: SpawnedEntity[] = [];
   let currentPropSprites: Phaser.GameObjects.Image[] = [];
   let currentPlayerSprite: Phaser.GameObjects.Sprite | null = null;
+  let playerAnimationOverrideUntil = 0;
   let fallbackPlayerTextureKey: string | null = null;
   let depthSyncHandler: (() => void) | null = null;
 
@@ -76,6 +77,24 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     }
 
     return null;
+  };
+
+  const resolveEntitySprite = (entityId: string): Phaser.GameObjects.Sprite | null => {
+    const target = currentEntities.find((entity) => entity.instance.id === entityId);
+    if (!target || !(target.gameObject instanceof Phaser.GameObjects.Sprite)) {
+      return null;
+    }
+    return target.gameObject.active ? target.gameObject : null;
+  };
+
+  const collectEntitySprites = (): Map<string, Phaser.GameObjects.Sprite> => {
+    const sprites = new Map<string, Phaser.GameObjects.Sprite>();
+    for (const entity of currentEntities) {
+      if (!(entity.gameObject instanceof Phaser.GameObjects.Sprite)) continue;
+      if (!entity.gameObject.active) continue;
+      sprites.set(entity.instance.id, entity.gameObject);
+    }
+    return sprites;
   };
 
   const syncEntityDepth = (): void => {
@@ -121,6 +140,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
       }
     }
     currentPlayerSprite = null;
+    playerAnimationOverrideUntil = 0;
     clearRuntimeEnv();
   };
 
@@ -196,6 +216,17 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
         resolveAnimationKey: (value: string) => projectRuntime.resolveAnimationKey(value),
         resolveAnimationSetKey: (setIdOrName, facing) => projectRuntime.resolveAnimationSetKey(setIdOrName, facing),
         getAnimationPivotByKey: (key: string) => projectRuntime.getAnimationPivotByKey(key),
+        getEntitySprite: (entityId: string) => resolveEntitySprite(entityId),
+        getAllEntitySprites: () => collectEntitySprites(),
+        setPlayerAnimationOverride: (durationMs: number) => {
+          const timeoutMs = Math.max(0, durationMs);
+          playerAnimationOverrideUntil = timeoutMs > 0
+            ? phaserScene.time.now + timeoutMs
+            : 0;
+        },
+        isPlayerAnimationOverrideActive: () => (
+          playerAnimationOverrideUntil > 0 && phaserScene.time.now < playerAnimationOverrideUntil
+        ),
       });
 
       phaserScene.events.once('shutdown', () => {

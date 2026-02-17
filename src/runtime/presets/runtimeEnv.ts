@@ -7,7 +7,7 @@
  * - RuntimeEnv — active scene access contract (scene, player sprite, main camera)
  *
  * Canonical key set:
- * - Keys: scene, getPlayerSprite, getMainCamera
+ * - Keys: scene, getPlayerSprite, getEntitySprite, getAllEntitySprites, getMainCamera, setPlayerAnimationOverride, isPlayerAnimationOverrideActive
  *
  * Apply/Rebuild semantics:
  * - Apply mode: scene attach/teardown lifecycle (set on load, clear on shutdown)
@@ -19,7 +19,11 @@ import type { Facing4 } from '@/types';
 export interface RuntimeEnv {
   scene: Phaser.Scene;
   getPlayerSprite(): Phaser.GameObjects.Sprite | null;
+  getEntitySprite?(entityId: string): Phaser.GameObjects.Sprite | null;
+  getAllEntitySprites?(): Map<string, Phaser.GameObjects.Sprite>;
   getMainCamera(): Phaser.Cameras.Scene2D.Camera;
+  setPlayerAnimationOverride?(durationMs: number): void;
+  isPlayerAnimationOverrideActive?(): boolean;
   /** Resolve an animation id or name to its Phaser runtime key. */
   resolveAnimationKey?(value: string): string | null;
   /** Resolve an animation set id/name + facing to a Phaser runtime key. */

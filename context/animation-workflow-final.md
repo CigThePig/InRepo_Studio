@@ -461,6 +461,8 @@ So deletion in Track A becomes future-proof:
 
 ### Track E — Entity Animation Controllers (Non-Player)
 
+**Status:** ✅ Implemented (runtime preset + env wiring + player override coexistence guard).
+
 **Goal:** Allow non-player entities (enemies, NPCs, decorations) to have ongoing animation management with state transitions.
 
 **Why fifth:** Currently only the player gets automatic idle/walk animation switching via the animation-driver preset. All other entities just play their assigned animation on spawn and never change.
@@ -469,7 +471,7 @@ So deletion in Track A becomes future-proof:
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/runtime/presets/defs/entity-animator.ts` | CREATE | New preset: per-entity animation controller with commands/events |
+| `src/runtime/presets/defs/animation-entity-animator.ts` | CREATE | New preset: per-entity animation controller with commands/events |
 | `src/runtime/entitySpawner.ts` | MODIFY | Wire entity-animator preset to spawned entities |
 | `src/runtime/presets/runtimeEnv.ts` | MODIFY | Add `getEntitySprite(entityId)` to runtime env |
 | `src/runtime/presets/presetManager.ts` | MODIFY | Register entity-animator preset |
