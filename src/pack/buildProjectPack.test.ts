@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildProjectPack } from './buildProjectPack';
 import type { WorkspaceContent } from '@/types/workspace';
 import type { SpriteAtlasSlice } from '@/types/project';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 
 function createWorkspace(overrides?: {
   projectSpriteAtlases?: WorkspaceContent['project']['spriteAtlases'];
@@ -38,8 +39,9 @@ function createWorkspace(overrides?: {
   };
 }
 
-function slice(name: string, x: number): SpriteAtlasSlice {
+function slice(name: string, x: number, tileId?: number): SpriteAtlasSlice {
   return {
+    tileId,
     name,
     rect: { x, y: 0, w: 16, h: 16 },
   };
@@ -189,6 +191,156 @@ describe('buildProjectPack atlas ordering stability', () => {
     const slices = result.project.spriteAtlases?.[0]?.slices ?? [];
     expect(slices.map((entry) => entry.name)).toEqual(['A', 'B', 'C', 'D']);
     expect(slices[3].rect.x).toBe(48);
+  });
+
+
+  it('preserves tileId for rect-matched replacements even when generated order changes', () => {
+    const workspace = createWorkspace({
+      projectSpriteAtlases: [{
+        name: 'terrain',
+        path: 'assets/terrain.png',
+        defaultGroup: 'tilesets:ground',
+        sliceSize: { width: 16, height: 16 },
+        slices: [slice('A', 0, 10), slice('B', 16, 11), slice('C', 32, 12)],
+      }],
+      groups: [
+        {
+          type: 'tilesets',
+          name: 'Ground',
+          slug: 'ground',
+          assets: [{
+            id: 'atlas-terrain',
+            name: 'terrain',
+            type: 'tile',
+            source: 'local',
+            dataUrl: 'assets/terrain.png',
+            width: 48,
+            height: 16,
+            createdAt: 1,
+          }],
+        },
+        {
+          type: 'tilesets',
+          name: 'Ground Slices',
+          slug: 'ground-slices',
+          assets: [
+            {
+              id: 'slice-c',
+              name: 'C',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,c',
+              width: 16,
+              height: 16,
+              createdAt: 2,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 32, y: 0, w: 16, h: 16 },
+            },
+            {
+              id: 'slice-a',
+              name: 'A',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,a',
+              width: 16,
+              height: 16,
+              createdAt: 3,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 0, y: 0, w: 16, h: 16 },
+            },
+            {
+              id: 'slice-b',
+              name: 'B',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,b',
+              width: 16,
+              height: 16,
+              createdAt: 4,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 16, y: 0, w: 16, h: 16 },
+            },
+          ],
+        },
+      ],
+    });
+
+    const slices = buildProjectPack(workspace).project.spriteAtlases?.[0]?.slices ?? [];
+    expect(slices.map((entry) => entry.tileId)).toEqual([10, 11, 12]);
+  });
+
+  it('appends new slices using next max tileId without reusing holes', () => {
+    const workspace = createWorkspace({
+      projectSpriteAtlases: [{
+        name: 'terrain',
+        path: 'assets/terrain.png',
+        defaultGroup: 'tilesets:ground',
+        sliceSize: { width: 16, height: 16 },
+        slices: [slice('A', 0, 10), slice('B', 16, 11), slice('C', 32, 12)],
+      }],
+      groups: [
+        {
+          type: 'tilesets',
+          name: 'Ground',
+          slug: 'ground',
+          assets: [{
+            id: 'atlas-terrain',
+            name: 'terrain',
+            type: 'tile',
+            source: 'local',
+            dataUrl: 'assets/terrain.png',
+            width: 64,
+            height: 16,
+            createdAt: 1,
+          }],
+        },
+        {
+          type: 'tilesets',
+          name: 'Ground Slices',
+          slug: 'ground-slices',
+          assets: [
+            {
+              id: 'slice-a',
+              name: 'A',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,a',
+              width: 16,
+              height: 16,
+              createdAt: 2,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 0, y: 0, w: 16, h: 16 },
+            },
+            {
+              id: 'slice-d',
+              name: 'D',
+              type: 'tile',
+              source: 'local',
+              dataUrl: 'data:image/png;base64,d',
+              width: 16,
+              height: 16,
+              createdAt: 3,
+              sourceAssetId: 'atlas-terrain',
+              rect: { x: 48, y: 0, w: 16, h: 16 },
+            },
+          ],
+        },
+      ],
+    });
+
+    const slices = buildProjectPack(workspace).project.spriteAtlases?.[0]?.slices ?? [];
+    expect(slices.map((entry) => entry.tileId)).toEqual([10, 11, 12, 13]);
+  });
+
+  it('resolveAtlasSliceByLocalId falls back to legacy slice index', () => {
+    const atlas = {
+      name: 'legacy',
+      path: 'assets/legacy.png',
+      sliceSize: { width: 16, height: 16 },
+      slices: [slice('A', 0), slice('B', 16), slice('C', 32)],
+    };
+
+    expect(resolveAtlasSliceByLocalId(atlas, 1)?.name).toBe('B');
   });
 
   it('keeps atlas list ordered by project order, then appends new atlases', () => {

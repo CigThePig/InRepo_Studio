@@ -3,6 +3,7 @@ import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
 import { resolveTileGid } from '@/types/scene';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 import {
   buildRuntimeTilesetRegistry,
   type NonTilemapTileUsage,
@@ -127,7 +128,7 @@ function spawnFallbackSprites(
       const atlas = (projectRuntime.project.spriteAtlases ?? []).find(
         (item) => getAtlasCategoryName(item.path) === category,
       );
-      const slice = atlas?.slices?.[index];
+      const slice = resolveAtlasSliceByLocalId(atlas, index);
       textureKey = projectRuntime.getAtlasTextureKey(category);
       if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) continue;
       frameName = slice.name;

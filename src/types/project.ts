@@ -54,6 +54,8 @@ export interface EntityType {
 // --- Sprite Atlas ---
 
 export interface SpriteAtlasSlice {
+  /** Stable local tile id for atlas references (legacy atlases may omit this). */
+  tileId?: number;
   /** Unique name for this slice within the atlas */
   name: string;
   /** Region within the spritesheet image */
@@ -254,6 +256,7 @@ export function validateEntityType(ent: unknown): ent is EntityType {
 export function validateSpriteAtlasSlice(slice: unknown): slice is SpriteAtlasSlice {
   if (!slice || typeof slice !== 'object') return false;
   const s = slice as Record<string, unknown>;
+  if (s.tileId !== undefined && (typeof s.tileId !== 'number' || !Number.isFinite(s.tileId) || !Number.isInteger(s.tileId) || s.tileId < 0)) return false;
   if (typeof s.name !== 'string') return false;
   if (s.group !== undefined && typeof s.group !== 'string') return false;
   if (!s.rect || typeof s.rect !== 'object') return false;

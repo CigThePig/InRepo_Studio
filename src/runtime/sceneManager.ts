@@ -7,6 +7,7 @@ import { createEntityRegistry } from '@/runtime/entityRegistry';
 import { spawnEntities, type SpawnedEntity } from '@/runtime/entitySpawner';
 import { setRuntimeEnv, clearRuntimeEnv } from '@/runtime/presets/runtimeEnv';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 import Phaser from 'phaser';
 import { DEPTH_ENTITIES_BASE, DEPTH_PROPS } from '@/runtime/depthBands';
 
@@ -130,7 +131,7 @@ export function createSceneManager(config: SceneManagerConfig): SceneManager {
     currentPropSprites = propSprites.flatMap((propSprite) => {
       if (propSprite.sprite.category.startsWith('atlas:')) {
         const atlas = (projectRuntime.project.spriteAtlases ?? []).find((entry) => getAtlasCategoryName(entry.path) === propSprite.sprite.category);
-        const slice = atlas?.slices?.[propSprite.sprite.index];
+        const slice = resolveAtlasSliceByLocalId(atlas, propSprite.sprite.index);
         const textureKey = projectRuntime.getAtlasTextureKey(propSprite.sprite.category);
         if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return [];
         // Use atlas slice frame (registered in projectLoader) so sizing/origin behave correctly.

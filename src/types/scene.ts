@@ -27,6 +27,7 @@
 
 import type { Project } from './project';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { getAtlasTileCount } from '@/shared/atlasTileIds';
 
 
 // --- Layer Types ---
@@ -52,7 +53,8 @@ export const DEFAULT_TILESET_BLOCK_SIZE = 1000;
 
 /**
  * A resolved tile reference derived from a global tile GID.
- * `index` is 0-based within the resolved category.
+ * `index` is 0-based local tile id within the resolved category
+ * (atlas categories resolve by slice.tileId, not array position).
  */
 export interface ResolvedTileRef {
   category: string;
@@ -143,7 +145,7 @@ function getAllTileCategoryNames(project: Project): Array<{ name: string; count:
   for (const atlas of project.spriteAtlases ?? []) {
     categories.push({
       name: getAtlasCategoryName(atlas.path),
-      count: atlas.slices?.length ?? 0,
+      count: getAtlasTileCount(atlas),
     });
   }
 
@@ -158,7 +160,7 @@ function getCategoryTileCount(project: Project, categoryName: string): number | 
     (candidate) => getAtlasCategoryName(candidate.path) === categoryName
   );
   if (!atlas) return null;
-  return atlas.slices?.length ?? 0;
+  return getAtlasTileCount(atlas);
 }
 
 function computeTilesetEndExclusive(project: Project, ts: TilesetReference): number {
@@ -384,7 +386,7 @@ export interface EntityInstance {
 export interface SpriteRef {
   /** Tile or atlas category name */
   category: string;
-  /** Index in the category list / atlas slices list */
+  /** Local tile id in the category list (atlas uses slice.tileId, not array position). */
   index: number;
 }
 

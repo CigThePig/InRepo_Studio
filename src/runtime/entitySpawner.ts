@@ -3,6 +3,7 @@ import type { EntityInstance } from '@/types';
 import type { EntityRegistry } from '@/runtime/entityRegistry';
 import type { ProjectRuntime } from '@/runtime/projectLoader';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 import { DEPTH_ENTITIES_BASE } from '@/runtime/depthBands';
 
 const LOG_PREFIX = '[Runtime/EntitySpawner]';
@@ -46,7 +47,7 @@ function trySpawnSpriteEntity(config: SpawnConfig, entity: EntityInstance): Spaw
 
   if (spriteCategory.startsWith('atlas:')) {
     const atlas = (projectRuntime.project.spriteAtlases ?? []).find((entry) => getAtlasCategoryName(entry.path) === spriteCategory);
-    const slice = atlas?.slices?.[spriteIndex];
+    const slice = resolveAtlasSliceByLocalId(atlas, spriteIndex);
     const textureKey = projectRuntime.getAtlasTextureKey(spriteCategory);
     if (!slice || !textureKey || !phaserScene.textures.exists(textureKey)) return null;
     // Use Sprite (not Image) so atlas entities can play animations.

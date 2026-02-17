@@ -25,6 +25,7 @@
 import type { Project, Scene } from '@/types';
 import { loadWorkspaceContent, fetchProject, fetchScene } from '@/storage';
 import { buildProjectPack } from '@/pack/buildProjectPack';
+import { ensureAtlasSliceTileIds } from '@/shared/atlasTileIds';
 
 const LOG_PREFIX = '[Runtime/Loader]';
 
@@ -57,14 +58,14 @@ export function createUnifiedLoader(mode: DataSourceMode): UnifiedLoader {
         if (!project) {
           throw new Error(`${LOG_PREFIX} No project data in hot storage`);
         }
-        return project;
+        return ensureAtlasSliceTileIds(project).project;
       }
 
       const project = await fetchProject();
       if (!project) {
         throw new Error(`${LOG_PREFIX} No project data in cold storage`);
       }
-      return project;
+      return ensureAtlasSliceTileIds(project).project;
     },
 
     async loadScene(sceneId: string) {

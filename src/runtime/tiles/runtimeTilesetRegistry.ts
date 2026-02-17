@@ -4,6 +4,7 @@ import type { SceneRuntime } from '@/runtime/sceneLoader';
 import type { ResolvedTileRef } from '@/types/scene';
 import { resolveTileGid } from '@/types/scene';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 
 const LOG_PREFIX = '[Runtime/TilesetRegistry]';
 const RUNTIME_PACKED_TILESET_TEXTURE_KEY = '__runtime:packed-tileset';
@@ -126,7 +127,7 @@ function ensureRuntimePackedTilesetTexture(
       (entry) => getAtlasCategoryName(entry.path) === usage.atlasCategory,
     );
     if (!atlas) continue;
-    const slice = atlas.slices?.[usage.tileRef.index];
+    const slice = resolveAtlasSliceByLocalId(atlas, usage.tileRef.index);
     if (!slice) continue;
     if (!isAtlasTilemapEligible(slice.rect, tileSize)) continue;
 
@@ -246,7 +247,7 @@ export function buildRuntimeTilesetRegistry(
       (entry) => getAtlasCategoryName(entry.path) === usage.atlasCategory,
     );
     if (!atlas) continue;
-    const slice = atlas.slices?.[usage.tileRef.index];
+    const slice = resolveAtlasSliceByLocalId(atlas, usage.tileRef.index);
     if (!slice) continue;
 
     if (!isAtlasTilemapEligible(slice.rect, tileSize)) {

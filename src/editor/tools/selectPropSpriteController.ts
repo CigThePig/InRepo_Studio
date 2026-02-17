@@ -5,6 +5,7 @@ import { generateOperationId } from '@/editor/history';
 import type { EditorState } from '@/storage/hot';
 import type { Scene, PropSpriteInstance, SpriteRef, Project } from '@/types';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
+import { resolveAtlasSliceByLocalId } from '@/shared/atlasTileIds';
 import type { PropSpriteManager } from '@/editor/props/propSpriteManager';
 
 export interface SelectPropSpriteControllerConfig {
@@ -26,7 +27,7 @@ function resolveSpriteSize(project: Project | null, sprite: SpriteRef, fallback:
   if (!project) return { width: fallback, height: fallback };
   if (sprite.category.startsWith('atlas:')) {
     const atlas = (project.spriteAtlases ?? []).find((item) => getAtlasCategoryName(item.path) === sprite.category);
-    const rect = atlas?.slices?.[sprite.index]?.rect;
+    const rect = resolveAtlasSliceByLocalId(atlas, sprite.index)?.rect;
     if (rect && rect.w > 0 && rect.h > 0) return { width: rect.w, height: rect.h };
     const sz = atlas?.sliceSize;
     if (sz) return { width: sz.width, height: sz.height };
