@@ -11,6 +11,7 @@ export interface AnimationClock {
   tick(deltaMs: number): Set<string>;
   getCurrentFrame(animationId: string): number;
   getCurrentFrameSnapshot(animationId: string): AnimationFrameSnapshot | null;
+  isAdvancing(animationId: string): boolean;
   reset(animationId?: string): void;
   destroy(): void;
 }
@@ -174,6 +175,17 @@ export function createAnimationClock(): AnimationClock {
         frame,
         pivot: state.animation.pivot,
       };
+    },
+
+    isAdvancing(animationId: string): boolean {
+      const state = states.get(animationId);
+      if (!state) return false;
+      const frameCount = state.animation.frames.length;
+      if (frameCount <= 1) return false;
+      if (state.loopMode === 'once') {
+        return state.currentFrame < frameCount - 1;
+      }
+      return true;
     },
 
     reset(animationId?: string): void {

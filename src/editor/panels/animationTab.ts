@@ -1054,7 +1054,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const importedFrames: AnimationFrameState[] = [];
     for (const entry of parsed.frames) {
-      const created = assetRegistry.addAssets({
+      assetRegistry.addAssets({
         groupType: 'props',
         groupName: SOURCE_GROUP_NAME,
         assets: [{
@@ -1067,11 +1067,11 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
           sourceAssetId: sourceAsset.id,
           rect: { ...entry.ref.rect },
         }],
-      })[0];
+      });
 
       importedFrames.push({
         ref: {
-          sourceAssetId: created.id,
+          sourceAssetId: sourceAsset.id,
           rect: { ...entry.ref.rect },
           durationMs: entry.ref.durationMs,
         },
@@ -1571,15 +1571,16 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       const updated = assetRegistry.updateAnimation(state.animationId, payload);
       if (!updated) {
         state.animationId = null;
+      } else {
+        state.animationName = updated.name;
       }
     }
 
     if (!state.animationId) {
       const created = assetRegistry.addAnimation(payload);
       state.animationId = created.id;
+      state.animationName = created.name;
     }
-
-    state.animationName = name;
     state.dirty = false;
     render();
   }

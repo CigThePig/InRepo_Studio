@@ -740,7 +740,13 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
 
 
     hasActiveAnimations(): boolean {
-      return trackedAnimationIds.size > 0;
+      if (!animationClock || trackedAnimationIds.size === 0) return false;
+      for (const animationId of trackedAnimationIds) {
+        if (animationClock.isAdvancing(animationId)) {
+          return true;
+        }
+      }
+      return false;
     },
 
     setEntityPreview(preview: EntityPreview | null): void {

@@ -1,8 +1,10 @@
 import type { AssetRegistry, AssetEntry, AssetGroup, AssetGroupType } from '@/editor/assets';
+import type { EntityManager } from '@/editor/entities/entityManager';
 import { makeGroupKey } from '@/editor/assets/groupKey';
 import { collectAnimationReferences } from '@/editor/assets/animationRefs';
 import { getAllScenes, saveScene } from '@/storage/hot';
 import { resolveAssetUrl } from '@/shared/paths';
+import type { Scene } from '@/types';
 
 const STYLES = `
   .asset-library {
@@ -438,6 +440,8 @@ export interface AssetLibraryTabConfig {
   assetRegistry: AssetRegistry;
   uploadEnabled?: boolean;
   onOpenAnimation?: (animationId: string) => void;
+  getCurrentScene?: () => Scene | null;
+  entityManager?: EntityManager;
 }
 
 export interface AssetLibraryTabController {
@@ -452,7 +456,51 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
 };
 
 export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibraryTabController {
-  const { container, assetRegistry, uploadEnabled = false, onOpenAnimation } = config;
+  const {
+    container,
+    assetRegistry,
+    uploadEnabled = false,
+    onOpenAnimation,
+    getCurrentScene,
+    entityManager,
+  } = config;
+
+  function syncActiveSceneEntityProperties(
+    sceneId: string,
+    updatesByEntityId: Map<string, Record<string, string | number | boolean | undefined>>
+  ): void {
+    if (!entityManager || !getCurrentScene) return;
+    const currentScene = getCurrentScene();
+    if (!currentScene || currentScene.id !== sceneId || updatesByEntityId.size === 0) return;
+    entityManager.updateEntityProperties(
+      Array.from(updatesByEntityId.entries()).map(([id, properties]) => ({ id, properties }))
+    );
+  }
+
+  async function clearAnimationSetEntityReferences(animationSetId: string): Promise<number> {
+    const scenes = await getAllScenes();
+    let clearedCount = 0;
+
+    for (const scene of scenes) {
+      let changed = false;
+      const activeSceneUpdates = new Map<string, Record<string, string | number | boolean | undefined>>();
+      const nextEntities = scene.entities.map((entity) => {
+        if (entity.properties?.animationSetId !== animationSetId) return entity;
+        changed = true;
+        clearedCount += 1;
+        const nextProperties = { ...(entity.properties ?? {}) };
+        delete nextProperties.animationSetId;
+        activeSceneUpdates.set(entity.id, { animationSetId: undefined });
+        return { ...entity, properties: nextProperties };
+      });
+
+      if (!changed) continue;
+      await saveScene({ ...scene, entities: nextEntities });
+      syncActiveSceneEntityProperties(scene.id, activeSceneUpdates);
+    }
+
+    return clearedCount;
+  }
 
   if (!document.getElementById('asset-library-tab-styles')) {
     const styleEl = document.createElement('style');
@@ -1226,16 +1274,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             const ids = updatesByScene.get(scene.id);
             if (!ids || ids.size === 0) continue;
             let changed = false;
+            const activeSceneUpdates = new Map<string, Record<string, string | number | boolean | undefined>>();
             const nextEntities = scene.entities.map((entity) => {
               if (!ids.has(entity.id)) return entity;
               if (entity.properties?.animationId !== animation.id) return entity;
               changed = true;
               const nextProperties = { ...(entity.properties ?? {}) };
               delete nextProperties.animationId;
+              activeSceneUpdates.set(entity.id, { animationId: undefined });
               return { ...entity, properties: nextProperties };
             });
             if (changed) {
               await saveScene({ ...scene, entities: nextEntities });
+              syncActiveSceneEntityProperties(scene.id, activeSceneUpdates);
             }
           }
 
@@ -1323,10 +1374,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       deleteButton.type = 'button';
       deleteButton.className = 'asset-library__animation-action';
       deleteButton.textContent = 'Delete Set';
-      deleteButton.addEventListener('click', (event) => {
+      deleteButton.addEventListener('click', async (event) => {
         event.stopPropagation();
         const confirmed = window.confirm(`Delete animation set "${animationSet.name}"?`);
         if (!confirmed) return;
+        await clearAnimationSetEntityReferences(animationSet.id);
         assetRegistry.removeAnimationSet(animationSet.id);
       });
 
