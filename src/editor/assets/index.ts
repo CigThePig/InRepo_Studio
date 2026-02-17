@@ -9,10 +9,16 @@ export type {
   AssetEntrySource,
   AnimationAsset,
   AnimationAssetInput,
+  AnimationSetAsset,
+  AnimationSetAssetInput,
   AnimationFrameRef,
   AnimationLoopMode,
+  Facing4,
   AssetRegistry,
   AssetRegistryState,
 } from './assetRegistry';
 export type { AssetGroup, AssetGroupType } from './assetGroup';
 export { makeGroupKey, parseGroupKey } from './groupKey';
+
+export { collectAnimationReferences } from './animationRefs';
+export type { AnimationReferenceHit } from './animationRefs';

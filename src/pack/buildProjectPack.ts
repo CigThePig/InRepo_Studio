@@ -1,6 +1,6 @@
 import type { WorkspaceContent } from '@/types/workspace';
 import type { SpriteAtlas, SpriteAtlasSlice } from '@/types/project';
-import type { ProjectAnimation, ProjectAnimationFrame } from '@/types/animation';
+import type { ProjectAnimation, ProjectAnimationFrame, ProjectAnimationSet } from '@/types/animation';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 
 // NOTE: Indices used by scenes are stable local tile ids (`slice.tileId`).
@@ -259,16 +259,37 @@ export function buildProjectPack(
 
   // --- Compile animations ---
   const compiledAnimations = compileAnimations(registryState, atlasMap, diagnostics);
+  const compiledAnimationSets = compileAnimationSets(registryState);
 
   return {
     project: {
       ...workspace.project,
       spriteAtlases,
       animations: compiledAnimations,
+      animationSets: compiledAnimationSets,
     },
     scenes: workspace.scenes,
     diagnostics,
   };
+}
+
+
+function compileAnimationSets(
+  registryState: WorkspaceContent['assetRegistry']
+): ProjectAnimationSet[] {
+  const animationSets = registryState.animationSets ?? [];
+  if (animationSets.length === 0) return [];
+
+  return animationSets
+    .map((animationSet) => ({
+      id: animationSet.id,
+      name: animationSet.name,
+      directions: { ...animationSet.directions },
+    }))
+    .sort((a, b) => {
+      const nameCompare = a.name.localeCompare(b.name);
+      return nameCompare !== 0 ? nameCompare : a.id.localeCompare(b.id);
+    });
 }
 
 /**
@@ -352,6 +373,7 @@ function compileAnimations(
       frames.push({
         textureKey,
         frame: sliceInfo.sliceName,
+        durationMs: frameRef.durationMs,
         offset: frameRef.offset ? { ...frameRef.offset } : undefined,
       });
       frameSizes.add(`${sliceInfo.w}x${sliceInfo.h}`);

@@ -26,6 +26,7 @@ import {
 import { createTileCache, type TileImageCache } from './tileCache';
 import { createAtlasCache, type AtlasCache } from './atlasCache';
 import { createBrushCursor, type BrushCursor } from './brushCursor';
+import { createAnimationClock } from './animationClock';
 import type { Scene, LayerType, TileCategory, Project } from '@/types';
 
 const LOG_PREFIX = '[Canvas]';
@@ -133,6 +134,7 @@ const SAVE_DEBOUNCE_DELAY = 500;
 /** Minimum change to trigger viewport save */
 const MIN_PAN_CHANGE = 1;
 const MIN_ZOOM_CHANGE = 0.01;
+const MAX_ANIMATION_DELTA_MS = 100;
 
 // --- Factory ---
 
@@ -161,6 +163,7 @@ export function createCanvas(
 
   // Animation frame handle
   let animationFrameId: number | null = null;
+  let lastAnimationTickMs = performance.now();
 
   // --- Tile Cache and Renderer ---
   const tileCache = createTileCache();
@@ -174,6 +177,8 @@ export function createCanvas(
     },
   });
   const brushCursor: BrushCursor = createBrushCursor();
+  const animationClock = createAnimationClock();
+  renderer.setAnimationClock(animationClock);
 
   // Set initial scene and active layer if provided
   if (options.scene) {
@@ -376,10 +381,28 @@ export function createCanvas(
   function scheduleRender(): void {
     if (animationFrameId !== null) return;
 
-    animationFrameId = requestAnimationFrame(() => {
+    animationFrameId = requestAnimationFrame((timestamp) => {
       animationFrameId = null;
-      if (isDirty && !isDestroyed) {
+      if (isDestroyed) return;
+
+      const rect = container.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const deltaMs = Math.min(MAX_ANIMATION_DELTA_MS, Math.max(0, timestamp - lastAnimationTickMs));
+      lastAnimationTickMs = timestamp;
+
+      const animationDirty = renderer.syncAnimationClock(viewport, width, height, deltaMs);
+      if (animationDirty) {
+        isDirty = true;
+      }
+
+      if (isDirty) {
         render();
+      }
+
+      if (renderer.isDirty() || renderer.hasActiveAnimations()) {
+        isDirty = isDirty || renderer.isDirty();
+        scheduleRender();
       }
     });
   }
@@ -455,6 +478,8 @@ export function createCanvas(
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
       }
+      renderer.setAssetRegistry(null);
+      animationClock.destroy();
       if (saveDebounceTimer !== null) {
         clearTimeout(saveDebounceTimer);
       }

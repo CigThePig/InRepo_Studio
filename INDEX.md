@@ -303,7 +303,7 @@ Micro-format (copy/paste):
 
 - `src/types/project.ts`
   - Role: ProjectSchema, TileCategorySchema, EntityTypeSchema.
-  - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema
+  - Lists of truth: ProjectSchema, TileCategorySchema, EntityTypeSchema, ProjectSettingsSchema, ProjectAnimationSchema, ProjectAnimationSetSchema
 
 - `src/types/scene.ts`
   - Role: SceneSchema, LayerDataSchema, EntityInstanceSchema, PropSpriteInstanceSchema.
@@ -348,7 +348,7 @@ Micro-format (copy/paste):
 
 - `src/storage/hot.ts`
   - Role: IndexedDB operations for workspace content, editor UI state, and legacy migration compatibility.
-  - Lists of truth: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema
+  - Lists of truth: WorkspaceRecordSchema, EditorUIStateSchema, HotProjectSchema, AssetRegistrySnapshot
 
 - `src/storage/cold.ts`
   - Role: Fetch operations (read from repository).
@@ -403,6 +403,10 @@ Micro-format (copy/paste):
   - Role: Main canvas controller (orchestrates viewport, gestures, rendering).
   - Lists of truth: none
 
+- `src/editor/canvas/animationClock.ts`
+  - Role: Shared animation playback clock for editor canvas entity previews.
+  - Lists of truth: AnimationClock, AnimationFrameSnapshot
+
 - `src/editor/canvas/tileCache.ts`
   - Role: Shared tile image cache for renderer and tile picker.
   - Lists of truth: none
@@ -418,6 +422,10 @@ Micro-format (copy/paste):
 - `src/editor/canvas/entityRenderer.ts`
   - Role: Entity rendering on canvas (sprites, placeholders, preview).
   - Lists of truth: EntityRendererConfig, EntityPreview
+
+- `src/editor/canvas/animationClock.test.ts`
+  - Role: Unit tests for editor canvas animation clock playback behavior.
+  - Lists of truth: none
 
 - `src/editor/panels/index.ts`
   - Role: Public exports for panels module.
@@ -480,7 +488,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/assetLibraryTab.ts`
-  - Role: Left berry Assets Library tab UI for grouped assets.
+  - Role: Left berry Assets Library tab UI for grouped assets, animation clips, and directional animation sets.
   - Lists of truth: none
 
 - `src/editor/panels/assetPalette.ts`
@@ -492,7 +500,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/entitiesTab.ts`
-  - Role: Entities mode tab UI for palette, selection, and inline property editing.
+  - Role: Entities mode tab UI for palette, selection, and inline property editing including animation set binding.
   - Lists of truth: none
 
 - `src/editor/presets/AGENTS.md`
@@ -663,10 +671,26 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetRegistry.ts`
   - Role: In-editor asset registry with grouped assets and selection state.
-  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode
+  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode, AnimationSetAsset, Facing4
 
 - `src/editor/assets/assetRegistry.test.ts`
   - Role: Unit tests for asset registry rename/reorder behavior.
+  - Lists of truth: none
+
+- `src/editor/assets/animationRefs.ts`
+  - Role: Pure helper for collecting animation references in scene entities and animation sets.
+  - Lists of truth: AnimationReferenceHit
+
+- `src/editor/assets/animationRefs.test.ts`
+  - Role: Unit tests for animation reference collection.
+  - Lists of truth: none
+
+- `src/editor/assets/atlasImporter.ts`
+  - Role: Atlas JSON format detection/parsing for animation frame import.
+  - Lists of truth: AtlasImportFormat
+
+- `src/editor/assets/atlasImporter.test.ts`
+  - Role: Unit tests for atlas JSON parser coverage across supported formats.
   - Lists of truth: none
 
 - `src/editor/assets/spriteSlider.ts`
@@ -745,7 +769,7 @@ Micro-format (copy/paste):
 
 ### Runtime (Track 4 stub — exists, Track 10 complete, Track 11 planned)
 - `src/pack/buildProjectPack.ts`
-  - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent.
+  - Role: Deterministic builder that derives runtime/deploy project pack from WorkspaceContent including animations and animation sets.
   - Lists of truth: ProjectPack
 
 - `src/runtime/init.ts`
@@ -761,7 +785,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/runtime/projectLoader.ts`
-  - Role: Load project data and runtime assets.
+  - Role: Load project data and runtime assets, including animation set resolution.
   - Lists of truth: none
 
 - `src/runtime/sceneLoader.ts`
@@ -858,8 +882,12 @@ Micro-format (copy/paste):
   - Lists of truth: PresetDefinition (camera-follow)
 
 - `src/runtime/presets/defs/animation-driver.ts`
-  - Role: Animation driver preset definition + stub factory.
+  - Role: Animation driver preset definition + runtime factory for clip/set-based facing selection.
   - Lists of truth: PresetDefinition (animation-driver)
+
+- `src/runtime/presets/defs/animation-entity-animator.ts`
+  - Role: Entity animation controller preset definition + runtime factory for per-entity play/stop/autofacing behavior.
+  - Lists of truth: PresetDefinition (animation-entity-animator)
 
 ### Runtime ApiContext (Track 35)
 - `src/runtime/apiContext/index.ts`

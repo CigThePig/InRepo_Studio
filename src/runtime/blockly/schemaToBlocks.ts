@@ -38,6 +38,7 @@ import {
   codegenCommandCall,
   codegenStateRead,
   codegenPayloadFieldAccess,
+  escapeJsString,
 } from './codegenRules';
 
 // --- Category colors (hue, 0-360) ---
@@ -198,11 +199,10 @@ function generateEventBlocks(
     message0: `🎩 ${event.label} %1`,
     args0: [
       {
-        type: 'input_dummy',
-        name: 'DUMMY',
+        type: 'input_statement',
+        name: 'DO',
       },
     ],
-    nextStatement: null,
     colour,
     tooltip: event.description,
     helpUrl: '',
@@ -462,7 +462,7 @@ function resolveArgValue(
 
     case 'enum': {
       const val = b.getFieldValue?.(fieldName) as string | undefined;
-      return `'${val ?? ''}'`;
+      return `'${escapeJsString(val ?? '')}'`;
     }
 
     case 'number': {
@@ -479,7 +479,7 @@ function resolveArgValue(
         );
       }
       const val = b.getFieldValue?.(fieldName) as string | undefined;
-      return `'${val ?? ''}'`;
+      return `'${escapeJsString(val ?? '')}'`;
     }
 
     default:

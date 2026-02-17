@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAssetRegistry } from './assetRegistry';
+import { createAssetRegistry, makeUniqueAnimationName } from './assetRegistry';
 import { makeGroupKey, parseGroupKey } from './groupKey';
 
 function buildRegistry() {
@@ -242,5 +242,75 @@ describe('groupKey helpers', () => {
     const key = makeGroupKey('entities', 'enemies');
     const parsed = parseGroupKey(key);
     expect(parsed).toEqual({ type: 'entities', slug: 'enemies' });
+  });
+});
+
+
+describe('assetRegistry animations', () => {
+  it('preserves frame durationMs through create/update/duplicate', () => {
+    const registry = createAssetRegistry();
+    const created = registry.addAnimation({
+      name: 'Attack',
+      fps: 10,
+      loopMode: 'once',
+      pivot: { x: 0.5, y: 1 },
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 }, durationMs: 120 }],
+    });
+
+    expect(created.frames[0].durationMs).toBe(120);
+
+    const updated = registry.updateAnimation(created.id, {
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 }, durationMs: 80 }],
+    });
+    expect(updated?.frames[0].durationMs).toBe(80);
+
+    const duplicated = registry.duplicateAnimation(created.id);
+    expect(duplicated?.frames[0].durationMs).toBe(80);
+  });
+
+  it('duplicates an animation with a unique copy name', () => {
+    const registry = createAssetRegistry();
+    const created = registry.addAnimation({
+      name: 'Run',
+      fps: 12,
+      loopMode: 'loop',
+      pivot: { x: 0.5, y: 1 },
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 } }],
+    });
+
+    const duplicate = registry.duplicateAnimation(created.id);
+
+    expect(duplicate).not.toBeNull();
+    expect(duplicate?.id).not.toBe(created.id);
+    expect(duplicate?.name).toBe('Run (copy)');
+    expect(duplicate?.frames).toEqual(created.frames);
+  });
+
+  it('notifies animation listeners on add/update/remove', () => {
+    const registry = createAssetRegistry();
+    let called = 0;
+    const unsub = registry.onAnimationsChanged(() => {
+      called += 1;
+    });
+
+    const created = registry.addAnimation({
+      name: 'Idle',
+      fps: 8,
+      loopMode: 'loop',
+      pivot: { x: 0.5, y: 1 },
+      frames: [{ sourceAssetId: 'asset-a', rect: { x: 0, y: 0, w: 16, h: 16 } }],
+    });
+    registry.updateAnimation(created.id, { name: 'Idle Updated' });
+    registry.removeAnimation(created.id);
+    unsub();
+
+    expect(called).toBe(3);
+  });
+});
+
+describe('makeUniqueAnimationName', () => {
+  it('creates incrementing copy names', () => {
+    const existing = ['Run', 'Run (copy)', 'Run (copy 2)'];
+    expect(makeUniqueAnimationName('Run', existing)).toBe('Run (copy 3)');
   });
 });

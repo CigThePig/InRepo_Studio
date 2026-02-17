@@ -147,7 +147,7 @@ Rules:
 
 - `/src/editor/assets/assetRegistry.ts`
   - `AssetRegistryState` — grouped asset library state
-    - Keys: groups[], selectedAssetId, animations[]
+    - Keys: groups[], selectedAssetId, animations[], animationSets[]
     - Apply mode: live
   - `AssetEntry` — asset metadata stored in groups
     - Keys: id, name, type, source, dataUrl, width, height, createdAt
@@ -159,6 +159,8 @@ Rules:
     - Keys: sourceAssetId, rect{x,y,w,h}, offset?
   - `AnimationLoopMode` — animation looping behavior
     - Values: loop, once, pingpong
+  - `AnimationSetAsset` — directional animation-set metadata
+    - Keys: id, name, directions{down?,up?,left?,right?}, createdAt
 
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets
@@ -353,8 +355,8 @@ Rules:
   - `GAME_PROFILES` — v1 profile definitions (topdown, platformer, custom)
     - Invariant: profile IDs are stable
 
-- `/src/runtime/presets/defs/*.ts` — v1 preset stub definitions
-  - 6 stubs: controls-topdown, controls-platformer, movement-topdown, movement-platformer, camera-follow, animation-driver
+- `/src/runtime/presets/defs/*.ts` — v1 preset definitions
+  - 7 defs: controls-topdown, controls-platformer, movement-topdown, movement-platformer, camera-follow, animation-driver, animation-entity-animator
   - Each exports: `definition: PresetDefinition` + `factory: PresetFactory`
   - Invariant: all definitions pass validatePresetDefinition()
   - Invariant: preset IDs are stable (category-prefix naming)

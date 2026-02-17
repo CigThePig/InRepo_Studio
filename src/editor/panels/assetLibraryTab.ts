@@ -1,5 +1,7 @@
 import type { AssetRegistry, AssetEntry, AssetGroup, AssetGroupType } from '@/editor/assets';
 import { makeGroupKey } from '@/editor/assets/groupKey';
+import { collectAnimationReferences } from '@/editor/assets/animationRefs';
+import { getAllScenes, saveScene } from '@/storage/hot';
 import { resolveAssetUrl } from '@/shared/paths';
 
 const STYLES = `
@@ -410,6 +412,23 @@ const STYLES = `
     background: rgba(22, 30, 60, 0.9);
     color: #ffb6c1;
     font-size: 12px;
+    cursor: pointer;
+  }
+
+  .asset-library__animation-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .asset-library__animation-action {
+    min-height: 32px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    border-radius: 8px;
+    background: rgba(18, 26, 52, 0.85);
+    color: #dbe4ff;
+    font-size: 11px;
+    padding: 4px 8px;
     cursor: pointer;
   }
 `;
@@ -1065,72 +1084,270 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function renderAnimations(): void {
     librarySection.querySelectorAll(
-      '.asset-library__animations, .asset-library__animations-empty, .asset-library__animations-title'
+      '.asset-library__animations, .asset-library__animations-empty, .asset-library__animations-title, .asset-library__animation-tabs, .asset-library__animation-set-create, .asset-library__animation-sets-grid'
     )
       .forEach((node) => node.remove());
 
     const animations = assetRegistry.getAnimations();
+    const animationSets = assetRegistry.getAnimationSets();
+
     const title = document.createElement('div');
     title.className = 'asset-library__title asset-library__animations-title';
     title.textContent = 'Animations';
     librarySection.appendChild(title);
+
+    const tabs = document.createElement('div');
+    tabs.className = 'asset-library__row asset-library__animation-tabs';
+    const clipsCount = document.createElement('span');
+    clipsCount.className = 'asset-library__hint';
+    clipsCount.textContent = `Clips: ${animations.length}`;
+    const setsCount = document.createElement('span');
+    setsCount.className = 'asset-library__hint';
+    setsCount.textContent = `Sets: ${animationSets.length}`;
+    tabs.appendChild(clipsCount);
+    tabs.appendChild(setsCount);
+    librarySection.appendChild(tabs);
 
     if (animations.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'asset-library__empty asset-library__animations-empty';
       empty.textContent = 'No animations saved yet.';
       librarySection.appendChild(empty);
-      return;
+    } else {
+      const grid = document.createElement('div');
+      grid.className = 'asset-library__animations';
+      const fallbackPoster =
+        'data:image/svg+xml;utf8,' +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23121a30"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="%239aa7d6" font-size="12" font-family="sans-serif">Anim</text></svg>`
+        );
+
+      animations.forEach((animation) => {
+        const card = document.createElement('div');
+        card.className = 'asset-library__animation-card';
+        card.addEventListener('click', () => {
+          onOpenAnimation?.(animation.id);
+        });
+
+        const img = document.createElement('img');
+        img.src = animation.posterDataUrl ?? fallbackPoster;
+        img.alt = animation.name;
+        card.appendChild(img);
+
+        const name = document.createElement('div');
+        name.className = 'asset-library__asset-name';
+        name.textContent = animation.name;
+        card.appendChild(name);
+
+        const meta = document.createElement('div');
+        meta.className = 'asset-library__animation-meta';
+        meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
+        card.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'asset-library__animation-actions';
+
+        const renameButton = document.createElement('button');
+        renameButton.type = 'button';
+        renameButton.className = 'asset-library__animation-action';
+        renameButton.textContent = 'Rename';
+        renameButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const nextName = window.prompt('Rename animation', animation.name);
+          if (!nextName) return;
+          assetRegistry.updateAnimation(animation.id, { name: nextName });
+        });
+
+        const duplicateButton = document.createElement('button');
+        duplicateButton.type = 'button';
+        duplicateButton.className = 'asset-library__animation-action';
+        duplicateButton.textContent = 'Duplicate';
+        duplicateButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const duplicated = assetRegistry.duplicateAnimation(animation.id);
+          if (duplicated) {
+            onOpenAnimation?.(duplicated.id);
+          }
+        });
+
+        const whereUsedButton = document.createElement('button');
+        whereUsedButton.type = 'button';
+        whereUsedButton.className = 'asset-library__animation-action';
+        whereUsedButton.textContent = 'Where Used';
+        whereUsedButton.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const scenes = await getAllScenes();
+          const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets());
+          if (hits.length === 0) {
+            window.alert('No references found.');
+            return;
+          }
+          const details = hits
+            .slice(0, 12)
+            .map((hit) => hit.kind === 'entity'
+              ? `• Scene ${hit.sceneId} → Entity ${hit.entityId}`
+              : `• Animation Set ${hit.setId} (${hit.facing ?? 'unknown'})`)
+            .join('\n');
+          const overflow = hits.length > 12 ? `\n…and ${hits.length - 12} more.` : '';
+          window.alert(`Used in ${hits.length} place(s):\n${details}${overflow}`);
+        });
+
+        actions.appendChild(renameButton);
+        actions.appendChild(duplicateButton);
+        actions.appendChild(whereUsedButton);
+        card.appendChild(actions);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'asset-library__animation-delete';
+        deleteButton.textContent = '×';
+        deleteButton.addEventListener('click', async () => {
+          const scenes = await getAllScenes();
+          const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets());
+          const confirmed = window.confirm(
+            hits.length > 0
+              ? `Delete "${animation.name}" and clear ${hits.length} reference(s)?`
+              : `Delete "${animation.name}"?`
+          );
+          if (!confirmed) return;
+
+          const updatesByScene = new Map<string, Set<string>>();
+          for (const hit of hits) {
+            if (hit.kind !== 'entity') continue;
+            if (!updatesByScene.has(hit.sceneId)) {
+              updatesByScene.set(hit.sceneId, new Set());
+            }
+            updatesByScene.get(hit.sceneId)?.add(hit.entityId);
+          }
+
+          for (const scene of scenes) {
+            const ids = updatesByScene.get(scene.id);
+            if (!ids || ids.size === 0) continue;
+            let changed = false;
+            const nextEntities = scene.entities.map((entity) => {
+              if (!ids.has(entity.id)) return entity;
+              if (entity.properties?.animationId !== animation.id) return entity;
+              changed = true;
+              const nextProperties = { ...(entity.properties ?? {}) };
+              delete nextProperties.animationId;
+              return { ...entity, properties: nextProperties };
+            });
+            if (changed) {
+              await saveScene({ ...scene, entities: nextEntities });
+            }
+          }
+
+          assetRegistry.clearAnimationFromSets(animation.id);
+          assetRegistry.removeAnimation(animation.id);
+        });
+        deleteButton.addEventListener('pointerdown', (event) => {
+          event.stopPropagation();
+        });
+        deleteButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+        });
+        card.appendChild(deleteButton);
+
+        grid.appendChild(card);
+      });
+      librarySection.appendChild(grid);
     }
 
-    const grid = document.createElement('div');
-    grid.className = 'asset-library__animations';
-    const fallbackPoster =
-      'data:image/svg+xml;utf8,' +
-      encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23121a30"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="%239aa7d6" font-size="12" font-family="sans-serif">Anim</text></svg>`
-      );
+    const createSetRow = document.createElement('div');
+    createSetRow.className = 'asset-library__row asset-library__animation-set-create';
+    const createSetButton = document.createElement('button');
+    createSetButton.type = 'button';
+    createSetButton.className = 'asset-library__button';
+    createSetButton.textContent = 'Create Animation Set';
+    createSetButton.addEventListener('click', () => {
+      const name = window.prompt('Animation set name', 'New Animation Set');
+      if (!name) return;
+      assetRegistry.addAnimationSet({ name, directions: {} });
+    });
+    createSetRow.appendChild(createSetButton);
+    librarySection.appendChild(createSetRow);
 
-    animations.forEach((animation) => {
+    const setGrid = document.createElement('div');
+    setGrid.className = 'asset-library__animations asset-library__animation-sets-grid';
+    for (const animationSet of animationSets) {
       const card = document.createElement('div');
       card.className = 'asset-library__animation-card';
-      card.addEventListener('click', () => {
-        onOpenAnimation?.(animation.id);
-      });
-
-      const img = document.createElement('img');
-      img.src = animation.posterDataUrl ?? fallbackPoster;
-      img.alt = animation.name;
-      card.appendChild(img);
 
       const name = document.createElement('div');
       name.className = 'asset-library__asset-name';
-      name.textContent = animation.name;
+      name.textContent = animationSet.name;
       card.appendChild(name);
 
-      const meta = document.createElement('div');
-      meta.className = 'asset-library__animation-meta';
-      meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
-      card.appendChild(meta);
+      const order = ['up', 'left', 'right', 'down'] as const;
+      const directions = document.createElement('div');
+      directions.className = 'asset-library__animation-meta';
+      directions.textContent = order
+        .map((facing) => `${facing}: ${animationSet.directions[facing] || '—'}`)
+        .join(' · ');
+      card.appendChild(directions);
+
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'asset-library__animation-action';
+      editButton.textContent = 'Assign Directions';
+      editButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nextDirections = { ...animationSet.directions };
+        (['down', 'up', 'left', 'right'] as const).forEach((facing) => {
+          const next = window.prompt(`Animation id for ${facing}`, nextDirections[facing] ?? '');
+          if (next === null) return;
+          const trimmed = next.trim();
+          if (!trimmed) {
+            delete nextDirections[facing];
+            return;
+          }
+          nextDirections[facing] = trimmed;
+        });
+        assetRegistry.updateAnimationSet(animationSet.id, { directions: nextDirections });
+      });
+
+      const renameButton = document.createElement('button');
+      renameButton.type = 'button';
+      renameButton.className = 'asset-library__animation-action';
+      renameButton.textContent = 'Rename';
+      renameButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nextName = window.prompt('Rename animation set', animationSet.name);
+        if (!nextName) return;
+        assetRegistry.updateAnimationSet(animationSet.id, { name: nextName });
+      });
 
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'asset-library__animation-delete';
-      deleteButton.textContent = '×';
-      deleteButton.addEventListener('click', () => {
-        assetRegistry.removeAnimation(animation.id);
-      });
-      deleteButton.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
+      deleteButton.className = 'asset-library__animation-action';
+      deleteButton.textContent = 'Delete Set';
       deleteButton.addEventListener('click', (event) => {
         event.stopPropagation();
+        const confirmed = window.confirm(`Delete animation set "${animationSet.name}"?`);
+        if (!confirmed) return;
+        assetRegistry.removeAnimationSet(animationSet.id);
       });
-      card.appendChild(deleteButton);
 
-      grid.appendChild(card);
-    });
-    librarySection.appendChild(grid);
+      const actions = document.createElement('div');
+      actions.className = 'asset-library__animation-actions';
+      actions.appendChild(editButton);
+      actions.appendChild(renameButton);
+      actions.appendChild(deleteButton);
+      card.appendChild(actions);
+
+      setGrid.appendChild(card);
+    }
+
+    if (animationSets.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'asset-library__empty asset-library__animations-empty';
+      empty.textContent = 'No animation sets saved yet.';
+      librarySection.appendChild(empty);
+    } else {
+      librarySection.appendChild(setGrid);
+    }
   }
 
   function renderSheet(): void {

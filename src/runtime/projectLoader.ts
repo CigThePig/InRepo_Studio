@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Project, EntityType, ProjectAnimation } from '@/types';
+import type { Project, EntityType, ProjectAnimation, ProjectAnimationSet, Facing4 } from '@/types';
 import { resolveAssetUrl } from '@/shared/paths';
 import { getAtlasCategoryName } from '@/shared/atlasNaming';
 import type { UnifiedLoader } from '@/runtime/loader';
@@ -22,11 +22,17 @@ export interface ProjectRuntime {
   animationKeyById: Map<string, string>;
   /** Lowercase animation name -> Phaser runtime key */
   animationKeyByName: Map<string, string>;
+  /** Animation set id -> ProjectAnimationSet */
+  animationSetsById: Map<string, ProjectAnimationSet>;
+  /** Lowercase animation set name -> set id */
+  animationSetIdByName: Map<string, string>;
   getTileTextureKey(category: string, index: number): string | null;
   getAtlasTextureKey(category: string): string | null;
   getEntitySpriteKey(typeName: string): string | null;
   /** Resolve an animation id or name to its Phaser runtime key. */
   resolveAnimationKey(value: string): string | null;
+  /** Resolve an animation set id/name + facing to Phaser runtime key. */
+  resolveAnimationSetKey(setIdOrName: string, facing: Facing4): string | null;
   /** Get the pivot for an animation by its runtime key. */
   getAnimationPivotByKey(key: string): { x: number; y: number } | null;
 }
@@ -169,12 +175,24 @@ function registerProjectAnimations(
     // Skip if Phaser already has this animation registered
     if (phaserScene.anims.exists(key)) continue;
 
-    const frames = anim.frames.map((f) => ({ key: f.textureKey, frame: f.frame }));
+    const hasDurationOverrides = anim.frames.some((frame) =>
+      typeof frame.durationMs === 'number' && Number.isFinite(frame.durationMs)
+    );
+    const frames = anim.frames.map((f) => {
+      const frame: { key: string; frame: string; duration?: number } = {
+        key: f.textureKey,
+        frame: f.frame,
+      };
+      if (hasDurationOverrides && typeof f.durationMs === 'number' && Number.isFinite(f.durationMs)) {
+        frame.duration = Math.max(1, f.durationMs);
+      }
+      return frame;
+    });
 
     phaserScene.anims.create({
       key,
       frames,
-      frameRate: anim.fps,
+      frameRate: hasDurationOverrides ? undefined : anim.fps,
       repeat: anim.loopMode === 'loop' ? -1 : 0,
       yoyo: anim.loopMode === 'pingpong',
     });
@@ -236,12 +254,19 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
   const animationsById = new Map<string, ProjectAnimation>();
   const animationKeyById = new Map<string, string>();
   const animationKeyByName = new Map<string, string>();
+  const animationSetsById = new Map<string, ProjectAnimationSet>();
+  const animationSetIdByName = new Map<string, string>();
   const pivotByKey = new Map<string, { x: number; y: number }>();
 
   registerProjectAnimations(
     phaserScene, project,
     animationsById, animationKeyById, animationKeyByName, pivotByKey,
   );
+
+  for (const animationSet of project.animationSets ?? []) {
+    animationSetsById.set(animationSet.id, animationSet);
+    animationSetIdByName.set(animationSet.name.toLowerCase(), animationSet.id);
+  }
 
   return {
     project,
@@ -252,6 +277,8 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
     animationsById,
     animationKeyById,
     animationKeyByName,
+    animationSetsById,
+    animationSetIdByName,
     getTileTextureKey(category, index) {
       return tileTextureKeys.get(`${category}:${index}`) ?? null;
     },
@@ -271,6 +298,15 @@ export async function initProject(config: ProjectLoaderConfig): Promise<ProjectR
       // Try as raw Phaser key (already prefixed)
       if (value.startsWith('anim:')) return value;
       return null;
+    },
+    resolveAnimationSetKey(setIdOrName: string, facing: Facing4): string | null {
+      const direct = animationSetsById.get(setIdOrName);
+      const byNameId = animationSetIdByName.get(setIdOrName.toLowerCase());
+      const animationSet = direct ?? (byNameId ? animationSetsById.get(byNameId) : undefined);
+      if (!animationSet) return null;
+      const animationId = animationSet.directions?.[facing];
+      if (!animationId) return null;
+      return animationKeyById.get(animationId) ?? null;
     },
     getAnimationPivotByKey(key: string): { x: number; y: number } | null {
       return pivotByKey.get(key) ?? null;
