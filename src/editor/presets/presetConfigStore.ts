@@ -100,7 +100,7 @@ function cloneConfig(config: PresetSavedConfig): PresetSavedConfig {
 export function createPresetConfigStore(registry: PresetRegistry): PresetConfigStore {
   let config: PresetSavedConfig = createDefaultPresetConfig();
   const listeners: Array<() => void> = [];
-  const PROFILE_CATEGORY_IDS: readonly PresetCategoryId[] = ['controls', 'movement', 'camera', 'animation'];
+  const PROFILE_CATEGORY_IDS: readonly PresetCategoryId[] = ['controls', 'movement', 'camera', 'animation', 'entity-animation'];
 
   function notify(): void {
     for (const cb of listeners) {

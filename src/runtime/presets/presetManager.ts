@@ -8,7 +8,7 @@
  * - PresetConflict — detected conflict between active presets
  *
  * Canonical key set:
- * - Category IDs: controls, movement, camera, animation
+ * - Category IDs: controls, movement, camera, animation, entity-animation
  * - Lifecycle: initialize → registerApi → updateCategoryConfig → update → dispose
  *
  * Apply/Rebuild semantics:

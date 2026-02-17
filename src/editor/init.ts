@@ -816,7 +816,7 @@ export function getBlocklyCockpit(): BlocklyCockpitController | null {
  */
 function resolveBlocklyTargetFromBlockType(blockType: string): ScriptLogicTarget {
   const lower = blockType.toLowerCase();
-  const categories = ['controls', 'movement', 'camera', 'animation'] as const;
+  const categories = ['controls', 'movement', 'camera', 'animation', 'entity-animation'] as const;
   for (const cat of categories) {
     if (lower.includes(cat)) {
       return { type: 'preset', targetId: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) };

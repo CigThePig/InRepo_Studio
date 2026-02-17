@@ -7,7 +7,7 @@
  * - CATEGORY_LABELS — category title lookup for detail header
  *
  * Canonical key set:
- * - Preset categories: controls, movement, camera, animation
+ * - Preset categories: controls, movement, camera, animation, entity-animation
  *
  * Apply/Rebuild semantics:
  * - Apply mode: live (detail screen re-renders on config changes)
@@ -41,6 +41,7 @@ const CATEGORY_LABELS: Record<PresetCategoryId, string> = {
   movement: 'Movement',
   camera: 'Camera',
   animation: 'Animation',
+  'entity-animation': 'Entity Animation',
 };
 
 const STYLES = `

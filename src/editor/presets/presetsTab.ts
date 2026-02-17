@@ -7,7 +7,7 @@
  * - CATEGORY_META — canonical dashboard category order + labels/icons
  *
  * Canonical key set:
- * - Preset categories: controls, movement, camera, animation
+ * - Preset categories: controls, movement, camera, animation, entity-animation
  *
  * Apply/Rebuild semantics:
  * - Apply mode: live (render updates when configStore changes)
@@ -47,6 +47,7 @@ const CATEGORY_META: readonly CategoryMeta[] = [
   { id: 'movement', label: 'Movement', icon: '🏃' },
   { id: 'camera', label: 'Camera', icon: '📷' },
   { id: 'animation', label: 'Animation', icon: '✨' },
+  { id: 'entity-animation', label: 'Entity Animation', icon: '🎭' },
 ];
 
 const STYLES = `
