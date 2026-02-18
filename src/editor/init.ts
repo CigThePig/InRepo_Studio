@@ -1147,6 +1147,68 @@ export async function initEditor(): Promise<void> {
   }
   renderSystemNotices(updateInfo, quotaInfo);
 
+  // --- Dev/Test Bridge ---
+  // Expose a lightweight `window.__editor__` API so Playwright (and Claude's
+  // MCP browser tools) can inspect and drive the editor without needing to
+  // click through the DOM.  Only populated in development builds.
+  if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>)['__editor__'] = {
+      /** True once the editor has fully initialised. Poll this before calling other methods. */
+      ready: true,
+
+      /** Return a snapshot of the current editor state (serialisable). */
+      getState: () => editorState ? { ...editorState } : null,
+
+      /** Return the current scene data. */
+      getScene: () => currentScene ? { ...currentScene } : null,
+
+      /** Return the current project data. */
+      getProject: () => currentProject ? { ...currentProject } : null,
+
+      /** Return the active tool name (paint / erase / select / entity). */
+      getCurrentTool: () => editorState?.currentTool ?? null,
+
+      /** Return the active layer (ground / props / entities / collision / triggers). */
+      getActiveLayer: () => editorState?.activeLayer ?? null,
+
+      /** Return the current viewport state (x, y, zoom). */
+      getViewport: () => canvasController?.getViewport() ?? null,
+
+      /** Return the current editor domain mode. */
+      getEditorMode: () => editorState?.editorMode ?? null,
+
+      /**
+       * Programmatically change the active layer.
+       * @param layer - 'ground' | 'props' | 'entities' | 'collision' | 'triggers'
+       */
+      setActiveLayer: (layer: string) => applyActiveLayer(layer as import('@/types').LayerType),
+
+      /**
+       * Programmatically change the active tool.
+       * @param tool - 'paint' | 'erase' | 'select' | 'entity'
+       */
+      setTool: (tool: string) => applyToolChange(tool as EditorState['currentTool'], true),
+
+      /** Return the bounding rect of the canvas element (useful for computing click coords). */
+      getCanvasRect: () => {
+        const container = document.getElementById('canvas-container');
+        const canvas = container?.querySelector('canvas');
+        return canvas?.getBoundingClientRect() ?? null;
+      },
+
+      /** Return a list of visible DOM panel IDs / class names to help orient screenshots. */
+      getLayoutInfo: () => ({
+        editorContainer: !!document.getElementById('editor-container'),
+        topPanel: !!document.getElementById('top-panel-container')?.firstElementChild,
+        canvas: !!document.getElementById('canvas-container')?.querySelector('canvas'),
+        bottomPanel: !!document.getElementById('bottom-panel-container')?.firstElementChild,
+        leftBerry: !!document.querySelector('.left-berry'),
+        rightBerry: !!document.querySelector('.right-berry'),
+      }),
+    };
+    console.log(`${LOG_PREFIX} window.__editor__ bridge registered (dev only)`);
+  }
+
   console.log(`${LOG_PREFIX} Editor initialized`);
 }
 

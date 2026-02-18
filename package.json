@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .ts",
     "test": "vitest",
-    "validate:project": "node tools/validate-project.mjs"
+    "validate:project": "node tools/validate-project.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "blockly": "^12.3.1",
