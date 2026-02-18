@@ -1,0 +1,873 @@
+/**
+ * SCHEMA INVENTORY (lists-of-truth)
+ * Owner: this file
+ * Purpose: Tilemap rendering with layer support, culling, and visual feedback
+ *
+ * Defines:
+ * - TilemapRenderer — interface for tilemap rendering (type: interface)
+ * - LAYER_RENDER_ORDER — layer rendering order (type: constant)
+ * - LAYER_COLORS — overlay colors for collision/trigger layers (type: lookup)
+ *
+ * Canonical key set:
+ * - Layer types come from: src/types/scene.ts (LayerType)
+ *
+ * Apply/Rebuild semantics:
+ * - Apply mode: live (renders update immediately on state change)
+ *
+ * Verification (minimum):
+ * - [ ] Layers render in correct order
+ * - [ ] Visible tile culling works correctly
+ * - [ ] Inactive layers are dimmed
+ */
+
+import { resolveTileGid, type Scene, type LayerType, type TileLayer, type EntityType, type SpriteRef } from '@/types';
+import type { ViewportState } from './viewport';
+import { getVisibleTileRange, tileToScreen } from './viewport';
+import { getTile, LAYER_ORDER } from '@/types/scene';
+import type { TileImageCache } from './tileCache';
+import type { AtlasCache } from './atlasCache';
+import type { LayerVisibility, LayerLocks } from '@/storage/hot';
+import { createEntityRenderer, type EntityPreview } from './entityRenderer';
+import type { AnimationClock } from './animationClock';
+import type { AssetRegistry } from '@/editor/assets/assetRegistry';
+
+const LOG_PREFIX = '[Renderer]';
+
+// --- Constants ---
+
+/** Layer render order (bottom to top) */
+export const LAYER_RENDER_ORDER: LayerType[] = LAYER_ORDER;
+
+/** Opacity for inactive layers */
+const INACTIVE_LAYER_OPACITY = 0.4;
+
+/** Overlay colors for special layers */
+export const LAYER_COLORS = {
+  collision: 'rgba(255, 80, 80, 0.5)',
+  triggers: 'rgba(80, 255, 80, 0.5)',
+} as const;
+
+/** Hover highlight styling */
+const HOVER_HIGHLIGHT_FILL = 'rgba(255, 255, 255, 0.25)';
+const HOVER_HIGHLIGHT_BORDER = 'rgba(74, 158, 255, 0.9)';
+const HOVER_HIGHLIGHT_BORDER_WIDTH = 2;
+
+/** Selection styling */
+const SELECTION_BORDER = 'rgba(74, 158, 255, 0.9)';
+const SELECTION_FILL = 'rgba(74, 158, 255, 0.2)';
+const SELECTION_BORDER_WIDTH = 2;
+const SELECTION_MOVE_BORDER = 'rgba(114, 255, 196, 0.9)';
+const MAX_TRACKED_ANIMATIONS = 60;
+
+// Re-export TOUCH_OFFSET_Y for backwards compatibility
+export { TOUCH_OFFSET_Y } from './touchConfig';
+
+// --- Types ---
+
+export interface TilemapRendererConfig {
+  /** Tile image cache for loading tile images */
+  tileCache: TileImageCache;
+  /** Atlas image cache for slice-based rendering */
+  atlasCache: AtlasCache;
+  /** Callback when entity sprites load */
+  onSpriteLoad?: () => void;
+}
+
+export interface HoverStyle {
+  fill: string;
+  border: string;
+}
+
+
+export interface PropSpritePreview {
+  sprite: SpriteRef;
+  x: number;
+  y: number;
+}
+
+interface SelectionOverlayState {
+  selection: {
+    startX: number;
+    startY: number;
+    width: number;
+    height: number;
+    layer: LayerType;
+  } | null;
+  moveOffset: { x: number; y: number } | null;
+  previewTiles: number[][] | null;
+}
+
+export interface TilemapRenderer {
+  /** Set the scene to render */
+  setScene(scene: Scene | null): void;
+
+  /** Get the current scene */
+  getScene(): Scene | null;
+
+  /** Set the active layer (affects dimming) */
+  setActiveLayer(layer: LayerType): void;
+
+  /** Get the active layer */
+  getActiveLayer(): LayerType;
+
+  /** Set layer visibility state (true = visible) */
+  setLayerVisibility(visibility: LayerVisibility): void;
+
+  /** Get layer visibility state */
+  getLayerVisibility(): LayerVisibility;
+
+  /** Set layer locks state (true = locked) */
+  setLayerLocks(locks: LayerLocks): void;
+
+  /** Get layer locks state */
+  getLayerLocks(): LayerLocks;
+
+  /** Set layer render order (bottom to top) */
+  setLayerOrder(order: LayerType[]): void;
+
+  /** Get the current layer render order */
+  getLayerOrder(): LayerType[];
+
+  /** Set the current tile category for rendering */
+  setSelectedCategory(category: string): void;
+
+  /** Get the current tile category */
+  getSelectedCategory(): string;
+
+  /** Set the hover tile position (or null/null to hide) */
+  setHoverTile(tileX: number | null, tileY: number | null): void;
+
+  /** Set hover brush size for the hover highlight */
+  setHoverBrushSize(size: number): void;
+
+  /** Set hover highlight style (omit to reset default) */
+  setHoverStyle(style?: HoverStyle): void;
+
+  /** Get the current hover tile position */
+  getHoverTile(): { x: number; y: number } | null;
+
+  /** Set selection overlay state */
+  setSelectionOverlay(state: SelectionOverlayState): void;
+
+  /** Set entity types used for rendering */
+  setEntityTypes(types: EntityType[]): void;
+
+  /** Set asset registry used for animation frame previews */
+  setAssetRegistry(assetRegistry: AssetRegistry | null): void;
+  setAnimationClock(animationClock: AnimationClock | null): void;
+  syncAnimationClock(viewport: ViewportState, canvasWidth: number, canvasHeight: number, deltaMs: number): boolean;
+  hasActiveAnimations(): boolean;
+
+  /** Set entity placement preview */
+  setEntityPreview(preview: EntityPreview | null): void;
+  setPropSpritePreview(preview: PropSpritePreview | null): void;
+  setPropSpriteSelectionIds(ids: string[]): void;
+
+  /** Highlight a recently placed entity */
+  setEntityHighlightId(id: string | null): void;
+
+  /** Highlight selected entities */
+  setEntitySelectionIds(ids: string[]): void;
+
+  /** Render the tilemap to the canvas context */
+  render(
+    ctx: CanvasRenderingContext2D,
+    viewport: ViewportState,
+    canvasWidth: number,
+    canvasHeight: number
+  ): void;
+
+  /** Mark renderer as dirty (needs re-render) */
+  invalidate(): void;
+
+  /** Check if renderer needs to re-render */
+  isDirty(): boolean;
+}
+
+// --- Factory ---
+
+export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRenderer {
+  const { tileCache, atlasCache } = config;
+
+  function drawResolvedTile(
+    ctx: CanvasRenderingContext2D,
+    category: string,
+    index: number,
+    x: number,
+    y: number,
+    size: number
+  ): void {
+    const atlasSlice = atlasCache.getAtlasSlice(category, index);
+    if (atlasSlice) {
+      ctx.drawImage(
+        atlasSlice.img,
+        atlasSlice.rect.x,
+        atlasSlice.rect.y,
+        atlasSlice.rect.w,
+        atlasSlice.rect.h,
+        x,
+        y,
+        size,
+        size
+      );
+      return;
+    }
+
+    const img = tileCache.getTileImage(category, index);
+    if (img) {
+      ctx.drawImage(img, x, y, size, size);
+    }
+  }
+
+
+  function resolveSpriteSize(sprite: SpriteRef, tileSize: number): { width: number; height: number } {
+    const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
+    if (atlasSlice) return { width: atlasSlice.rect.w, height: atlasSlice.rect.h };
+    const img = tileCache.getTileImage(sprite.category, sprite.index);
+    if (img) return { width: img.naturalWidth || tileSize, height: img.naturalHeight || tileSize };
+    return { width: tileSize, height: tileSize };
+  }
+
+  function drawPropSprite(ctx: CanvasRenderingContext2D, viewport: ViewportState, tileSize: number, sprite: SpriteRef, x: number, y: number, alpha = 1): void {
+    const worldX = (x - viewport.panX) * viewport.zoom;
+    const worldY = (y - viewport.panY) * viewport.zoom;
+    const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
+    const prev = ctx.globalAlpha;
+    ctx.globalAlpha = prev * alpha;
+    if (atlasSlice) {
+      ctx.drawImage(
+        atlasSlice.img,
+        atlasSlice.rect.x,
+        atlasSlice.rect.y,
+        atlasSlice.rect.w,
+        atlasSlice.rect.h,
+        worldX,
+        worldY,
+        atlasSlice.rect.w * viewport.zoom,
+        atlasSlice.rect.h * viewport.zoom,
+      );
+      ctx.globalAlpha = prev;
+      return;
+    }
+    const img = tileCache.getTileImage(sprite.category, sprite.index);
+    if (img) {
+      const width = img.naturalWidth || tileSize;
+      const height = img.naturalHeight || tileSize;
+      ctx.drawImage(img, worldX, worldY, width * viewport.zoom, height * viewport.zoom);
+    }
+    ctx.globalAlpha = prev;
+  }
+
+  // Renderer state
+  let scene: Scene | null = null;
+  let activeLayer: LayerType = 'ground';
+  let layerVisibility: LayerVisibility = {
+    ground: true,
+    props: true,
+    collision: true,
+    triggers: true,
+  };
+  let layerLocks: LayerLocks = {
+    ground: false,
+    props: false,
+    collision: false,
+    triggers: false,
+  };
+  let layerOrder: LayerType[] = [...LAYER_RENDER_ORDER];
+  let selectedCategory = '';
+  let hoverTileX: number | null = null;
+  let hoverTileY: number | null = null;
+  let hoverBrushSize = 1;
+  let hoverStyle: HoverStyle = {
+    fill: HOVER_HIGHLIGHT_FILL,
+    border: HOVER_HIGHLIGHT_BORDER,
+  };
+  let selectionOverlay: SelectionOverlayState = {
+    selection: null,
+    moveOffset: null,
+    previewTiles: null,
+  };
+  let entityPreview: EntityPreview | null = null;
+  let propSpritePreview: PropSpritePreview | null = null;
+  let selectedPropSpriteIds: string[] = [];
+  let assetRegistry: AssetRegistry | null = null;
+  let animationClock: AnimationClock | null = null;
+  let unsubscribeAnimationsChanged: (() => void) | null = null;
+  const trackedAnimationIds = new Set<string>();
+  let dirty = true;
+  const entityRenderer = createEntityRenderer({
+    onSpriteLoad: () => {
+      dirty = true;
+      config.onSpriteLoad?.();
+    },
+  });
+
+  function getHoverFootprint(
+    tileX: number,
+    tileY: number,
+    brushSize: number
+  ): { x: number; y: number }[] {
+    const size = Math.max(1, Math.min(3, Math.round(brushSize)));
+    const points: { x: number; y: number }[] = [];
+
+    if (size === 1) {
+      points.push({ x: tileX, y: tileY });
+    } else if (size === 2) {
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) {
+          points.push({ x: tileX + dx, y: tileY + dy });
+        }
+      }
+    } else {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          points.push({ x: tileX + dx, y: tileY + dy });
+        }
+      }
+    }
+
+    return points;
+  }
+
+  // --- Layer Rendering ---
+
+  function renderTileLayer(
+    ctx: CanvasRenderingContext2D,
+    layer: TileLayer,
+    layerType: LayerType,
+    viewport: ViewportState,
+    tileSize: number,
+    canvasWidth: number,
+    canvasHeight: number,
+    sceneWidth: number,
+    sceneHeight: number,
+    isActive: boolean
+  ): void {
+    // Set opacity based on active state
+    ctx.globalAlpha = isActive ? 1.0 : INACTIVE_LAYER_OPACITY;
+
+    // Get visible tile range
+    const range = getVisibleTileRange(viewport, canvasWidth, canvasHeight, tileSize);
+
+    // Clamp to scene bounds
+    const minX = Math.max(0, range.minX);
+    const minY = Math.max(0, range.minY);
+    const maxX = Math.min(sceneWidth - 1, range.maxX);
+    const maxY = Math.min(sceneHeight - 1, range.maxY);
+
+    const screenTileSize = tileSize * viewport.zoom;
+
+    // Render visible tiles
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const tileValue = getTile(layer, x, y);
+        if (tileValue === 0) continue; // Empty tile
+
+        const screenPos = tileToScreen(viewport, x, y, tileSize);
+
+        // Check if this is a special layer (collision/trigger)
+        if (layerType === 'collision' || layerType === 'triggers') {
+          // Draw colored overlay
+          ctx.fillStyle = LAYER_COLORS[layerType];
+          ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+        } else {
+          // Draw tile image (GID -> category/index via scene.tilesets)
+          if (!scene) continue;
+          const resolved = resolveTileGid(scene, tileValue);
+          if (!resolved) continue;
+          drawResolvedTile(
+            ctx,
+            resolved.category,
+            resolved.index,
+            screenPos.x,
+            screenPos.y,
+            screenTileSize
+          );
+          // If image not loaded, skip (will render on next frame when loaded)
+        }
+      }
+    }
+
+    // Reset opacity
+    ctx.globalAlpha = 1.0;
+  }
+
+  function getVisibleAnimationIds(
+    viewport: ViewportState,
+    canvasWidth: number,
+    canvasHeight: number
+  ): Set<string> {
+    const ids = new Set<string>();
+    if (!scene?.entities?.length) return ids;
+
+    const pad = scene.tileSize * 2;
+    const minX = viewport.panX - pad;
+    const minY = viewport.panY - pad;
+    const maxX = viewport.panX + canvasWidth / viewport.zoom + pad;
+    const maxY = viewport.panY + canvasHeight / viewport.zoom + pad;
+
+    for (const entity of scene.entities) {
+      if (entity.x < minX || entity.x > maxX || entity.y < minY || entity.y > maxY) {
+        continue;
+      }
+      const animationId = entity.properties?.animationId;
+      if (typeof animationId === 'string' && animationId.trim()) {
+        ids.add(animationId);
+      }
+    }
+
+    return ids;
+  }
+
+  function renderHoverHighlight(
+    ctx: CanvasRenderingContext2D,
+    tileX: number,
+    tileY: number,
+    viewport: ViewportState,
+    tileSize: number,
+    sceneWidth: number,
+    sceneHeight: number
+  ): void {
+    const footprint = getHoverFootprint(tileX, tileY, hoverBrushSize);
+    const screenTileSize = tileSize * viewport.zoom;
+    ctx.lineWidth = HOVER_HIGHLIGHT_BORDER_WIDTH;
+
+    for (const point of footprint) {
+      if (point.x < 0 || point.x >= sceneWidth || point.y < 0 || point.y >= sceneHeight) {
+        continue;
+      }
+
+      const screenPos = tileToScreen(viewport, point.x, point.y, tileSize);
+
+      // Draw fill
+      ctx.fillStyle = hoverStyle.fill;
+      ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+
+      // Draw border
+      ctx.strokeStyle = hoverStyle.border;
+      ctx.strokeRect(
+        screenPos.x + 1,
+        screenPos.y + 1,
+        screenTileSize - 2,
+        screenTileSize - 2
+      );
+    }
+  }
+
+  function renderSelectionOverlay(
+    ctx: CanvasRenderingContext2D,
+    viewport: ViewportState,
+    tileSize: number,
+    sceneWidth: number,
+    sceneHeight: number
+  ): void {
+    if (!selectionOverlay.selection) return;
+
+    const { selection, moveOffset, previewTiles } = selectionOverlay;
+    const screenTileSize = tileSize * viewport.zoom;
+
+    const renderSelectionRect = (startX: number, startY: number, width: number, height: number, border: string) => {
+      const screenPos = tileToScreen(viewport, startX, startY, tileSize);
+      ctx.lineWidth = SELECTION_BORDER_WIDTH;
+      ctx.fillStyle = SELECTION_FILL;
+      ctx.strokeStyle = border;
+      ctx.fillRect(
+        screenPos.x,
+        screenPos.y,
+        width * screenTileSize,
+        height * screenTileSize
+      );
+      ctx.strokeRect(
+        screenPos.x + 1,
+        screenPos.y + 1,
+        width * screenTileSize - 2,
+        height * screenTileSize - 2
+      );
+    };
+
+    renderSelectionRect(
+      selection.startX,
+      selection.startY,
+      selection.width,
+      selection.height,
+      SELECTION_BORDER
+    );
+
+    if (!moveOffset || !previewTiles) return;
+
+    const previewStartX = selection.startX + moveOffset.x;
+    const previewStartY = selection.startY + moveOffset.y;
+
+    renderSelectionRect(
+      previewStartX,
+      previewStartY,
+      selection.width,
+      selection.height,
+      SELECTION_MOVE_BORDER
+    );
+
+    if (!scene) return;
+
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+
+    for (let y = 0; y < previewTiles.length; y += 1) {
+      for (let x = 0; x < previewTiles[y].length; x += 1) {
+        const value = previewTiles[y][x];
+        if (value === 0) continue;
+
+        const destX = previewStartX + x;
+        const destY = previewStartY + y;
+
+        if (destX < 0 || destX >= sceneWidth || destY < 0 || destY >= sceneHeight) {
+          continue;
+        }
+
+        const screenPos = tileToScreen(viewport, destX, destY, tileSize);
+
+        if (selection.layer === 'collision' || selection.layer === 'triggers') {
+          ctx.fillStyle = LAYER_COLORS[selection.layer];
+          ctx.fillRect(screenPos.x, screenPos.y, screenTileSize, screenTileSize);
+          continue;
+        }
+
+        const resolved = resolveTileGid(scene, value);
+        if (!resolved) continue;
+        drawResolvedTile(
+          ctx,
+          resolved.category,
+          resolved.index,
+          screenPos.x,
+          screenPos.y,
+          screenTileSize
+        );
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // --- Renderer Instance ---
+
+  const renderer: TilemapRenderer = {
+    setScene(newScene: Scene | null): void {
+      if (scene !== newScene) {
+        scene = newScene;
+        dirty = true;
+        console.log(`${LOG_PREFIX} Scene set: ${newScene?.name ?? 'null'}`);
+      }
+    },
+
+    getScene(): Scene | null {
+      return scene;
+    },
+
+    setActiveLayer(layer: LayerType): void {
+      if (activeLayer !== layer) {
+        activeLayer = layer;
+        dirty = true;
+      }
+    },
+
+    getActiveLayer(): LayerType {
+      return activeLayer;
+    },
+
+    setLayerVisibility(visibility: LayerVisibility): void {
+      const changed = Object.keys(visibility).some(
+        (key) => layerVisibility[key as LayerType] !== visibility[key as LayerType]
+      );
+      if (changed) {
+        layerVisibility = { ...visibility };
+        dirty = true;
+      }
+    },
+
+    getLayerVisibility(): LayerVisibility {
+      return { ...layerVisibility };
+    },
+
+    setLayerLocks(locks: LayerLocks): void {
+      const changed = Object.keys(locks).some(
+        (key) => layerLocks[key as LayerType] !== locks[key as LayerType]
+      );
+      if (changed) {
+        layerLocks = { ...locks };
+        dirty = true;
+      }
+    },
+
+    setLayerOrder(order: LayerType[]): void {
+      // Validate order contains all layer types exactly once.
+      const unique = Array.from(new Set(order));
+      const valid = unique.length === LAYER_ORDER.length && LAYER_ORDER.every((l) => unique.includes(l));
+      if (!valid) {
+        console.warn(`${LOG_PREFIX} Invalid layer order, ignoring`, order);
+        return;
+      }
+      layerOrder = [...unique];
+      dirty = true;
+    },
+
+    getLayerOrder(): LayerType[] {
+      return [...layerOrder];
+    },
+
+
+    getLayerLocks(): LayerLocks {
+      return { ...layerLocks };
+    },
+
+    setSelectedCategory(category: string): void {
+      if (selectedCategory !== category) {
+        selectedCategory = category;
+        dirty = true;
+      }
+    },
+
+    getSelectedCategory(): string {
+      return selectedCategory;
+    },
+
+    setHoverTile(x: number | null, y: number | null): void {
+      if (hoverTileX !== x || hoverTileY !== y) {
+        hoverTileX = x;
+        hoverTileY = y;
+        dirty = true;
+      }
+    },
+
+    setHoverBrushSize(size: number): void {
+      const normalized = Math.max(1, Math.min(3, Math.round(size)));
+      if (hoverBrushSize !== normalized) {
+        hoverBrushSize = normalized;
+        dirty = true;
+      }
+    },
+
+    setHoverStyle(style?: HoverStyle): void {
+      const nextStyle = style ?? { fill: HOVER_HIGHLIGHT_FILL, border: HOVER_HIGHLIGHT_BORDER };
+      if (hoverStyle.fill !== nextStyle.fill || hoverStyle.border !== nextStyle.border) {
+        hoverStyle = nextStyle;
+        dirty = true;
+      }
+    },
+
+    getHoverTile(): { x: number; y: number } | null {
+      if (hoverTileX === null || hoverTileY === null) {
+        return null;
+      }
+      return { x: hoverTileX, y: hoverTileY };
+    },
+
+    setSelectionOverlay(state: SelectionOverlayState): void {
+      selectionOverlay = state;
+      dirty = true;
+    },
+
+    setEntityTypes(types: EntityType[]): void {
+      entityRenderer.setEntityTypes(types);
+      dirty = true;
+    },
+
+    setAssetRegistry(nextAssetRegistry: AssetRegistry | null): void {
+      entityRenderer.setAssetRegistry(nextAssetRegistry);
+      unsubscribeAnimationsChanged?.();
+      unsubscribeAnimationsChanged = null;
+      if (animationClock) {
+        for (const animationId of trackedAnimationIds) {
+          animationClock.unregister(animationId);
+        }
+      }
+      trackedAnimationIds.clear();
+      assetRegistry = nextAssetRegistry;
+      if (assetRegistry) {
+        unsubscribeAnimationsChanged = assetRegistry.onAnimationsChanged(() => {
+          if (animationClock) {
+            for (const animationId of trackedAnimationIds) {
+              animationClock.unregister(animationId);
+            }
+          }
+          trackedAnimationIds.clear();
+          dirty = true;
+        });
+      }
+      dirty = true;
+    },
+
+    setAnimationClock(nextAnimationClock: AnimationClock | null): void {
+      animationClock = nextAnimationClock;
+      entityRenderer.setAnimationClock(nextAnimationClock);
+      trackedAnimationIds.clear();
+      dirty = true;
+    },
+
+    syncAnimationClock(
+      viewport: ViewportState,
+      canvasWidth: number,
+      canvasHeight: number,
+      deltaMs: number
+    ): boolean {
+      if (!animationClock || !assetRegistry) return false;
+
+      const visibleAnimationIds = getVisibleAnimationIds(viewport, canvasWidth, canvasHeight);
+      for (const animationId of trackedAnimationIds) {
+        if (!visibleAnimationIds.has(animationId)) {
+          animationClock.unregister(animationId);
+          trackedAnimationIds.delete(animationId);
+        }
+      }
+
+      for (const animationId of visibleAnimationIds) {
+        if (trackedAnimationIds.has(animationId)) continue;
+        if (trackedAnimationIds.size >= MAX_TRACKED_ANIMATIONS) break;
+        const animation = assetRegistry.getAnimation(animationId);
+        if (!animation) continue;
+        animationClock.register(animationId, animation);
+        trackedAnimationIds.add(animationId);
+      }
+
+      if (trackedAnimationIds.size === 0) return false;
+      const dirtyAnimationIds = animationClock.tick(deltaMs);
+      for (const animationId of dirtyAnimationIds) {
+        if (visibleAnimationIds.has(animationId)) {
+          dirty = true;
+          return true;
+        }
+      }
+      return false;
+    },
+
+
+    hasActiveAnimations(): boolean {
+      if (!animationClock || trackedAnimationIds.size === 0) return false;
+      for (const animationId of trackedAnimationIds) {
+        if (animationClock.isAdvancing(animationId)) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    setEntityPreview(preview: EntityPreview | null): void {
+      entityPreview = preview;
+      entityRenderer.setPreview(preview);
+      dirty = true;
+    },
+
+    setEntityHighlightId(id: string | null): void {
+      entityRenderer.setHighlightId(id);
+      dirty = true;
+    },
+
+    setPropSpritePreview(preview: PropSpritePreview | null): void {
+      propSpritePreview = preview;
+      dirty = true;
+    },
+
+    setPropSpriteSelectionIds(ids: string[]): void {
+      selectedPropSpriteIds = [...ids];
+      dirty = true;
+    },
+
+    setEntitySelectionIds(ids: string[]): void {
+      entityRenderer.setSelectedIds(ids);
+      dirty = true;
+    },
+
+    render(
+      ctx: CanvasRenderingContext2D,
+      viewport: ViewportState,
+      canvasWidth: number,
+      canvasHeight: number
+    ): void {
+      if (!scene) return;
+
+      const { width: sceneWidth, height: sceneHeight, tileSize, layers } = scene;
+
+      // Disable image smoothing for pixel art
+      ctx.imageSmoothingEnabled = false;
+
+      // Render layers in order (bottom to top)
+      for (const layerType of layerOrder) {
+        // Skip hidden layers
+        if (!layerVisibility[layerType]) continue;
+
+        const layer = layers[layerType];
+        if (!layer) continue;
+
+        renderTileLayer(
+          ctx,
+          layer,
+          layerType,
+          viewport,
+          tileSize,
+          canvasWidth,
+          canvasHeight,
+          sceneWidth,
+          sceneHeight,
+          layerType === activeLayer
+        );
+      }
+
+      const propSprites = scene.propSprites ?? [];
+      if (propSprites.length > 0) {
+        for (const propSprite of propSprites) {
+          drawPropSprite(ctx, viewport, tileSize, propSprite.sprite, propSprite.x, propSprite.y);
+          if (selectedPropSpriteIds.includes(propSprite.id)) {
+            const size = resolveSpriteSize(propSprite.sprite, tileSize);
+            const posX = (propSprite.x - viewport.panX) * viewport.zoom;
+            const posY = (propSprite.y - viewport.panY) * viewport.zoom;
+            ctx.strokeStyle = SELECTION_MOVE_BORDER;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(posX, posY, size.width * viewport.zoom, size.height * viewport.zoom);
+          }
+        }
+      }
+
+      if (propSpritePreview) {
+        drawPropSprite(ctx, viewport, tileSize, propSpritePreview.sprite, propSpritePreview.x, propSpritePreview.y, 0.7);
+      }
+
+      if (scene.entities?.length || entityPreview) {
+        entityRenderer.render(
+          ctx,
+          viewport,
+          scene.entities ?? [],
+          tileSize,
+          canvasWidth,
+          canvasHeight
+        );
+      }
+
+      // Render hover highlight (on top of everything)
+      if (hoverTileX !== null && hoverTileY !== null) {
+        renderHoverHighlight(
+          ctx,
+          hoverTileX,
+          hoverTileY,
+          viewport,
+          tileSize,
+          sceneWidth,
+          sceneHeight
+        );
+      }
+
+      renderSelectionOverlay(ctx, viewport, tileSize, sceneWidth, sceneHeight);
+
+      dirty = false;
+    },
+
+    invalidate(): void {
+      dirty = true;
+    },
+
+    isDirty(): boolean {
+      return dirty;
+    },
+  };
+
+  console.log(`${LOG_PREFIX} Renderer created`);
+
+  return renderer;
+}

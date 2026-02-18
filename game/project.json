@@ -1,0 +1,1432 @@
+{
+  "name": "Demo Project",
+  "defaultScene": "main",
+  "tileCategories": [
+    {
+      "name": "terrain",
+      "path": "assets/tilesets",
+      "files": [
+        "base/grass.png",
+        "base/dirt.png",
+        "base/water.png",
+        "base/stone.png"
+      ]
+    },
+    {
+      "name": "props",
+      "path": "assets/props",
+      "files": [
+        "base/tree.png",
+        "base/rock.png",
+        "base/bush.png"
+      ]
+    }
+  ],
+  "entityTypes": [
+    {
+      "name": "player",
+      "displayName": "Player",
+      "sprite": "assets/entities/base/player.png",
+      "properties": [
+        {
+          "name": "speed",
+          "label": "Move Speed",
+          "type": "number",
+          "default": 200,
+          "constraints": {
+            "min": 50,
+            "max": 500
+          }
+        },
+        {
+          "name": "health",
+          "label": "Health",
+          "type": "number",
+          "default": 100,
+          "constraints": {
+            "min": 1,
+            "max": 999
+          }
+        }
+      ]
+    },
+    {
+      "name": "enemy",
+      "displayName": "Enemy",
+      "sprite": "assets/entities/base/enemy.png",
+      "properties": [
+        {
+          "name": "speed",
+          "label": "Move Speed",
+          "type": "number",
+          "default": 100,
+          "constraints": {
+            "min": 25,
+            "max": 300
+          }
+        },
+        {
+          "name": "damage",
+          "label": "Damage",
+          "type": "number",
+          "default": 10,
+          "constraints": {
+            "min": 1,
+            "max": 100
+          }
+        },
+        {
+          "name": "patrolDistance",
+          "label": "Patrol Distance",
+          "type": "number",
+          "default": 100,
+          "constraints": {
+            "min": 0,
+            "max": 500
+          }
+        }
+      ]
+    },
+    {
+      "name": "door",
+      "displayName": "Door",
+      "sprite": "assets/entities/base/door.png",
+      "properties": [
+        {
+          "name": "targetScene",
+          "label": "Target Scene",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "spawnPoint",
+          "label": "Spawn Point ID",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "locked",
+          "label": "Locked",
+          "type": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "name": "spawnPoint",
+      "displayName": "Spawn Point",
+      "properties": [
+        {
+          "name": "pointId",
+          "label": "Point ID",
+          "type": "string",
+          "default": "spawn_1"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "defaultTileSize": 32,
+    "defaultGridWidth": 20,
+    "defaultGridHeight": 15
+  },
+  "spriteAtlases": [
+    {
+      "name": "forest_tiles (sheet)",
+      "path": "assets/tilesets/foresttiles/foresttiles-sheet.png",
+      "sliceSize": {
+        "width": 64,
+        "height": 64
+      },
+      "slices": [
+        {
+          "name": "forest_tiles_region_1",
+          "rect": {
+            "x": 0,
+            "y": 256,
+            "w": 64,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_3",
+          "rect": {
+            "x": 448,
+            "y": 64,
+            "w": 64,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_2",
+          "rect": {
+            "x": 0,
+            "y": 320,
+            "w": 64,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_4",
+          "rect": {
+            "x": 480,
+            "y": 0,
+            "w": 32,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_6",
+          "rect": {
+            "x": 384,
+            "y": 128,
+            "w": 64,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_5",
+          "rect": {
+            "x": 448,
+            "y": 0,
+            "w": 32,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_8",
+          "rect": {
+            "x": 320,
+            "y": 32,
+            "w": 32,
+            "h": 64
+          }
+        },
+        {
+          "name": "forest_tiles_region_7",
+          "rect": {
+            "x": 352,
+            "y": 64,
+            "w": 64,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_region_9",
+          "rect": {
+            "x": 224,
+            "y": 96,
+            "w": 64,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_region_10",
+          "rect": {
+            "x": 288,
+            "y": 96,
+            "w": 64,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_0",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_1",
+          "rect": {
+            "x": 32,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_2",
+          "rect": {
+            "x": 64,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_3",
+          "rect": {
+            "x": 96,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_4",
+          "rect": {
+            "x": 128,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_5",
+          "rect": {
+            "x": 160,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_6",
+          "rect": {
+            "x": 192,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_7",
+          "rect": {
+            "x": 224,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_8",
+          "rect": {
+            "x": 256,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_9",
+          "rect": {
+            "x": 288,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_23",
+          "rect": {
+            "x": 288,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_10",
+          "rect": {
+            "x": 320,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_22",
+          "rect": {
+            "x": 256,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_21",
+          "rect": {
+            "x": 224,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_13",
+          "rect": {
+            "x": 416,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_11",
+          "rect": {
+            "x": 352,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_17",
+          "rect": {
+            "x": 96,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_14",
+          "rect": {
+            "x": 0,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_12",
+          "rect": {
+            "x": 384,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_19",
+          "rect": {
+            "x": 160,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_20",
+          "rect": {
+            "x": 192,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_15",
+          "rect": {
+            "x": 32,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_16",
+          "rect": {
+            "x": 64,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_18",
+          "rect": {
+            "x": 128,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_24",
+          "rect": {
+            "x": 352,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_25",
+          "rect": {
+            "x": 384,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_26",
+          "rect": {
+            "x": 416,
+            "y": 32,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_27",
+          "rect": {
+            "x": 0,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_28",
+          "rect": {
+            "x": 32,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_29",
+          "rect": {
+            "x": 64,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_30",
+          "rect": {
+            "x": 96,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_31",
+          "rect": {
+            "x": 128,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_32",
+          "rect": {
+            "x": 160,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_37",
+          "rect": {
+            "x": 416,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_33",
+          "rect": {
+            "x": 192,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_34",
+          "rect": {
+            "x": 224,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_35",
+          "rect": {
+            "x": 256,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_36",
+          "rect": {
+            "x": 288,
+            "y": 64,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_38",
+          "rect": {
+            "x": 0,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_39",
+          "rect": {
+            "x": 32,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_40",
+          "rect": {
+            "x": 64,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_41",
+          "rect": {
+            "x": 96,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_42",
+          "rect": {
+            "x": 128,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_43",
+          "rect": {
+            "x": 160,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_44",
+          "rect": {
+            "x": 192,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_45",
+          "rect": {
+            "x": 384,
+            "y": 96,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_46",
+          "rect": {
+            "x": 0,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_47",
+          "rect": {
+            "x": 32,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_48",
+          "rect": {
+            "x": 64,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_49",
+          "rect": {
+            "x": 96,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_50",
+          "rect": {
+            "x": 128,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_51",
+          "rect": {
+            "x": 160,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_52",
+          "rect": {
+            "x": 192,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_53",
+          "rect": {
+            "x": 224,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_54",
+          "rect": {
+            "x": 256,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_55",
+          "rect": {
+            "x": 288,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_56",
+          "rect": {
+            "x": 320,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_57",
+          "rect": {
+            "x": 352,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_58",
+          "rect": {
+            "x": 448,
+            "y": 128,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_59",
+          "rect": {
+            "x": 0,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_60",
+          "rect": {
+            "x": 32,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_61",
+          "rect": {
+            "x": 64,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_62",
+          "rect": {
+            "x": 96,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_63",
+          "rect": {
+            "x": 128,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_64",
+          "rect": {
+            "x": 160,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_65",
+          "rect": {
+            "x": 192,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_66",
+          "rect": {
+            "x": 224,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_67",
+          "rect": {
+            "x": 256,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_68",
+          "rect": {
+            "x": 288,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_69",
+          "rect": {
+            "x": 320,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_70",
+          "rect": {
+            "x": 352,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_71",
+          "rect": {
+            "x": 448,
+            "y": 160,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_72",
+          "rect": {
+            "x": 0,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_73",
+          "rect": {
+            "x": 32,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_74",
+          "rect": {
+            "x": 64,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_75",
+          "rect": {
+            "x": 96,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_76",
+          "rect": {
+            "x": 128,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_77",
+          "rect": {
+            "x": 160,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_78",
+          "rect": {
+            "x": 192,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_79",
+          "rect": {
+            "x": 224,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_80",
+          "rect": {
+            "x": 256,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_81",
+          "rect": {
+            "x": 288,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_82",
+          "rect": {
+            "x": 320,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_83",
+          "rect": {
+            "x": 352,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_84",
+          "rect": {
+            "x": 384,
+            "y": 192,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_86",
+          "rect": {
+            "x": 32,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_87",
+          "rect": {
+            "x": 64,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_88",
+          "rect": {
+            "x": 96,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_89",
+          "rect": {
+            "x": 128,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_85",
+          "rect": {
+            "x": 0,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_90",
+          "rect": {
+            "x": 160,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_91",
+          "rect": {
+            "x": 192,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_92",
+          "rect": {
+            "x": 224,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_93",
+          "rect": {
+            "x": 256,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_94",
+          "rect": {
+            "x": 288,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_95",
+          "rect": {
+            "x": 352,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_96",
+          "rect": {
+            "x": 384,
+            "y": 224,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_97",
+          "rect": {
+            "x": 128,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_98",
+          "rect": {
+            "x": 160,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_99",
+          "rect": {
+            "x": 192,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_100",
+          "rect": {
+            "x": 224,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_101",
+          "rect": {
+            "x": 256,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_102",
+          "rect": {
+            "x": 288,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_103",
+          "rect": {
+            "x": 320,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_104",
+          "rect": {
+            "x": 352,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_105",
+          "rect": {
+            "x": 384,
+            "y": 256,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_106",
+          "rect": {
+            "x": 128,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_107",
+          "rect": {
+            "x": 160,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_108",
+          "rect": {
+            "x": 192,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_109",
+          "rect": {
+            "x": 224,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_110",
+          "rect": {
+            "x": 256,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_111",
+          "rect": {
+            "x": 288,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_112",
+          "rect": {
+            "x": 320,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_113",
+          "rect": {
+            "x": 352,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_114",
+          "rect": {
+            "x": 384,
+            "y": 288,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_115",
+          "rect": {
+            "x": 128,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_116",
+          "rect": {
+            "x": 160,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_117",
+          "rect": {
+            "x": 192,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_118",
+          "rect": {
+            "x": 224,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_119",
+          "rect": {
+            "x": 256,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_120",
+          "rect": {
+            "x": 288,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_121",
+          "rect": {
+            "x": 320,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_122",
+          "rect": {
+            "x": 352,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_123",
+          "rect": {
+            "x": 384,
+            "y": 320,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_124",
+          "rect": {
+            "x": 128,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_125",
+          "rect": {
+            "x": 160,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_126",
+          "rect": {
+            "x": 192,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_127",
+          "rect": {
+            "x": 224,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_128",
+          "rect": {
+            "x": 256,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_129",
+          "rect": {
+            "x": 288,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_130",
+          "rect": {
+            "x": 320,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_131",
+          "rect": {
+            "x": 352,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "name": "forest_tiles_132",
+          "rect": {
+            "x": 384,
+            "y": 352,
+            "w": 32,
+            "h": 32
+          }
+        }
+      ]
+    }
+  ]
+}
