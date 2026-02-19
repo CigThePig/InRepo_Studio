@@ -11,6 +11,7 @@ import type { HistoryManager, Operation } from '@/editor/history';
 import { generateOperationId } from '@/editor/history';
 import { parseAtlasJson } from '@/editor/assets/atlasImporter';
 import { resolveAssetUrl } from '@/shared/paths';
+import { createAnimationClock } from '@/editor/canvas/animationClock';
 
 const STYLES = `
   .animation-tab {
@@ -413,6 +414,206 @@ const STYLES = `
     gap: 8px;
     align-items: center;
   }
+
+  .animation-tab__scrubber-wrap {
+    padding: 4px 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .animation-tab__scrubber {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(83, 101, 164, 0.4);
+    outline: none;
+    cursor: pointer;
+    min-width: 0;
+  }
+
+  .animation-tab__scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #4a9eff;
+    cursor: pointer;
+  }
+
+  .animation-tab__scrubber::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #4a9eff;
+    cursor: pointer;
+    border: none;
+  }
+
+  .animation-tab__scrubber-label {
+    font-size: 11px;
+    color: #9aa7d6;
+    white-space: nowrap;
+    min-width: 38px;
+    text-align: right;
+  }
+
+  .animation-tab__frame-duration {
+    position: absolute;
+    bottom: 2px;
+    left: 3px;
+    font-size: 9px;
+    color: #9aa7d6;
+    background: rgba(10, 15, 30, 0.75);
+    padding: 1px 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1.2;
+    z-index: 3;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .animation-tab__frame-duration--custom {
+    color: #f59e0b;
+  }
+
+  .animation-tab__frame-duration-input {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    width: 50px;
+    font-size: 9px;
+    background: #1b2a52;
+    border: 1px solid #4a9eff;
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 3px;
+    z-index: 10;
+    outline: none;
+  }
+
+  .animation-tab__frames-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .animation-tab__select-btn {
+    min-height: 32px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: transparent;
+    color: #9aa7d6;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .animation-tab__select-btn--active {
+    border-color: #4a9eff;
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.12);
+  }
+
+  .animation-tab__batch-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+    align-items: center;
+  }
+
+  .animation-tab__batch-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: #1b2a52;
+    color: #dbe4ff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .animation-tab__batch-btn:active {
+    background: #26386a;
+  }
+
+  .animation-tab__batch-btn--danger {
+    border-color: rgba(255, 100, 100, 0.5);
+    color: #fca5a5;
+  }
+
+  .animation-tab__batch-duration-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .animation-tab__batch-duration-input {
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    border: 1px solid #4a9eff;
+    background: rgba(22, 30, 60, 0.85);
+    color: #f2f5ff;
+    font-size: 12px;
+    width: 70px;
+  }
+
+  .animation-tab__frame--in-select {
+    cursor: default;
+  }
+
+  .animation-tab__frame--multi-selected {
+    border-color: #4a9eff;
+    background: rgba(74, 158, 255, 0.18);
+  }
+
+  .animation-tab__fps-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .animation-tab__fps-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(83, 101, 164, 0.4);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .animation-tab__fps-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4a9eff;
+    cursor: pointer;
+  }
+
+  .animation-tab__fps-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4a9eff;
+    cursor: pointer;
+    border: none;
+  }
 `;
 
 const DEFAULT_FPS = 8;
@@ -459,7 +660,11 @@ interface AnimationTabState {
   sheetOpen: boolean;
   gridSlice: GridSliceSettings | null;
   gridModel: GridModel | null;
+  selectMode: boolean;
+  selectedFrameIndices: Set<number>;
 }
+
+const PREVIEW_CLOCK_ID = '__preview__';
 
 export interface AnimationTabConfig {
   container: HTMLElement;
@@ -592,7 +797,11 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     sheetOpen: false,
     gridSlice: null,
     gridModel: null,
+    selectMode: false,
+    selectedFrameIndices: new Set(),
   };
+
+  const previewClock = createAnimationClock();
 
   const root = document.createElement('div');
   root.className = 'animation-tab';
@@ -754,7 +963,26 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   pivotControls.appendChild(nudgeUpBtn);
   pivotControls.appendChild(nudgeDownBtn);
 
+  const scrubberWrap = document.createElement('div');
+  scrubberWrap.className = 'animation-tab__scrubber-wrap';
+
+  const scrubberInput = document.createElement('input');
+  scrubberInput.type = 'range';
+  scrubberInput.className = 'animation-tab__scrubber';
+  scrubberInput.min = '0';
+  scrubberInput.max = '0';
+  scrubberInput.value = '0';
+  scrubberInput.step = '1';
+
+  const scrubberLabel = document.createElement('div');
+  scrubberLabel.className = 'animation-tab__scrubber-label';
+  scrubberLabel.textContent = '0 / 0';
+
+  scrubberWrap.appendChild(scrubberInput);
+  scrubberWrap.appendChild(scrubberLabel);
+
   previewSection.appendChild(previewStage);
+  previewSection.appendChild(scrubberWrap);
   previewSection.appendChild(previewHint);
   previewSection.appendChild(sourceCta);
   previewSection.appendChild(pivotHud);
@@ -763,14 +991,67 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   const framesSection = document.createElement('section');
   framesSection.className = 'animation-tab__frames';
 
+  const framesHeader = document.createElement('div');
+  framesHeader.className = 'animation-tab__frames-header';
+
   const framesTitle = document.createElement('div');
   framesTitle.className = 'animation-tab__frames-title';
   framesTitle.textContent = 'Frames';
 
+  const selectToggleBtn = document.createElement('button');
+  selectToggleBtn.type = 'button';
+  selectToggleBtn.className = 'animation-tab__select-btn';
+  selectToggleBtn.textContent = 'Select';
+
+  framesHeader.appendChild(framesTitle);
+  framesHeader.appendChild(selectToggleBtn);
+
+  const batchToolbar = document.createElement('div');
+  batchToolbar.className = 'animation-tab__batch-toolbar';
+  batchToolbar.style.display = 'none';
+
+  const batchDurationWrap = document.createElement('div');
+  batchDurationWrap.className = 'animation-tab__batch-duration-wrap';
+
+  const batchDurationInput = document.createElement('input');
+  batchDurationInput.type = 'number';
+  batchDurationInput.className = 'animation-tab__batch-duration-input';
+  batchDurationInput.placeholder = 'ms';
+  batchDurationInput.min = '1';
+
+  const batchSetDurationBtn = document.createElement('button');
+  batchSetDurationBtn.type = 'button';
+  batchSetDurationBtn.className = 'animation-tab__batch-btn';
+  batchSetDurationBtn.textContent = 'Set Duration';
+
+  batchDurationWrap.appendChild(batchDurationInput);
+  batchDurationWrap.appendChild(batchSetDurationBtn);
+
+  const batchDuplicateBtn = document.createElement('button');
+  batchDuplicateBtn.type = 'button';
+  batchDuplicateBtn.className = 'animation-tab__batch-btn';
+  batchDuplicateBtn.textContent = 'Duplicate';
+
+  const batchDeleteBtn = document.createElement('button');
+  batchDeleteBtn.type = 'button';
+  batchDeleteBtn.className = 'animation-tab__batch-btn animation-tab__batch-btn--danger';
+  batchDeleteBtn.textContent = 'Delete';
+
+  const batchDoneBtn = document.createElement('button');
+  batchDoneBtn.type = 'button';
+  batchDoneBtn.className = 'animation-tab__batch-btn';
+  batchDoneBtn.textContent = '✕ Done';
+
+  batchToolbar.appendChild(batchDurationWrap);
+  batchToolbar.appendChild(batchDuplicateBtn);
+  batchToolbar.appendChild(batchDeleteBtn);
+  batchToolbar.appendChild(batchDoneBtn);
+
   const framesStrip = document.createElement('div');
   framesStrip.className = 'animation-tab__frames-strip';
 
-  framesSection.appendChild(framesTitle);
+  framesSection.appendChild(framesHeader);
+  framesSection.appendChild(batchToolbar);
   framesSection.appendChild(framesStrip);
 
   const contextSection = document.createElement('section');
@@ -801,7 +1082,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   container.appendChild(sheetOverlay);
 
   let animationFrameId: number | null = null;
-  let lastTick = 0;
+  let lastTickTime = 0;
   let previewPointerDown = false;
   let previewMoved = false;
   let previewDragStartX = 0;
@@ -1605,18 +1886,45 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     fpsInput.max = '60';
     fpsInput.value = `${state.fps}`;
 
+    const fpsSliderWrap = document.createElement('div');
+    fpsSliderWrap.className = 'animation-tab__fps-slider-wrap';
+
+    const fpsSlider = document.createElement('input');
+    fpsSlider.type = 'range';
+    fpsSlider.className = 'animation-tab__fps-slider';
+    fpsSlider.min = '1';
+    fpsSlider.max = '60';
+    fpsSlider.value = `${state.fps}`;
+
+    fpsSliderWrap.appendChild(fpsSlider);
+
+    fpsInput.addEventListener('input', () => {
+      fpsSlider.value = fpsInput.value;
+    });
+    fpsSlider.addEventListener('input', () => {
+      fpsInput.value = fpsSlider.value;
+    });
+
+    function getSheetLoopLabel(mode: AnimationLoopMode): string {
+      if (mode === 'loop') return 'Loop: On';
+      if (mode === 'once') return 'Loop: Once';
+      return 'Loop: Pingpong';
+    }
+
     const loopToggle = document.createElement('button');
     loopToggle.type = 'button';
     loopToggle.className = 'animation-tab__button animation-tab__button--ghost';
-    loopToggle.textContent = `Loop: ${loopValue === 'loop' ? 'On' : 'Once'}`;
+    loopToggle.textContent = getSheetLoopLabel(loopValue);
 
     loopToggle.addEventListener('click', () => {
-      loopValue = loopValue === 'loop' ? 'once' : 'loop';
-      loopToggle.textContent = `Loop: ${loopValue === 'loop' ? 'On' : 'Once'}`;
+      loopValue =
+        loopValue === 'loop' ? 'once' : loopValue === 'once' ? 'pingpong' : 'loop';
+      loopToggle.textContent = getSheetLoopLabel(loopValue);
     });
 
     content.appendChild(nameInput);
     content.appendChild(fpsInput);
+    content.appendChild(fpsSliderWrap);
     content.appendChild(loopToggle);
 
     openSheet({
@@ -1833,6 +2141,32 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     updatePivotOverlay();
   }
 
+  function buildPreviewAnimation(): AnimationAsset {
+    return {
+      id: PREVIEW_CLOCK_ID,
+      name: state.animationName || 'preview',
+      frames: state.frames.map((f) => f.ref),
+      fps: state.fps,
+      loopMode: state.loopMode,
+      pivot: { ...state.pivot },
+      createdAt: Date.now(),
+    };
+  }
+
+  function registerPreviewClock(): void {
+    previewClock.unregister(PREVIEW_CLOCK_ID);
+    if (state.frames.length > 0) {
+      previewClock.register(PREVIEW_CLOCK_ID, buildPreviewAnimation());
+    }
+  }
+
+  function updateScrubber(): void {
+    const total = Math.max(0, state.frames.length - 1);
+    scrubberInput.max = String(total);
+    scrubberInput.value = String(state.currentFrame);
+    scrubberLabel.textContent = `${state.currentFrame + 1} / ${state.frames.length}`;
+  }
+
   function tick(time: number): void {
     if (!state.isPlaying) {
       animationFrameId = null;
@@ -1842,20 +2176,24 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       stopPlayback();
       return;
     }
-    const interval = 1000 / state.fps;
-    if (time - lastTick >= interval) {
-      lastTick = time;
-      if (state.currentFrame < state.frames.length - 1) {
-        state.currentFrame += 1;
-      } else if (state.loopMode === 'loop') {
-        state.currentFrame = 0;
-      } else {
+    const deltaMs = time - lastTickTime;
+    lastTickTime = time;
+    const dirty = previewClock.tick(deltaMs);
+    if (dirty.has(PREVIEW_CLOCK_ID)) {
+      const nextFrame = previewClock.getCurrentFrame(PREVIEW_CLOCK_ID);
+      if (state.loopMode === 'once' && !previewClock.isAdvancing(PREVIEW_CLOCK_ID)) {
+        state.currentFrame = nextFrame;
         state.isPlaying = false;
-        render();
+        updateScrubber();
+        renderFrames();
+        drawPreview();
         animationFrameId = null;
         return;
       }
-      render();
+      state.currentFrame = nextFrame;
+      updateScrubber();
+      renderFrames();
+      drawPreview();
     }
     animationFrameId = requestAnimationFrame(tick);
   }
@@ -1863,8 +2201,9 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   function startPlayback(): void {
     if (state.frames.length === 0) return;
     if (state.isPlaying) return;
+    registerPreviewClock();
     state.isPlaying = true;
-    lastTick = performance.now();
+    lastTickTime = performance.now();
     animationFrameId = requestAnimationFrame(tick);
     render();
   }
@@ -1934,11 +2273,19 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       button.type = 'button';
       button.className = 'animation-tab__frame';
       button.dataset.index = `${index}`;
-      if (state.currentFrame === index) {
-        button.classList.add('animation-tab__frame--selected');
-      }
-      if (dragFrameIndex === index) {
-        button.classList.add('animation-tab__frame--dragging');
+
+      if (state.selectMode) {
+        button.classList.add('animation-tab__frame--in-select');
+        if (state.selectedFrameIndices.has(index)) {
+          button.classList.add('animation-tab__frame--multi-selected');
+        }
+      } else {
+        if (state.currentFrame === index) {
+          button.classList.add('animation-tab__frame--selected');
+        }
+        if (dragFrameIndex === index) {
+          button.classList.add('animation-tab__frame--dragging');
+        }
       }
 
       const img = document.createElement('img');
@@ -1951,8 +2298,60 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       label.textContent = `${index + 1}`;
       button.appendChild(label);
 
-      // Delete button overlay
-      if (state.frames.length > 1) {
+      // Duration badge
+      const defaultDuration = Math.round(1000 / state.fps);
+      const hasCustomDuration = typeof frame.ref.durationMs === 'number';
+      const displayDuration = hasCustomDuration ? frame.ref.durationMs! : defaultDuration;
+
+      const durationBadge = document.createElement('div');
+      durationBadge.className = 'animation-tab__frame-duration' +
+        (hasCustomDuration ? ' animation-tab__frame-duration--custom' : '');
+      durationBadge.textContent = `${displayDuration}ms`;
+
+      durationBadge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (state.selectMode) return;
+
+        const durationInput = document.createElement('input');
+        durationInput.type = 'number';
+        durationInput.className = 'animation-tab__frame-duration-input';
+        durationInput.min = '1';
+        durationInput.value = hasCustomDuration ? String(frame.ref.durationMs) : '';
+        durationInput.placeholder = String(defaultDuration);
+
+        durationBadge.replaceWith(durationInput);
+        durationInput.focus();
+        durationInput.select();
+
+        let committed = false;
+        function commitDuration(): void {
+          if (committed) return;
+          committed = true;
+          const val = durationInput.value.trim();
+          if (val === '') {
+            delete frame.ref.durationMs;
+            state.dirty = true;
+          } else {
+            const parsed = Number(val);
+            if (Number.isFinite(parsed) && parsed > 0) {
+              frame.ref.durationMs = Math.round(parsed);
+              state.dirty = true;
+            }
+          }
+          renderFrames();
+        }
+
+        durationInput.addEventListener('keydown', (ke) => {
+          if (ke.key === 'Enter') { ke.preventDefault(); commitDuration(); }
+          if (ke.key === 'Escape') { ke.preventDefault(); committed = true; renderFrames(); }
+        });
+        durationInput.addEventListener('blur', commitDuration);
+      });
+
+      button.appendChild(durationBadge);
+
+      // Delete button overlay (not shown in select mode)
+      if (!state.selectMode && state.frames.length > 1) {
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'animation-tab__frame-delete';
         deleteBtn.textContent = '×';
@@ -1964,61 +2363,57 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       }
 
       button.addEventListener('click', () => {
-        state.currentFrame = index;
-        const nextDuration = window.prompt(
-          'Frame duration override (ms). Leave blank to use animation FPS default.',
-          typeof frame.ref.durationMs === 'number' ? String(frame.ref.durationMs) : ''
-        );
-        if (nextDuration !== null) {
-          const trimmed = nextDuration.trim();
-          if (!trimmed) {
-            delete frame.ref.durationMs;
-            state.dirty = true;
+        if (state.selectMode) {
+          if (state.selectedFrameIndices.has(index)) {
+            state.selectedFrameIndices.delete(index);
           } else {
-            const parsedDuration = Number(trimmed);
-            if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
-              frame.ref.durationMs = Math.round(parsedDuration);
-              state.dirty = true;
-            }
+            state.selectedFrameIndices.add(index);
           }
+          renderFrames();
+          return;
         }
-        render();
-      });
-
-      button.addEventListener('pointerdown', (event) => {
-        if (event.pointerType === 'mouse') return;
-        dragStartTimeout = window.setTimeout(() => {
-          dragFrameIndex = index;
-          button.setPointerCapture(event.pointerId);
-        }, 300);
-      });
-
-      button.addEventListener('pointerup', () => {
-        if (dragStartTimeout) {
-          clearTimeout(dragStartTimeout);
-        }
-        dragStartTimeout = null;
-        dragFrameIndex = null;
+        state.currentFrame = index;
+        updateScrubber();
+        drawPreview();
         renderFrames();
       });
 
-      button.addEventListener('pointermove', (event) => {
-        if (dragFrameIndex === null) return;
-        const target = document.elementFromPoint(event.clientX, event.clientY);
-        if (!target) return;
-        const frameElement = (target as HTMLElement).closest<HTMLElement>('.animation-tab__frame');
-        if (!frameElement) return;
-        const targetIndex = Number(frameElement.dataset.index);
-        if (Number.isNaN(targetIndex) || targetIndex === dragFrameIndex) return;
-        const nextFrames = [...state.frames];
-        const [moved] = nextFrames.splice(dragFrameIndex, 1);
-        nextFrames.splice(targetIndex, 0, moved);
-        state.frames = nextFrames;
-        state.currentFrame = targetIndex;
-        dragFrameIndex = targetIndex;
-        state.dirty = true;
-        renderFrames();
-      });
+      if (!state.selectMode) {
+        button.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse') return;
+          dragStartTimeout = window.setTimeout(() => {
+            dragFrameIndex = index;
+            button.setPointerCapture(event.pointerId);
+          }, 300);
+        });
+
+        button.addEventListener('pointerup', () => {
+          if (dragStartTimeout) {
+            clearTimeout(dragStartTimeout);
+          }
+          dragStartTimeout = null;
+          dragFrameIndex = null;
+          renderFrames();
+        });
+
+        button.addEventListener('pointermove', (event) => {
+          if (dragFrameIndex === null) return;
+          const target = document.elementFromPoint(event.clientX, event.clientY);
+          if (!target) return;
+          const frameElement = (target as HTMLElement).closest<HTMLElement>('.animation-tab__frame');
+          if (!frameElement) return;
+          const targetIndex = Number(frameElement.dataset.index);
+          if (Number.isNaN(targetIndex) || targetIndex === dragFrameIndex) return;
+          const nextFrames = [...state.frames];
+          const [moved] = nextFrames.splice(dragFrameIndex, 1);
+          nextFrames.splice(targetIndex, 0, moved);
+          state.frames = nextFrames;
+          state.currentFrame = targetIndex;
+          dragFrameIndex = targetIndex;
+          state.dirty = true;
+          renderFrames();
+        });
+      }
 
       framesStrip.appendChild(button);
     });
@@ -2210,13 +2605,19 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     contextSection.appendChild(status);
   }
 
+  function getLoopModeLabel(mode: AnimationLoopMode): string {
+    if (mode === 'loop') return 'Loop';
+    if (mode === 'once') return 'Once';
+    return 'Pingpong';
+  }
+
   function render(): void {
     if (state.frames.length === 0 && state.isPlaying) {
       stopPlayback();
       return;
     }
     fpsChip.textContent = `FPS ${state.fps}`;
-    loopChip.textContent = state.loopMode === 'loop' ? 'Loop' : 'Once';
+    loopChip.textContent = getLoopModeLabel(state.loopMode);
     playChip.textContent = state.isPlaying ? 'Pause' : 'Play';
     pivotChip.classList.toggle('animation-tab__chip--active', state.showPivot);
     previewHint.textContent = state.sourceName
@@ -2230,6 +2631,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       sourceCtaTitle.textContent = `Source loaded: ${state.sourceName}`;
     }
     updatePivotUi();
+    updateScrubber();
     renderFrames();
     renderContext();
     drawPreview();
@@ -2254,7 +2656,8 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   playChip.addEventListener('click', togglePlayback);
   fpsChip.addEventListener('click', openSaveSheet);
   loopChip.addEventListener('click', () => {
-    state.loopMode = state.loopMode === 'loop' ? 'once' : 'loop';
+    state.loopMode =
+      state.loopMode === 'loop' ? 'once' : state.loopMode === 'once' ? 'pingpong' : 'loop';
     state.dirty = true;
     render();
   });
@@ -2293,6 +2696,90 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   });
   nudgeDownBtn.addEventListener('click', () => {
     applyPivot(state.pivot.x, state.pivot.y + nudgeStep);
+    render();
+  });
+
+  // Scrubber
+  scrubberInput.addEventListener('input', () => {
+    const index = Number(scrubberInput.value);
+    if (!Number.isNaN(index) && index >= 0 && index < state.frames.length) {
+      state.currentFrame = index;
+      drawPreview();
+      renderFrames();
+      scrubberLabel.textContent = `${state.currentFrame + 1} / ${state.frames.length}`;
+    }
+  });
+
+  // Select mode toggle
+  selectToggleBtn.addEventListener('click', () => {
+    state.selectMode = !state.selectMode;
+    if (!state.selectMode) {
+      state.selectedFrameIndices.clear();
+    }
+    selectToggleBtn.classList.toggle('animation-tab__select-btn--active', state.selectMode);
+    selectToggleBtn.textContent = state.selectMode ? '✕ Done' : 'Select';
+    batchToolbar.style.display = state.selectMode ? 'flex' : 'none';
+    renderFrames();
+  });
+
+  // Batch toolbar - Done
+  batchDoneBtn.addEventListener('click', () => {
+    state.selectMode = false;
+    state.selectedFrameIndices.clear();
+    selectToggleBtn.classList.remove('animation-tab__select-btn--active');
+    selectToggleBtn.textContent = 'Select';
+    batchToolbar.style.display = 'none';
+    renderFrames();
+  });
+
+  // Batch toolbar - Set Duration
+  batchSetDurationBtn.addEventListener('click', () => {
+    const val = batchDurationInput.value.trim();
+    if (!val) return;
+    const parsed = Number(val);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const ms = Math.round(parsed);
+    const indices = state.selectedFrameIndices.size > 0
+      ? [...state.selectedFrameIndices]
+      : state.frames.map((_, i) => i);
+    indices.forEach((i) => {
+      if (state.frames[i]) {
+        state.frames[i].ref.durationMs = ms;
+      }
+    });
+    state.dirty = true;
+    batchDurationInput.value = '';
+    renderFrames();
+  });
+
+  // Batch toolbar - Duplicate
+  batchDuplicateBtn.addEventListener('click', () => {
+    const indices = [...state.selectedFrameIndices].sort((a, b) => a - b);
+    if (indices.length === 0) return;
+    const duplicates = indices.map((i) => {
+      const f = state.frames[i];
+      return { ref: { ...f.ref }, thumbnailDataUrl: f.thumbnailDataUrl };
+    });
+    // Insert duplicates after the last selected index
+    const insertAt = Math.max(...indices) + 1;
+    state.frames.splice(insertAt, 0, ...duplicates);
+    state.selectedFrameIndices.clear();
+    state.dirty = true;
+    renderFrames();
+  });
+
+  // Batch toolbar - Delete
+  batchDeleteBtn.addEventListener('click', () => {
+    const indices = new Set(state.selectedFrameIndices);
+    if (indices.size === 0) return;
+    state.frames = state.frames.filter((_, i) => !indices.has(i));
+    state.selectedFrameIndices.clear();
+    state.currentFrame = Math.min(state.currentFrame, Math.max(0, state.frames.length - 1));
+    if (state.frames.length === 0) {
+      state.currentFrame = 0;
+      stopPlayback();
+    }
+    state.dirty = true;
     render();
   });
 
@@ -2412,6 +2899,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     },
     destroy(): void {
       stopPlayback();
+      previewClock.destroy();
       root.remove();
       sheetOverlay.remove();
       fileInput.remove();
