@@ -5,6 +5,7 @@ import { collectAnimationReferences } from '@/editor/assets/animationRefs';
 import { getAllScenes, saveScene } from '@/storage/hot';
 import { resolveAssetUrl } from '@/shared/paths';
 import type { Scene } from '@/types';
+import { createAnimationClock } from '@/editor/canvas/animationClock';
 
 const STYLES = `
   .asset-library {
@@ -433,6 +434,217 @@ const STYLES = `
     padding: 4px 8px;
     cursor: pointer;
   }
+
+  .asset-library__animation-card canvas {
+    width: 100%;
+    border-radius: 10px;
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  .asset-library__anim-section {
+    margin-top: 12px;
+  }
+
+  .asset-library__anim-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .asset-library__anim-search {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(22, 30, 60, 0.85);
+    color: #f2f5ff;
+    font-size: 13px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+  }
+
+  .asset-library__anim-rename-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .asset-library__anim-rename-input {
+    flex: 1;
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(83, 101, 164, 0.8);
+    background: rgba(22, 30, 60, 0.9);
+    color: #f2f5ff;
+    font-size: 12px;
+    min-width: 0;
+  }
+
+  .asset-library__anim-rename-btn {
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(27, 42, 82, 0.92);
+    color: #dbe4ff;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .asset-library__anim-where-used {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(15, 22, 48, 0.9);
+    border: 1px solid rgba(83, 101, 164, 0.5);
+    font-size: 10px;
+    color: #aabcef;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .asset-library__anim-where-used-hit {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(83, 101, 164, 0.2);
+    word-break: break-word;
+  }
+
+  .asset-library__anim-where-used-hit:last-child {
+    border-bottom: none;
+  }
+
+  .asset-library__anim-delete-confirm {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(40, 15, 20, 0.9);
+    border: 1px solid rgba(255, 128, 153, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .asset-library__anim-delete-label {
+    font-size: 10px;
+    color: #ffc5d2;
+  }
+
+  .asset-library__anim-delete-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .asset-library__anim-delete-btn {
+    flex: 1;
+    min-height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 128, 153, 0.8);
+    background: rgba(80, 20, 30, 0.9);
+    color: #ffc5d2;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .asset-library__anim-cancel-btn {
+    flex: 1;
+    min-height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(27, 42, 82, 0.92);
+    color: #dbe4ff;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .asset-library__anim-set-create-inline {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .asset-library__anim-set-create-input {
+    flex: 1;
+    min-width: 100px;
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(22, 30, 60, 0.85);
+    color: #f2f5ff;
+    font-size: 13px;
+  }
+
+  .asset-library__anim-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+    z-index: 120;
+  }
+
+  .asset-library__anim-scrim--open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .asset-library__direction-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(83, 101, 164, 0.3);
+  }
+
+  .asset-library__direction-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .asset-library__direction-label {
+    width: 48px;
+    font-size: 12px;
+    color: #9aa7d6;
+    flex-shrink: 0;
+  }
+
+  .asset-library__direction-select {
+    flex: 1;
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: rgba(22, 30, 60, 0.85);
+    color: #f2f5ff;
+    font-size: 12px;
+  }
+
+  .asset-library__animation-card--where-used-open {
+    border-color: rgba(98, 150, 255, 0.5);
+  }
+
+  .asset-library__animation-card--delete-open {
+    border-color: rgba(255, 128, 153, 0.5);
+  }
+
+  .asset-library__anim-no-match {
+    font-size: 12px;
+    color: #9aa7d6;
+    padding: 8px 0;
+    grid-column: 1 / -1;
+  }
 `;
 
 export interface AssetLibraryTabConfig {
@@ -541,6 +753,87 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   };
   let dragState: DragState | null = null;
 
+  // --- Animation tab state ---
+  const animationClock = createAnimationClock();
+  const sourceImageCache = new Map<string, HTMLImageElement>();
+  const animationCanvases = new Map<string, HTMLCanvasElement>();
+  let rafHandle: number | null = null;
+  let lastRafTime: number | null = null;
+  let animIntersectionObserver: IntersectionObserver | null = null;
+
+  let animFilter = '';
+  let animationsCollapsed = false;
+  let activeWhereUsedId: string | null = null;
+  let activeDeleteId: string | null = null;
+  let activeRenameId: string | null = null;
+  let inlineSetCreateOpen = false;
+  let activeSetRenameId: string | null = null;
+  let activeSetDeleteId: string | null = null;
+  let directionSheetSetId: string | null = null;
+
+  function loadSourceImage(sourceAssetId: string): void {
+    if (sourceImageCache.has(sourceAssetId)) return;
+    const entry = assetRegistry.getAsset(sourceAssetId);
+    if (!entry) return;
+    const img = new Image();
+    // Place placeholder immediately so we don't double-load
+    sourceImageCache.set(sourceAssetId, img);
+    img.onload = () => {
+      // Redraw any canvas whose current frame references this source
+      for (const [animId, canvas] of animationCanvases.entries()) {
+        const snap = animationClock.getCurrentFrameSnapshot(animId);
+        if (snap && snap.frame.sourceAssetId === sourceAssetId) {
+          drawAnimationFrame(animId, canvas);
+        }
+      }
+    };
+    img.src = resolveAssetUrl(entry.dataUrl);
+  }
+
+  function drawAnimationFrame(animId: string, canvas: HTMLCanvasElement): void {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const snapshot = animationClock.getCurrentFrameSnapshot(animId);
+    if (!snapshot) return;
+    const { frame } = snapshot;
+    const img = sourceImageCache.get(frame.sourceAssetId);
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+    const { x, y, w, h } = frame.rect;
+    ctx.imageSmoothingEnabled = false;
+    const scale = Math.min(canvas.width / w, canvas.height / h);
+    const dw = w * scale;
+    const dh = h * scale;
+    const dx = (canvas.width - dw) / 2;
+    const dy = (canvas.height - dh) / 2;
+    ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh);
+  }
+
+  function startRafLoop(): void {
+    if (rafHandle !== null) return;
+    const tick = (time: number) => {
+      if (lastRafTime !== null) {
+        const delta = Math.min(time - lastRafTime, 100);
+        const dirty = animationClock.tick(delta);
+        for (const animId of dirty) {
+          const canvas = animationCanvases.get(animId);
+          if (canvas) drawAnimationFrame(animId, canvas);
+        }
+      }
+      lastRafTime = time;
+      rafHandle = requestAnimationFrame(tick);
+    };
+    rafHandle = requestAnimationFrame(tick);
+  }
+
+  function stopRafLoop(): void {
+    if (rafHandle !== null) {
+      cancelAnimationFrame(rafHandle);
+      rafHandle = null;
+      lastRafTime = null;
+    }
+  }
+
   const root = document.createElement('div');
   root.className = 'asset-library';
 
@@ -603,6 +896,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     refresh();
   });
   root.appendChild(sheetScrim);
+
+  // Separate scrim for animation direction assignment bottom sheet
+  const animScrim = document.createElement('div');
+  animScrim.className = 'asset-library__anim-scrim';
+  animScrim.addEventListener('click', () => {
+    directionSheetSetId = null;
+    renderAnimSheet();
+  });
+  root.appendChild(animScrim);
 
   container.appendChild(root);
 
@@ -1131,67 +1433,215 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   function renderAnimations(): void {
-    librarySection.querySelectorAll(
-      '.asset-library__animations, .asset-library__animations-empty, .asset-library__animations-title, .asset-library__animation-tabs, .asset-library__animation-set-create, .asset-library__animation-sets-grid'
-    )
+    // Clean up old canvases / observers before rebuilding
+    animIntersectionObserver?.disconnect();
+    animationCanvases.clear();
+    animationClock.destroy();
+
+    librarySection.querySelectorAll('.asset-library__anim-section')
       .forEach((node) => node.remove());
 
     const animations = assetRegistry.getAnimations();
     const animationSets = assetRegistry.getAnimationSets();
 
-    const title = document.createElement('div');
-    title.className = 'asset-library__title asset-library__animations-title';
-    title.textContent = 'Animations';
-    librarySection.appendChild(title);
+    const fallbackPoster =
+      'data:image/svg+xml;utf8,' +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23121a30"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="%239aa7d6" font-size="12" font-family="sans-serif">Anim</text></svg>`
+      );
 
-    const tabs = document.createElement('div');
-    tabs.className = 'asset-library__row asset-library__animation-tabs';
-    const clipsCount = document.createElement('span');
-    clipsCount.className = 'asset-library__hint';
-    clipsCount.textContent = `Clips: ${animations.length}`;
-    const setsCount = document.createElement('span');
-    setsCount.className = 'asset-library__hint';
-    setsCount.textContent = `Sets: ${animationSets.length}`;
-    tabs.appendChild(clipsCount);
-    tabs.appendChild(setsCount);
-    librarySection.appendChild(tabs);
+    // ── Outer collapsible section ──────────────────────────────────────
+    const section = document.createElement('div');
+    section.className = 'asset-library__anim-section';
 
-    if (animations.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'asset-library__empty asset-library__animations-empty';
-      empty.textContent = 'No animations saved yet.';
-      librarySection.appendChild(empty);
-    } else {
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'asset-library__anim-section-header';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'asset-library__group-toggle';
+    toggleBtn.innerHTML = `
+      <span>${animationsCollapsed ? '▶' : '▼'} Animations</span>
+      <span class="asset-library__group-count">${animations.length} clips · ${animationSets.length} sets</span>
+    `;
+    toggleBtn.addEventListener('click', () => {
+      animationsCollapsed = !animationsCollapsed;
+      refresh();
+    });
+
+    sectionHeader.appendChild(toggleBtn);
+    section.appendChild(sectionHeader);
+
+    if (!animationsCollapsed) {
+      // ── Search / filter input ────────────────────────────────────────
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'asset-library__anim-search';
+      searchInput.placeholder = 'Search animations…';
+      searchInput.value = animFilter;
+      searchInput.addEventListener('input', () => {
+        animFilter = searchInput.value;
+        const lower = animFilter.toLowerCase();
+        // Filter cards in-place without full refresh so the input keeps focus
+        const cardEls = grid.querySelectorAll<HTMLElement>('[data-anim-id]');
+        let visibleCount = 0;
+        cardEls.forEach((cardEl) => {
+          const name = (cardEl.dataset.animName ?? '').toLowerCase();
+          const visible = !lower || name.includes(lower);
+          cardEl.style.display = visible ? '' : 'none';
+          if (visible) visibleCount += 1;
+        });
+        noMatchMsg.style.display = visibleCount === 0 && animations.length > 0 ? '' : 'none';
+      });
+      section.appendChild(searchInput);
+
+      // ── Clips grid ──────────────────────────────────────────────────
       const grid = document.createElement('div');
       grid.className = 'asset-library__animations';
-      const fallbackPoster =
-        'data:image/svg+xml;utf8,' +
-        encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23121a30"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="%239aa7d6" font-size="12" font-family="sans-serif">Anim</text></svg>`
-        );
+
+      const noMatchMsg = document.createElement('div');
+      noMatchMsg.className = 'asset-library__anim-no-match';
+      noMatchMsg.textContent = 'No animations match.';
+      noMatchMsg.style.display = 'none';
+      grid.appendChild(noMatchMsg);
+
+      if (animations.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'asset-library__empty';
+        empty.textContent = 'No animations saved yet.';
+        grid.appendChild(empty);
+      }
+
+      // Set up IntersectionObserver for visibility-based clock register/unregister
+      animIntersectionObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          const animId = (entry.target as HTMLElement).dataset.animId;
+          if (!animId) continue;
+          if (entry.isIntersecting) {
+            const anim = assetRegistry.getAnimation(animId);
+            if (anim) animationClock.register(animId, anim);
+          } else {
+            animationClock.unregister(animId);
+          }
+        }
+      }, { threshold: 0 });
 
       animations.forEach((animation) => {
+        const lower = animFilter.toLowerCase();
+        const isVisible = !lower || animation.name.toLowerCase().includes(lower);
+
         const card = document.createElement('div');
         card.className = 'asset-library__animation-card';
+        card.dataset.animId = animation.id;
+        card.dataset.animName = animation.name;
+        if (!isVisible) card.style.display = 'none';
+
+        // Card click → open animation in editor
         card.addEventListener('click', () => {
+          // Only open if no inline UI is active on this card
+          if (activeRenameId === animation.id || activeDeleteId === animation.id || activeWhereUsedId === animation.id) return;
           onOpenAnimation?.(animation.id);
         });
 
-        const img = document.createElement('img');
-        img.src = animation.posterDataUrl ?? fallbackPoster;
-        img.alt = animation.name;
-        card.appendChild(img);
+        // ── Live canvas thumbnail ──
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 96;
+        thumbCanvas.height = 96;
+        thumbCanvas.style.imageRendering = 'pixelated';
+        thumbCanvas.dataset.animId = animation.id;
 
-        const name = document.createElement('div');
-        name.className = 'asset-library__asset-name';
-        name.textContent = animation.name;
-        card.appendChild(name);
+        // Show posterDataUrl (or SVG placeholder) as fallback while source image loads
+        {
+          const posterSrc = animation.posterDataUrl ?? fallbackPoster;
+          const ctx = thumbCanvas.getContext('2d');
+          if (ctx) {
+            const posterImg = new Image();
+            posterImg.onload = () => {
+              ctx.drawImage(posterImg, 0, 0, thumbCanvas.width, thumbCanvas.height);
+            };
+            posterImg.src = posterSrc;
+          }
+        }
 
+        // Pre-load source images for all frames
+        animation.frames.forEach((frame) => {
+          loadSourceImage(frame.sourceAssetId);
+        });
+
+        animationCanvases.set(animation.id, thumbCanvas);
+        // Observe for clock register/unregister
+        animIntersectionObserver!.observe(thumbCanvas);
+        // Eagerly register (observer may not fire synchronously)
+        animationClock.register(animation.id, animation);
+
+        card.appendChild(thumbCanvas);
+
+        // ── Name / inline rename ──
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'asset-library__asset-name';
+        nameDiv.textContent = animation.name;
+
+        if (activeRenameId === animation.id) {
+          // Show inline rename row
+          const renameRow = document.createElement('div');
+          renameRow.className = 'asset-library__anim-rename-row';
+          renameRow.addEventListener('click', (e) => e.stopPropagation());
+
+          const renameInput = document.createElement('input');
+          renameInput.type = 'text';
+          renameInput.className = 'asset-library__anim-rename-input';
+          renameInput.value = animation.name;
+          renameInput.maxLength = 64;
+
+          const commitRename = () => {
+            const trimmed = renameInput.value.trim();
+            if (trimmed && trimmed !== animation.name) {
+              assetRegistry.updateAnimation(animation.id, { name: trimmed });
+            }
+            activeRenameId = null;
+            refresh();
+          };
+          const cancelRename = () => {
+            activeRenameId = null;
+            refresh();
+          };
+
+          renameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+            if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+          });
+          renameInput.addEventListener('blur', commitRename);
+
+          const okBtn = document.createElement('button');
+          okBtn.type = 'button';
+          okBtn.className = 'asset-library__anim-rename-btn';
+          okBtn.textContent = '✓';
+          okBtn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent blur on input
+          okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitRename(); });
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'asset-library__anim-rename-btn';
+          cancelBtn.textContent = '✕';
+          cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+          cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelRename(); });
+
+          renameRow.appendChild(renameInput);
+          renameRow.appendChild(okBtn);
+          renameRow.appendChild(cancelBtn);
+          card.appendChild(renameRow);
+          queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
+        } else {
+          card.appendChild(nameDiv);
+        }
+
+        // ── Meta ──
         const meta = document.createElement('div');
         meta.className = 'asset-library__animation-meta';
         meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
         card.appendChild(meta);
 
+        // ── Action buttons ──
         const actions = document.createElement('div');
         actions.className = 'asset-library__animation-actions';
 
@@ -1201,9 +1651,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         renameButton.textContent = 'Rename';
         renameButton.addEventListener('click', (event) => {
           event.stopPropagation();
-          const nextName = window.prompt('Rename animation', animation.name);
-          if (!nextName) return;
-          assetRegistry.updateAnimation(animation.id, { name: nextName });
+          activeRenameId = activeRenameId === animation.id ? null : animation.id;
+          activeDeleteId = null;
+          activeWhereUsedId = null;
+          refresh();
         });
 
         const duplicateButton = document.createElement('button');
@@ -1224,23 +1675,55 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         whereUsedButton.textContent = 'Where Used';
         whereUsedButton.addEventListener('click', async (event) => {
           event.stopPropagation();
-          const scenes = await getAllScenes();
-          const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
-          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets(), assetRegistry.getAnimStateMachines());
-          if (hits.length === 0) {
-            window.alert('No references found.');
+          // Toggle: if already open for this card, collapse it
+          if (activeWhereUsedId === animation.id) {
+            activeWhereUsedId = null;
+            card.classList.remove('asset-library__animation-card--where-used-open');
+            whereUsedPanel.remove();
             return;
           }
-          const details = hits
-            .slice(0, 12)
-            .map((hit) => {
-              if (hit.kind === 'entity') return `• Scene ${hit.sceneId} → Entity ${hit.entityId}`;
-              if (hit.kind === 'animationSet') return `• Animation Set ${hit.setId} (${hit.facing ?? 'unknown'})`;
-              return `• State Machine ${hit.smId} → State ${hit.stateId ?? 'unknown'}`;
-            })
-            .join('\n');
-          const overflow = hits.length > 12 ? `\n…and ${hits.length - 12} more.` : '';
-          window.alert(`Used in ${hits.length} place(s):\n${details}${overflow}`);
+          // Show loading state, then scan
+          activeWhereUsedId = animation.id;
+          activeDeleteId = null;
+          card.classList.add('asset-library__animation-card--where-used-open');
+
+          whereUsedPanel.innerHTML = '<div class="asset-library__anim-where-used-hit">Scanning…</div>';
+          whereUsedPanel.style.display = '';
+
+          const scenes = await getAllScenes();
+          const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+          const hits = collectAnimationReferences(
+            animation.id, sceneMap,
+            assetRegistry.getAnimationSets(),
+            assetRegistry.getAnimStateMachines()
+          );
+
+          whereUsedPanel.innerHTML = '';
+          if (hits.length === 0) {
+            const msg = document.createElement('div');
+            msg.className = 'asset-library__anim-where-used-hit';
+            msg.textContent = 'Not used anywhere.';
+            whereUsedPanel.appendChild(msg);
+          } else {
+            hits.slice(0, 20).forEach((hit) => {
+              const row = document.createElement('div');
+              row.className = 'asset-library__anim-where-used-hit';
+              if (hit.kind === 'entity') {
+                row.textContent = `Scene ${hit.sceneId} → Entity ${hit.entityId}`;
+              } else if (hit.kind === 'animationSet') {
+                row.textContent = `Anim Set ${hit.setId} (${hit.facing ?? '?'})`;
+              } else {
+                row.textContent = `State Machine ${hit.smId} → State ${hit.stateId ?? '?'}`;
+              }
+              whereUsedPanel.appendChild(row);
+            });
+            if (hits.length > 20) {
+              const more = document.createElement('div');
+              more.className = 'asset-library__anim-where-used-hit';
+              more.textContent = `…and ${hits.length - 20} more.`;
+              whereUsedPanel.appendChild(more);
+            }
+          }
         });
 
         actions.appendChild(renameButton);
@@ -1248,161 +1731,486 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         actions.appendChild(whereUsedButton);
         card.appendChild(actions);
 
+        // ── Where Used panel (shown below actions when active) ──
+        const whereUsedPanel = document.createElement('div');
+        whereUsedPanel.className = 'asset-library__anim-where-used';
+        whereUsedPanel.addEventListener('click', (e) => e.stopPropagation());
+        if (activeWhereUsedId !== animation.id) {
+          whereUsedPanel.style.display = 'none';
+        } else {
+          card.classList.add('asset-library__animation-card--where-used-open');
+        }
+        card.appendChild(whereUsedPanel);
+
+        // ── Delete button (× absolute in corner) ──
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'asset-library__animation-delete';
         deleteButton.textContent = '×';
-        deleteButton.addEventListener('click', async () => {
+        deleteButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+        deleteButton.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          if (activeDeleteId === animation.id) {
+            // Already showing confirm — tapping × again cancels it
+            activeDeleteId = null;
+            card.classList.remove('asset-library__animation-card--delete-open');
+            deleteConfirmEl.style.display = 'none';
+            return;
+          }
+          activeDeleteId = animation.id;
+          activeWhereUsedId = null;
+          card.classList.add('asset-library__animation-card--delete-open');
+
+          // Build the inline delete confirm
+          deleteConfirmEl.innerHTML = '';
+
           const scenes = await getAllScenes();
           const sceneMap = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
-          const hits = collectAnimationReferences(animation.id, sceneMap, assetRegistry.getAnimationSets(), assetRegistry.getAnimStateMachines());
-          const confirmed = window.confirm(
-            hits.length > 0
-              ? `Delete "${animation.name}" and clear ${hits.length} reference(s)?`
-              : `Delete "${animation.name}"?`
+          const hits = collectAnimationReferences(
+            animation.id, sceneMap,
+            assetRegistry.getAnimationSets(),
+            assetRegistry.getAnimStateMachines()
           );
-          if (!confirmed) return;
 
-          const updatesByScene = new Map<string, Set<string>>();
-          for (const hit of hits) {
-            if (hit.kind !== 'entity') continue;
-            if (!updatesByScene.has(hit.sceneId)) {
-              updatesByScene.set(hit.sceneId, new Set());
+          const label = document.createElement('div');
+          label.className = 'asset-library__anim-delete-label';
+          label.textContent = hits.length > 0
+            ? `Used by ${hits.length} — delete anyway?`
+            : `Delete "${animation.name}"?`;
+          deleteConfirmEl.appendChild(label);
+
+          const confirmRow = document.createElement('div');
+          confirmRow.className = 'asset-library__anim-delete-row';
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'asset-library__anim-cancel-btn';
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activeDeleteId = null;
+            card.classList.remove('asset-library__animation-card--delete-open');
+            deleteConfirmEl.style.display = 'none';
+          });
+
+          const confirmBtn = document.createElement('button');
+          confirmBtn.type = 'button';
+          confirmBtn.className = 'asset-library__anim-delete-btn';
+          confirmBtn.textContent = 'Delete';
+          confirmBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const updatesByScene = new Map<string, Set<string>>();
+            for (const hit of hits) {
+              if (hit.kind !== 'entity') continue;
+              if (!updatesByScene.has(hit.sceneId)) updatesByScene.set(hit.sceneId, new Set());
+              updatesByScene.get(hit.sceneId)!.add(hit.entityId);
             }
-            updatesByScene.get(hit.sceneId)?.add(hit.entityId);
-          }
-
-          for (const scene of scenes) {
-            const ids = updatesByScene.get(scene.id);
-            if (!ids || ids.size === 0) continue;
-            let changed = false;
-            const activeSceneUpdates = new Map<string, Record<string, string | number | boolean | undefined>>();
-            const nextEntities = scene.entities.map((entity) => {
-              if (!ids.has(entity.id)) return entity;
-              if (entity.properties?.animationId !== animation.id) return entity;
-              changed = true;
-              const nextProperties = { ...(entity.properties ?? {}) };
-              delete nextProperties.animationId;
-              activeSceneUpdates.set(entity.id, { animationId: undefined });
-              return { ...entity, properties: nextProperties };
-            });
-            if (changed) {
-              await saveScene({ ...scene, entities: nextEntities });
-              syncActiveSceneEntityProperties(scene.id, activeSceneUpdates);
+            for (const scene of scenes) {
+              const ids = updatesByScene.get(scene.id);
+              if (!ids || ids.size === 0) continue;
+              let changed = false;
+              const activeSceneUpdates = new Map<string, Record<string, string | number | boolean | undefined>>();
+              const nextEntities = scene.entities.map((entity) => {
+                if (!ids.has(entity.id)) return entity;
+                if (entity.properties?.animationId !== animation.id) return entity;
+                changed = true;
+                const nextProperties = { ...(entity.properties ?? {}) };
+                delete nextProperties.animationId;
+                activeSceneUpdates.set(entity.id, { animationId: undefined });
+                return { ...entity, properties: nextProperties };
+              });
+              if (changed) {
+                await saveScene({ ...scene, entities: nextEntities });
+                syncActiveSceneEntityProperties(scene.id, activeSceneUpdates);
+              }
             }
-          }
+            assetRegistry.clearAnimationFromSets(animation.id);
+            assetRegistry.clearAnimationFromStateMachines(animation.id);
+            assetRegistry.removeAnimation(animation.id);
+          });
 
-          assetRegistry.clearAnimationFromSets(animation.id);
-          assetRegistry.clearAnimationFromStateMachines(animation.id);
-          assetRegistry.removeAnimation(animation.id);
-        });
-        deleteButton.addEventListener('pointerdown', (event) => {
-          event.stopPropagation();
-        });
-        deleteButton.addEventListener('click', (event) => {
-          event.stopPropagation();
+          confirmRow.appendChild(cancelBtn);
+          confirmRow.appendChild(confirmBtn);
+          deleteConfirmEl.appendChild(confirmRow);
+          deleteConfirmEl.style.display = '';
         });
         card.appendChild(deleteButton);
 
+        // ── Inline delete confirm panel ──
+        const deleteConfirmEl = document.createElement('div');
+        deleteConfirmEl.className = 'asset-library__anim-delete-confirm';
+        deleteConfirmEl.addEventListener('click', (e) => e.stopPropagation());
+        deleteConfirmEl.style.display = 'none';
+        if (activeDeleteId === animation.id) {
+          card.classList.add('asset-library__animation-card--delete-open');
+        }
+        card.appendChild(deleteConfirmEl);
+
         grid.appendChild(card);
       });
-      librarySection.appendChild(grid);
-    }
 
-    const createSetRow = document.createElement('div');
-    createSetRow.className = 'asset-library__row asset-library__animation-set-create';
-    const createSetButton = document.createElement('button');
-    createSetButton.type = 'button';
-    createSetButton.className = 'asset-library__button';
-    createSetButton.textContent = 'Create Animation Set';
-    createSetButton.addEventListener('click', () => {
-      const name = window.prompt('Animation set name', 'New Animation Set');
-      if (!name) return;
-      assetRegistry.addAnimationSet({ name, directions: {} });
-    });
-    createSetRow.appendChild(createSetButton);
-    librarySection.appendChild(createSetRow);
+      // Check initial no-match state
+      if (animFilter && animations.length > 0) {
+        const lower = animFilter.toLowerCase();
+        const visible = animations.filter((a) => a.name.toLowerCase().includes(lower));
+        noMatchMsg.style.display = visible.length === 0 ? '' : 'none';
+      }
 
-    const setGrid = document.createElement('div');
-    setGrid.className = 'asset-library__animations asset-library__animation-sets-grid';
-    for (const animationSet of animationSets) {
-      const card = document.createElement('div');
-      card.className = 'asset-library__animation-card';
+      section.appendChild(grid);
 
-      const name = document.createElement('div');
-      name.className = 'asset-library__asset-name';
-      name.textContent = animationSet.name;
-      card.appendChild(name);
+      // ── Animation Sets section ────────────────────────────────────
+      const setsTitle = document.createElement('div');
+      setsTitle.className = 'asset-library__title';
+      setsTitle.style.marginTop = '16px';
+      setsTitle.textContent = 'Animation Sets';
+      section.appendChild(setsTitle);
 
-      const order = ['up', 'left', 'right', 'down'] as const;
-      const directions = document.createElement('div');
-      directions.className = 'asset-library__animation-meta';
-      directions.textContent = order
-        .map((facing) => `${facing}: ${animationSet.directions[facing] || '—'}`)
-        .join(' · ');
-      card.appendChild(directions);
+      // Inline create form or button
+      const createSetRow = document.createElement('div');
+      createSetRow.className = 'asset-library__row';
+      if (inlineSetCreateOpen) {
+        const createInline = document.createElement('div');
+        createInline.className = 'asset-library__anim-set-create-inline';
 
-      const editButton = document.createElement('button');
-      editButton.type = 'button';
-      editButton.className = 'asset-library__animation-action';
-      editButton.textContent = 'Assign Directions';
-      editButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const nextDirections = { ...animationSet.directions };
-        (['down', 'up', 'left', 'right'] as const).forEach((facing) => {
-          const next = window.prompt(`Animation id for ${facing}`, nextDirections[facing] ?? '');
-          if (next === null) return;
-          const trimmed = next.trim();
-          if (!trimmed) {
-            delete nextDirections[facing];
-            return;
+        const createInput = document.createElement('input');
+        createInput.type = 'text';
+        createInput.className = 'asset-library__anim-set-create-input';
+        createInput.placeholder = 'Animation set name…';
+        createInput.maxLength = 64;
+
+        const commitCreate = () => {
+          const trimmed = createInput.value.trim();
+          if (trimmed) {
+            assetRegistry.addAnimationSet({ name: trimmed, directions: {} });
           }
-          nextDirections[facing] = trimmed;
+          inlineSetCreateOpen = false;
+          refresh();
+        };
+
+        createInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitCreate(); }
+          if (e.key === 'Escape') { e.preventDefault(); inlineSetCreateOpen = false; refresh(); }
         });
-        assetRegistry.updateAnimationSet(animationSet.id, { directions: nextDirections });
-      });
 
-      const renameButton = document.createElement('button');
-      renameButton.type = 'button';
-      renameButton.className = 'asset-library__animation-action';
-      renameButton.textContent = 'Rename';
-      renameButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const nextName = window.prompt('Rename animation set', animationSet.name);
-        if (!nextName) return;
-        assetRegistry.updateAnimationSet(animationSet.id, { name: nextName });
-      });
+        const createBtn = document.createElement('button');
+        createBtn.type = 'button';
+        createBtn.className = 'asset-library__button';
+        createBtn.textContent = 'Create';
+        createBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        createBtn.addEventListener('click', commitCreate);
 
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'button';
-      deleteButton.className = 'asset-library__animation-action';
-      deleteButton.textContent = 'Delete Set';
-      deleteButton.addEventListener('click', async (event) => {
-        event.stopPropagation();
-        const confirmed = window.confirm(`Delete animation set "${animationSet.name}"?`);
-        if (!confirmed) return;
-        await clearAnimationSetEntityReferences(animationSet.id);
-        assetRegistry.removeAnimationSet(animationSet.id);
-      });
+        const cancelCreateBtn = document.createElement('button');
+        cancelCreateBtn.type = 'button';
+        cancelCreateBtn.className = 'asset-library__button';
+        cancelCreateBtn.textContent = 'Cancel';
+        cancelCreateBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        cancelCreateBtn.addEventListener('click', () => { inlineSetCreateOpen = false; refresh(); });
 
-      const actions = document.createElement('div');
-      actions.className = 'asset-library__animation-actions';
-      actions.appendChild(editButton);
-      actions.appendChild(renameButton);
-      actions.appendChild(deleteButton);
-      card.appendChild(actions);
+        createInline.appendChild(createInput);
+        createInline.appendChild(createBtn);
+        createInline.appendChild(cancelCreateBtn);
+        createSetRow.appendChild(createInline);
+        queueMicrotask(() => createInput.focus());
+      } else {
+        const createSetButton = document.createElement('button');
+        createSetButton.type = 'button';
+        createSetButton.className = 'asset-library__button';
+        createSetButton.textContent = '+ Create Animation Set';
+        createSetButton.addEventListener('click', () => {
+          inlineSetCreateOpen = true;
+          refresh();
+        });
+        createSetRow.appendChild(createSetButton);
+      }
+      section.appendChild(createSetRow);
 
-      setGrid.appendChild(card);
+      if (animationSets.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'asset-library__empty';
+        empty.textContent = 'No animation sets saved yet.';
+        section.appendChild(empty);
+      } else {
+        const setGrid = document.createElement('div');
+        setGrid.className = 'asset-library__animations';
+
+        for (const animationSet of animationSets) {
+          const card = document.createElement('div');
+          card.className = 'asset-library__animation-card';
+
+          // ── Set name / inline rename ──
+          if (activeSetRenameId === animationSet.id) {
+            const renameRow = document.createElement('div');
+            renameRow.className = 'asset-library__anim-rename-row';
+            renameRow.addEventListener('click', (e) => e.stopPropagation());
+
+            const renameInput = document.createElement('input');
+            renameInput.type = 'text';
+            renameInput.className = 'asset-library__anim-rename-input';
+            renameInput.value = animationSet.name;
+            renameInput.maxLength = 64;
+
+            const commitSetRename = () => {
+              const trimmed = renameInput.value.trim();
+              if (trimmed && trimmed !== animationSet.name) {
+                assetRegistry.updateAnimationSet(animationSet.id, { name: trimmed });
+              }
+              activeSetRenameId = null;
+              refresh();
+            };
+            const cancelSetRename = () => { activeSetRenameId = null; refresh(); };
+
+            renameInput.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitSetRename(); }
+              if (e.key === 'Escape') { e.preventDefault(); cancelSetRename(); }
+            });
+            renameInput.addEventListener('blur', commitSetRename);
+
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'asset-library__anim-rename-btn';
+            okBtn.textContent = '✓';
+            okBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitSetRename(); });
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'asset-library__anim-rename-btn';
+            cancelBtn.textContent = '✕';
+            cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelSetRename(); });
+
+            renameRow.appendChild(renameInput);
+            renameRow.appendChild(okBtn);
+            renameRow.appendChild(cancelBtn);
+            card.appendChild(renameRow);
+            queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
+          } else {
+            const name = document.createElement('div');
+            name.className = 'asset-library__asset-name';
+            name.textContent = animationSet.name;
+            card.appendChild(name);
+          }
+
+          // ── Direction summary ──
+          const order = ['up', 'left', 'right', 'down'] as const;
+          const directions = document.createElement('div');
+          directions.className = 'asset-library__animation-meta';
+          directions.textContent = order
+            .map((facing) => {
+              const val = animationSet.directions[facing];
+              if (!val) return `${facing}: —`;
+              const anim = assetRegistry.getAnimation(val);
+              return `${facing}: ${anim ? anim.name : val}`;
+            })
+            .join(' · ');
+          card.appendChild(directions);
+
+          // ── Set action buttons ──
+          const actions = document.createElement('div');
+          actions.className = 'asset-library__animation-actions';
+
+          const assignBtn = document.createElement('button');
+          assignBtn.type = 'button';
+          assignBtn.className = 'asset-library__animation-action';
+          assignBtn.textContent = 'Assign Directions';
+          assignBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            directionSheetSetId = animationSet.id;
+            renderAnimSheet();
+          });
+
+          const renameSetBtn = document.createElement('button');
+          renameSetBtn.type = 'button';
+          renameSetBtn.className = 'asset-library__animation-action';
+          renameSetBtn.textContent = 'Rename';
+          renameSetBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            activeSetRenameId = activeSetRenameId === animationSet.id ? null : animationSet.id;
+            activeSetDeleteId = null;
+            refresh();
+          });
+
+          const deleteSetBtn = document.createElement('button');
+          deleteSetBtn.type = 'button';
+          deleteSetBtn.className = 'asset-library__animation-action';
+          deleteSetBtn.style.color = '#ffc5d2';
+          deleteSetBtn.textContent = 'Delete Set';
+          deleteSetBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (activeSetDeleteId === animationSet.id) {
+              activeSetDeleteId = null;
+              setDeleteConfirmEl.style.display = 'none';
+              return;
+            }
+            activeSetDeleteId = animationSet.id;
+            activeSetRenameId = null;
+            card.classList.add('asset-library__animation-card--delete-open');
+            setDeleteConfirmEl.style.display = '';
+          });
+
+          actions.appendChild(assignBtn);
+          actions.appendChild(renameSetBtn);
+          actions.appendChild(deleteSetBtn);
+          card.appendChild(actions);
+
+          // ── Inline set delete confirm ──
+          const setDeleteConfirmEl = document.createElement('div');
+          setDeleteConfirmEl.className = 'asset-library__anim-delete-confirm';
+          setDeleteConfirmEl.addEventListener('click', (e) => e.stopPropagation());
+          setDeleteConfirmEl.style.display = 'none';
+
+          const setDeleteLabel = document.createElement('div');
+          setDeleteLabel.className = 'asset-library__anim-delete-label';
+          setDeleteLabel.textContent = `Delete set "${animationSet.name}"?`;
+          setDeleteConfirmEl.appendChild(setDeleteLabel);
+
+          const setDeleteRow = document.createElement('div');
+          setDeleteRow.className = 'asset-library__anim-delete-row';
+
+          const setDeleteCancel = document.createElement('button');
+          setDeleteCancel.type = 'button';
+          setDeleteCancel.className = 'asset-library__anim-cancel-btn';
+          setDeleteCancel.textContent = 'Cancel';
+          setDeleteCancel.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activeSetDeleteId = null;
+            card.classList.remove('asset-library__animation-card--delete-open');
+            setDeleteConfirmEl.style.display = 'none';
+          });
+
+          const setDeleteConfirm = document.createElement('button');
+          setDeleteConfirm.type = 'button';
+          setDeleteConfirm.className = 'asset-library__anim-delete-btn';
+          setDeleteConfirm.textContent = 'Delete';
+          setDeleteConfirm.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const count = await clearAnimationSetEntityReferences(animationSet.id);
+            if (count > 0) {
+              setDeleteLabel.textContent = `Used by ${count} entities — deleting…`;
+            }
+            assetRegistry.removeAnimationSet(animationSet.id);
+          });
+
+          setDeleteRow.appendChild(setDeleteCancel);
+          setDeleteRow.appendChild(setDeleteConfirm);
+          setDeleteConfirmEl.appendChild(setDeleteRow);
+          card.appendChild(setDeleteConfirmEl);
+
+          if (activeSetDeleteId === animationSet.id) {
+            card.classList.add('asset-library__animation-card--delete-open');
+            setDeleteConfirmEl.style.display = '';
+          }
+
+          setGrid.appendChild(card);
+        }
+
+        section.appendChild(setGrid);
+      }
     }
 
-    if (animationSets.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'asset-library__empty asset-library__animations-empty';
-      empty.textContent = 'No animation sets saved yet.';
-      librarySection.appendChild(empty);
-    } else {
-      librarySection.appendChild(setGrid);
+    librarySection.appendChild(section);
+
+    // Start rAF loop for live thumbnails
+    if (animations.length > 0 && !animationsCollapsed) {
+      startRafLoop();
     }
+  }
+
+  function renderAnimSheet(): void {
+    animScrim.innerHTML = '';
+    if (!directionSheetSetId) {
+      animScrim.classList.remove('asset-library__anim-scrim--open');
+      return;
+    }
+
+    const animationSet = assetRegistry.getAnimationSets().find((s) => s.id === directionSheetSetId);
+    if (!animationSet) {
+      directionSheetSetId = null;
+      animScrim.classList.remove('asset-library__anim-scrim--open');
+      return;
+    }
+
+    animScrim.classList.add('asset-library__anim-scrim--open');
+
+    const sheet = document.createElement('div');
+    sheet.className = 'asset-library__sheet';
+    sheet.addEventListener('click', (e) => e.stopPropagation());
+
+    const title = document.createElement('div');
+    title.className = 'asset-library__sheet-title';
+    title.textContent = `Assign Directions — ${animationSet.name}`;
+    sheet.appendChild(title);
+
+    // Working copy of directions that will be saved on "Save"
+    const pendingDirections: Record<string, string> = {};
+    (['up', 'down', 'left', 'right'] as const).forEach((facing) => {
+      const val = animationSet.directions[facing];
+      if (val) pendingDirections[facing] = val;
+    });
+
+    const allAnimations = assetRegistry.getAnimations();
+
+    (['up', 'down', 'left', 'right'] as const).forEach((facing) => {
+      const row = document.createElement('div');
+      row.className = 'asset-library__direction-row';
+
+      const label = document.createElement('div');
+      label.className = 'asset-library__direction-label';
+      label.textContent = facing.charAt(0).toUpperCase() + facing.slice(1);
+
+      const select = document.createElement('select');
+      select.className = 'asset-library__direction-select';
+
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = '— None —';
+      select.appendChild(noneOpt);
+
+      allAnimations.forEach((anim) => {
+        const opt = document.createElement('option');
+        opt.value = anim.id;
+        opt.textContent = anim.name;
+        if (pendingDirections[facing] === anim.id) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', () => {
+        if (select.value) {
+          pendingDirections[facing] = select.value;
+        } else {
+          delete pendingDirections[facing];
+        }
+      });
+
+      row.appendChild(label);
+      row.appendChild(select);
+      sheet.appendChild(row);
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'asset-library__sheet-button';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', () => {
+      assetRegistry.updateAnimationSet(animationSet.id, {
+        directions: pendingDirections as Record<'up' | 'down' | 'left' | 'right', string>,
+      });
+      directionSheetSetId = null;
+      renderAnimSheet();
+    });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'asset-library__sheet-button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => {
+      directionSheetSetId = null;
+      renderAnimSheet();
+    });
+
+    sheet.appendChild(saveBtn);
+    sheet.appendChild(cancelBtn);
+    animScrim.appendChild(sheet);
   }
 
   function renderSheet(): void {
@@ -1597,6 +2405,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     renderGroups(state.groups, state.selectedAssetId);
     renderAnimations();
     renderSheet();
+    renderAnimSheet();
   }
 
   function handleCreateGroup(): void {
@@ -1620,7 +2429,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     refresh,
     destroy: () => {
       unsubscribe();
+      stopRafLoop();
+      animIntersectionObserver?.disconnect();
+      animIntersectionObserver = null;
+      animationClock.destroy();
+      animationCanvases.clear();
+      sourceImageCache.clear();
       sheetScrim.remove();
+      animScrim.remove();
       container.removeChild(root);
     },
   };
