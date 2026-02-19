@@ -311,6 +311,24 @@ export function createAnimStateMachineEditor(
 
   const animFrameId = 0;
 
+  // --- Poster Image Cache ---
+
+  const posterCache = new Map<string, HTMLImageElement | 'loading' | 'error'>();
+
+  function loadPosterImage(animationId: string, posterDataUrl: string): void {
+    if (posterCache.has(animationId)) return;
+    posterCache.set(animationId, 'loading');
+    const img = new Image();
+    img.onload = () => {
+      posterCache.set(animationId, img);
+      render();
+    };
+    img.onerror = () => {
+      posterCache.set(animationId, 'error');
+    };
+    img.src = posterDataUrl;
+  }
+
   // --- Canvas Sizing ---
 
   function resizeCanvas(): void {
@@ -444,21 +462,53 @@ export function createAnimStateMachineEditor(
       ctx.fill();
     }
 
-    // State name
-    ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `${Math.round(12 * zoom)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     const nameOffsetX = isInitial ? 6 * zoom : 0;
-    ctx.fillText(state.name, cx + nameOffsetX, cy - 6 * zoom, w - 24 * zoom);
 
-    // Animation name hint
+    // Look up animation and poster
     const animations = assetRegistry.getAnimations();
     const anim = animations.find((a) => a.id === state.animationId);
-    const animLabel = anim ? anim.name : (state.animationId || 'No anim');
-    ctx.fillStyle = TEXT_MUTED;
-    ctx.font = `${Math.round(10 * zoom)}px system-ui, sans-serif`;
-    ctx.fillText(animLabel, cx + nameOffsetX, cy + 10 * zoom, w - 24 * zoom);
+
+    // Trigger poster load if available
+    if (anim?.posterDataUrl) {
+      loadPosterImage(state.animationId, anim.posterDataUrl);
+    }
+
+    const cachedPoster = anim?.posterDataUrl ? posterCache.get(state.animationId) : undefined;
+    const posterImg = cachedPoster instanceof HTMLImageElement ? cachedPoster : null;
+
+    if (posterImg) {
+      // Layout: thumbnail in top portion, state name below
+      const thumbSize = 20 * zoom;
+      const thumbX = cx + nameOffsetX - thumbSize / 2;
+      const thumbY = cy - h / 2 + 4 * zoom;
+
+      // Clip and draw thumbnail
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 3 * zoom);
+      ctx.clip();
+      ctx.drawImage(posterImg, thumbX, thumbY, thumbSize, thumbSize);
+      ctx.restore();
+
+      // State name below thumbnail
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = `${Math.round(11 * zoom)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(state.name, cx + nameOffsetX, cy + 10 * zoom, w - 24 * zoom);
+    } else {
+      // Fallback: name + anim label text layout (existing)
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = `${Math.round(12 * zoom)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(state.name, cx + nameOffsetX, cy - 6 * zoom, w - 24 * zoom);
+
+      const animLabel = anim ? anim.name : (state.animationId || 'No anim');
+      ctx.fillStyle = TEXT_MUTED;
+      ctx.font = `${Math.round(10 * zoom)}px system-ui, sans-serif`;
+      ctx.fillText(animLabel, cx + nameOffsetX, cy + 10 * zoom, w - 24 * zoom);
+    }
   }
 
   function drawAnyStateNode(): void {
