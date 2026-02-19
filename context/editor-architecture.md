@@ -1,8 +1,8 @@
-# Editor V2 Architecture Spec (InRepo Studio)
+# Editor Architecture (InRepo Studio)
 
-**Status:** Source of truth for Tracks 23–30  
-**Audience:** Coding agents (Codex/Claude) and maintainers  
-**Purpose:** Define the target UI + interaction model so staged refactors cannot drift.
+**Status:** Source of truth for editor architecture
+**Audience:** Coding agents (Codex/Claude) and maintainers
+**Purpose:** Defines the mode-driven UI model and interaction rules for InRepo Studio.
 
 If any existing implementation conflicts with this document, **this document wins**.
 
@@ -41,11 +41,6 @@ The user should not need a separate layers panel to do normal work.
 Selecting an object should not open a modal/popup editor.
 
 Especially for entities: selection is move-first; editing lives inside the Entities mode UI.
-
-### 1.5 Staged migration, single authority
-During migration, a legacy system may exist temporarily, but there must be one clear authority at any time.
-
-Example: Once bottom context strip reaches parity, floating selection bars must be removed.
 
 ---
 
@@ -289,7 +284,7 @@ This slug must be used consistently across:
 If a new system is added (ex: bottom context strip), tracks must redirect interactions to it and not keep both systems active indefinitely.
 
 ### 8.2 Feature flags are temporary
-Feature flags may be used to stage deployment, but the final default path must be the Editor V2 model.
+Feature flags may be used to stage deployment, but the final default path must be the editor architecture model.
 
 ### 8.3 No regressions in core flows
 Core flows that must remain working throughout migration:
@@ -531,7 +526,7 @@ UI group names and folder names must stay synchronized.
 
 7. Migration Philosophy
 
-During the transition to Editor V2:
+During system evolution:
 
 1. New systems should be introduced according to this architecture.
 
@@ -550,7 +545,7 @@ The goal is one clear workflow, not parallel systems.
 
 8. Summary
 
-Editor V2 establishes:
+This architecture establishes:
 
 Mode-driven editing
 

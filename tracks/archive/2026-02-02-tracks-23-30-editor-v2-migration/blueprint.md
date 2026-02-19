@@ -4,7 +4,7 @@
 
 This blueprint details the technical design for migrating InRepo Studio to the Editor V2 architecture. The migration transforms the editor from a layer+tool dual-state system to a mode-driven architecture with clearly defined UI regions.
 
-**Authority:** `/context/editor-v2-architecture.md` is the source of truth for all design decisions.
+**Authority:** `/context/editor-architecture.md` is the source of truth for all design decisions.
 
 ---
 

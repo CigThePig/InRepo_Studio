@@ -18,7 +18,7 @@ Local invariants:
 - Tools should batch edits and commit atomic operations to state.
 - Every meaningful change triggers auto-save (through storage API).
 
-Mode-driven context (Editor V2):
+Mode-driven context:
 - Tools are activated via the **editor mode state** (`editorMode`): `select | ground | props | entities | collision | triggers`.
 - The right berry tab selection sets `editorMode` and determines which tool is active.
 - Tools in this folder are **World Mode only**. They are inactive/suspended when the editor is in Blockly Mode.

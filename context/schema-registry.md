@@ -104,7 +104,7 @@ Rules:
   - `ToolType` — legacy tool list (for mode mapping)
     - Values: select, paint, erase, entity
 
-### Editor V2 (Track 23)
+### Editor Core Modules
 
 - `/src/editor/v2/editorMode.ts`
   - `EditorMode` — primary editing state
@@ -112,18 +112,18 @@ Rules:
     - Invariant: single source of truth for editing context
 
 - `/src/editor/v2/featureFlags.ts`
-  - `EDITOR_V2_FLAGS` — feature flag registry for V2 rollout
+  - `EDITOR_FLAGS` — feature flag registry for editor behavior
     - Invariant: keys are stable across releases
 
 - `/src/editor/v2/modeMapping.ts`
-  - `MODE_TO_LAYER` — V2 mode to legacy layer mapping
+  - `MODE_TO_LAYER` — mode to legacy layer mapping
     - Invariant: select/entities map to null layer
-  - `MODE_TO_TOOL` — V2 mode to legacy tool mapping
+  - `MODE_TO_TOOL` — mode to legacy tool mapping
     - Invariant: select -> select, entities -> entity
 
 - `/src/editor/panels/rightBerryTabs.ts`
   - `RIGHT_BERRY_TABS` — right berry mode tab definitions
-    - Invariant: order matches Editor V2 mode order
+    - Invariant: order matches editor mode order
 
 - `/src/editor/panels/leftBerryTabs.ts`
   - `LEFT_BERRY_TABS` — left berry asset workflow tabs

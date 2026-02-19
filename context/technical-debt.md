@@ -129,7 +129,7 @@ But `src/types/scene.ts` → `computeDefaultTilesets()` uses `DEFAULT_TILESET_BL
 
 ### 10. Remove dead code (unused exports — but NOT `modeMapping.ts`)
 
-⚠️ **DO NOT delete `src/editor/v2/modeMapping.ts`** — it is registered in `schema-registry.md` as a list-of-truth (`MODE_TO_LAYER`, `MODE_TO_TOOL`) and was deliberately pre-staged in the Editor V2 migration (Track 25). It will be consumed when Blockly Mode integration lands (Tracks 35+). No external consumer exists *yet*, but this is intentional pre-built infrastructure, not dead code.
+⚠️ **DO NOT delete `src/editor/v2/modeMapping.ts`** — it is registered in `schema-registry.md` as a list-of-truth (`MODE_TO_LAYER`, `MODE_TO_TOOL`) and was deliberately pre-staged in the editor architecture migration (Track 25). It will be consumed when Blockly Mode integration lands (Tracks 35+). No external consumer exists *yet*, but this is intentional pre-built infrastructure, not dead code.
 
 **Action:**
 1. Grep for any *other* genuinely unused exports across the codebase and clean up if trivially dead. Don't rabbit-hole — focus on obvious cases only.

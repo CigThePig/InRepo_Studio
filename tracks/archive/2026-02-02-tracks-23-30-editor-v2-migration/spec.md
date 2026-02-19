@@ -6,7 +6,7 @@ Transform InRepo Studio from a layer-centric, popup-based editor into a mode-dri
 
 ## Authority
 
-All implementation must follow `/context/editor-v2-architecture.md`. If any existing system conflicts with that spec, the spec wins.
+All implementation must follow `/context/editor-architecture.md`. If any existing system conflicts with that spec, the spec wins.
 
 ---
 
@@ -227,7 +227,7 @@ Complete the asset pipeline (import → slice → group → upload → use) and 
 - [ ] Asset registry refreshes after upload
 - [ ] Full workflow works: import → slice → group → upload → use
 - [ ] Layer panel hidden by default (accessible via advanced)
-- [ ] Editor V2 acceptance tests pass (see editor-v2-architecture.md §9)
+- [ ] Editor V2 acceptance tests pass (see editor-architecture.md §9)
 
 ---
 
@@ -290,7 +290,7 @@ By the end of Track 30, a user can:
 
 ## Non-Goals (explicitly out of scope)
 
-Per `/context/editor-v2-architecture.md` §10:
+Per `/context/editor-architecture.md` §10:
 - Full pixel art editor
 - Advanced animation timeline
 - Complex prefab system
@@ -302,7 +302,7 @@ Per `/context/editor-v2-architecture.md` §10:
 
 ## Notes
 
-- All tracks share the authority of `/context/editor-v2-architecture.md`
+- All tracks share the authority of `/context/editor-architecture.md`
 - Legacy systems may coexist temporarily behind feature flags
 - Once a new system reaches parity, legacy must be removed
 - Core editing flows must never regress: paint, place props, place/move entities, collision, triggers, undo/redo

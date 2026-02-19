@@ -31,7 +31,7 @@ Preset config deploy rules:
 - `/game/presets.json` is deployed as a data file alongside other project content.
 - Change detection compares hot preset config against cold version.
 
-Asset deploy rules (Editor V2):
+Asset deploy rules:
 - Grouped assets are committed to canonical paths: `props/<group>/`, `entities/<group>/`, `tilesets/<group>/`.
 - Asset upload follows existing auth system and commit flow.
 

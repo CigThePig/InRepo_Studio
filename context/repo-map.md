@@ -148,7 +148,7 @@ Local instruction files (present):
 - `assets/spriteSlider.ts`
   - Role: sprite sheet slicing logic for asset prep
 - `v2/`
-  - Role: Editor V2 state + feature flags
+  - Role: Editor core state + feature flags
 - `settings/editorSettings.ts`
   - Role: user preferences
   - Owns: EditorSettingsSchema

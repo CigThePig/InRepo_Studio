@@ -30,14 +30,7 @@ Completed tracks:
 - Phase 3 (Full Tilemap Editing): Track 17 (Scene Management)
 - Phase 3 (Full Tilemap Editing): Track 18 (Layer System)
 - Phase 4 (Entity System): Tracks 19-22 (Entity Palette, Entity Placement, Entity Manipulation, Property Inspector)
-- Editor V2 Migration: Track 23 (Bottom Interaction Strip)
-- Editor V2 Migration: Track 24 (Top Bar Globalization)
-- Editor V2 Migration: Track 25 (Right Berry Shell + Mode State)
-- Editor V2 Migration: Track 26 (Entities Mode + Move-First Behavior)
-- Editor V2 Migration: Track 27 (Left Berry Shell + Sprite Slicing MVP)
-- Editor V2 Migration: Track 28 (Asset Library + Grouping System)
-- Editor V2 Migration: Track 29 (GitHub Folder ↔ Group Mirroring)
-- Editor V2 Migration: Track 30 (Asset Upload + Editor V2 Completion)
+- Editor Architecture Migration: Tracks 23–30 (mode-driven UI, berries, asset library — complete)
 - Phase 5 (Presets + Blockly): Track 31 (Game API Contract + Types)
 - Phase 5 (Presets + Blockly): Track 32 (Preset Schema + Definition Types)
 - Phase 5 (Presets + Blockly): Track 33 (Script Envelope + Storage)
@@ -53,7 +46,7 @@ Completed tracks:
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 Phase 4 Entity System is now complete.
-Editor V2 Migration is now complete. The editor uses mode-driven architecture per `/context/editor-v2-architecture.md`.
+Editor Architecture Migration is now complete. The editor uses mode-driven architecture per `/context/editor-architecture.md`.
 
 Last updated: 2026-02-10
 

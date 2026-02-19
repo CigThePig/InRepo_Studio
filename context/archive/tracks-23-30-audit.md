@@ -2,13 +2,13 @@
 
 **Date**: 2026-02-03
 **Auditor**: Claude (Opus 4.5)
-**Purpose**: Review tracks 23-30 implementation against `editor-v2-architecture.md` spec
+**Purpose**: Review tracks 23-30 implementation against `editor-architecture.md` spec
 
 ---
 
 ## Summary
 
-Tracks 23-30 (Editor V2 Migration) implementation is **largely complete** but contains several documentation inconsistencies and one notable implementation gap. The core functionality appears to work, but tracking artifacts are out of sync and one spec requirement is missing.
+Tracks 23-30 (Editor Architecture Migration) implementation is **largely complete** but contains several documentation inconsistencies and one notable implementation gap. The core functionality appears to work, but tracking artifacts are out of sync and one spec requirement is missing.
 
 ---
 
@@ -33,8 +33,8 @@ export type BottomContextSelection = 'none' | 'tiles' | 'entities';
 The `'triggers'` type was missing entirely.
 
 **Spec Reference**:
-- `editor-v2-architecture.md` line 79: "Trigger selection actions: edit, duplicate, delete, etc."
-- `editor-v2-architecture.md` lines 357-361: Table showing Triggers should have "Resize, Delete, Duplicate" actions
+- `editor-architecture.md` line 79: "Trigger selection actions: edit, duplicate, delete, etc."
+- `editor-architecture.md` lines 357-361: Table showing Triggers should have "Resize, Delete, Duplicate" actions
 
 **Impact**: When users select triggers, they got no contextual actions in the bottom strip.
 
@@ -76,7 +76,7 @@ The `'triggers'` type was missing entirely.
 
 Current state (incorrect):
 ```
-Next tracks to implement (Editor V2 Migration):
+Next tracks to implement (Editor Architecture Migration):
 1. Track 25: Right Berry Shell + Mode State
 2. Track 26: Entities Mode + Move-First Behavior
 ...
