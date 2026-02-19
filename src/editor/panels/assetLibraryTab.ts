@@ -631,6 +631,16 @@ const STYLES = `
     font-size: 12px;
   }
 
+  .asset-library__direction-preview {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: rgba(22, 30, 60, 0.6);
+    border: 1px solid rgba(83, 101, 164, 0.3);
+    image-rendering: pixelated;
+  }
+
   .asset-library__animation-card--where-used-open {
     border-color: rgba(98, 150, 255, 0.5);
   }
@@ -757,6 +767,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   const animationClock = createAnimationClock();
   const sourceImageCache = new Map<string, HTMLImageElement>();
   const animationCanvases = new Map<string, HTMLCanvasElement>();
+  // direction facing → preview canvas (inside Assign Directions sheet)
+  const directionPreviewCanvasMap = new Map<string, HTMLCanvasElement[]>();
   let rafHandle: number | null = null;
   let lastRafTime: number | null = null;
   let animIntersectionObserver: IntersectionObserver | null = null;
@@ -818,6 +830,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         for (const animId of dirty) {
           const canvas = animationCanvases.get(animId);
           if (canvas) drawAnimationFrame(animId, canvas);
+          // Also update any direction-preview canvases for this animation
+          const dirCanvases = directionPreviewCanvasMap.get(animId);
+          if (dirCanvases) {
+            for (const dc of dirCanvases) drawAnimationFrame(animId, dc);
+          }
         }
       }
       lastRafTime = time;
@@ -2118,6 +2135,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function renderAnimSheet(): void {
     animScrim.innerHTML = '';
+    directionPreviewCanvasMap.clear();
     if (!directionSheetSetId) {
       animScrim.classList.remove('asset-library__anim-scrim--open');
       return;
@@ -2158,6 +2176,50 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       label.className = 'asset-library__direction-label';
       label.textContent = facing.charAt(0).toUpperCase() + facing.slice(1);
 
+      // ── Mini live-preview canvas for this direction ──
+      const prevCanvas = document.createElement('canvas');
+      prevCanvas.width = 44;
+      prevCanvas.height = 44;
+      prevCanvas.className = 'asset-library__direction-preview';
+
+      let prevAnimId = pendingDirections[facing] ?? '';
+
+      const registerPreviewAnim = (animId: string): void => {
+        if (!animId) return;
+        const anim = allAnimations.find((a) => a.id === animId);
+        if (!anim) return;
+        animationClock.register(animId, anim);
+        anim.frames.forEach((f) => loadSourceImage(f.sourceAssetId));
+        if (!directionPreviewCanvasMap.has(animId)) {
+          directionPreviewCanvasMap.set(animId, []);
+        }
+        directionPreviewCanvasMap.get(animId)!.push(prevCanvas);
+        // Draw immediately in case the clock has a snapshot already
+        drawAnimationFrame(animId, prevCanvas);
+      };
+
+      const unregisterPreviewAnim = (animId: string): void => {
+        if (!animId) return;
+        const arr = directionPreviewCanvasMap.get(animId);
+        if (arr) {
+          const idx = arr.indexOf(prevCanvas);
+          if (idx !== -1) arr.splice(idx, 1);
+          if (arr.length === 0) directionPreviewCanvasMap.delete(animId);
+        }
+      };
+
+      // Register initial assignment
+      if (prevAnimId) {
+        registerPreviewAnim(prevAnimId);
+      } else {
+        // Show muted placeholder when nothing is assigned
+        const ctx = prevCanvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = 'rgba(83, 101, 164, 0.15)';
+          ctx.fillRect(0, 0, 44, 44);
+        }
+      }
+
       const select = document.createElement('select');
       select.className = 'asset-library__direction-select';
 
@@ -2175,14 +2237,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       });
 
       select.addEventListener('change', () => {
-        if (select.value) {
-          pendingDirections[facing] = select.value;
+        const newAnimId = select.value;
+
+        // Update pendingDirections
+        if (newAnimId) {
+          pendingDirections[facing] = newAnimId;
         } else {
           delete pendingDirections[facing];
+        }
+
+        // Swap preview canvas registration
+        unregisterPreviewAnim(prevAnimId);
+        prevAnimId = newAnimId;
+
+        const ctx = prevCanvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, 44, 44);
+
+        if (newAnimId) {
+          registerPreviewAnim(newAnimId);
+        } else {
+          // Show muted placeholder
+          if (ctx) {
+            ctx.fillStyle = 'rgba(83, 101, 164, 0.15)';
+            ctx.fillRect(0, 0, 44, 44);
+          }
         }
       });
 
       row.appendChild(label);
+      row.appendChild(prevCanvas);
       row.appendChild(select);
       sheet.appendChild(row);
     });
