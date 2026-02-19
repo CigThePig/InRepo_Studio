@@ -11,7 +11,7 @@ Owns:
 - **Left berry shell + tab routing**: loads tab content from `/src/editor/presets/` (Presets tab) and asset tabs
 - **Right berry shell + tab routing**: World Mode = tile/entity palettes; Blockly Mode = blocks palette + inspect/errors tab
 - **Top bar** (`topBarV2.ts`): global actions (Undo, Redo, Settings, Test/Play) and the universal dropdown (map selector / Logic Target selector)
-- **Bottom interaction strip**: contextual selection actions (replaces floating selection bars per Editor V2)
+- **Bottom interaction strip**: contextual selection actions (replaces floating selection bars per editor architecture)
 - **Animation State Machine editor** (`animStateMachine.ts`): visual SM editor UI in the left berry animation tab
 - **SM Simulator** (`smSimulator.ts`): pure TypeScript state machine simulator for SM editor "Simulate" mode (no Phaser, no DOM side effects)
 

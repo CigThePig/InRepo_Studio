@@ -20,9 +20,9 @@ Folder structure:
 ├── scenes/
 │   └── *.json
 ├── assets/
-│   ├── props/<group>/        ← prop assets by group (Editor V2)
-│   ├── entities/<group>/     ← entity assets by group (Editor V2)
-│   └── tilesets/<group>/     ← tileset assets by group (Editor V2)
+│   ├── props/<group>/        ← prop assets by group (editor)
+│   ├── entities/<group>/     ← entity assets by group (editor)
+│   └── tilesets/<group>/     ← tileset assets by group (editor)
 └── logic/                    ← Blockly logic scripts
     ├── main.json             ← Game Logic target
     └── maps/
@@ -36,7 +36,7 @@ Local invariants:
 - **Logic script files are workspace JSON** (Blockly serialization). Generated JS is never stored here.
 - **Logic scripts are created on demand** — empty maps have no script file until the user creates one.
 - **`presets.json` uses defaulting**: missing keys fall back to preset defaults. Unknown preset IDs are preserved but ignored (no crash).
-- **Asset folder structure mirrors UI groupings** (Editor V2): folder names = group names, slugified for filesystem safety.
+- **Asset folder structure mirrors UI groupings** (editor): folder names = group names, slugified for filesystem safety.
 
 Verification:
 - Runtime cold mode loads these files without errors.

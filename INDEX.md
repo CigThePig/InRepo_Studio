@@ -167,8 +167,8 @@ Micro-format (copy/paste):
   - Role: Blockly + Presets constitution (Parts 1–15). Authority for Phase 5 tracks.
   - Lists of truth: BlocklyNonNegotiables, GameApiContract, PresetContract, BlockTaxonomy
 
-- `context/editor-v2-architecture.md`
-  - Role: Editor V2 mode-driven architecture spec (mode state, berry layout, dual-mode rules). Authority for Tracks 23–30 and the dual-mode system.
+- `context/editor-architecture.md`
+  - Role: Editor mode-driven architecture spec (mode state, berry layout, dual-mode rules). Authority for the editor architecture and dual-mode system.
   - Lists of truth: EditorV2Architecture
 
 - `context/ux-polish-rules.md`
@@ -236,8 +236,8 @@ Micro-format (copy/paste):
   - Role: Track 18 planning artifacts (Layer System).
   - Lists of truth: Spec, Blueprint, Plan
 
-- `tracks/2026-02-02-tracks-23-30-editor-v2-migration/`
-  - Role: Tracks 23-30 planning artifacts (Editor V2 Migration: UI + Workflow Overhaul).
+- `tracks/archive/2026-02-02-tracks-23-30-editor-v2-migration/`
+  - Role: Tracks 23-30 planning artifacts (Editor Architecture Migration: UI + Workflow Overhaul). Archived.
   - Lists of truth: Spec, Blueprint, Plan
 
 - `tracks/2026-02-08-track-31-game-api-contract/`
@@ -484,7 +484,7 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/rightBerry.ts`
-  - Role: Right berry slide-out panel shell for Editor V2 modes.
+  - Role: Right berry slide-out panel shell for editor modes.
   - Lists of truth: none
 
 - `src/editor/panels/rightBerryTabs.ts`
@@ -577,15 +577,15 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/v2/index.ts`
-  - Role: Editor V2 public exports.
+  - Role: Editor core public exports.
   - Lists of truth: none
 
 - `src/editor/v2/featureFlags.ts`
-  - Role: Editor V2 feature flag management.
-  - Lists of truth: EDITOR_V2_FLAGS
+  - Role: Editor feature flag management.
+  - Lists of truth: EDITOR_FLAGS
 
 - `src/editor/v2/editorMode.ts`
-  - Role: Editor V2 mode state management.
+  - Role: Editor mode state management.
   - Lists of truth: EditorMode
 
 - `src/editor/v2/modeMapping.ts`

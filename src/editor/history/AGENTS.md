@@ -22,7 +22,7 @@ Local invariants:
 Mode-aware behavior:
 - This history system manages **World Mode** (map editing) undo/redo only.
 - **Blockly Mode** uses Blockly's built-in undo/redo system (managed by the Blockly workspace). This module does not participate in Blockly undo.
-- The top-bar Undo/Redo buttons (Editor V2) must route to the correct undo system based on current editor mode: World Mode → this history manager; Blockly Mode → Blockly workspace undo.
+- The top-bar Undo/Redo buttons must route to the correct undo system based on current editor mode: World Mode → this history manager; Blockly Mode → Blockly workspace undo.
 - History is NOT cleared when switching between World and Blockly modes — only when switching scenes.
 
 Verification:
