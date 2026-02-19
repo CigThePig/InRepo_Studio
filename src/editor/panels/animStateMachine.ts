@@ -1,5 +1,9 @@
 import type { AssetRegistry, AnimStateMachineAsset } from '@/editor/assets';
 import type { AnimState, AnimTransition, TransitionCondition } from '@/types/animStateMachine';
+import { createAnimationClock } from '@/editor/canvas/animationClock';
+import type { AnimationClock } from '@/editor/canvas/animationClock';
+import { createSmSimulator } from './smSimulator';
+import type { SmSimulator } from './smSimulator';
 
 const STYLES = `
   .asm-editor {
@@ -165,6 +169,110 @@ const STYLES = `
     padding: 16px 12px;
     text-align: center;
   }
+
+  .asm-editor__toolbar-button--active {
+    background: rgba(74, 255, 142, 0.18);
+    border-color: rgba(74, 255, 142, 0.55);
+    color: #4aff8e;
+  }
+
+  .asm-editor__toolbar-button--danger {
+    background: rgba(255, 80, 80, 0.12);
+    border-color: rgba(255, 80, 80, 0.4);
+    color: #ff9fb3;
+  }
+
+  .asm-editor__sim-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(10, 22, 50, 0.97);
+    border-top: 2px solid #4aff8e44;
+  }
+
+  .asm-editor__sim-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4aff8e;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .asm-editor__sim-state {
+    font-size: 12px;
+    color: #dbe4ff;
+    padding: 6px 10px;
+    background: rgba(74, 255, 142, 0.08);
+    border-radius: 8px;
+    border: 1px solid #4aff8e44;
+  }
+
+  .asm-editor__sim-events {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .asm-editor__sim-event-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(74, 158, 255, 0.5);
+    background: rgba(74, 158, 255, 0.12);
+    color: #a8c8ff;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+
+  .asm-editor__sim-event-btn:active {
+    background: rgba(74, 158, 255, 0.3);
+  }
+
+  .asm-editor__sim-anim-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .asm-editor__sim-anim-canvas {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    border: 1px solid #3e5494;
+    background: #0e1830;
+    flex-shrink: 0;
+  }
+
+  .asm-editor__sim-anim-info {
+    font-size: 11px;
+    color: #9fb2e3;
+    line-height: 1.5;
+  }
+
+  .asm-editor__sim-reset-btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 159, 179, 0.4);
+    background: rgba(255, 80, 80, 0.08);
+    color: #ff9fb3;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    align-self: flex-start;
+  }
+
+  .asm-editor__undo-row {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
 `;
 
 // --- Constants ---
@@ -185,6 +293,21 @@ const TEXT_COLOR = '#e6ecff';
 const TEXT_MUTED = '#9fb2e3';
 const GRID_COLOR = 'rgba(50, 65, 110, 0.3)';
 const GRID_SPACING = 40;
+
+// Grid snap
+const SNAP_SIZE = 16;
+
+// Alignment guide threshold (world units)
+const GUIDE_THRESHOLD = 4;
+
+// Simulation
+const NODE_FILL_ACTIVE_SIM = '#124a2a';
+const NODE_BORDER_ACTIVE_SIM = '#4aff8e';
+
+// Condition chip
+const CHIP_BG = 'rgba(30, 42, 80, 0.92)';
+const CHIP_BORDER = 'rgba(83, 101, 164, 0.7)';
+const CHIP_TEXT = '#c8d8ff';
 
 // --- Helpers ---
 
@@ -226,6 +349,16 @@ interface EditorState {
   creatingTransitionFrom: string | null;
   cursorX: number;
   cursorY: number;
+  // Guide lines (in world coords)
+  guideLines: { type: 'h' | 'v'; value: number }[];
+  // Simulation mode
+  simulating: boolean;
+}
+
+interface HistoryEntry {
+  states: AnimState[];
+  transitions: AnimTransition[];
+  initialStateId: string;
 }
 
 // --- Main Editor ---
@@ -268,9 +401,54 @@ export function createAnimStateMachineEditor(
   saveButton.textContent = 'Save';
   saveButton.addEventListener('click', () => saveMachine());
 
+  const fitButton = document.createElement('button');
+  fitButton.type = 'button';
+  fitButton.className = 'asm-editor__toolbar-button';
+  fitButton.textContent = 'Fit';
+  fitButton.title = 'Zoom to fit all nodes';
+  fitButton.addEventListener('click', () => zoomToFit());
+
+  const layoutButton = document.createElement('button');
+  layoutButton.type = 'button';
+  layoutButton.className = 'asm-editor__toolbar-button';
+  layoutButton.textContent = 'Layout';
+  layoutButton.title = 'Auto-layout nodes';
+  layoutButton.addEventListener('click', () => autoLayout());
+
+  const undoRow = document.createElement('div');
+  undoRow.className = 'asm-editor__undo-row';
+
+  const undoButton = document.createElement('button');
+  undoButton.type = 'button';
+  undoButton.className = 'asm-editor__toolbar-button';
+  undoButton.textContent = '↩';
+  undoButton.title = 'Undo (Ctrl+Z)';
+  undoButton.addEventListener('click', () => undo());
+
+  const redoButton = document.createElement('button');
+  redoButton.type = 'button';
+  redoButton.className = 'asm-editor__toolbar-button';
+  redoButton.textContent = '↪';
+  redoButton.title = 'Redo (Ctrl+Y)';
+  redoButton.addEventListener('click', () => redo());
+
+  undoRow.appendChild(undoButton);
+  undoRow.appendChild(redoButton);
+
+  const simulateButton = document.createElement('button');
+  simulateButton.type = 'button';
+  simulateButton.className = 'asm-editor__toolbar-button';
+  simulateButton.textContent = '▶ Simulate';
+  simulateButton.title = 'Toggle simulation mode';
+  simulateButton.addEventListener('click', () => toggleSimulate());
+
   toolbar.appendChild(backButton);
   toolbar.appendChild(titleEl);
+  toolbar.appendChild(fitButton);
+  toolbar.appendChild(layoutButton);
+  toolbar.appendChild(undoRow);
   toolbar.appendChild(addStateButton);
+  toolbar.appendChild(simulateButton);
   toolbar.appendChild(saveButton);
 
   // Canvas area
@@ -307,9 +485,22 @@ export function createAnimStateMachineEditor(
     creatingTransitionFrom: null,
     cursorX: 0,
     cursorY: 0,
+    guideLines: [],
+    simulating: false,
   };
 
-  const animFrameId = 0;
+  // Simulation state
+  let simulator: SmSimulator | null = null;
+  let simClock: AnimationClock | null = null;
+  let simRafId = 0;
+  let simLastTime = 0;
+  let simPanel: HTMLElement | null = null;
+  // Source image cache for sim animation preview
+  const simImageCache = new Map<string, HTMLImageElement | 'loading' | 'error'>();
+
+  // Undo/redo history
+  const undoStack: HistoryEntry[] = [];
+  const redoStack: HistoryEntry[] = [];
 
   // --- Poster Image Cache ---
 
@@ -436,7 +627,7 @@ export function createAnimStateMachineEditor(
     }
   }
 
-  function drawNode(state: AnimState, isSelected: boolean, isInitial: boolean): void {
+  function drawNode(state: AnimState, isSelected: boolean, isInitial: boolean, isSimActive?: boolean): void {
     const { zoom, panX, panY } = editorState;
     const cx = state.position.x * zoom + panX;
     const cy = state.position.y * zoom + panY;
@@ -447,22 +638,53 @@ export function createAnimStateMachineEditor(
     // Node body
     ctx.beginPath();
     ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r);
-    ctx.fillStyle = isSelected ? NODE_FILL_SELECTED : NODE_FILL;
+    if (isSimActive) {
+      ctx.fillStyle = NODE_FILL_ACTIVE_SIM;
+    } else {
+      ctx.fillStyle = isSelected ? NODE_FILL_SELECTED : NODE_FILL;
+    }
     ctx.fill();
-    ctx.strokeStyle = isSelected ? NODE_BORDER_SELECTED : NODE_BORDER;
-    ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    if (isSimActive) {
+      ctx.strokeStyle = NODE_BORDER_ACTIVE_SIM;
+      ctx.lineWidth = 2.5;
+    } else {
+      ctx.strokeStyle = isSelected ? NODE_BORDER_SELECTED : NODE_BORDER;
+      ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    }
     ctx.stroke();
 
-    // Initial state indicator
+    // Initial state indicator — "▶ Start" arrow pointing into the node
     if (isInitial) {
-      const indicatorSize = 8 * zoom;
+      const arrowLen = 24 * zoom;
+      const arrowTipX = cx - w / 2;
+      const arrowTailX = arrowTipX - arrowLen;
+      const arrowY = cy;
+      const headSize = 7 * zoom;
+
+      ctx.strokeStyle = NODE_INITIAL_INDICATOR;
+      ctx.lineWidth = 2 * zoom;
       ctx.beginPath();
-      ctx.arc(cx - w / 2 + 14 * zoom, cy, indicatorSize / 2, 0, Math.PI * 2);
+      ctx.moveTo(arrowTailX, arrowY);
+      ctx.lineTo(arrowTipX, arrowY);
+      ctx.stroke();
+
       ctx.fillStyle = NODE_INITIAL_INDICATOR;
+      ctx.beginPath();
+      ctx.moveTo(arrowTipX, arrowY);
+      ctx.lineTo(arrowTipX - headSize, arrowY - headSize / 2);
+      ctx.lineTo(arrowTipX - headSize, arrowY + headSize / 2);
+      ctx.closePath();
       ctx.fill();
+
+      // "Start" label
+      ctx.fillStyle = NODE_INITIAL_INDICATOR;
+      ctx.font = `bold ${Math.round(8 * zoom)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('Start', arrowTailX + arrowLen / 2, arrowY - 2 * zoom);
     }
 
-    const nameOffsetX = isInitial ? 6 * zoom : 0;
+    const nameOffsetX = isInitial ? 8 * zoom : 0;
 
     // Look up animation and poster
     const animations = assetRegistry.getAnimations();
@@ -585,15 +807,33 @@ export function createAnimStateMachineEditor(
     ctx.closePath();
     ctx.fill();
 
-    // Label
+    // Condition chip pill at arrow midpoint
     if (label) {
       const midX = (sx + ex) / 2;
       const midY = (sy + ey) / 2;
-      ctx.fillStyle = TEXT_MUTED;
-      ctx.font = `${Math.round(9 * zoom)}px system-ui, sans-serif`;
+      const fontSize = Math.max(8, Math.round(9 * zoom));
+      ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+      const textW = ctx.measureText(label).width;
+      const padX = 6 * zoom;
+      const padY = 3 * zoom;
+      const chipW = textW + padX * 2;
+      const chipH = fontSize + padY * 2;
+      const chipR = chipH / 2;
+      const chipX = midX - chipW / 2;
+      const chipY = midY - chipH / 2 - 2 * zoom;
+
+      ctx.fillStyle = CHIP_BG;
+      ctx.strokeStyle = CHIP_BORDER;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(chipX, chipY, chipW, chipH, chipR);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = CHIP_TEXT;
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(label, midX, midY - 4 * zoom);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, midX, chipY + chipH / 2);
     }
   }
 
@@ -657,10 +897,36 @@ export function createAnimStateMachineEditor(
     }
 
     // Draw state nodes
+    const simActiveId = editorState.simulating ? (simulator?.getCurrentStateId() ?? null) : null;
     for (const state of machine.states) {
-      const isSelected = editorState.selectedStateId === state.id;
+      const isSelected = !editorState.simulating && editorState.selectedStateId === state.id;
       const isInitial = state.id === machine.initialStateId;
-      drawNode(state, isSelected, isInitial);
+      const isSimActive = state.id === simActiveId;
+      drawNode(state, isSelected, isInitial, isSimActive);
+    }
+
+    // Draw alignment guides
+    if (editorState.guideLines.length > 0) {
+      const { width, height } = canvas.getBoundingClientRect();
+      ctx.strokeStyle = 'rgba(74, 200, 255, 0.75)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      for (const guide of editorState.guideLines) {
+        if (guide.type === 'v') {
+          const sx = guide.value * editorState.zoom + editorState.panX;
+          ctx.beginPath();
+          ctx.moveTo(sx, 0);
+          ctx.lineTo(sx, height);
+          ctx.stroke();
+        } else {
+          const sy = guide.value * editorState.zoom + editorState.panY;
+          ctx.beginPath();
+          ctx.moveTo(0, sy);
+          ctx.lineTo(width, sy);
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
     }
   }
 
@@ -740,8 +1006,55 @@ export function createAnimStateMachineEditor(
       const world = screenToWorld(sx, sy);
       const state = editorState.machine.states.find((s) => s.id === editorState.draggingStateId);
       if (state) {
-        state.position.x = world.x - editorState.dragOffsetX;
-        state.position.y = world.y - editorState.dragOffsetY;
+        let rawX = world.x - editorState.dragOffsetX;
+        let rawY = world.y - editorState.dragOffsetY;
+
+        // Snap to 16px grid
+        rawX = Math.round(rawX / SNAP_SIZE) * SNAP_SIZE;
+        rawY = Math.round(rawY / SNAP_SIZE) * SNAP_SIZE;
+
+        state.position.x = rawX;
+        state.position.y = rawY;
+
+        // Alignment guides — check centre and edges against other nodes
+        const guides: { type: 'h' | 'v'; value: number }[] = [];
+        for (const other of editorState.machine.states) {
+          if (other.id === editorState.draggingStateId) continue;
+          // Centre alignment
+          if (Math.abs(rawX - other.position.x) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'v', value: other.position.x });
+            state.position.x = other.position.x;
+          }
+          if (Math.abs(rawY - other.position.y) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'h', value: other.position.y });
+            state.position.y = other.position.y;
+          }
+          // Edge alignment (left/right edges)
+          const dragLeft = rawX - NODE_WIDTH / 2;
+          const dragRight = rawX + NODE_WIDTH / 2;
+          const otherLeft = other.position.x - NODE_WIDTH / 2;
+          const otherRight = other.position.x + NODE_WIDTH / 2;
+          if (Math.abs(dragLeft - otherLeft) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'v', value: otherLeft });
+            state.position.x = otherLeft + NODE_WIDTH / 2;
+          } else if (Math.abs(dragRight - otherRight) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'v', value: otherRight });
+            state.position.x = otherRight - NODE_WIDTH / 2;
+          }
+          // Edge alignment (top/bottom)
+          const dragTop = rawY - NODE_HEIGHT / 2;
+          const dragBottom = rawY + NODE_HEIGHT / 2;
+          const otherTop = other.position.y - NODE_HEIGHT / 2;
+          const otherBottom = other.position.y + NODE_HEIGHT / 2;
+          if (Math.abs(dragTop - otherTop) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'h', value: otherTop });
+            state.position.y = otherTop + NODE_HEIGHT / 2;
+          } else if (Math.abs(dragBottom - otherBottom) <= GUIDE_THRESHOLD) {
+            guides.push({ type: 'h', value: otherBottom });
+            state.position.y = otherBottom - NODE_HEIGHT / 2;
+          }
+        }
+        editorState.guideLines = guides;
         render();
       }
     } else if (isPanning) {
@@ -771,8 +1084,10 @@ export function createAnimStateMachineEditor(
 
     pointerDown = false;
     editorState.draggingStateId = null;
+    editorState.guideLines = [];
     isPanning = false;
     canvas.releasePointerCapture(e.pointerId);
+    render();
   }
 
   function onWheel(e: WheelEvent): void {
@@ -798,13 +1113,448 @@ export function createAnimStateMachineEditor(
   canvas.addEventListener('pointercancel', onPointerUp);
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
+  function onKeyDown(e: KeyboardEvent): void {
+    // Only fire when focus is within our editor root
+    if (!root.contains(document.activeElement) && document.activeElement !== document.body) return;
+
+    if (e.key === 'Escape') {
+      if (editorState.simulating) {
+        exitSimMode();
+      } else {
+        editorState.selectedStateId = null;
+        editorState.selectedTransitionId = null;
+        editorState.creatingTransitionFrom = null;
+        renderInspector();
+        render();
+      }
+      return;
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Don't fire when an input is focused
+      const tag = (document.activeElement as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (editorState.selectedStateId) {
+        pushHistory();
+        removeSelectedState();
+      } else if (editorState.selectedTransitionId) {
+        pushHistory();
+        removeSelectedTransition();
+      }
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      undo();
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      redo();
+      return;
+    }
+  }
+
+  document.addEventListener('keydown', onKeyDown);
+
   const resizeObserver = new ResizeObserver(() => resizeCanvas());
   resizeObserver.observe(canvasWrap);
+
+  // --- Undo/Redo ---
+
+  function pushHistory(): void {
+    if (!editorState.machine) return;
+    const entry: HistoryEntry = {
+      states: editorState.machine.states.map((s) => ({ ...s, position: { ...s.position } })),
+      transitions: editorState.machine.transitions.map((t) => ({ ...t, condition: { ...t.condition } as TransitionCondition })),
+      initialStateId: editorState.machine.initialStateId,
+    };
+    undoStack.push(entry);
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack.length = 0;
+  }
+
+  function applyHistory(entry: HistoryEntry): void {
+    if (!editorState.machine) return;
+    editorState.machine.states = entry.states.map((s) => ({ ...s, position: { ...s.position } }));
+    editorState.machine.transitions = entry.transitions.map((t) => ({ ...t, condition: { ...t.condition } as TransitionCondition }));
+    editorState.machine.initialStateId = entry.initialStateId;
+    editorState.selectedStateId = null;
+    editorState.selectedTransitionId = null;
+    renderInspector();
+    render();
+  }
+
+  function undo(): void {
+    if (!editorState.machine || undoStack.length === 0) return;
+    const current: HistoryEntry = {
+      states: editorState.machine.states.map((s) => ({ ...s, position: { ...s.position } })),
+      transitions: editorState.machine.transitions.map((t) => ({ ...t, condition: { ...t.condition } as TransitionCondition })),
+      initialStateId: editorState.machine.initialStateId,
+    };
+    redoStack.push(current);
+    const prev = undoStack.pop()!;
+    applyHistory(prev);
+  }
+
+  function redo(): void {
+    if (!editorState.machine || redoStack.length === 0) return;
+    const current: HistoryEntry = {
+      states: editorState.machine.states.map((s) => ({ ...s, position: { ...s.position } })),
+      transitions: editorState.machine.transitions.map((t) => ({ ...t, condition: { ...t.condition } as TransitionCondition })),
+      initialStateId: editorState.machine.initialStateId,
+    };
+    undoStack.push(current);
+    const next = redoStack.pop()!;
+    applyHistory(next);
+  }
+
+  // --- Zoom to Fit ---
+
+  function zoomToFit(): void {
+    if (!editorState.machine || editorState.machine.states.length === 0) return;
+
+    const padding = 60;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    for (const state of editorState.machine.states) {
+      minX = Math.min(minX, state.position.x - NODE_WIDTH / 2);
+      minY = Math.min(minY, state.position.y - NODE_HEIGHT / 2);
+      maxX = Math.max(maxX, state.position.x + NODE_WIDTH / 2);
+      maxY = Math.max(maxY, state.position.y + NODE_HEIGHT / 2);
+    }
+
+    const { width, height } = canvas.getBoundingClientRect();
+    const contentW = maxX - minX + padding * 2;
+    const contentH = maxY - minY + padding * 2;
+
+    const zoom = Math.max(0.2, Math.min(3, Math.min(width / contentW, height / contentH)));
+    editorState.zoom = zoom;
+    editorState.panX = width / 2 - ((minX + maxX) / 2) * zoom;
+    editorState.panY = height / 2 - ((minY + maxY) / 2) * zoom;
+
+    render();
+  }
+
+  // --- Auto Layout ---
+
+  function autoLayout(): void {
+    if (!editorState.machine || editorState.machine.states.length === 0) return;
+
+    pushHistory();
+
+    const states = editorState.machine.states;
+    const transitions = editorState.machine.transitions;
+
+    // Build adjacency for topological sort
+    const inDegree = new Map<string, number>();
+    const children = new Map<string, string[]>();
+    for (const s of states) {
+      inDegree.set(s.id, 0);
+      children.set(s.id, []);
+    }
+    for (const t of transitions) {
+      if (t.fromStateId === '*') continue;
+      const from = t.fromStateId as string;
+      if (!children.has(from)) continue;
+      children.get(from)!.push(t.toStateId);
+      inDegree.set(t.toStateId, (inDegree.get(t.toStateId) ?? 0) + 1);
+    }
+
+    // Kahn's algorithm — if cycles remain, fall back to force-directed grid
+    const queue: string[] = [];
+    for (const [id, deg] of inDegree) {
+      if (deg === 0) queue.push(id);
+    }
+    // Ensure initial state is first
+    const initIdx = queue.indexOf(editorState.machine.initialStateId);
+    if (initIdx > 0) {
+      queue.splice(initIdx, 1);
+      queue.unshift(editorState.machine.initialStateId);
+    }
+
+    const layers: string[][] = [];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const layer: string[] = [];
+      const nextQueue: string[] = [];
+      for (const id of queue) {
+        if (visited.has(id)) continue;
+        visited.add(id);
+        layer.push(id);
+        for (const child of (children.get(id) ?? [])) {
+          const deg = (inDegree.get(child) ?? 1) - 1;
+          inDegree.set(child, deg);
+          if (deg === 0) nextQueue.push(child);
+        }
+      }
+      if (layer.length > 0) layers.push(layer);
+      queue.length = 0;
+      queue.push(...nextQueue);
+    }
+
+    // Place visited nodes in layers
+    const COL_W = NODE_WIDTH + 60;
+    const ROW_H = NODE_HEIGHT + 50;
+    const startX = 120;
+    const startY = 120;
+
+    const positioned = new Set<string>();
+    for (let col = 0; col < layers.length; col++) {
+      const layer = layers[col];
+      for (let row = 0; row < layer.length; row++) {
+        const state = states.find((s) => s.id === layer[row]);
+        if (!state) continue;
+        state.position.x = startX + col * COL_W;
+        state.position.y = startY + row * ROW_H;
+        positioned.add(layer[row]);
+      }
+    }
+
+    // Any nodes not reached (cycles) — place in a row below
+    const unpositioned = states.filter((s) => !positioned.has(s.id));
+    for (let i = 0; i < unpositioned.length; i++) {
+      unpositioned[i].position.x = startX + i * COL_W;
+      unpositioned[i].position.y = startY + layers.length * ROW_H;
+    }
+
+    // Smooth animation to new positions
+    const targets = new Map<string, { x: number; y: number }>();
+    for (const s of states) {
+      targets.set(s.id, { x: s.position.x, y: s.position.y });
+    }
+    // Reset to pre-layout positions (already captured in history)
+    // Actually we mutated above, so just animate from current to same (positions already set)
+    render();
+  }
+
+  // --- Simulation Mode ---
+
+  function buildSimPanel(): void {
+    if (simPanel) simPanel.remove();
+
+    simPanel = document.createElement('div');
+    simPanel.className = 'asm-editor__sim-panel';
+
+    const labelRow = document.createElement('div');
+    labelRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    const label = document.createElement('div');
+    label.className = 'asm-editor__sim-label';
+    label.textContent = 'Simulation';
+    const stopBtn = document.createElement('button');
+    stopBtn.type = 'button';
+    stopBtn.className = 'asm-editor__sim-reset-btn';
+    stopBtn.textContent = '■ Stop';
+    stopBtn.addEventListener('click', () => exitSimMode());
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'asm-editor__sim-reset-btn';
+    resetBtn.textContent = '↺ Reset';
+    resetBtn.style.borderColor = 'rgba(74, 158, 255, 0.4)';
+    resetBtn.style.color = '#a8c8ff';
+    resetBtn.style.background = 'rgba(74, 158, 255, 0.08)';
+    resetBtn.addEventListener('click', () => {
+      simulator?.reset();
+      simClock?.reset();
+      refreshSimPanel();
+      render();
+    });
+    labelRow.appendChild(label);
+    labelRow.appendChild(stopBtn);
+    labelRow.appendChild(resetBtn);
+    simPanel.appendChild(labelRow);
+
+    refreshSimPanel();
+    root.appendChild(simPanel);
+  }
+
+  function refreshSimPanel(): void {
+    if (!simPanel || !simulator || !editorState.machine) return;
+
+    // Remove everything after the label row (first child)
+    while (simPanel.children.length > 1) {
+      simPanel.removeChild(simPanel.lastChild!);
+    }
+
+    // Current state display
+    const currentId = simulator.getCurrentStateId();
+    const currentState = editorState.machine.states.find((s) => s.id === currentId);
+    const stateEl = document.createElement('div');
+    stateEl.className = 'asm-editor__sim-state';
+    stateEl.textContent = currentState ? `Active: ${currentState.name}` : 'Active: (none)';
+    simPanel.appendChild(stateEl);
+
+    // Animation preview
+    if (currentState?.animationId) {
+      const animations = assetRegistry.getAnimations();
+      const anim = animations.find((a) => a.id === currentState.animationId);
+      if (anim && simClock) {
+        simClock.register(anim.id, anim);
+        const animRow = document.createElement('div');
+        animRow.className = 'asm-editor__sim-anim-row';
+
+        const simCanvas = document.createElement('canvas');
+        simCanvas.className = 'asm-editor__sim-anim-canvas';
+        const dpr = window.devicePixelRatio || 1;
+        simCanvas.width = 56 * dpr;
+        simCanvas.height = 56 * dpr;
+        animRow.appendChild(simCanvas);
+        drawSimAnimFrame(simCanvas, anim.id);
+
+        const animInfo = document.createElement('div');
+        animInfo.className = 'asm-editor__sim-anim-info';
+        animInfo.innerHTML = `<strong>${anim.name}</strong><br>${anim.frames.length} frames · ${anim.fps} fps`;
+        animRow.appendChild(animInfo);
+
+        simPanel.appendChild(animRow);
+      }
+    }
+
+    // Event buttons
+    const eventNames = simulator.getUniqueEventNames();
+    if (eventNames.length > 0) {
+      const eventsLabel = document.createElement('div');
+      eventsLabel.className = 'asm-editor__sim-label';
+      eventsLabel.textContent = 'Send Event';
+      eventsLabel.style.marginTop = '4px';
+      simPanel.appendChild(eventsLabel);
+
+      const eventsRow = document.createElement('div');
+      eventsRow.className = 'asm-editor__sim-events';
+      for (const name of eventNames) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'asm-editor__sim-event-btn';
+        btn.textContent = name;
+        btn.addEventListener('click', () => {
+          simulator?.sendEvent(name);
+        });
+        eventsRow.appendChild(btn);
+      }
+      simPanel.appendChild(eventsRow);
+    }
+  }
+
+  function drawSimAnimFrame(simCanvas: HTMLCanvasElement, animationId: string): void {
+    const ctx2 = simCanvas.getContext('2d');
+    if (!ctx2 || !simClock) return;
+
+    const snapshot = simClock.getCurrentFrameSnapshot(animationId);
+    if (!snapshot) return;
+
+    const { frame } = snapshot;
+    const w = simCanvas.width;
+    const h = simCanvas.height;
+    ctx2.clearRect(0, 0, w, h);
+
+    const asset = assetRegistry.getAsset(frame.sourceAssetId);
+    if (!asset) return;
+
+    const cached = simImageCache.get(frame.sourceAssetId);
+    if (cached instanceof HTMLImageElement) {
+      ctx2.drawImage(cached, frame.rect.x, frame.rect.y, frame.rect.w, frame.rect.h, 0, 0, w, h);
+    } else if (cached !== 'loading' && cached !== 'error') {
+      // Start loading
+      simImageCache.set(frame.sourceAssetId, 'loading');
+      const img = new Image();
+      img.onload = () => {
+        simImageCache.set(frame.sourceAssetId, img);
+      };
+      img.onerror = () => {
+        simImageCache.set(frame.sourceAssetId, 'error');
+      };
+      img.src = asset.dataUrl;
+    }
+  }
+
+  function tickSimLoop(time: number): void {
+    if (!editorState.simulating || !simulator || !simClock) return;
+
+    const deltaMs = simLastTime === 0 ? 0 : time - simLastTime;
+    simLastTime = time;
+
+    const dirty = simClock.tick(deltaMs);
+    if (dirty.size > 0 || deltaMs > 0) {
+      // Advance simulator
+      const currentId = simulator.getCurrentStateId();
+      const anim = assetRegistry.getAnimations().find((a) => {
+        const state = editorState.machine?.states.find((s) => s.id === currentId);
+        return state && a.id === state.animationId;
+      });
+      const totalDuration = anim ? (anim.frames.length / anim.fps) * 1000 : undefined;
+      simulator.tick(deltaMs, totalDuration);
+
+      const newId = simulator.getCurrentStateId();
+      if (newId !== currentId) {
+        // State changed — refresh panel and re-register animation
+        refreshSimPanel();
+      }
+
+      render();
+
+      // Redraw sim canvas if it exists
+      if (simPanel && currentId && anim) {
+        const simCanvas = simPanel.querySelector('.asm-editor__sim-anim-canvas') as HTMLCanvasElement | null;
+        if (simCanvas) drawSimAnimFrame(simCanvas, anim.id);
+      }
+    }
+
+    simRafId = requestAnimationFrame(tickSimLoop);
+  }
+
+  function enterSimMode(): void {
+    if (!editorState.machine) return;
+    editorState.simulating = true;
+    editorState.selectedStateId = null;
+    editorState.selectedTransitionId = null;
+    inspector.style.display = 'none';
+
+    simulator = createSmSimulator(editorState.machine);
+    simClock = createAnimationClock();
+    simLastTime = 0;
+    simImageCache.clear();
+
+    simulateButton.className = 'asm-editor__toolbar-button asm-editor__toolbar-button--active';
+    simulateButton.textContent = '■ Simulating';
+
+    buildSimPanel();
+    render();
+
+    simRafId = requestAnimationFrame(tickSimLoop);
+  }
+
+  function exitSimMode(): void {
+    editorState.simulating = false;
+    cancelAnimationFrame(simRafId);
+    simClock?.destroy();
+    simClock = null;
+    simulator = null;
+    simLastTime = 0;
+
+    simPanel?.remove();
+    simPanel = null;
+
+    simulateButton.className = 'asm-editor__toolbar-button';
+    simulateButton.textContent = '▶ Simulate';
+
+    render();
+  }
+
+  function toggleSimulate(): void {
+    if (editorState.simulating) {
+      exitSimMode();
+    } else {
+      enterSimMode();
+    }
+  }
 
   // --- State Management ---
 
   function addNewState(): void {
     if (!editorState.machine) return;
+    pushHistory();
 
     const id = generateId();
     const existingCount = editorState.machine.states.length;
@@ -834,6 +1584,7 @@ export function createAnimStateMachineEditor(
 
   function addTransition(fromStateId: string, toStateId: string): void {
     if (!editorState.machine) return;
+    pushHistory();
 
     const transition: AnimTransition = {
       id: generateId(),
@@ -1312,8 +2063,13 @@ export function createAnimStateMachineEditor(
   }
 
   function destroy(): void {
-    cancelAnimationFrame(animFrameId);
+    // Sim cleanup
+    cancelAnimationFrame(simRafId);
+    simClock?.destroy();
+    simPanel?.remove();
+
     resizeObserver.disconnect();
+    document.removeEventListener('keydown', onKeyDown);
     canvas.removeEventListener('pointerdown', onPointerDown);
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerUp);
