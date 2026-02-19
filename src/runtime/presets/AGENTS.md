@@ -20,16 +20,21 @@ Sub-module layout:
 ```
 /src/runtime/presets/
 ├── AGENTS.md
-├── presetManager.ts        ← PresetManager engine
-├── presetRegistry.ts       ← Registry loader (import.meta.glob)
-├── index.ts                ← Public exports
-└── defs/                   ← Preset definition files
-    ├── controls-topdown.ts
-    ├── controls-platformer.ts
-    ├── movement-topdown.ts
-    ├── movement-platformer.ts
-    ├── camera-follow.ts
-    └── animation-driver.ts
+├── presetManager.ts              ← PresetManager lifecycle engine (instantiate, config, API registration, dispose)
+├── presetRegistry.ts             ← Preset registry — discovers PresetDefinitions via import.meta.glob
+├── presetInstance.ts             ← Runtime interface for live preset instances + API registration surface
+├── gameProfiles.ts               ← Game Profile definitions (Top-down, Platformer, Custom) and apply logic
+├── runtimeEnv.ts                 ← Scene-scoped runtime environment access for preset implementations
+├── index.ts                      ← Public exports
+└── defs/                         ← Preset definition files (loaded by registry)
+    ├── controls-topdown.ts       ← Top-down controls preset definition + stub factory
+    ├── controls-platformer.ts    ← Platformer controls preset definition + stub factory
+    ├── movement-topdown.ts       ← Top-down movement preset definition + stub factory
+    ├── movement-platformer.ts    ← Platformer movement preset definition + stub factory
+    ├── camera-follow.ts          ← Camera follow preset definition + stub factory
+    ├── animation-driver.ts       ← Animation driver preset (clip/set-based facing selection)
+    ├── animation-entity-animator.ts  ← Entity animation controller (per-entity play/stop/autofacing)
+    └── state-machine-driver.ts   ← State machine driver preset definition
 ```
 
 PresetManager rules:
@@ -50,7 +55,9 @@ Category ownership (v1):
 - **Controls**: input abstraction, velocity intent (does not own camera or physics body)
 - **Movement/Physics**: Arcade body config, grounded detection, movement math
 - **Camera**: follow, deadzone, bounds, shake
-- **Animation Driver**: animation selection based on movement/state
+- **Animation Driver**: clip/set-based animation selection based on movement/state (game-wide)
+- **Entity Animator**: per-entity animation controller (play/stop/autoface per EntityHandle)
+- **State Machine Driver**: animation state machine — state transitions, conditions, event triggers
 
 Config rules:
 - Missing keys fall back to preset defaults. Unknown keys are preserved but ignored.

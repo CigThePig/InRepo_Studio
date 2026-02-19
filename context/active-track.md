@@ -10,9 +10,9 @@ blocklyHooksTab.ts, presetPicker.ts, issuesModal.ts, undoToast.ts; plus leftBerr
 Track planning documents:
 - `/context/Blockly_Plan_Revised.md` (Parts 1–15 — the Blockly constitution)
 - `/context/track-index.md` (Tracks 31–42)
-- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/spec.md`
-- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/blueprint.md`
-- `/tracks/2026-02-10-track-41-presets-ui-blockly-hooks/plan.md`
+- `/tracks/2026-02-19-track-42-inspect-errors-panel/spec.md`
+- `/tracks/2026-02-19-track-42-inspect-errors-panel/blueprint.md`
+- `/tracks/2026-02-19-track-42-inspect-errors-panel/plan.md`
 
 Authority: `/context/Blockly_Plan_Revised.md`
 
@@ -48,6 +48,7 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 38 (Core Block Definitions)
 - Phase 5 (Presets + Blockly): Track 39 (Blockly Workspace UI — Cockpit)
 - Phase 5 (Presets + Blockly): Track 40 (Right Berry Blocks Palette)
+- Phase 5 (Presets + Blockly): Track 41 (Presets UI + Blockly Hooks)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.

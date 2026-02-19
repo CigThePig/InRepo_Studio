@@ -1,8 +1,7 @@
-# Fix inconsistencies and bugs across codebase
+# Technical Debt — Codebase Health Tasks
 
-**Micro Track — Codebase health sweep**
-
-Read `/AGENTS.md` first, then the local `AGENTS.md` in each folder you touch.
+> **Status**: Unstarted. These tasks were identified during the Track 23–41 build-out.
+> When ready to execute, treat this as a Micro Track. Read `/AGENTS.md` first, then the local `AGENTS.md` in each folder you touch.
 
 ## Goal
 

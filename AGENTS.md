@@ -44,6 +44,7 @@ For implementation (add these):
 11) `/context/repo-map.md`
 12) `/context/tech-stack.md`
 13) `/context/code-style.md`
+14) `/context/ux-polish-rules.md` (required before marking any feature complete)
 
 **Before editing files in any folder**: read the nearest local `AGENTS.md` for that folder (and any other folders you will touch).
 

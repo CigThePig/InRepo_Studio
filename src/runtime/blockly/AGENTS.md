@@ -22,18 +22,20 @@ Sub-module layout:
 /src/runtime/blockly/
 ├── AGENTS.md
 ├── scriptHost.ts           ← ScriptHost engine (compile, run, stop, error handling)
-├── blockRegistry.ts        ← Registry loader (import.meta.glob)
-├── schemaToBlocks.ts       ← PresetDefinition → Blockly block pack generator
+├── blockRegistry.ts        ← Block registry with search + dependency lookup
+├── coreBlocks.ts           ← Core + preset block loader (import.meta.glob, populates registry)
+├── installIntoBlockly.ts   ← Installs registry block definitions/generators into Blockly runtime
+├── schemaToBlocks.ts       ← PresetDefinition → Blockly block pack generator (BlockPack/BlockPackEntry)
 ├── codegenRules.ts         ← Shared codegen utilities and patterns
 ├── index.ts                ← Public exports
-└── blocks/                 ← Block definition files
-    ├── events.ts           ← Common event hat blocks
+└── blocks/                 ← Core block definition files (loaded by coreBlocks.ts)
+    ├── events.ts           ← Event hat blocks (When Scene Starts)
     ├── time.ts             ← Timer blocks (wait, every, cancel)
-    ├── logic.ts            ← If/else, comparisons
-    ├── math.ts             ← Math operations
-    ├── variables.ts        ← Variable blocks
-    ├── debug.ts            ← Log, show overlay
-    └── map.ts              ← Map-specific blocks (map entered/exited)
+    ├── logic.ts            ← If/else, comparisons, boolean ops
+    ├── math.ts             ← Math operations, random, round, modulo
+    ├── variables.ts        ← Variable get/set blocks
+    ├── debug.ts            ← Log message, log value blocks
+    └── map.ts              ← Map-specific blocks (map entered/exited; Map Logic only)
 ```
 
 ScriptHost rules:

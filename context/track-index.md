@@ -1,7 +1,7 @@
 # Track Index (Roadmap → Tracks)
 
 Purpose:
-- Defines the ordered track sequence for building InRepo Studio.
+- Defines the ordered track sequence for building InRepo Studio. Tracks are added as phases expand — do not assume a fixed count.
 - Each Track is a bounded unit of work that produces a verifiable improvement.
 
 Each Track must produce:

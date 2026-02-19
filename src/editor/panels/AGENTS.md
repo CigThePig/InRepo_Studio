@@ -2,16 +2,18 @@
 
 Purpose:
 - Owns editor panels (toolbar, tile picker, inspector, settings, deploy).
-- Owns **berry panel containers** (left berry, right berry) and their mode-driven content.
+- Owns **berry panel containers** (left berry, right berry) and their mode-driven content switching.
 
 Owns:
 - Mobile layout patterns (bottom sheets, safe areas, berry slide-outs)
 - Form models driven by canonical schemas
 - Deploy panel UX (token entry, warnings, status feedback)
-- **Left berry content**: Presets tab (dashboard, category detail with Configure + Blockly Hooks sub-tabs, preset picker, issues modal), asset library tabs (future)
-- **Right berry content**: World Mode = tile/entity palettes; Blockly Mode = blocks palette + inspect/errors tab
-- **Top bar**: global actions (Undo, Redo, Settings, Test/Play) and the universal dropdown (map selector / Logic Target selector)
+- **Left berry shell + tab routing**: loads tab content from `/src/editor/presets/` (Presets tab) and asset tabs
+- **Right berry shell + tab routing**: World Mode = tile/entity palettes; Blockly Mode = blocks palette + inspect/errors tab
+- **Top bar** (`topBarV2.ts`): global actions (Undo, Redo, Settings, Test/Play) and the universal dropdown (map selector / Logic Target selector)
 - **Bottom interaction strip**: contextual selection actions (replaces floating selection bars per Editor V2)
+- **Animation State Machine editor** (`animStateMachine.ts`): visual SM editor UI in the left berry animation tab
+- **SM Simulator** (`smSimulator.ts`): pure TypeScript state machine simulator for SM editor "Simulate" mode (no Phaser, no DOM side effects)
 
 Does NOT own:
 - Low-level storage implementations (use `/src/storage`)
@@ -19,6 +21,7 @@ Does NOT own:
 - Blockly workspace rendering (use `/src/editor/blockly`)
 - Preset runtime engine or definitions (use `/src/runtime/presets`)
 - Block definitions or code generators (use `/src/runtime/blockly`)
+- **Presets tab UI content**: dashboard, category detail, knob editor, hooks tab, picker, issues modal — those live in `/src/editor/presets/`
 
 Local invariants:
 - Panels must not mutate persistence directly; call domain/storage APIs.
@@ -27,13 +30,13 @@ Local invariants:
 - **Berry content must switch based on editor mode** (World vs Blockly). Do not hard-wire a single mode's content.
 - **Presets UI is schema-driven**: rendering is driven entirely by PresetDefinition schema + persisted state (`/game/presets.json`). No manual block/hook lists.
 
-Presets UI screens (left berry):
+Presets UI screens (left berry — implemented in `/src/editor/presets/`):
 1. **Dashboard** — Game Profile selector, status strip, category list with status chips.
 2. **Category Detail** — Configure tab (enable/picker/options/reset) + Blockly Hooks tab (events/commands/state from schema). In Blockly Mode, hooks gain "Insert block" action buttons.
 3. **Preset Picker** — search + preset cards with compatibility info.
 4. **Issues modal** — conflicts/missing/newer warnings with drill-in links.
 
-Right berry palette (Blockly Mode):
+Right berry palette (Blockly Mode — blocks palette lives in `/src/editor/blockly/`):
 - Tab 1: Blocks Palette — scrollable categorized list with search bar at top. Categories: Events, Controls, Movement, Camera, Animation, Logic, Math, Variables, Time, Debug. Map targets add a Map category.
 - Tab 2: Inspect/Errors — script status, last error with block highlight, active timer count, recent logs.
 - Search searches across all visible categories for the current Logic Target.

@@ -27,7 +27,7 @@ A mobile-first, browser-based game editor that lives inside GitHub repositories.
    - `/context/product.md` (purpose, user value, scope boundaries)
    - `/context/architecture.md` (invariants, modules, data flow, apply/rebuild semantics)
    - `/context/tech-stack.md` (tools, build, deploy, test)
-   - `/context/track-index.md` (the complete 29-track roadmap)
+   - `/context/track-index.md` (the complete track roadmap)
 3) Understand the file inventory:
    - `/INDEX.md` (all files + 1-line role + lists-of-truth names)
 4) Start with Track 1 from `/context/track-index.md`
@@ -44,7 +44,7 @@ A mobile-first, browser-based game editor that lives inside GitHub repositories.
   - includes a short "lists-of-truth" line per file (names only)
 
 - `context/`
-  - `track-index.md` — roadmap as 29 Tracks (converted from phases)
+  - `track-index.md` — track roadmap (ordered by phase)
   - `planning-checklist.md` — how to create tracks (spec → blueprint → plan)
   - `repo-map.md` — module map (how major parts connect)
   - `schema-registry.md` — canonical inventory of JSON schemas and lists-of-truth

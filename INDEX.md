@@ -94,6 +94,10 @@ Micro-format (copy/paste):
   - Role: Content folder conventions and schema validation expectations.
   - Lists of truth: none
 
+- `game/logic/AGENTS.md`
+  - Role: Logic script storage rules — workspace JSON format, file paths, on-demand creation, envelope schema.
+  - Lists of truth: none
+
 - `INDEX.md`
   - Role: This file inventory.
   - Lists of truth: FileInventory (this list)
@@ -112,7 +116,7 @@ Micro-format (copy/paste):
   - Lists of truth: ModuleMap
 
 - `context/track-index.md`
-  - Role: Roadmap as 29 Tracks (converted from original phases).
+  - Role: Ordered track roadmap (Phases 0–5+). Add new tracks here as phases expand.
   - Lists of truth: Tracks
 
 - `context/planning-checklist.md`
@@ -151,9 +155,25 @@ Micro-format (copy/paste):
   - Role: Future-facing test plan covering high-risk debugging and stability areas.
   - Lists of truth: PlannedTestSuites
 
+- `context/technical-debt.md`
+  - Role: Unstarted codebase health tasks (duplicate utilities, deprecated API usage, barrel export gaps, type fixes).
+  - Lists of truth: none
+
+- `context/archive/`
+  - Role: Historical planning docs superseded by completed tracks. Not active context — agents should ignore.
+  - Lists of truth: none
+
 - `context/Blockly_Plan_Revised.md`
   - Role: Blockly + Presets constitution (Parts 1–15). Authority for Phase 5 tracks.
   - Lists of truth: BlocklyNonNegotiables, GameApiContract, PresetContract, BlockTaxonomy
+
+- `context/editor-v2-architecture.md`
+  - Role: Editor V2 mode-driven architecture spec (mode state, berry layout, dual-mode rules). Authority for Tracks 23–30 and the dual-mode system.
+  - Lists of truth: EditorV2Architecture
+
+- `context/ux-polish-rules.md`
+  - Role: Non-negotiable UX feedback standards — required reading before marking any feature complete.
+  - Lists of truth: FeedbackContract, PolishRules
 
 ## Tracks
 - `tracks/YYYY-MM-DD-track-N-slug/`
@@ -241,15 +261,15 @@ Micro-format (copy/paste):
   - Lists of truth: Spec, Blueprint, Plan
 
 - `context/tracks/track-36/`
-  - Role: Track 36 planning artifacts (ScriptHost Engine).
+  - Role: Track 36 planning artifacts (ScriptHost Engine). Note: housed under `context/tracks/` rather than the top-level `tracks/` folder; this is a historical anomaly — new tracks go in `tracks/YYYY-MM-DD-track-N-slug/`.
   - Lists of truth: Spec, Blueprint, Plan
 
 - `context/tracks/track-37/`
-  - Role: Track 37 planning artifacts (Schema-Driven Block Generation).
+  - Role: Track 37 planning artifacts (Schema-Driven Block Generation). See location note on track-36.
   - Lists of truth: Spec, Blueprint, Plan
 
 - `context/tracks/track-38/`
-  - Role: Track 38 planning artifacts (Core Block Definitions).
+  - Role: Track 38 planning artifacts (Core Block Definitions). See location note on track-36.
   - Lists of truth: Spec, Blueprint, Plan
 
 - `tracks/2026-02-09-track-39-blockly-workspace-ui/`
@@ -262,6 +282,10 @@ Micro-format (copy/paste):
 
 - `tracks/2026-02-10-track-41-presets-ui-blockly-hooks/`
   - Role: Track 41 planning artifacts (Presets UI + Blockly Hooks).
+  - Lists of truth: Spec, Blueprint, Plan
+
+- `tracks/2026-02-19-track-42-inspect-errors-panel/`
+  - Role: Track 42 planning artifacts (Inspect/Errors Panel + Integration Polish).
   - Lists of truth: Spec, Blueprint, Plan
 
 ## Game Data (created during Track 1)
@@ -499,6 +523,14 @@ Micro-format (copy/paste):
   - Role: Left berry utilities tab for deploy and data tools.
   - Lists of truth: none
 
+- `src/editor/panels/animStateMachine.ts`
+  - Role: Visual Animation State Machine editor UI in the left berry animation tab.
+  - Lists of truth: none
+
+- `src/editor/panels/smSimulator.ts`
+  - Role: Pure TypeScript SM simulator for the SM editor "Simulate" mode (no Phaser, no DOM side effects).
+  - Lists of truth: none
+
 - `src/editor/panels/entitiesTab.ts`
   - Role: Entities mode tab UI for palette, selection, and inline property editing including animation set binding.
   - Lists of truth: none
@@ -707,7 +739,7 @@ Micro-format (copy/paste):
 
 ### Editor Blockly (Track 39)
 - `src/editor/blockly/AGENTS.md`
-  - Role: Blockly workspace UI module rules.
+  - Role: Blockly workspace UI module rules — cockpit layout, workspace lifecycle, Logic Target switching, blocks palette, berry tab definitions.
   - Lists of truth: none
 
 - `src/editor/blockly/index.ts`
@@ -748,6 +780,10 @@ Micro-format (copy/paste):
 
 - `src/editor/blockly/blocksPaletteStyles.ts`
   - Role: CSS styles for the blocks palette component.
+  - Lists of truth: none
+
+- `src/editor/blockly/inspectPanel.ts` (Track 42 — not yet implemented)
+  - Role: Inspect/Errors tab content — script status strip, last error with block highlight, active timer count, recent log entries.
   - Lists of truth: none
 
 ### Shared
@@ -888,6 +924,10 @@ Micro-format (copy/paste):
 - `src/runtime/presets/defs/animation-entity-animator.ts`
   - Role: Entity animation controller preset definition + runtime factory for per-entity play/stop/autofacing behavior.
   - Lists of truth: PresetDefinition (animation-entity-animator)
+
+- `src/runtime/presets/defs/state-machine-driver.ts`
+  - Role: Animation state machine driver preset definition + stub factory.
+  - Lists of truth: PresetDefinition (state-machine-driver)
 
 ### Runtime ApiContext (Track 35)
 - `src/runtime/apiContext/index.ts`
