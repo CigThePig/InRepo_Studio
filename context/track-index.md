@@ -103,7 +103,7 @@ This gets you to: open editor → paint tiles → playtest locally → deploy �
 
 ## Phase 6 — Integration + Polish
 
-### Track 42 — Inspect/Errors Panel + Integration Polish
+### Track 42 — Inspect/Errors Panel + Integration Polish ✓ COMPLETE
 Goal: Implement the inspector/errors panel and polish cross-system integration.
 Includes:
 1. Inspect/Errors tab in right berry
@@ -114,3 +114,4 @@ Acceptance:
 - Full edit → run → inspect cycle works
 Verification:
 - Manual: Trigger errors, verify display and recovery
+Status: Completed 2026-02-20. Shipped inspectPanel.ts, blocklyWorkspace updates, workspaceManager updates, full cockpit rewrite with ScriptHost + log ring buffer.

@@ -40,6 +40,15 @@ export interface WorkspaceManagerController {
   /** Create a script for the current target (from empty state). */
   createScript(): Promise<void>;
 
+  /**
+   * Highlight a block by ID and scroll it into view.
+   * Silently ignores unknown or stale block IDs (logs a warning).
+   */
+  highlightBlock(blockId: string): void;
+
+  /** Clear any active block highlight. */
+  clearHighlight(): void;
+
   /** Clean up listeners and timers. */
   dispose(): void;
 }
@@ -183,6 +192,19 @@ export function createWorkspaceManager(
       currentScriptExists = true;
       setScriptExists(true);
       console.log(`${LOG_PREFIX} Script creation staged — file will be saved on first change`);
+    },
+
+    highlightBlock(blockId: string): void {
+      try {
+        workspaceController.highlightBlock(blockId);
+        console.log(`${LOG_PREFIX} Highlighted block: ${blockId}`);
+      } catch (err) {
+        console.warn(`${LOG_PREFIX} highlightBlock("${blockId}") failed:`, err);
+      }
+    },
+
+    clearHighlight(): void {
+      workspaceController.clearHighlight();
     },
 
     dispose(): void {

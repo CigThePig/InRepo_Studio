@@ -53,3 +53,13 @@ export type { BlocklyBerryTab } from './blocklyBerryTabs';
 // Blocks Palette
 export { createBlocksPalette } from './blocksPalette';
 export type { BlocksPaletteController, BlocksPaletteDeps } from './blocksPalette';
+
+// Inspect Panel (Track 42)
+export { createInspectPanel } from './inspectPanel';
+export type {
+  InspectPanelController,
+  InspectPanelOptions,
+  InspectState,
+  ScriptInspectEntry,
+  LogEntry,
+} from './inspectPanel';

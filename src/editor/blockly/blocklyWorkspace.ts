@@ -48,6 +48,22 @@ export interface BlocklyWorkspaceController {
 
   /** Trigger resize (call after container resize or orientation change). */
   resize(): void;
+
+  /**
+   * Generate JavaScript code from the current workspace.
+   * Returns the raw JS program string. ScriptHost's wrapped API captures
+   * disposers automatically — append 'return [];' to complete the body.
+   */
+  generateJs(): string;
+
+  /**
+   * Highlight a block by ID and scroll it into view.
+   * Silently ignores unknown or stale block IDs.
+   */
+  highlightBlock(blockId: string): void;
+
+  /** Clear any active block highlight. */
+  clearHighlight(): void;
 }
 
 // --- Configuration ---
@@ -185,6 +201,41 @@ export function createBlocklyWorkspace(
 
     resize(): void {
       Blockly.svgResize(workspace);
+    },
+
+    generateJs(): string {
+      return javascriptGenerator.workspaceToCode(workspace);
+    },
+
+    highlightBlock(blockId: string): void {
+      try {
+        // Scroll block into view first, then highlight
+        const ws = workspace as Blockly.WorkspaceSvg & {
+          centerOnBlock?: (id: string, opt_blockOnly?: boolean) => void;
+          highlightBlock?: (id: string | null, opt_state?: boolean) => void;
+        };
+        if (typeof ws.centerOnBlock === 'function') {
+          ws.centerOnBlock(blockId, true);
+        }
+        if (typeof ws.highlightBlock === 'function') {
+          ws.highlightBlock(blockId, true);
+        }
+      } catch (err) {
+        console.warn(`[BlocklyWorkspace] highlightBlock("${blockId}") failed:`, err);
+      }
+    },
+
+    clearHighlight(): void {
+      try {
+        const ws = workspace as Blockly.WorkspaceSvg & {
+          highlightBlock?: (id: string | null, opt_state?: boolean) => void;
+        };
+        if (typeof ws.highlightBlock === 'function') {
+          ws.highlightBlock(null, false);
+        }
+      } catch {
+        // Ignore — best effort
+      }
     },
   };
 
