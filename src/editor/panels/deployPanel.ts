@@ -9,6 +9,7 @@ import {
   deployChanges,
 } from '@/deploy';
 import type { AssetRegistry } from '@/editor/assets';
+import { uxFeedback } from '@/editor/uxFeedback';
 import { loadWorkspaceContent } from '@/storage';
 
 export interface DeployPanelConfig {
@@ -350,13 +351,20 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
       });
       const committer = createCommitter({ authManager, repoOwner: owner, repoName: repo });
 
-      await deployChanges({
-        authManager,
-        changeDetector,
-        shaManager,
-        committer,
-        deployUI: deployUI!,
-      });
+      try {
+        await deployChanges({
+          authManager,
+          changeDetector,
+          shaManager,
+          committer,
+          deployUI: deployUI!,
+        });
+        if (deployButton) {
+          uxFeedback.combos.committed(deployButton, 'Changes committed to repository.');
+        }
+      } catch {
+        uxFeedback.toast.error('Deploy failed. Check your connection.');
+      }
 
       deployUI?.setDeployEnabled(true);
     });

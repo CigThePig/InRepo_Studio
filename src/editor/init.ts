@@ -114,6 +114,7 @@ import {
   setInitialEditorMode,
   type EditorMode,
 } from '@/editor/core/editorMode';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 import { downloadJson } from '@/utils/download';
 import {
@@ -840,6 +841,12 @@ function setCurrentScene(scene: Scene | null, options: { clearHistory?: boolean 
 
 // --- Debounced Save ---
 
+function getTopBarV2() {
+  return topPanelController && 'markDirty' in topPanelController
+    ? (topPanelController as TopBarV2Controller)
+    : null;
+}
+
 let saveTimeout: number | null = null;
 let sceneSaveTimeout: number | null = null;
 let workspaceSaveTimeout: number | null = null;
@@ -847,6 +854,8 @@ const SAVE_DEBOUNCE_MS = 500;
 const SCENE_SAVE_DEBOUNCE_MS = 500;
 
 function scheduleSave(): void {
+  getTopBarV2()?.markDirty();
+
   if (saveTimeout !== null) {
     window.clearTimeout(saveTimeout);
   }
@@ -854,6 +863,7 @@ function scheduleSave(): void {
     saveTimeout = null;
     if (editorState) {
       await saveEditorState(editorState);
+      getTopBarV2()?.markSaved();
       console.log(`${LOG_PREFIX} Editor state saved`);
     }
   }, SAVE_DEBOUNCE_MS);
@@ -871,6 +881,8 @@ function scheduleWorkspaceSave(): void {
 }
 
 function scheduleSceneSave(scene: Scene): void {
+  getTopBarV2()?.markDirty();
+
   if (sceneSaveTimeout !== null) {
     window.clearTimeout(sceneSaveTimeout);
   }
@@ -911,6 +923,8 @@ async function applyProjectUpdate(updatedProject: Project, commitSha: string | n
 // --- Initialization ---
 
 export async function initEditor(): Promise<void> {
+  uxFeedback.init();
+
   console.log(`${LOG_PREFIX} Initializing editor...`);
 
   workspaceContent = await loadWorkspaceContent();
@@ -1651,6 +1665,33 @@ async function initPanels(): Promise<void> {
     if ('onSettings' in topPanelController) {
       topPanelController.onSettings(() => {
         openSettingsPlaceholder();
+      });
+    }
+
+    if ('onSave' in topPanelController) {
+      topPanelController.onSave(() => {
+        // Cancel pending debounced saves and flush immediately.
+        if (saveTimeout !== null) {
+          window.clearTimeout(saveTimeout);
+          saveTimeout = null;
+        }
+        if (sceneSaveTimeout !== null) {
+          window.clearTimeout(sceneSaveTimeout);
+          sceneSaveTimeout = null;
+        }
+        const doSave = async () => {
+          try {
+            if (editorState) await saveEditorState(editorState);
+            if (currentScene) await saveScene(currentScene);
+            const topBar = getTopBarV2();
+            if (topBar) {
+              uxFeedback.combos.saved(topBar.getSaveButtonEl(), 'Project saved.');
+            }
+          } catch {
+            uxFeedback.toast.error('Save failed.');
+          }
+        };
+        doSave().catch(() => undefined);
       });
     }
 

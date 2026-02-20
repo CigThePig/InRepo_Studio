@@ -5,6 +5,8 @@
  * Provides slots for scene selector and optional layer panel content.
  */
 
+import { uxFeedback } from '@/editor/uxFeedback';
+
 const LOG_PREFIX = '[TopBarV2]';
 
 export interface TopBarV2State {
@@ -45,6 +47,18 @@ export interface TopBarV2Controller {
 
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
+
+  /** Register callback for save button click */
+  onSave(callback: () => void): void;
+
+  /** Get the save button element (for uxFeedback callers in init.ts) */
+  getSaveButtonEl(): HTMLElement;
+
+  /** Mark the save button as dirty (unsaved changes exist) */
+  markDirty(): void;
+
+  /** Mark the save button as cleanly saved (auto-save path, no toast) */
+  markSaved(): void;
 
   /** Show or hide the entire top bar (for Blockly Mode switching). */
   setVisible(visible: boolean): void;
@@ -163,6 +177,7 @@ export function createTopBarV2(
   let settingsCallback: (() => void) | null = null;
   let playtestCallback: (() => void) | null = null;
   let expandToggleCallback: ((expanded: boolean) => void) | null = null;
+  let saveCallback: (() => void) | null = null;
 
   // Ensure styles are only added once
   if (!document.getElementById('top-bar-v2-styles')) {
@@ -198,6 +213,12 @@ export function createTopBarV2(
   redoButton.setAttribute('aria-label', 'Redo');
   redoButton.disabled = true;
 
+  const saveButton = document.createElement('button');
+  saveButton.className = 'top-bar-v2__button';
+  saveButton.type = 'button';
+  saveButton.textContent = '💾';
+  saveButton.setAttribute('aria-label', 'Save');
+
   const settingsButton = document.createElement('button');
   settingsButton.className = 'top-bar-v2__button';
   settingsButton.type = 'button';
@@ -218,6 +239,10 @@ export function createTopBarV2(
     redoCallback?.();
   });
 
+  saveButton.addEventListener('click', () => {
+    saveCallback?.();
+  });
+
   settingsButton.addEventListener('click', () => {
     settingsCallback?.();
   });
@@ -228,6 +253,7 @@ export function createTopBarV2(
 
   leftGroup.appendChild(undoButton);
   leftGroup.appendChild(redoButton);
+  leftGroup.appendChild(saveButton);
   rightGroup.appendChild(settingsButton);
   rightGroup.appendChild(playButton);
 
@@ -314,6 +340,22 @@ export function createTopBarV2(
 
     onExpandToggle(callback) {
       expandToggleCallback = callback;
+    },
+
+    onSave(callback) {
+      saveCallback = callback;
+    },
+
+    getSaveButtonEl() {
+      return saveButton;
+    },
+
+    markDirty() {
+      uxFeedback.storage.markDirty(saveButton);
+    },
+
+    markSaved() {
+      uxFeedback.storage.markSaved(saveButton);
     },
 
     setVisible(visible: boolean) {
