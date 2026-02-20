@@ -332,7 +332,7 @@ function getOrCreateToastHost(): HTMLElement {
   return host;
 }
 
-function showToast(message: string, kind: ToastKind, durationMs = TOKEN.durationToast): void {
+function showToast(message: string, kind: ToastKind, durationMs: number = TOKEN.durationToast): void {
   ensureStyles();
   const host = getOrCreateToastHost();
 
