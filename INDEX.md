@@ -782,8 +782,8 @@ Micro-format (copy/paste):
   - Role: CSS styles for the blocks palette component.
   - Lists of truth: none
 
-- `src/editor/blockly/inspectPanel.ts` (Track 42 — not yet implemented)
-  - Role: Inspect/Errors tab content — script status strip, last error with block highlight, active timer count, recent log entries.
+- `src/editor/blockly/inspectPanel.ts` (Track 42 — complete)
+  - Role: Inspect/Errors tab content — script status strip, last error with block highlight, active timer count, recent log entries. Push-fed by blocklyCockpit via update()/appendLog().
   - Lists of truth: none
 
 ### Shared

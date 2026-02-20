@@ -1,7 +1,7 @@
-Active track: Phase 5 — Presets + Blockly (Tracks 31–42)
+Active track: Phase 5 — Presets + Blockly (Tracks 31–42) — COMPLETE
 
-Current phase: Track 42 — Right Berry Inspect/Errors Panel
-Next task: Track 42, Phase 1 (implementation kickoff)
+Current phase: Track 42 — Right Berry Inspect/Errors Panel — COMPLETE
+Next task: Phase 6 planning (post-Blockly features TBD)
 
 Note: Track 41 (Left Berry Presets UI + Blockly Hooks) is complete.
 Files delivered include: src/editor/presets/presetsTab.ts, categoryDetail.ts, knobEditor.ts,
@@ -42,13 +42,15 @@ Completed tracks:
 - Phase 5 (Presets + Blockly): Track 39 (Blockly Workspace UI — Cockpit)
 - Phase 5 (Presets + Blockly): Track 40 (Right Berry Blocks Palette)
 - Phase 5 (Presets + Blockly): Track 41 (Presets UI + Blockly Hooks)
+- Phase 5 (Presets + Blockly): Track 42 (Right Berry Inspect/Errors Panel)
 
 Note: Phase 2 completed the vertical slice MVP: edit → playtest → deploy → verify on live site.
 Phase 3 Full Tilemap Editing is now complete with scene management and layer visibility/lock controls.
 Phase 4 Entity System is now complete.
 Editor Architecture Migration is now complete. The editor uses mode-driven architecture per `/context/editor-architecture.md`.
+Phase 5 (Presets + Blockly) is now complete. Tracks 31–42 delivered the full Blockly + Presets feature set.
 
-Last updated: 2026-02-10
+Last updated: 2026-02-20
 
 ---
 

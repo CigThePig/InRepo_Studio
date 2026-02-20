@@ -622,3 +622,22 @@ Purpose:
   - Hooks tab block IDs can be derived deterministically from schema IDs, matching runtime block generation conventions.
 - **Follow-up**:
   - Track 42: Right Berry Inspect/Errors panel.
+
+### Track 42 — Right Berry Inspect/Errors Panel
+- **Dates**: 2026-02-20
+- **Status**: Completed
+- **Summary**: Implemented the Inspect/Errors panel for the right berry Tab 2 in Blockly Mode, and wired up actual script execution (edit → run → inspect → stop cycle). The cockpit now owns a session-scoped ScriptHost and ApiContext, intercepts log calls into a 100-entry ring buffer, and pushes state updates to the panel on every lifecycle event.
+- **Shipped**:
+  - `src/editor/blockly/inspectPanel.ts` — new file: Inspect/Errors tab panel with script status strip, error card with block highlight button, console log list (max 100 entries, auto-scroll). Push-fed via `update(state)` and `appendLog(entry)`.
+  - `src/editor/blockly/blocklyWorkspace.ts` — added `generateJs()`, `highlightBlock(blockId)`, `clearHighlight()` to `BlocklyWorkspaceController`.
+  - `src/editor/blockly/workspaceManager.ts` — added `highlightBlock(blockId)` and `clearHighlight()` to `WorkspaceManagerController` (delegate to workspace controller).
+  - `src/editor/blockly/blocklyCockpit.ts` — full rewrite: added ScriptHost + ApiContext, log ring buffer, script lifecycle subscriptions (`script.started`, `script.stopped`, `script.error`), inspect panel mount/destroy, real Run/Stop wiring via `generateJs()` + `ScriptHost.startScript()`.
+  - `src/editor/blockly/index.ts` — exported `createInspectPanel`, `InspectPanelController`, `InspectPanelOptions`, `InspectState`, `ScriptInspectEntry`, `LogEntry`.
+- **Verification**: `npx tsc --noEmit` produces no new errors (only pre-existing external module errors from phaser, blockly, idb, vitest).
+- **Learned**:
+  - Creating a minimal ApiContext (EventBus + TimeHelpers + intercepted LogApi) directly in the cockpit avoids modifying shared runtime code while enabling full script execution in the editor.
+  - Blockly's `workspaceToCode()` generates flat code that calls `api.on/time.every/time.after`; ScriptHost's wrapped API captures disposers automatically, so appending `return [];` to the generated source is sufficient.
+  - The cockpit was already 569 lines before Track 42; the ScriptHost + inspect panel additions push it over 600. A future track should split the cockpit into `cockpitRuntime.ts` (ScriptHost + log buffer wiring) and `cockpitLayout.ts` (DOM + tab orchestration).
+- **Follow-up**:
+  - Phase 6 planning: post-Blockly features TBD.
+  - Consider splitting `blocklyCockpit.ts` into runtime and layout sub-modules.
