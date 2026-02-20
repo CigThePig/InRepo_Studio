@@ -13,7 +13,7 @@
  * - Apply mode: live (tabs render immediately)
  */
 
-import type { EditorMode } from '@/editor/v2/editorMode';
+import type { EditorMode } from '@/editor/core/editorMode';
 
 export interface RightBerryTab {
   mode: EditorMode;

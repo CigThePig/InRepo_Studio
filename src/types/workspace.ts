@@ -19,7 +19,7 @@
 
 import type { AssetRegistryState } from '@/editor/assets';
 import type { Project, Scene, LayerType, ScriptFile, PresetSavedConfig } from '@/types';
-import type { EditorMode } from '@/editor/v2/editorMode';
+import type { EditorMode } from '@/editor/core/editorMode';
 
 export interface WorkspaceMeta {
   lastSnapshotAt: number;

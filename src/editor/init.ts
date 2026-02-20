@@ -107,13 +107,13 @@ import {
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 import { createPropSpriteManager, type PropSpriteManager } from '@/editor/props/propSpriteManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
-import { EDITOR_V2_FLAGS, isV2Enabled, setV2Flag } from '@/editor/v2/featureFlags';
+import { EDITOR_FLAGS, isFlagEnabled, setFlag } from '@/editor/core/featureFlags';
 import {
   getEditorMode,
   setEditorMode,
   setInitialEditorMode,
   type EditorMode,
-} from '@/editor/v2/editorMode';
+} from '@/editor/core/editorMode';
 
 import { downloadJson } from '@/utils/download';
 import {
@@ -407,7 +407,7 @@ function applyDomain(domain: EditorDomain, updateUI = false): void {
 function updateBottomContextStrip(): void {
   if (!bottomContextStrip || !editorState) return;
   bottomContextStrip.setSelectToolActive(editorState.intent === 'interact');
-  const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+  const moveFirstEnabled = isFlagEnabled(EDITOR_FLAGS.ENTITY_MOVE_FIRST);
   const toolAllowsEntitySelection =
     editorState.currentTool === 'select' ||
     (moveFirstEnabled && editorState.currentTool === 'entity');
@@ -720,7 +720,7 @@ function updateEntitySelectionUI(): void {
     leftBerryController.refreshTab('animation');
   }
 
-  const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+  const moveFirstEnabled = isFlagEnabled(EDITOR_FLAGS.ENTITY_MOVE_FIRST);
   const allowEntitySelection =
     editorState.currentTool === 'select' ||
     (moveFirstEnabled && editorState.currentTool === 'entity');
@@ -765,7 +765,7 @@ function setLayerPanelVisibility(visible: boolean): void {
 }
 
 function openSettingsPlaceholder(): void {
-  const isHidden = isV2Enabled(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL);
+  const isHidden = isFlagEnabled(EDITOR_FLAGS.HIDE_LAYER_PANEL);
   const prompt = isHidden
     ? 'Show Layer Panel? (Advanced)'
     : 'Hide Layer Panel? (Advanced)';
@@ -773,7 +773,7 @@ function openSettingsPlaceholder(): void {
   if (!confirm) {
     return;
   }
-  setV2Flag(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL, !isHidden);
+  setFlag(EDITOR_FLAGS.HIDE_LAYER_PANEL, !isHidden);
   setLayerPanelVisibility(isHidden);
 }
 
@@ -1068,7 +1068,7 @@ export async function initEditor(): Promise<void> {
 
   void (async () => {
     if (!editorState || !assetRegistry) return;
-    if (!isV2Enabled(EDITOR_V2_FLAGS.REPO_MIRRORING)) return;
+    if (!isFlagEnabled(EDITOR_FLAGS.REPO_MIRRORING)) return;
     if (!navigator.onLine) return;
     const repoConfig = resolveRepoConfig();
     if (!repoConfig) return;
@@ -1494,7 +1494,7 @@ async function initCanvas(tileSize: number): Promise<void> {
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.start(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
-        const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+        const moveFirstEnabled = isFlagEnabled(EDITOR_FLAGS.ENTITY_MOVE_FIRST);
         if (moveFirstEnabled && entityMoveController) {
           entityMoveActive = entityMoveController.handlePointerStart(
             canvasController!.getViewport(),
@@ -1524,7 +1524,7 @@ async function initCanvas(tileSize: number): Promise<void> {
       } else if (editorState?.currentTool === 'erase' && eraseTool) {
         eraseTool.move(x, y, canvasController!.getViewport(), tileSize);
       } else if (editorState?.currentTool === 'entity' && entityTool) {
-        const moveFirstEnabled = isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST);
+        const moveFirstEnabled = isFlagEnabled(EDITOR_FLAGS.ENTITY_MOVE_FIRST);
         if (moveFirstEnabled && entityMoveActive && entityMoveController) {
           if (
             entityMoveController.handlePointerMove(
@@ -1566,7 +1566,7 @@ async function initCanvas(tileSize: number): Promise<void> {
         selectTool.handleLongPress(x, y, canvasController!.getViewport(), tileSize);
       } else if (
         editorState?.currentTool === 'entity' &&
-        isV2Enabled(EDITOR_V2_FLAGS.ENTITY_MOVE_FIRST) &&
+        isFlagEnabled(EDITOR_FLAGS.ENTITY_MOVE_FIRST) &&
         entityMoveController
       ) {
         entityMoveController.handleLongPress(
@@ -1592,7 +1592,7 @@ async function initPanels(): Promise<void> {
   // Initialize top panel
   const topPanelContainer = document.getElementById('top-panel-container');
   if (topPanelContainer) {
-    const useTopBarV2 = isV2Enabled(EDITOR_V2_FLAGS.TOP_BAR_GLOBAL);
+    const useTopBarV2 = isFlagEnabled(EDITOR_FLAGS.TOP_BAR_GLOBAL);
     const topExpanded = useTopBarV2 ? true : editorState.panelStates.topExpanded;
 
     topPanelController = useTopBarV2
@@ -1672,7 +1672,7 @@ async function initPanels(): Promise<void> {
       locks: editorState.layerLocks,
       onLayerSelect: (layer) => {
         applyActiveLayer(layer);
-        if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
+        if (isFlagEnabled(EDITOR_FLAGS.RIGHT_BERRY)) {
           if (editorState?.currentTool === 'paint' || editorState?.currentTool === 'erase') {
             applyDomain(layer as EditorDomain, false);
           }
@@ -1705,7 +1705,7 @@ async function initPanels(): Promise<void> {
       },
     });
 
-    setLayerPanelVisibility(!isV2Enabled(EDITOR_V2_FLAGS.HIDE_LAYER_PANEL));
+    setLayerPanelVisibility(!isFlagEnabled(EDITOR_FLAGS.HIDE_LAYER_PANEL));
 
     // Initialize renderer with current visibility and locks
     const renderer = canvasController?.getRenderer();
@@ -1723,7 +1723,7 @@ async function initPanels(): Promise<void> {
       currentIntent: editorState.intent,
     });
 
-    if (isV2Enabled(EDITOR_V2_FLAGS.BOTTOM_CONTEXT_STRIP)) {
+    if (isFlagEnabled(EDITOR_FLAGS.BOTTOM_CONTEXT_STRIP)) {
       bottomContextStrip = createBottomContextStrip(
         bottomPanelController.getContextStripContainer(),
         {
@@ -1830,7 +1830,7 @@ async function initPanels(): Promise<void> {
     );
   }
 
-  if (isV2Enabled(EDITOR_V2_FLAGS.LEFT_BERRY)) {
+  if (isFlagEnabled(EDITOR_FLAGS.LEFT_BERRY)) {
     const editorContainer = document.getElementById('editor-container');
     if (editorContainer && editorState) {
       const presetRegistry = createPresetRegistry();
@@ -1843,8 +1843,8 @@ async function initPanels(): Promise<void> {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
         assetRegistry: assetRegistry ?? undefined,
-        assetLibraryEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_LIBRARY),
-        assetUploadEnabled: isV2Enabled(EDITOR_V2_FLAGS.ASSET_UPLOAD),
+        assetLibraryEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_LIBRARY),
+        assetUploadEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_UPLOAD),
         getEditorState: () => editorState,
         getCurrentScene: () => currentScene,
         entityManager: entityManager ?? undefined,
@@ -1870,7 +1870,7 @@ async function initPanels(): Promise<void> {
     }
   }
 
-  if (isV2Enabled(EDITOR_V2_FLAGS.RIGHT_BERRY)) {
+  if (isFlagEnabled(EDITOR_FLAGS.RIGHT_BERRY)) {
     const editorContainer = document.getElementById('editor-container');
     if (editorContainer && editorState) {
       const initialTab = editorState.domain ?? 'ground';

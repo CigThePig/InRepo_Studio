@@ -169,7 +169,7 @@ Micro-format (copy/paste):
 
 - `context/editor-architecture.md`
   - Role: Editor mode-driven architecture spec (mode state, berry layout, dual-mode rules). Authority for the editor architecture and dual-mode system.
-  - Lists of truth: EditorV2Architecture
+  - Lists of truth: EditorArchitecture
 
 - `context/ux-polish-rules.md`
   - Role: Non-negotiable UX feedback standards — required reading before marking any feature complete.
@@ -459,7 +459,7 @@ Micro-format (copy/paste):
   - Role: Top panel with scene info and layer tabs.
   - Lists of truth: none
 
-- `src/editor/panels/topBarV2.ts`
+- `src/editor/panels/topBar.ts`
   - Role: Global-only top bar (Undo/Redo/Settings/Play).
   - Lists of truth: none
 
@@ -576,19 +576,19 @@ Micro-format (copy/paste):
   - Role: Preset issue list modal for conflicts and missing definitions.
   - Lists of truth: none
 
-- `src/editor/v2/index.ts`
+- `src/editor/core/index.ts`
   - Role: Editor core public exports.
   - Lists of truth: none
 
-- `src/editor/v2/featureFlags.ts`
+- `src/editor/core/featureFlags.ts`
   - Role: Editor feature flag management.
   - Lists of truth: EDITOR_FLAGS
 
-- `src/editor/v2/editorMode.ts`
+- `src/editor/core/editorMode.ts`
   - Role: Editor mode state management.
   - Lists of truth: EditorMode
 
-- `src/editor/v2/modeMapping.ts`
+- `src/editor/core/modeMapping.ts`
   - Role: Legacy tool/layer to mode mapping.
   - Lists of truth: MODE_TO_LAYER, MODE_TO_TOOL
 

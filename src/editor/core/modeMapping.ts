@@ -1,7 +1,7 @@
 /**
  * SCHEMA INVENTORY (lists-of-truth)
  * Owner: this file
- * Purpose: Mapping between Editor V2 modes and legacy tool/layer state.
+ * Purpose: Mapping between editor modes and tool/layer state.
  *
  * Defines:
  * - MODE_TO_LAYER — mode to layer mapping (type: lookup)

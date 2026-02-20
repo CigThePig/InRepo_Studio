@@ -1,9 +1,9 @@
 export {
-  EDITOR_V2_FLAGS,
-  isV2Enabled,
-  setV2Flag,
+  EDITOR_FLAGS,
+  isFlagEnabled,
+  setFlag,
 } from './featureFlags';
-export type { EditorV2Flag } from './featureFlags';
+export type { EditorFlag } from './featureFlags';
 
 export {
   getEditorMode,
