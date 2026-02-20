@@ -1779,15 +1779,19 @@ async function initPanels(): Promise<void> {
             selectTool?.armPaste();
             updateBottomContextStrip();
           },
-          onDelete: () => {
+          onDelete: (buttonEl) => {
+            uxFeedback.motion.pulse(buttonEl);
             if ((editorState?.selectedEntityIds ?? []).length > 0) {
               selectTool?.deleteEntities();
               updateEntitySelectionUI();
+              uxFeedback.undo.show('Entity removed.', () => {}, { destructive: true });
             } else if ((editorState?.selectedPropSpriteIds ?? []).length > 0) {
               selectTool?.deletePropSprites();
               updateEntitySelectionUI();
+              uxFeedback.undo.show('Sprite removed.', () => {}, { destructive: true });
             } else {
               selectTool?.deleteSelection();
+              uxFeedback.undo.show('Deleted.', () => {});
             }
           },
           onFill: () => {

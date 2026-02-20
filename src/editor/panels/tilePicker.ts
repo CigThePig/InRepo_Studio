@@ -8,6 +8,7 @@
 import type { TileCategory } from '@/types';
 import type { TileImageCache } from '@/editor/canvas/tileCache';
 import { resolveAssetUrl } from '@/shared/paths';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const LOG_PREFIX = '[TilePicker]';
 
@@ -382,6 +383,7 @@ export function createTilePicker(
   }
 
   function renderTileGrid(): void {
+    uxFeedback.selection.clear();
     tileGrid.innerHTML = '';
     tileCells.clear();
     pendingCells.clear();
@@ -422,6 +424,7 @@ export function createTilePicker(
         tileCells.forEach((c, i) => {
           c.classList.toggle('tile-cell--selected', i === index);
         });
+        uxFeedback.selection.mark(cell);
 
         // Notify
         const selection: TileSelection = {
