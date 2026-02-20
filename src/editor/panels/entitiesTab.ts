@@ -6,6 +6,7 @@ import type { EntityManager } from '@/editor/entities/entityManager';
 import { generateOperationId, type HistoryManager, type Operation } from '@/editor/history';
 import { createAssetPalette, type AssetPaletteController } from './assetPalette';
 import { createAnimationClock, type AnimationClock } from '@/editor/canvas/animationClock';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const STYLES = `
   .entities-tab {
@@ -906,6 +907,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
       button.addEventListener('click', () => {
         setSelectedEntityType(entityType.name);
+        uxFeedback.selection.mark(button);
       });
 
       const placeButton = document.createElement('button');
@@ -913,6 +915,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       placeButton.className = 'entities-tab__place-button';
       placeButton.textContent = 'Place';
       placeButton.addEventListener('click', () => {
+        uxFeedback.motion.pulse(placeButton);
         setSelectedEntityType(entityType.name);
         config.onEntityTypePlace?.(entityType.name);
       });
@@ -1342,6 +1345,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
             return;
           }
           setError(null);
+          uxFeedback.motion.pulse(toggle);
           applyPropertyChange(entity, definition, nextValue);
           updateToggle(nextValue);
         });
@@ -1381,6 +1385,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
           }
 
           setError(null);
+          uxFeedback.motion.pulse(input);
           applyPropertyChange(entity, definition, parsed);
         });
 
@@ -1432,6 +1437,11 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     setSelection(nextIds: string[]): void {
       selectedIds = [...nextIds];
       renderSelection();
+      if (nextIds.length > 0) {
+        uxFeedback.selection.mark(selectionSection);
+      } else {
+        uxFeedback.selection.clear();
+      }
     },
     refresh,
     destroy(): void {

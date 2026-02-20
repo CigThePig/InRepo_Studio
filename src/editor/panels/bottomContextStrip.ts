@@ -10,7 +10,7 @@ export interface BottomContextStripConfig {
   onMove: () => void;
   onCopy: () => void;
   onPaste: () => void;
-  onDelete: () => void;
+  onDelete: (buttonEl: HTMLButtonElement) => void;
   onFill: () => void;
   onCancel: () => void;
   onResize: () => void;
@@ -140,12 +140,12 @@ export function createBottomContextStrip(
   const tileGroup = document.createElement('div');
   tileGroup.className = 'bottom-context-strip__group';
 
-  const moveButton = buildButton('Move', () => config.onMove());
-  const copyButton = buildButton('Copy', () => config.onCopy());
-  const pasteButton = buildButton('Paste', () => config.onPaste());
-  const deleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
-  const fillButton = buildButton('Fill', () => config.onFill());
-  const cancelButton = buildButton('✕', () => config.onCancel(), 'ghost');
+  const moveButton = buildButton('Move', (_btn) => config.onMove());
+  const copyButton = buildButton('Copy', (_btn) => config.onCopy());
+  const pasteButton = buildButton('Paste', (_btn) => config.onPaste());
+  const deleteButton = buildButton('Delete', (btn) => config.onDelete(btn), 'danger');
+  const fillButton = buildButton('Fill', (_btn) => config.onFill());
+  const cancelButton = buildButton('✕', (_btn) => config.onCancel(), 'ghost');
 
   tileGroup.appendChild(moveButton);
   tileGroup.appendChild(copyButton);
@@ -157,9 +157,9 @@ export function createBottomContextStrip(
   const entityGroup = document.createElement('div');
   entityGroup.className = 'bottom-context-strip__group';
 
-  const duplicateButton = buildButton('Duplicate', () => config.onDuplicate());
-  const entityDeleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
-  const clearButton = buildButton('✕', () => config.onClear(), 'ghost');
+  const duplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
+  const entityDeleteButton = buildButton('Delete', (btn) => config.onDelete(btn), 'danger');
+  const clearButton = buildButton('✕', (_btn) => config.onClear(), 'ghost');
 
   entityGroup.appendChild(duplicateButton);
   entityGroup.appendChild(entityDeleteButton);
@@ -169,10 +169,10 @@ export function createBottomContextStrip(
   const propSpriteGroup = document.createElement('div');
   propSpriteGroup.className = 'bottom-context-strip__group';
 
-  const propDuplicateButton = buildButton('Duplicate', () => config.onDuplicate());
-  const moveToEntityButton = buildButton('Move to Entities', () => config.onConvertToEntity());
-  const propDeleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
-  const propClearButton = buildButton('✕', () => config.onClear(), 'ghost');
+  const propDuplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
+  const moveToEntityButton = buildButton('Move to Entities', (_btn) => config.onConvertToEntity());
+  const propDeleteButton = buildButton('Delete', (btn) => config.onDelete(btn), 'danger');
+  const propClearButton = buildButton('✕', (_btn) => config.onClear(), 'ghost');
 
   propSpriteGroup.appendChild(propDuplicateButton);
   propSpriteGroup.appendChild(moveToEntityButton);
@@ -182,9 +182,9 @@ export function createBottomContextStrip(
   const triggerGroup = document.createElement('div');
   triggerGroup.className = 'bottom-context-strip__group';
 
-  const resizeButton = buildButton('Resize', () => config.onResize());
-  const triggerDuplicateButton = buildButton('Duplicate', () => config.onDuplicate());
-  const triggerDeleteButton = buildButton('Delete', () => config.onDelete(), 'danger');
+  const resizeButton = buildButton('Resize', (_btn) => config.onResize());
+  const triggerDuplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
+  const triggerDeleteButton = buildButton('Delete', (btn) => config.onDelete(btn), 'danger');
 
   triggerGroup.appendChild(resizeButton);
   triggerGroup.appendChild(triggerDuplicateButton);
@@ -284,7 +284,7 @@ export function createBottomContextStrip(
 
   function buildButton(
     text: string,
-    onClick: () => void,
+    onClick: (btn: HTMLButtonElement) => void,
     variant: 'default' | 'danger' | 'ghost' = 'default'
   ): HTMLButtonElement {
     const button = document.createElement('button');
@@ -299,7 +299,7 @@ export function createBottomContextStrip(
     button.textContent = text;
     button.addEventListener('click', (event) => {
       event.stopPropagation();
-      onClick();
+      onClick(button);
     });
     return button;
   }
