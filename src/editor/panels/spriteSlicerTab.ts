@@ -5,6 +5,7 @@ import {
   type AssetGroupType,
   type SliceResult,
 } from '@/editor/assets';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 export type SliceMode = 'separate' | 'atlas';
 
@@ -1769,6 +1770,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   confirmButton.addEventListener('click', async () => {
     if (!state.imageBlob) return;
 
+    uxFeedback.motion.pulse(confirmButton);
+
     if (state.sliceMode === 'atlas') {
       const imageDataUrl = await blobToDataUrl(state.imageBlob);
       const atlasSlices = await buildAtlasSlices();
@@ -1782,6 +1785,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
         imageName: state.imageName,
         sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
       });
+      uxFeedback.toast.success(`Sprite sliced into ${atlasSlices.length} frames.`);
     } else {
       const slices = await buildSeparateSlices();
       state.slices = slices;
@@ -1792,6 +1796,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
         imageName: state.imageName,
         sliceSize: { width: state.sliceWidth, height: state.sliceHeight },
       });
+      uxFeedback.toast.success(`Sprite sliced into ${slices.length} frames.`);
     }
   });
 
