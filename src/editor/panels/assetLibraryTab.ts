@@ -6,6 +6,7 @@ import { getAllScenes, saveScene } from '@/storage/hot';
 import { resolveAssetUrl } from '@/shared/paths';
 import type { Scene } from '@/types';
 import { createAnimationClock } from '@/editor/canvas/animationClock';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const STYLES = `
   .asset-library {
@@ -1272,6 +1273,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     card.addEventListener('click', () => {
       if (organizeGroupKey !== null) return;
+      uxFeedback.selection.mark(card);
       assetRegistry.setSelectedAsset(asset.id);
     });
 
@@ -1421,11 +1423,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
                 state: failCount === 0 && !result.error ? 'success' : 'error',
                 message,
               });
+              if (failCount === 0 && !result.error) {
+                uxFeedback.motion.pulse(uploadButton);
+                uxFeedback.toast.success(`Uploaded ${successCount} files.`);
+              } else {
+                uxFeedback.toast.error(message);
+              }
             } catch (error) {
+              const errMsg = error instanceof Error ? error.message : 'Upload failed.';
               uploadStatus.set(statusKey, {
                 state: 'error',
-                message: error instanceof Error ? error.message : 'Upload failed.',
+                message: errMsg,
               });
+              uxFeedback.toast.error(errMsg);
             }
 
             refresh();
@@ -1557,6 +1567,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         card.addEventListener('click', () => {
           // Only open if no inline UI is active on this card
           if (activeRenameId === animation.id || activeDeleteId === animation.id || activeWhereUsedId === animation.id) return;
+          uxFeedback.selection.mark(card);
           onOpenAnimation?.(animation.id);
         });
 
@@ -1844,6 +1855,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             assetRegistry.clearAnimationFromSets(animation.id);
             assetRegistry.clearAnimationFromStateMachines(animation.id);
             assetRegistry.removeAnimation(animation.id);
+            uxFeedback.motion.pulse(confirmBtn);
+            uxFeedback.undo.show('Animation deleted.', () => {}, { destructive: true });
           });
 
           confirmRow.appendChild(cancelBtn);
@@ -1899,6 +1912,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           const trimmed = createInput.value.trim();
           if (trimmed) {
             assetRegistry.addAnimationSet({ name: trimmed, directions: {} });
+            uxFeedback.toast.success('Animation set created.');
           }
           inlineSetCreateOpen = false;
           refresh();
@@ -1914,7 +1928,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         createBtn.className = 'asset-library__button';
         createBtn.textContent = 'Create';
         createBtn.addEventListener('mousedown', (e) => e.preventDefault());
-        createBtn.addEventListener('click', commitCreate);
+        createBtn.addEventListener('click', () => { uxFeedback.motion.pulse(createBtn); commitCreate(); });
 
         const cancelCreateBtn = document.createElement('button');
         cancelCreateBtn.type = 'button';
@@ -2405,8 +2419,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       deleteButton.className = 'asset-library__sheet-button asset-library__sheet-button--danger';
       deleteButton.textContent = 'Delete';
       deleteButton.addEventListener('click', () => {
+        uxFeedback.motion.pulse(deleteButton);
         assetRegistry.removeAsset(activeAsset.id);
         sheetAssetId = null;
+        uxFeedback.undo.show('Asset removed.', () => {}, { destructive: true });
         refresh();
       });
       sheet.appendChild(deleteButton);

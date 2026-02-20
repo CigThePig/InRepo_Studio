@@ -12,6 +12,7 @@ import { generateOperationId } from '@/editor/history';
 import { parseAtlasJson } from '@/editor/assets/atlasImporter';
 import { resolveAssetUrl } from '@/shared/paths';
 import { createAnimationClock } from '@/editor/canvas/animationClock';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const STYLES = `
   .animation-tab {
@@ -1289,6 +1290,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       }
     }
 
+    const prevFrameCount = state.frames.length;
     state.frames = [...state.frames, ...newFrames];
     state.currentFrame = state.frames.length - 1;
     state.dirty = true;
@@ -1296,6 +1298,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       state.animationName = 'New Animation';
     }
     render();
+    animateNewFrames(prevFrameCount);
   }
 
   function makeUniqueAssetName(baseName: string): string {
@@ -1360,11 +1363,13 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       });
     }
 
+    const prevFrameCount = state.frames.length;
     state.frames = [...state.frames, ...importedFrames];
     state.currentFrame = Math.max(0, state.frames.length - importedFrames.length);
     state.dirty = true;
     render();
-    alert(`Imported ${importedFrames.length} frame(s) from ${parsed.format}.`);
+    animateNewFrames(prevFrameCount);
+    uxFeedback.toast.success(`Imported ${importedFrames.length} frames.`);
   }
 
   function openAssetPicker(): void {
@@ -1467,6 +1472,8 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       rows,
     };
     render();
+    animateNewFrames(0);
+    uxFeedback.toast.success(`Sliced into ${nextFrames.length} frames.`);
   }
 
   function openSliceSettings(): void {
@@ -1673,6 +1680,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
           error.textContent = 'That frame is already in the strip.';
           return;
         }
+        const prevFrameCount = state.frames.length;
         state.frames = [
           ...state.frames,
           {
@@ -1683,6 +1691,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         state.currentFrame = state.frames.length - 1;
         state.dirty = true;
         render();
+        animateNewFrames(prevFrameCount);
         closeSheet();
       },
     });
@@ -1722,6 +1731,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
           const image = await resolveSourceImage(asset);
           if (requestId !== selectionRequestId) return; // stale
           const rect = { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
+          const prevFrameCount = state.frames.length;
           state.frames = [
             ...state.frames,
             {
@@ -1740,6 +1750,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
             state.animationName = 'New Animation';
           }
           render();
+          animateNewFrames(prevFrameCount);
           closeSheet();
         });
         content.appendChild(card);
@@ -1854,6 +1865,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         state.animationId = null;
       } else {
         state.animationName = updated.name;
+        uxFeedback.toast.success('Animation updated.');
       }
     }
 
@@ -1861,6 +1873,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
       const created = assetRegistry.addAnimation(payload);
       state.animationId = created.id;
       state.animationName = created.name;
+      uxFeedback.toast.success('Animation saved.');
     }
     state.dirty = false;
     render();
@@ -2266,6 +2279,16 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     render();
   }
 
+  /** Animate newly added frame buttons after a render() call. */
+  function animateNewFrames(prevCount: number): void {
+    const allFrameButtons = Array.from(
+      framesStrip.querySelectorAll<HTMLElement>('.animation-tab__frame:not(.animation-tab__frame-add)')
+    );
+    allFrameButtons.slice(prevCount).forEach(btn => uxFeedback.motion.expand(btn));
+    const addFrameBtn = framesStrip.querySelector<HTMLElement>('.animation-tab__frame-add');
+    if (addFrameBtn) uxFeedback.motion.pulse(addFrameBtn);
+  }
+
   function renderFrames(): void {
     framesStrip.innerHTML = '';
     state.frames.forEach((frame, index) => {
@@ -2357,7 +2380,18 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
         deleteBtn.textContent = '×';
         deleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          const savedFrame = state.frames[index];
+          const savedIndex = index;
+          uxFeedback.motion.pulse(deleteBtn as HTMLElement);
           deleteFrame(index);
+          uxFeedback.undo.show('Frame removed.', () => {
+            const nextFrames = [...state.frames];
+            nextFrames.splice(savedIndex, 0, savedFrame);
+            state.frames = nextFrames;
+            state.currentFrame = savedIndex;
+            state.dirty = true;
+            render();
+          });
         });
         button.appendChild(deleteBtn);
       }
@@ -2373,6 +2407,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
           return;
         }
         state.currentFrame = index;
+        uxFeedback.selection.focus(button);
         updateScrubber();
         drawPreview();
         renderFrames();
