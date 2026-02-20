@@ -1,4 +1,4 @@
-import type { EditorMode } from '@/editor/v2/editorMode';
+import type { EditorMode } from '@/editor/core/editorMode';
 import { RIGHT_BERRY_TABS, type RightBerryTab } from './rightBerryTabs';
 
 const LOG_PREFIX = '[RightBerry]';

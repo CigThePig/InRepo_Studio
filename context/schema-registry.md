@@ -106,16 +106,16 @@ Rules:
 
 ### Editor Core Modules
 
-- `/src/editor/v2/editorMode.ts`
+- `/src/editor/core/editorMode.ts`
   - `EditorMode` — primary editing state
     - Values: select, ground, props, entities, collision, triggers
     - Invariant: single source of truth for editing context
 
-- `/src/editor/v2/featureFlags.ts`
+- `/src/editor/core/featureFlags.ts`
   - `EDITOR_FLAGS` — feature flag registry for editor behavior
     - Invariant: keys are stable across releases
 
-- `/src/editor/v2/modeMapping.ts`
+- `/src/editor/core/modeMapping.ts`
   - `MODE_TO_LAYER` — mode to legacy layer mapping
     - Invariant: select/entities map to null layer
   - `MODE_TO_TOOL` — mode to legacy tool mapping

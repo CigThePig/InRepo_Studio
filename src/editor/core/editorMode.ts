@@ -1,7 +1,7 @@
 /**
  * SCHEMA INVENTORY (lists-of-truth)
  * Owner: this file
- * Purpose: Primary editing mode state for Editor V2.
+ * Purpose: Primary editing mode state for the editor.
  *
  * Defines:
  * - EditorMode — editor mode union (type: lookup)

@@ -9,9 +9,9 @@
 export { createTopPanel } from './topPanel';
 export type { TopPanelController, TopPanelState } from './topPanel';
 
-// Top Bar V2
-export { createTopBarV2 } from './topBarV2';
-export type { TopBarV2Controller, TopBarV2State } from './topBarV2';
+// Top Bar
+export { createTopBarV2 } from './topBar';
+export type { TopBarV2Controller, TopBarV2State } from './topBar';
 
 // Right Berry
 export { createRightBerry, createRightBerryPlaceholder } from './rightBerry';
