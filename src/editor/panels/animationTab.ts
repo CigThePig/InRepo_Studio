@@ -2467,6 +2467,15 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     contextSection.innerHTML = '';
 
     if (!state.sourceImage) {
+      if (assetRegistry.getAnimations().length === 0) {
+        uxFeedback.emptyState.render(contextSection, {
+          message: 'No animations yet.',
+          actionLabel: 'New Animation',
+          onAction: () => fileInput.click(),
+        });
+        return;
+      }
+
       const hint = document.createElement('div');
       hint.className = 'animation-tab__hint';
       hint.textContent = 'Start by importing a spritesheet, adding individual frame files, or using an existing asset.';

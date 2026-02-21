@@ -115,3 +115,23 @@ Acceptance:
 Verification:
 - Manual: Trigger errors, verify display and recovery
 Status: Completed 2026-02-20. Shipped inspectPanel.ts, blocklyWorkspace updates, workspaceManager updates, full cockpit rewrite with ScriptHost + log ring buffer.
+
+### Track 43 — UX Polish: Foundation + Save/Deploy ✓ COMPLETE
+Goal: Inject uxFeedback styles at editor boot and wire save/deploy feedback.
+Files touched: `src/editor/init.ts`, `src/editor/panels/topBar.ts`, `src/editor/panels/deployPanel.ts`
+Status: Completed 2026-02-21.
+
+### Track 44 — UX Polish: Assets + Animations ✓ COMPLETE
+Goal: Wire uxFeedback into asset library, animation tab, and sprite slicer.
+Files touched: `src/editor/panels/assetLibraryTab.ts`, `src/editor/panels/animationTab.ts`, `src/editor/panels/spriteSlicerTab.ts`
+Status: Completed 2026-02-21.
+
+### Track 45 — UX Polish: Entities + Tilemap ✓ COMPLETE
+Goal: Wire uxFeedback into entities tab, tile picker, and bottom context strip.
+Files touched: `src/editor/panels/entitiesTab.ts`, `src/editor/panels/tilePicker.ts`, `src/editor/panels/bottomContextStrip.ts`
+Status: Completed 2026-02-21.
+
+### Track 46 — UX Polish: State Machine + Empty States + Audit ✓ COMPLETE
+Goal: Wire uxFeedback into animStateMachine, implement standardized empty states across all panels, and run cross-system consistency audit.
+Files touched: `src/editor/panels/animStateMachine.ts`, `src/editor/panels/assetLibraryTab.ts`, `src/editor/panels/animationTab.ts`, `src/editor/panels/entitiesTab.ts`, `src/editor/panels/tilePicker.ts`
+Status: Completed 2026-02-21.

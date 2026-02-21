@@ -641,3 +641,56 @@ Purpose:
 - **Follow-up**:
   - Phase 6 planning: post-Blockly features TBD.
   - Consider splitting `blocklyCockpit.ts` into runtime and layout sub-modules.
+
+### Track 43 — UX Polish: Foundation + Save/Deploy
+- **Dates**: 2026-02-21
+- **Status**: Completed
+- **Summary**: Injected `uxFeedback.init()` at editor boot and wired save/deploy feedback — dirty dot on unsaved changes, glow + toast on save, committed toast on deploy.
+- **Shipped**:
+  - `src/editor/init.ts` — `uxFeedback.init()` as first call in `initEditor()`.
+  - `src/editor/panels/topBar.ts` — `storage.markDirty`, `combos.saved`, `toast.error` on save paths.
+  - `src/editor/panels/deployPanel.ts` — `combos.committed`, `toast.error` on deploy paths.
+- **Verification**: `npx tsc --noEmit` produces no new errors.
+- **Follow-up**: Track 44 (Assets + Animations UX polish).
+
+### Track 44 — UX Polish: Assets + Animations
+- **Dates**: 2026-02-21
+- **Status**: Completed
+- **Summary**: Wired `uxFeedback` selection, creation, deletion, and sprite-slice feedback into asset library, animation tab, and sprite slicer.
+- **Shipped**:
+  - `src/editor/panels/assetLibraryTab.ts` — `selection.mark` on asset row click; `combos.created` on upload/create; `combos.deleted` with undo on delete.
+  - `src/editor/panels/animationTab.ts` — `selection.mark` on animation select; `selection.focus` on frame select; `combos.created` on new animation; `motion.expand` + `motion.pulse` on add frame; `combos.deleted` on delete animation; `motion.shrink` + undo bar on delete frame.
+  - `src/editor/panels/spriteSlicerTab.ts` — `toast.success` + `motion.pulse` on slice.
+- **Verification**: `npx tsc --noEmit` produces no new errors.
+- **Follow-up**: Track 45 (Entities + Tilemap UX polish).
+
+### Track 45 — UX Polish: Entities + Tilemap
+- **Dates**: 2026-02-21
+- **Status**: Completed
+- **Summary**: Wired `uxFeedback` selection, placement, deletion, and property acknowledgement into entities tab and tile picker; exposed `buttonEl` from bottom context strip `onDelete`.
+- **Shipped**:
+  - `src/editor/panels/entitiesTab.ts` — `selection.mark` on entity row click; `motion.pulse` on property field change; `combos.created` on entity placed; `combos.deleted` on entity delete.
+  - `src/editor/panels/tilePicker.ts` — `selection.mark` on tile click; `selection.clear()` on palette refresh.
+  - `src/editor/panels/bottomContextStrip.ts` — exposed `buttonEl` in `onDelete` callback signature.
+- **Verification**: `npx tsc --noEmit` produces no new errors.
+- **Follow-up**: Track 46 (State Machine + Empty States + Audit).
+
+### Track 46 — UX Polish: State Machine + Empty States + Audit
+- **Dates**: 2026-02-21
+- **Status**: Completed
+- **Summary**: Wired `uxFeedback` into the animation state machine editor (canvas-based nodes use toasts + undo bar since DOM motion APIs don't apply to canvas). Implemented standardized `uxFeedback.emptyState` invitations across all five panels. Ran cross-system consistency audit — all checklist items verified green.
+- **Shipped**:
+  - `src/editor/panels/animStateMachine.ts` — imported `uxFeedback`; `motion.pulse(addStateButton)` on add state; `toast.info('Transition added.')` on connect; `undo.show('State removed.', undo, { destructive: true })` + `motion.pulse(deleteBtn)` on state delete; `undo.show('Transition removed.', undo)` + `motion.pulse(deleteBtn)` on transition delete; `combos.saved(saveButton, 'State machine saved.')` on save; `motion.pulse(createTransBtn)` on drag-to-create; DOM overlay empty state `'No states yet.'` / `'Add State'` in canvas wrap.
+  - `src/editor/panels/assetLibraryTab.ts` — replaced ad-hoc empty divs in `renderGroups` ("No assets yet." / "Import Asset"), animations grid ("No animations yet." / "New Animation"), and animation sets grid ("No animation sets yet." / "Create Set") with `uxFeedback.emptyState.render`.
+  - `src/editor/panels/animationTab.ts` — added empty state in `renderContext()` when `assetRegistry.getAnimations().length === 0` and no source loaded: "No animations yet." / "New Animation".
+  - `src/editor/panels/entitiesTab.ts` — replaced `renderEmptyProperties` call for no-selection case with `uxFeedback.emptyState.render(propertiesBody, { message: 'No entities placed.', actionLabel: 'Select from palette', onAction: scrollToPalette })`.
+  - `src/editor/panels/tilePicker.ts` — added `onOpenAssetLibrary?: () => void` to `TilePickerOptions`; replaced no-categories, category-not-found, and no-tiles-in-category ad-hoc divs with `uxFeedback.emptyState.render`.
+- **Verification**: `npx tsc --noEmit` produces zero errors in any modified file (only pre-existing external module errors unrelated to this track).
+- **Audit result**: All Agent Implementation Checklist items satisfied across Tracks 43–46 systems.
+- **Learned**:
+  - Canvas-based UIs (animStateMachine nodes) cannot use `motion.*` or `selection.mark()` directly. The mitigation is: toasts for completion signals + undo bar for safety signals + a `position: absolute; inset: 0` DOM overlay for the empty state, which sits above the canvas without blocking input.
+  - `uxFeedback.emptyState.render(container, {...})` clears `container.innerHTML` — always pass a dedicated container div, not a shared section element, to avoid clearing sibling content.
+  - Moving `pushHistory()` inside `removeSelectedState()` and `removeSelectedTransition()` (rather than relying on call sites) makes the undo bar's callback always valid regardless of trigger source (keyboard vs inspector button).
+- **Follow-up**:
+  - Phase 7 planning (TBD).
+  - Automated tests for UX feedback wiring tracked in `context/planned-tests.md`.

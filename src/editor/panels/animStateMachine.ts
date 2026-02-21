@@ -4,6 +4,7 @@ import { createAnimationClock } from '@/editor/canvas/animationClock';
 import type { AnimationClock } from '@/editor/canvas/animationClock';
 import { createSmSimulator } from './smSimulator';
 import type { SmSimulator } from './smSimulator';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const STYLES = `
   .asm-editor {
@@ -458,6 +459,13 @@ export function createAnimStateMachineEditor(
   const canvas = document.createElement('canvas');
   canvas.className = 'asm-editor__canvas';
   canvasWrap.appendChild(canvas);
+
+  // Overlay for empty-state invitation (shown when machine has 0 states)
+  const emptyOverlay = document.createElement('div');
+  emptyOverlay.style.cssText =
+    'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;';
+  canvasWrap.appendChild(emptyOverlay);
+  let emptyStateShown = false;
 
   // Inspector panel (shown when state/transition selected)
   const inspector = document.createElement('div');
@@ -928,6 +936,23 @@ export function createAnimStateMachineEditor(
       }
       ctx.setLineDash([]);
     }
+
+    // Sync empty-state overlay
+    const shouldShowEmpty = Boolean(editorState.machine && editorState.machine.states.length === 0);
+    if (shouldShowEmpty !== emptyStateShown) {
+      emptyStateShown = shouldShowEmpty;
+      if (shouldShowEmpty) {
+        emptyOverlay.style.pointerEvents = '';
+        uxFeedback.emptyState.render(emptyOverlay, {
+          message: 'No states yet.',
+          actionLabel: 'Add State',
+          onAction: () => addNewState(),
+        });
+      } else {
+        uxFeedback.emptyState.clear(emptyOverlay);
+        emptyOverlay.style.pointerEvents = 'none';
+      }
+    }
   }
 
   // --- Interaction ---
@@ -1135,10 +1160,8 @@ export function createAnimStateMachineEditor(
       const tag = (document.activeElement as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (editorState.selectedStateId) {
-        pushHistory();
         removeSelectedState();
       } else if (editorState.selectedTransitionId) {
-        pushHistory();
         removeSelectedTransition();
       }
       return;
@@ -1555,6 +1578,7 @@ export function createAnimStateMachineEditor(
   function addNewState(): void {
     if (!editorState.machine) return;
     pushHistory();
+    uxFeedback.motion.pulse(addStateButton);
 
     const id = generateId();
     const existingCount = editorState.machine.states.length;
@@ -1597,12 +1621,15 @@ export function createAnimStateMachineEditor(
     editorState.machine.transitions.push(transition);
     editorState.selectedStateId = null;
     editorState.selectedTransitionId = transition.id;
+    uxFeedback.toast.info('Transition added.');
     renderInspector();
     render();
   }
 
   function removeSelectedState(): void {
     if (!editorState.machine || !editorState.selectedStateId) return;
+
+    pushHistory();
 
     const stateId = editorState.selectedStateId;
     editorState.machine.states = editorState.machine.states.filter((s) => s.id !== stateId);
@@ -1615,6 +1642,7 @@ export function createAnimStateMachineEditor(
       editorState.machine.initialStateId = editorState.machine.states[0]?.id ?? '';
     }
 
+    uxFeedback.undo.show('State removed.', () => undo(), { destructive: true });
     editorState.selectedStateId = null;
     renderInspector();
     render();
@@ -1623,10 +1651,13 @@ export function createAnimStateMachineEditor(
   function removeSelectedTransition(): void {
     if (!editorState.machine || !editorState.selectedTransitionId) return;
 
+    pushHistory();
+
     editorState.machine.transitions = editorState.machine.transitions.filter(
       (t) => t.id !== editorState.selectedTransitionId
     );
 
+    uxFeedback.undo.show('Transition removed.', () => undo());
     editorState.selectedTransitionId = null;
     renderInspector();
     render();
@@ -1713,6 +1744,7 @@ export function createAnimStateMachineEditor(
     createTransBtn.className = 'asm-editor__toolbar-button';
     createTransBtn.textContent = 'Drag to Create Transition';
     createTransBtn.addEventListener('click', () => {
+      uxFeedback.motion.pulse(createTransBtn);
       startTransitionCreation();
     });
     inspector.appendChild(createTransBtn);
@@ -1723,7 +1755,10 @@ export function createAnimStateMachineEditor(
     deleteBtn.className = 'asm-editor__toolbar-button';
     deleteBtn.textContent = 'Delete State';
     deleteBtn.style.color = '#ff9fb3';
-    deleteBtn.addEventListener('click', () => removeSelectedState());
+    deleteBtn.addEventListener('click', () => {
+      uxFeedback.motion.pulse(deleteBtn);
+      removeSelectedState();
+    });
     inspector.appendChild(deleteBtn);
   }
 
@@ -1893,7 +1928,10 @@ export function createAnimStateMachineEditor(
     deleteBtn.className = 'asm-editor__toolbar-button';
     deleteBtn.textContent = 'Delete Transition';
     deleteBtn.style.color = '#ff9fb3';
-    deleteBtn.addEventListener('click', () => removeSelectedTransition());
+    deleteBtn.addEventListener('click', () => {
+      uxFeedback.motion.pulse(deleteBtn);
+      removeSelectedTransition();
+    });
     inspector.appendChild(deleteBtn);
   }
 
@@ -2005,6 +2043,7 @@ export function createAnimStateMachineEditor(
       }
     }
 
+    uxFeedback.combos.saved(saveButton, 'State machine saved.');
     config.onSave?.(editorState.machine!);
   }
 

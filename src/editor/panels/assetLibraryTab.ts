@@ -1282,12 +1282,16 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {
     librarySection.querySelectorAll('.asset-library__group').forEach((node) => node.remove());
+    librarySection.querySelectorAll('.asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
 
     if (groups.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'asset-library__empty';
-      empty.textContent = 'No asset groups yet. Add one above or slice a sprite sheet.';
-      librarySection.appendChild(empty);
+      const emptyContainer = document.createElement('div');
+      uxFeedback.emptyState.render(emptyContainer, {
+        message: 'No assets yet.',
+        actionLabel: 'Import Asset',
+        onAction: () => nameInput.focus(),
+      });
+      librarySection.appendChild(emptyContainer);
       return;
     }
 
@@ -1533,10 +1537,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       grid.appendChild(noMatchMsg);
 
       if (animations.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'asset-library__empty';
-        empty.textContent = 'No animations saved yet.';
-        grid.appendChild(empty);
+        const emptyContainer = document.createElement('div');
+        uxFeedback.emptyState.render(emptyContainer, {
+          message: 'No animations yet.',
+          actionLabel: 'New Animation',
+          onAction: () => config.onOpenAnimation?.(''),
+        });
+        grid.appendChild(emptyContainer);
       }
 
       // Set up IntersectionObserver for visibility-based clock register/unregister
@@ -1956,10 +1963,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       section.appendChild(createSetRow);
 
       if (animationSets.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'asset-library__empty';
-        empty.textContent = 'No animation sets saved yet.';
-        section.appendChild(empty);
+        const emptyContainer = document.createElement('div');
+        uxFeedback.emptyState.render(emptyContainer, {
+          message: 'No animation sets yet.',
+          actionLabel: 'Create Set',
+          onAction: () => { inlineSetCreateOpen = true; refresh(); },
+        });
+        section.appendChild(emptyContainer);
       } else {
         const setGrid = document.createElement('div');
         setGrid.className = 'asset-library__animations';
