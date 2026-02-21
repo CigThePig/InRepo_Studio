@@ -1000,7 +1000,11 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
   function renderProperties(entities: EntityInstance[]): void {
     const project = getProject();
     if (entities.length === 0) {
-      renderEmptyProperties('Select an entity to edit its properties.');
+      uxFeedback.emptyState.render(propertiesBody, {
+        message: 'No entities placed.',
+        actionLabel: 'Select from palette',
+        onAction: () => paletteSection.scrollIntoView({ behavior: 'smooth' }),
+      });
       return;
     }
 

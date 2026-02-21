@@ -55,6 +55,8 @@ export interface TilePickerController {
 export interface TilePickerOptions {
   /** Optional shared cache from the canvas renderer (avoids duplicate loads and keeps cache-bust consistent). */
   tileCache?: TileImageCache;
+  /** Called when the user activates the "Open Asset Library" action on the empty state. */
+  onOpenAssetLibrary?: () => void;
 }
 
 // --- Styles ---
@@ -230,10 +232,11 @@ export function createTilePicker(
 
   // Handle empty categories
   if (categories.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'tile-picker__empty';
-    empty.textContent = 'No tile categories defined';
-    picker.appendChild(empty);
+    uxFeedback.emptyState.render(picker, {
+      message: 'No tileset loaded.',
+      actionLabel: 'Open Asset Library',
+      onAction: () => options.onOpenAssetLibrary?.(),
+    });
     container.appendChild(picker);
 
     console.log(`${LOG_PREFIX} Tile picker created (no categories)`);
@@ -390,18 +393,20 @@ export function createTilePicker(
 
     const category = categories.find(c => c.name === state.selectedCategory);
     if (!category) {
-      const empty = document.createElement('div');
-      empty.className = 'tile-picker__empty';
-      empty.textContent = 'Category not found';
-      tileGrid.appendChild(empty);
+      uxFeedback.emptyState.render(tileGrid, {
+        message: 'Category not found.',
+        actionLabel: 'Open Asset Library',
+        onAction: () => options.onOpenAssetLibrary?.(),
+      });
       return;
     }
 
     if (category.files.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'tile-picker__empty';
-      empty.textContent = 'No tiles in this category';
-      tileGrid.appendChild(empty);
+      uxFeedback.emptyState.render(tileGrid, {
+        message: 'No tiles in this category.',
+        actionLabel: 'Open Asset Library',
+        onAction: () => options.onOpenAssetLibrary?.(),
+      });
       return;
     }
 
