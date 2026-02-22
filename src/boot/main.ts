@@ -1,3 +1,5 @@
+import '@/shared/theme.css';
+
 /**
  * InRepo Studio - Main Entry Point
  *
