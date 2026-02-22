@@ -19,7 +19,7 @@ const STYLES = `
     position: absolute;
     inset: 0;
     z-index: 15;
-    background: rgba(2, 8, 20, 0.75);
+    background: var(--irs-surface-dark-alpha);
     display: flex;
     align-items: flex-end;
   }
@@ -28,25 +28,25 @@ const STYLES = `
     width: 100%;
     max-height: 78%;
     overflow-y: auto;
-    background: #121b33;
-    border-top: 1px solid rgba(88, 116, 173, 0.75);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    background: var(--irs-surface-modal);
+    border-top: 1px solid var(--irs-border-heavy);
+    border-top-left-radius: var(--irs-radius-lg);
+    border-top-right-radius: var(--irs-radius-lg);
     padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .preset-issues-close,
   .preset-issues-item { min-height: 44px; }
 
   .preset-issues-item {
-    border-radius: 10px;
-    border: 1px solid rgba(255, 127, 127, 0.55);
-    background: rgba(70, 18, 18, 0.55);
-    color: #ffd8d8;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-accent-danger);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     text-align: left;
     padding: 8px 10px;
   }
@@ -72,7 +72,7 @@ export function createIssuesModal(config: IssuesModalConfig): IssuesModalControl
 
   const close = document.createElement('button');
   close.type = 'button';
-  close.className = 'preset-issues-close';
+  close.className = 'irs-btn irs-btn--secondary preset-issues-close';
   close.textContent = 'Close';
   close.addEventListener('click', () => config.onClose());
   sheet.appendChild(close);
@@ -81,7 +81,7 @@ export function createIssuesModal(config: IssuesModalConfig): IssuesModalControl
   for (const issue of conflicts) {
     const item = document.createElement('button');
     item.type = 'button';
-    item.className = 'preset-issues-item';
+    item.className = 'irs-btn preset-issues-item';
     item.textContent = `${issue.categoryA} (${issue.presetA}) conflicts with ${issue.categoryB} (${issue.presetB})`;
     item.addEventListener('click', () => {
       config.onJumpToCategory(issue.categoryA);
@@ -95,7 +95,7 @@ export function createIssuesModal(config: IssuesModalConfig): IssuesModalControl
     if (categoryConfig.enabled && !preset) {
       const item = document.createElement('button');
       item.type = 'button';
-      item.className = 'preset-issues-item';
+      item.className = 'irs-btn preset-issues-item';
       item.textContent = `${categoryId}: preset ${categoryConfig.presetId} is missing`;
       item.addEventListener('click', () => {
         config.onJumpToCategory(categoryId as PresetCategoryId);

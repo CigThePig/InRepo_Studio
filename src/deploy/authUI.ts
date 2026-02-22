@@ -13,34 +13,13 @@ export interface AuthModal {
 }
 
 const STYLES = `
-  .auth-modal-overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease-out;
-    z-index: 1000;
-    padding: 16px;
-  }
-
-  .auth-modal-overlay.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
   .auth-modal {
     width: min(420px, 100%);
-    background: #1c1c2f;
-    border-radius: 12px;
-    border: 1px solid #2a2a4e;
-    color: #e6e6f0;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    max-width: 420px;
+    color: var(--irs-text-primary);
     display: flex;
     flex-direction: column;
+    padding: 0;
   }
 
   .auth-modal-header {
@@ -48,7 +27,7 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    border-bottom: 1px solid #2a2a4e;
+    border-bottom: 1px solid var(--irs-border-heavy);
   }
 
   .auth-modal-header h2 {
@@ -59,10 +38,9 @@ const STYLES = `
   .auth-modal-close {
     width: 44px;
     height: 44px;
-    border-radius: 8px;
-    border: none;
-    background: #2a2a4e;
-    color: #fff;
+    border: 0;
+    background: transparent;
+    color: var(--irs-text-secondary);
     font-size: 18px;
     cursor: pointer;
   }
@@ -77,24 +55,13 @@ const STYLES = `
   }
 
   .auth-modal-body a {
-    color: #4a9eff;
+    color: var(--irs-accent-primary);
     text-decoration: none;
     font-weight: 600;
   }
 
   .auth-modal-body a:active {
     opacity: 0.8;
-  }
-
-  .auth-token-input {
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #3a3a6e;
-    background: #131321;
-    color: #fff;
-    font-size: 14px;
   }
 
   .auth-persist-label {
@@ -110,7 +77,7 @@ const STYLES = `
   }
 
   .auth-persist-warning {
-    color: #ffb347;
+    color: var(--irs-accent-warning);
     font-size: 12px;
     margin: 0;
   }
@@ -121,47 +88,29 @@ const STYLES = `
   }
 
   .auth-status-error {
-    color: #ff6b6b;
+    color: var(--irs-accent-danger);
   }
 
   .auth-status-success {
-    color: #6bff95;
+    color: var(--irs-accent-success);
   }
 
   .auth-status-loading {
-    color: #ffd66b;
+    color: var(--irs-accent-warning);
   }
 
   .auth-status-ready {
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
   .auth-modal-footer {
     display: flex;
     gap: 12px;
     padding: 16px;
-    border-top: 1px solid #2a2a4e;
+    border-top: 1px solid var(--irs-border-heavy);
   }
 
-  .auth-modal-footer button {
-    flex: 1;
-    min-height: 44px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .auth-cancel-btn {
-    background: #2a2a4e;
-    color: #fff;
-  }
-
-  .auth-connect-btn {
-    background: #4a9eff;
-    color: #fff;
-  }
+  .auth-modal-footer .irs-btn { flex: 1; }
 
   .auth-connect-btn:disabled {
     opacity: 0.6;
@@ -231,9 +180,9 @@ export function createAuthModal(container: HTMLElement, config: AuthModalConfig)
     ensureStyles();
 
     modalOverlay = document.createElement('div');
-    modalOverlay.className = 'auth-modal-overlay';
+    modalOverlay.className = 'irs-overlay';
     modalOverlay.innerHTML = `
-      <div class="auth-modal" role="dialog" aria-modal="true" aria-label="Connect to GitHub">
+      <div class="irs-dialog auth-modal" role="dialog" aria-modal="true" aria-label="Connect to GitHub">
         <div class="auth-modal-header">
           <h2>Connect to GitHub</h2>
           <button class="auth-modal-close" type="button" aria-label="Close">×</button>
@@ -243,7 +192,7 @@ export function createAuthModal(container: HTMLElement, config: AuthModalConfig)
           <p><strong>Required scope:</strong> repo</p>
           <a href="https://github.com/settings/tokens/new?scopes=repo&description=InRepo%20Studio" target="_blank" rel="noopener">Create a token on GitHub →</a>
           <input
-            class="auth-token-input"
+            class="irs-input auth-token-input"
             type="password"
             placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
             autocomplete="off"
@@ -256,8 +205,8 @@ export function createAuthModal(container: HTMLElement, config: AuthModalConfig)
           <p class="auth-status auth-status-ready">Ready to connect.</p>
         </div>
         <div class="auth-modal-footer">
-          <button class="auth-cancel-btn" type="button">Cancel</button>
-          <button class="auth-connect-btn" type="button">Connect</button>
+          <button class="irs-btn irs-btn--secondary auth-cancel-btn" type="button">Cancel</button>
+          <button class="irs-btn irs-btn--primary auth-connect-btn" type="button">Connect</button>
         </div>
       </div>
     `;
@@ -285,7 +234,7 @@ export function createAuthModal(container: HTMLElement, config: AuthModalConfig)
     }
 
     if (modalOverlay) {
-      modalOverlay.classList.add('visible');
+      modalOverlay.classList.add('irs-overlay--visible');
       tokenInput?.focus();
       setStatus('Ready to connect.', 'ready');
       setConnectEnabled(true);
@@ -293,7 +242,7 @@ export function createAuthModal(container: HTMLElement, config: AuthModalConfig)
   }
 
   function hide(): void {
-    modalOverlay?.classList.remove('visible');
+    modalOverlay?.classList.remove('irs-overlay--visible');
     if (tokenInput) {
       tokenInput.value = '';
     }

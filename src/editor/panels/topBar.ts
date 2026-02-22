@@ -71,8 +71,8 @@ const STYLES = `
   .top-bar-v2 {
     display: flex;
     flex-direction: column;
-    background: #0d1220;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--irs-surface-panel);
+    border-bottom: 1px solid var(--irs-border-light);
   }
 
   .top-bar-v2__main {
@@ -92,43 +92,18 @@ const STYLES = `
   .top-bar-v2__button {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
-    border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.7);
+    border-radius: var(--irs-radius-sm);
+    background: var(--irs-surface-base);
+    color: var(--irs-text-secondary);
     font-size: 17px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: all 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .top-bar-v2__button:active {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(0.95);
-  }
-
   .top-bar-v2__button--disabled,
   .top-bar-v2__button:disabled {
     opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .top-bar-v2__button--disabled:active,
-  .top-bar-v2__button:disabled:active {
-    transform: none;
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .top-bar-v2__button--play {
-    background: #3b82f6;
-    color: #fff;
-  }
-
-  .top-bar-v2__button--play:active {
-    background: #2563eb;
   }
 
   .top-bar-v2__secondary {
@@ -145,7 +120,7 @@ const STYLES = `
   }
 
   .top-bar-v2__scene-title {
-    color: #fff;
+    color: var(--irs-text-primary);
     font-weight: 600;
     font-size: 14px;
     padding: 0 4px;
@@ -200,33 +175,33 @@ export function createTopBarV2(
   rightGroup.className = 'top-bar-v2__group';
 
   const undoButton = document.createElement('button');
-  undoButton.className = 'top-bar-v2__button top-bar-v2__button--disabled';
+  undoButton.className = 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled';
   undoButton.type = 'button';
   undoButton.textContent = '↶';
   undoButton.setAttribute('aria-label', 'Undo');
   undoButton.disabled = true;
 
   const redoButton = document.createElement('button');
-  redoButton.className = 'top-bar-v2__button top-bar-v2__button--disabled';
+  redoButton.className = 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled';
   redoButton.type = 'button';
   redoButton.textContent = '↷';
   redoButton.setAttribute('aria-label', 'Redo');
   redoButton.disabled = true;
 
   const saveButton = document.createElement('button');
-  saveButton.className = 'top-bar-v2__button';
+  saveButton.className = 'irs-btn irs-btn--secondary top-bar-v2__button';
   saveButton.type = 'button';
   saveButton.textContent = '💾';
   saveButton.setAttribute('aria-label', 'Save');
 
   const settingsButton = document.createElement('button');
-  settingsButton.className = 'top-bar-v2__button';
+  settingsButton.className = 'irs-btn irs-btn--secondary top-bar-v2__button';
   settingsButton.type = 'button';
   settingsButton.textContent = '⚙';
   settingsButton.setAttribute('aria-label', 'Settings');
 
   const playButton = document.createElement('button');
-  playButton.className = 'top-bar-v2__button top-bar-v2__button--play';
+  playButton.className = 'irs-btn irs-btn--primary top-bar-v2__button';
   playButton.type = 'button';
   playButton.textContent = '▶';
   playButton.setAttribute('aria-label', 'Playtest');
