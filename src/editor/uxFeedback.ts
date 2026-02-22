@@ -89,6 +89,7 @@ function ensureStyles(): void {
       --irs-color-yellow-border: ${TOKEN.yellowBorder};
 
       --irs-surface-dark: ${TOKEN.surfaceDark};
+      --irs-surface-dark-alpha: rgba(26, 43, 82, 0.85);
       --irs-text: ${TOKEN.text};
       --irs-text-muted: ${TOKEN.textMuted};
 
@@ -141,8 +142,8 @@ function ensureStyles(): void {
     }
 
     @keyframes irs-slide-in-down {
-      from { opacity: 0; transform: translateY(-8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translate(-50%, -16px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
     }
 
     @keyframes irs-toast-enter {
@@ -255,7 +256,7 @@ function ensureStyles(): void {
 
     .irs-undo-bar {
       position: fixed;
-      bottom: calc(16px + var(--irs-safe-bottom));
+      top: calc(var(--irs-safe-top, 0px) + 64px);
       left: 50%;
       transform: translateX(-50%);
       display: none;
@@ -264,10 +265,10 @@ function ensureStyles(): void {
       padding: 10px 14px;
       border-radius: 12px;
       border: 1px solid var(--irs-color-blue-border);
-      background-color: rgba(26, 43, 82, 0.95);
+      background-color: var(--irs-surface-dark-alpha);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
-      background: rgba(26, 43, 82, 0.80);
+      background: var(--irs-surface-dark-alpha);
       color: var(--irs-text);
       font-size: 13px;
       white-space: nowrap;
@@ -276,7 +277,7 @@ function ensureStyles(): void {
 
     .irs-undo-bar--visible {
       display: flex;
-      animation: irs-slide-in-up var(--irs-duration-change) ease-out;
+      animation: irs-slide-in-down var(--irs-duration-change) ease-out;
     }
 
     .irs-undo-bar--destructive {
@@ -285,7 +286,7 @@ function ensureStyles(): void {
 
     .irs-undo-bar__btn {
       min-width: 56px;
-      min-height: 36px;
+      min-height: 44px;
       padding: 0 12px;
       border-radius: 8px;
       border: 1px solid var(--irs-color-blue-alpha-45);
