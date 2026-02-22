@@ -1,0 +1,112 @@
+/* --- Overlays & Modals --- */
+.irs-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--irs-surface-dark-alpha);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+}
+
+.irs-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.irs-dialog {
+  background: var(--irs-surface-modal);
+  border-radius: var(--irs-radius-lg);
+  border: 1px solid var(--irs-border-heavy);
+  padding: 20px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 8px 32px var(--irs-surface-dark-alpha);
+  color: var(--irs-text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Buttons --- */
+.irs-btn {
+  min-height: var(--irs-touch-target);
+  padding: 10px 16px;
+  border-radius: var(--irs-radius-sm);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.irs-btn:active {
+  transform: scale(0.98);
+}
+
+.irs-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.irs-btn--primary {
+  background: var(--irs-accent-primary);
+  color: var(--irs-text-primary);
+}
+
+.irs-btn--primary:active:not(:disabled) {
+  background: var(--irs-accent-primary-active);
+}
+
+.irs-btn--secondary {
+  background: var(--irs-surface-panel);
+  border: 1px solid var(--irs-border-heavy);
+  color: var(--irs-text-secondary);
+}
+
+.irs-btn--secondary:active:not(:disabled) {
+  background: var(--irs-border-heavy);
+  color: var(--irs-text-primary);
+}
+
+.irs-btn--danger {
+  background: var(--irs-accent-danger);
+  color: var(--irs-surface-base);
+}
+
+.irs-btn--danger:active:not(:disabled) {
+  background: var(--irs-accent-danger-active);
+}
+
+/* --- Inputs --- */
+.irs-input {
+  width: 100%;
+  min-height: var(--irs-touch-target);
+  padding: 10px 12px;
+  border-radius: var(--irs-radius-sm);
+  border: 1px solid var(--irs-border-heavy);
+  background: var(--irs-surface-input);
+  color: var(--irs-text-primary);
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.irs-input:focus {
+  outline: none;
+  border-color: var(--irs-accent-primary);
+}
+
+.irs-input--error {
+  border-color: var(--irs-accent-danger);
+}

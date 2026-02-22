@@ -1,4 +1,5 @@
 import '@/shared/theme.css';
+import '@/shared/common-styles.css';
 
 /**
  * InRepo Studio - Main Entry Point
