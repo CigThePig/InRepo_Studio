@@ -18,7 +18,7 @@ import type { PresetCategoryId } from '@/types/preset';
 import type { GameProfile } from '@/types/presetDefaults';
 import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
 import type { PresetConfigStore } from './presetConfigStore';
-import { createUndoToast, type UndoToastController } from './undoToast';
+import { uxFeedback } from '@/editor/uxFeedback';
 import { createCategoryDetail, type CategoryDetailController } from './categoryDetail';
 import { createIssuesModal, type IssuesModalController } from './issuesModal';
 
@@ -293,7 +293,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     button.textContent = profile.label;
     button.title = profile.description;
     button.addEventListener('click', () => {
-      toast.clear();
+      uxFeedback.undo.dismiss();
       const confirmMessage = `Switch to ${profile.label}? This will change all preset categories. Your current settings will be saved for undo.\n\n${buildProfileDiffSummary(profile.id)}`;
       if (!window.confirm(confirmMessage)) {
         return;
@@ -301,9 +301,9 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       const snapshot = config.configStore.snapshot();
       config.configStore.setProfile(profile.id);
       refresh();
-      toast.show('Profile applied. Undo?', () => config.configStore.restore(snapshot), {
+      uxFeedback.undo.show('Profile applied. Undo?', () => config.configStore.restore(snapshot), {
         durationMs: 10000,
-        emphasized: true,
+        destructive: true,
       });
     });
     chipWrap.appendChild(button);
@@ -336,7 +336,6 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   root.append(profileSection, statusSection, categoriesSection);
   config.container.innerHTML = '';
   config.container.appendChild(root);
-  const toast: UndoToastController = createUndoToast(config.container);
   let categoryDetailController: CategoryDetailController | null = null;
   let issuesModalController: IssuesModalController | null = null;
   let insertBlockFn: ((blockType: string) => void) | null = null;
@@ -348,7 +347,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     categoryDetailController?.destroy();
     categoryDetailController = null;
     root.hidden = false;
-    toast.clear();
+    uxFeedback.undo.dismiss();
     refresh();
   }
 
@@ -493,7 +492,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       unsubscribe();
       categoryDetailController?.destroy();
       issuesModalController?.destroy();
-      toast.destroy();
+      uxFeedback.undo.dismiss();
       root.remove();
     },
   };

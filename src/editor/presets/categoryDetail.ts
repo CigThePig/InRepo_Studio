@@ -15,8 +15,8 @@
 
 import type { PresetCategoryId } from '@/types/preset';
 import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
+import { uxFeedback } from '@/editor/uxFeedback';
 import type { PresetConfigStore } from './presetConfigStore';
-import { createUndoToast, type UndoToastController } from './undoToast';
 import { createKnobEditor, type KnobEditorController } from './knobEditor';
 import { createBlocklyHooksTab, type BlocklyHooksTabController } from './blocklyHooksTab';
 import { createPresetPicker, type PresetPickerController } from './presetPicker';
@@ -168,8 +168,6 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
   root.className = 'preset-category-detail';
   config.container.appendChild(root);
 
-  const toast: UndoToastController = createUndoToast(config.container);
-
   const header = document.createElement('section');
   header.className = 'preset-category-detail__header';
 
@@ -262,7 +260,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
           onChange: (knobId, value) => {
             const snapshot = config.configStore.snapshot();
             config.configStore.setKnobValue(config.categoryId, knobId, value);
-            toast.show('Knob updated. Undo?', () => config.configStore.restore(snapshot));
+            uxFeedback.undo.show('Knob updated. Undo?', () => config.configStore.restore(snapshot));
           },
         });
       } else {
@@ -308,17 +306,17 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     const catConfig = config.configStore.getCategoryConfig(config.categoryId);
     if (enabledToggle.checked) {
       config.configStore.enableCategory(config.categoryId, catConfig.presetId);
-      toast.show('Category enabled. Undo?', () => config.configStore.restore(snapshot));
+      uxFeedback.undo.show('Category enabled. Undo?', () => config.configStore.restore(snapshot));
     } else {
       config.configStore.disableCategory(config.categoryId);
-      toast.show('Category disabled. Undo?', () => config.configStore.restore(snapshot));
+      uxFeedback.undo.show('Category disabled. Undo?', () => config.configStore.restore(snapshot));
     }
   });
 
   resetButton.addEventListener('click', () => {
     const snapshot = config.configStore.snapshot();
     config.configStore.resetCategory(config.categoryId);
-    toast.show('Reset to defaults. Undo?', () => config.configStore.restore(snapshot));
+    uxFeedback.undo.show('Reset to defaults. Undo?', () => config.configStore.restore(snapshot));
   });
 
   configureTab.addEventListener('click', () => {
@@ -341,7 +339,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
       onSelect: (presetId) => {
         const snapshot = config.configStore.snapshot();
         config.configStore.enableCategory(config.categoryId, presetId);
-        toast.show('Preset switched. Undo?', () => config.configStore.restore(snapshot));
+        uxFeedback.undo.show('Preset switched. Undo?', () => config.configStore.restore(snapshot));
       },
       onClose: () => {
         presetPickerController?.destroy();
@@ -358,7 +356,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
       knobEditor?.destroy();
       hooksTabController?.destroy();
       presetPickerController?.destroy();
-      toast.destroy();
+      uxFeedback.undo.dismiss();
       root.remove();
     },
   };
