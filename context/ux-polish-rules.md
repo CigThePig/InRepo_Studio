@@ -194,44 +194,40 @@ This file is the source of truth for UX behavior in InRepo Studio.
 
 > **Humanized UX is not polish. It is infrastructure.**
 
-## UI Design Tokens & Theming
+# UI Architecture & Strict Theming Guidelines
 
-### Strict Rules
+To maintain a cohesive, professional, and mobile-first experience across InRepo Studio, all UI development **MUST** adhere to the central design token system.  
 
-1. **Rule 1: No Hardcoded Colors.** Developers are strictly forbidden from using hex codes, `rgb()`, or `rgba()` for structural UI elements. All colors must reference `--irs-` variables.
-2. **Rule 2: Mobile-First Sizing.** All interactive elements (buttons, close icons, list items) MUST have a minimum height and width of `var(--irs-touch-target)` (44px).
-3. **Rule 3: Border Radii.** Never use hardcoded pixel values for `border-radius`. Use `var(--irs-radius-sm)` for buttons/inputs, `var(--irs-radius-md)` for panels, and `var(--irs-radius-lg)` for floating modals.
+### 🛑 The Golden Rule for AI Agents and Developers
+**NEVER use hardcoded hex codes (`#FFFFFF`), `rgb()`, `rgba()`, or static pixel values for `border-radius` in component-specific files.** All colors, radii, and standard UI dimensions must be referenced via CSS variables from `src/shared/theme.css`.
 
-### Shared UI Components
+### 1. The Design Token System (`--irs-`)
+All UI components must utilize the variables defined in `src/shared/theme.css`.
+* **Surfaces:** Use `--irs-surface-base`, `--irs-surface-panel`, `--irs-surface-modal`, `--irs-surface-input`.
+* **Accents:** Use `--irs-accent-primary`, `--irs-accent-danger`, etc., for interactive states.
+* **Borders:** Use `--irs-border-light` (panels/dividers) and `--irs-border-heavy` (inputs/dialogs).
+* **Text:** Use `--irs-text-primary`, `--irs-text-secondary`, `--irs-text-muted`.
 
-4. **Rule 4: Use Shared Utility Classes.** Do not write custom CSS for standard buttons, text inputs, dialog boxes, or modal overlays. You must use the `.irs-` prefixed classes (e.g., `.irs-btn`, `.irs-input`, `.irs-overlay`, `.irs-dialog`) defined in `common-styles.css`.
-5. **Rule 5: No Duplicate Structural Styles.** Component-specific `<style>` tags injected via TypeScript should only contain layout CSS specific to that component (e.g., CSS Grid layouts, flexbox spacing for toolbars). They should never redefine basic button hover states or input borders.
+### 2. Mobile-First Sizing & Touch Targets
+InRepo Studio is a mobile-first application.  
+* Every interactive element (button, link, dropdown, close icon) **MUST** have a minimum computed height and width of `var(--irs-touch-target)` (44px).
+* Do not rely solely on padding to achieve this; explicitly set `min-height: var(--irs-touch-target);`.
 
-### Token Index (`src/shared/theme.css`)
+### 3. Shared Utility Classes (`.irs-`)
+Do not rewrite standard CSS for common elements. You must use the shared classes defined in `src/shared/common-styles.css`:
+* **Buttons:** `.irs-btn`, `.irs-btn--primary`, `.irs-btn--secondary`, `.irs-btn--danger`.
+* **Inputs:** `.irs-input` (handles border, focus states, and iOS anti-zoom font sizing).
+* **Modals & Dialogs:** Wrap floating UI in `.irs-overlay` and the immediate container in `.irs-dialog`.
 
-- **Surfaces & Backgrounds**
-  - `--irs-surface-base`
-  - `--irs-surface-panel`
-  - `--irs-surface-modal`
-  - `--irs-surface-input`
-  - `--irs-surface-dark-alpha`
-- **Accent Colors**
-  - `--irs-accent-primary`
-  - `--irs-accent-primary-active`
-  - `--irs-accent-danger`
-  - `--irs-accent-danger-active`
-  - `--irs-accent-success`
-  - `--irs-accent-warning`
-- **Borders**
-  - `--irs-border-light`
-  - `--irs-border-heavy`
-  - `--irs-border-blue-alpha`
-- **Typography**
-  - `--irs-text-primary`
-  - `--irs-text-secondary`
-  - `--irs-text-muted`
-- **Geometry & Sizing**
-  - `--irs-radius-sm`
-  - `--irs-radius-md`
-  - `--irs-radius-lg`
-  - `--irs-touch-target`
+### 4. Component-Specific Styles (`<style>` tags)
+When dynamically injecting styles into the shadow DOM or `<head>` via TypeScript components (e.g., `const STYLES = ...`):
+* **Allowed:** Layout CSS (Flexbox, CSS Grid), component-specific spacing (gap, padding, margin), overflow handling, and unique positioning.
+* **Strictly Forbidden:** Redefining button hover states, setting explicit border colors, setting explicit background colors, or hardcoding `border-radius`.
+
+### ✅ Pre-Commit / Pre-Generation UI Checklist
+Before generating or committing UI code, ensure the following:
+- [ ] Are all hex codes/rgba values removed from the component's CSS?
+- [ ] Are buttons using `.irs-btn` instead of custom `<button>` styling?
+- [ ] Are text inputs using `.irs-input`?
+- [ ] Are `border-radius` values using `var(--irs-radius-sm/md/lg)`?
+- [ ] Can a user on a mobile phone easily tap the new element? (Is it at least 44px by 44px?)
