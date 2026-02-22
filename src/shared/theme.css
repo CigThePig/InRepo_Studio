@@ -1,0 +1,32 @@
+:root {
+  /* --- Surfaces & Backgrounds --- */
+  --irs-surface-base: #0d1220;    /* Main application background */
+  --irs-surface-panel: #16213e;   /* Sidebars, toolbars, left/right berries */
+  --irs-surface-modal: #1a1a2e;   /* Floating dialogs and sheets */
+  --irs-surface-input: #131321;   /* Text inputs, selects, toggles */
+  --irs-surface-dark-alpha: rgba(13, 18, 32, 0.85); /* Blurred overlay panels */
+  
+  /* --- Accent Colors --- */
+  --irs-accent-primary: #3b82f6;
+  --irs-accent-primary-active: #2563eb;
+  --irs-accent-danger: #ff6b6b;
+  --irs-accent-danger-active: #e55555;
+  --irs-accent-success: #6bff95;
+  --irs-accent-warning: #ffd66b;
+
+  /* --- Borders --- */
+  --irs-border-light: rgba(255, 255, 255, 0.08);
+  --irs-border-heavy: #3a3a6e;
+  --irs-border-blue-alpha: rgba(74, 158, 255, 0.12); /* Specifically for panel edges */
+
+  /* --- Typography --- */
+  --irs-text-primary: #ffffff;
+  --irs-text-secondary: #aab0d4;
+  --irs-text-muted: rgba(255, 255, 255, 0.5);
+
+  /* --- Geometry & Sizing --- */
+  --irs-radius-sm: 8px;   /* Standard buttons, inputs */
+  --irs-radius-md: 10px;  /* Small panels, inner containers */
+  --irs-radius-lg: 12px;  /* Modals, Dialogs */
+  --irs-touch-target: 44px; /* Strict minimum for mobile-first tap targets */
+}

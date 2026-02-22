@@ -193,3 +193,40 @@ This file is the source of truth for UX behavior in InRepo Studio.
 ## Closing Principle
 
 > **Humanized UX is not polish. It is infrastructure.**
+
+## UI Design Tokens & Theming
+
+### Strict Rules
+
+1. **Rule 1: No Hardcoded Colors.** Developers are strictly forbidden from using hex codes, `rgb()`, or `rgba()` for structural UI elements. All colors must reference `--irs-` variables.
+2. **Rule 2: Mobile-First Sizing.** All interactive elements (buttons, close icons, list items) MUST have a minimum height and width of `var(--irs-touch-target)` (44px).
+3. **Rule 3: Border Radii.** Never use hardcoded pixel values for `border-radius`. Use `var(--irs-radius-sm)` for buttons/inputs, `var(--irs-radius-md)` for panels, and `var(--irs-radius-lg)` for floating modals.
+
+### Token Index (`src/shared/theme.css`)
+
+- **Surfaces & Backgrounds**
+  - `--irs-surface-base`
+  - `--irs-surface-panel`
+  - `--irs-surface-modal`
+  - `--irs-surface-input`
+  - `--irs-surface-dark-alpha`
+- **Accent Colors**
+  - `--irs-accent-primary`
+  - `--irs-accent-primary-active`
+  - `--irs-accent-danger`
+  - `--irs-accent-danger-active`
+  - `--irs-accent-success`
+  - `--irs-accent-warning`
+- **Borders**
+  - `--irs-border-light`
+  - `--irs-border-heavy`
+  - `--irs-border-blue-alpha`
+- **Typography**
+  - `--irs-text-primary`
+  - `--irs-text-secondary`
+  - `--irs-text-muted`
+- **Geometry & Sizing**
+  - `--irs-radius-sm`
+  - `--irs-radius-md`
+  - `--irs-radius-lg`
+  - `--irs-touch-target`
