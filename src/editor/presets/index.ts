@@ -16,11 +16,6 @@ export {
 } from './presetsTab';
 
 export {
-  createUndoToast,
-  type UndoToastController,
-} from './undoToast';
-
-export {
   createCategoryDetail,
   type CategoryDetailConfig,
   type CategoryDetailController,
