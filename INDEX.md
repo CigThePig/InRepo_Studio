@@ -320,6 +320,10 @@ Micro-format (copy/paste):
   - Role: Entry point, mode detection, initialization.
   - Lists of truth: none
 
+- `src/boot/loadingScreen.ts`
+  - Role: Boot loading screen DOM helpers (progress + hide transition).
+  - Lists of truth: none
+
 - `src/boot/modeRouter.ts`
   - Role: Route to editor or game mode.
   - Lists of truth: BootConfig
