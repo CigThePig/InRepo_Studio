@@ -67,8 +67,10 @@ const STYLES = `
   .bottom-panel {
     display: flex;
     flex-direction: column;
-    background: #0d1220;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--irs-surface-dark-alpha);
+    border-top: 1px solid var(--irs-color-blue-alpha-22);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     overflow: hidden;
   }
 
@@ -77,16 +79,16 @@ const STYLES = `
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
-    padding: 10px 12px 12px;
+    padding: 10px 12px max(12px, env(safe-area-inset-bottom));
   }
 
   .bottom-panel__tool-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
     padding: 4px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--irs-color-blue-alpha-12);
     align-self: flex-start;
   }
 
@@ -96,8 +98,8 @@ const STYLES = `
     padding: 0 12px;
     border-radius: 10px;
     border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.8);
+    background: var(--irs-color-blue-alpha-12);
+    color: var(--irs-text);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -111,14 +113,13 @@ const STYLES = `
   }
 
   .bottom-panel__tool-button:active {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(0.97);
+    background: var(--irs-color-blue-alpha-22);
   }
 
   .bottom-panel__tool-button--active {
-    background: rgba(74, 158, 255, 0.2);
-    color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.4);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-color-blue);
+    box-shadow: inset 0 0 0 1px var(--irs-color-blue-border);
   }
 
   .bottom-panel__tool-button:disabled {
@@ -138,19 +139,19 @@ const STYLES = `
   }
 
   .bottom-panel__tool-title {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
   }
 
   .bottom-panel__tool-sublabel {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    color: var(--irs-text-muted);
     font-weight: 500;
   }
 
   .bottom-panel__tool-button--locked .bottom-panel__tool-sublabel::after {
     content: ' • Locked';
-    color: rgba(255, 179, 86, 0.9);
+    color: var(--irs-color-yellow);
   }
 
   .bottom-panel__context-strip {
@@ -207,6 +208,7 @@ export function createBottomPanel(
   `;
 
   placeButton.addEventListener('click', () => {
+    uxFeedback.motion.pulse(placeButton);
     placeClickCallback?.();
   });
 
@@ -221,6 +223,7 @@ export function createBottomPanel(
   `;
 
   interactButton.addEventListener('click', () => {
+    uxFeedback.motion.pulse(interactButton);
     interactClickCallback?.();
   });
 
@@ -238,6 +241,7 @@ export function createBottomPanel(
   `;
 
   removeButton.addEventListener('click', () => {
+    uxFeedback.motion.pulse(removeButton);
     removeClickCallback?.();
   });
 
