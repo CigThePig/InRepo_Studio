@@ -34,32 +34,12 @@ export interface ResizeDialogResult {
 // --- Styles ---
 
 const DIALOG_STYLES = `
-  .scene-dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-  }
-
   .scene-dialog {
-    background: #1a1a2e;
-    border-radius: 12px;
-    border: 1px solid #3a3a6e;
-    padding: 20px;
     max-width: 320px;
-    width: 100%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   }
 
   .scene-dialog__title {
-    color: #fff;
+    color: var(--irs-text-primary);
     font-size: 18px;
     font-weight: 700;
     margin: 0 0 16px 0;
@@ -72,35 +52,14 @@ const DIALOG_STYLES = `
 
   .scene-dialog__label {
     display: block;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 6px;
   }
 
-  .scene-dialog__input {
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #3a3a6e;
-    background: #16213e;
-    color: #fff;
-    font-size: 16px;
-    box-sizing: border-box;
-  }
-
-  .scene-dialog__input:focus {
-    outline: none;
-    border-color: #4a9eff;
-  }
-
-  .scene-dialog__input--error {
-    border-color: #ff6b6b;
-  }
-
   .scene-dialog__error {
-    color: #ff6b6b;
+    color: var(--irs-accent-danger);
     font-size: 12px;
     margin-top: 4px;
     min-height: 16px;
@@ -121,54 +80,12 @@ const DIALOG_STYLES = `
     margin-top: 20px;
   }
 
-  .scene-dialog__btn {
+  .scene-dialog__actions .irs-btn {
     flex: 1;
-    min-height: 44px;
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .scene-dialog__btn--cancel {
-    background: #2a2a4e;
-    color: #aab0d4;
-    border: 1px solid #3a3a6e;
-  }
-
-  .scene-dialog__btn--cancel:active {
-    background: #3a3a6e;
-  }
-
-  .scene-dialog__btn--confirm {
-    background: #4a9eff;
-    color: #fff;
-  }
-
-  .scene-dialog__btn--confirm:active {
-    background: #3a7fd6;
-  }
-
-  .scene-dialog__btn--confirm:disabled {
-    background: #3a3a6e;
-    color: #666;
-    cursor: not-allowed;
-  }
-
-  .scene-dialog__btn--danger {
-    background: #ff6b6b;
-    color: #1a0f14;
-  }
-
-  .scene-dialog__btn--danger:active {
-    background: #e55555;
   }
 
   .scene-dialog__message {
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
     font-size: 14px;
     text-align: center;
     margin-bottom: 16px;
@@ -191,13 +108,13 @@ function injectStyles(): void {
 
 function createOverlay(): HTMLDivElement {
   const overlay = document.createElement('div');
-  overlay.className = 'scene-dialog-overlay';
+  overlay.className = 'irs-overlay irs-overlay--visible';
   return overlay;
 }
 
 function createDialog(): HTMLDivElement {
   const dialog = document.createElement('div');
-  dialog.className = 'scene-dialog';
+  dialog.className = 'irs-dialog scene-dialog';
   return dialog;
 }
 
@@ -218,23 +135,23 @@ export function showCreateSceneDialog(
       <h2 class="scene-dialog__title">Create New Scene</h2>
       <div class="scene-dialog__field">
         <label class="scene-dialog__label">Scene Name</label>
-        <input type="text" class="scene-dialog__input" id="scene-name-input" placeholder="Enter scene name" autocomplete="off">
+        <input type="text" class="irs-input scene-dialog__input" id="scene-name-input" placeholder="Enter scene name" autocomplete="off">
         <div class="scene-dialog__error" id="name-error"></div>
       </div>
       <div class="scene-dialog__row">
         <div class="scene-dialog__field">
           <label class="scene-dialog__label">Width (tiles)</label>
-          <input type="number" class="scene-dialog__input" id="scene-width-input" value="${defaultWidth}" min="1" max="500">
+          <input type="number" class="irs-input scene-dialog__input" id="scene-width-input" value="${defaultWidth}" min="1" max="500">
         </div>
         <div class="scene-dialog__field">
           <label class="scene-dialog__label">Height (tiles)</label>
-          <input type="number" class="scene-dialog__input" id="scene-height-input" value="${defaultHeight}" min="1" max="500">
+          <input type="number" class="irs-input scene-dialog__input" id="scene-height-input" value="${defaultHeight}" min="1" max="500">
         </div>
       </div>
       <div class="scene-dialog__error" id="dimension-error"></div>
       <div class="scene-dialog__actions">
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Create</button>
+        <button type="button" class="irs-btn irs-btn--secondary scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
+        <button type="button" class="irs-btn irs-btn--primary scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Create</button>
       </div>
     `;
 
@@ -258,11 +175,11 @@ export function showCreateSceneDialog(
       const nameValidation = validateSceneName(nameInput.value, [], undefined, existingScenes);
       if (!nameValidation.valid) {
         nameError.textContent = nameValidation.error ?? '';
-        nameInput.classList.add('scene-dialog__input--error');
+        nameInput.classList.add('irs-input--error');
         valid = false;
       } else {
         nameError.textContent = '';
-        nameInput.classList.remove('scene-dialog__input--error');
+        nameInput.classList.remove('irs-input--error');
       }
 
       // Validate dimensions
@@ -338,12 +255,12 @@ export function showRenameDialog(
       <h2 class="scene-dialog__title">Rename Scene</h2>
       <div class="scene-dialog__field">
         <label class="scene-dialog__label">Scene Name</label>
-        <input type="text" class="scene-dialog__input" id="scene-name-input" value="${currentName}" autocomplete="off">
+        <input type="text" class="irs-input scene-dialog__input" id="scene-name-input" value="${currentName}" autocomplete="off">
         <div class="scene-dialog__error" id="name-error"></div>
       </div>
       <div class="scene-dialog__actions">
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Rename</button>
+        <button type="button" class="irs-btn irs-btn--secondary scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
+        <button type="button" class="irs-btn irs-btn--primary scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Rename</button>
       </div>
     `;
 
@@ -362,13 +279,13 @@ export function showRenameDialog(
       const nameValidation = validateSceneName(nameInput.value, [], currentSceneId, existingScenes);
       if (!nameValidation.valid) {
         nameError.textContent = nameValidation.error ?? '';
-        nameInput.classList.add('scene-dialog__input--error');
+        nameInput.classList.add('irs-input--error');
         confirmBtn.disabled = true;
         return false;
       }
 
       nameError.textContent = '';
-      nameInput.classList.remove('scene-dialog__input--error');
+      nameInput.classList.remove('irs-input--error');
       confirmBtn.disabled = false;
       return true;
     }
@@ -427,17 +344,17 @@ export function showResizeDialog(
       <div class="scene-dialog__row">
         <div class="scene-dialog__field">
           <label class="scene-dialog__label">Width (tiles)</label>
-          <input type="number" class="scene-dialog__input" id="scene-width-input" value="${currentWidth}" min="1" max="500">
+          <input type="number" class="irs-input scene-dialog__input" id="scene-width-input" value="${currentWidth}" min="1" max="500">
         </div>
         <div class="scene-dialog__field">
           <label class="scene-dialog__label">Height (tiles)</label>
-          <input type="number" class="scene-dialog__input" id="scene-height-input" value="${currentHeight}" min="1" max="500">
+          <input type="number" class="irs-input scene-dialog__input" id="scene-height-input" value="${currentHeight}" min="1" max="500">
         </div>
       </div>
       <div class="scene-dialog__error" id="dimension-error"></div>
       <div class="scene-dialog__actions">
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Resize</button>
+        <button type="button" class="irs-btn irs-btn--secondary scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
+        <button type="button" class="irs-btn irs-btn--primary scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Resize</button>
       </div>
     `;
 
@@ -523,8 +440,8 @@ export function showDeleteConfirmation(sceneName: string): Promise<boolean> {
         This cannot be undone.
       </div>
       <div class="scene-dialog__actions">
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--danger" id="confirm-btn">Delete</button>
+        <button type="button" class="irs-btn irs-btn--secondary scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
+        <button type="button" class="irs-btn irs-btn--danger scene-dialog__btn scene-dialog__btn--danger" id="confirm-btn">Delete</button>
       </div>
     `;
 
@@ -583,12 +500,12 @@ export function showDuplicateDialog(
       <h2 class="scene-dialog__title">Duplicate Scene</h2>
       <div class="scene-dialog__field">
         <label class="scene-dialog__label">New Scene Name</label>
-        <input type="text" class="scene-dialog__input" id="scene-name-input" value="${duplicateName}" autocomplete="off">
+        <input type="text" class="irs-input scene-dialog__input" id="scene-name-input" value="${duplicateName}" autocomplete="off">
         <div class="scene-dialog__error" id="name-error"></div>
       </div>
       <div class="scene-dialog__actions">
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
-        <button type="button" class="scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Duplicate</button>
+        <button type="button" class="irs-btn irs-btn--secondary scene-dialog__btn scene-dialog__btn--cancel" id="cancel-btn">Cancel</button>
+        <button type="button" class="irs-btn irs-btn--primary scene-dialog__btn scene-dialog__btn--confirm" id="confirm-btn">Duplicate</button>
       </div>
     `;
 
@@ -607,13 +524,13 @@ export function showDuplicateDialog(
       const nameValidation = validateSceneName(nameInput.value, [], undefined, existingScenes);
       if (!nameValidation.valid) {
         nameError.textContent = nameValidation.error ?? '';
-        nameInput.classList.add('scene-dialog__input--error');
+        nameInput.classList.add('irs-input--error');
         confirmBtn.disabled = true;
         return false;
       }
 
       nameError.textContent = '';
-      nameInput.classList.remove('scene-dialog__input--error');
+      nameInput.classList.remove('irs-input--error');
       confirmBtn.disabled = false;
       return true;
     }
