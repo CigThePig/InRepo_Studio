@@ -32,17 +32,9 @@ import {
   forceRefreshFromCold,
   loadProject,
 } from '@/storage';
+import { hideLoadingScreen, updateLoadingProgress } from './loadingScreen';
 
 const LOG_PREFIX = '[Boot]';
-
-// --- Loading UI ---
-
-function hideLoading(): void {
-  const loadingEl = document.getElementById('loading');
-  if (loadingEl) {
-    loadingEl.classList.add('hidden');
-  }
-}
 
 function showError(message: string): void {
   const loadingEl = document.getElementById('loading');
@@ -62,27 +54,18 @@ function showError(message: string): void {
   }
 }
 
-function updateLoadingText(text: string): void {
-  const loadingEl = document.getElementById('loading');
-  if (loadingEl) {
-    const textEl = loadingEl.querySelector('.loading-text');
-    if (textEl) {
-      textEl.textContent = text;
-    }
-  }
-}
-
 // --- Editor Boot ---
 
 async function bootEditor(): Promise<void> {
   console.log(`${LOG_PREFIX} Booting editor mode...`);
-  updateLoadingText('Loading editor...');
+  updateLoadingProgress(75, 'Loading editor...');
 
   // Dynamically import editor module to keep it separate from game bundle
   const { initEditor } = await import('@/editor/init');
   await initEditor();
 
-  hideLoading();
+  updateLoadingProgress(100, 'Editor ready');
+  hideLoadingScreen();
   console.log(`${LOG_PREFIX} Editor ready`);
 }
 
@@ -90,13 +73,14 @@ async function bootEditor(): Promise<void> {
 
 async function bootGame(config: BootConfig): Promise<void> {
   console.log(`${LOG_PREFIX} Booting game mode...`);
-  updateLoadingText('Loading game...');
+  updateLoadingProgress(75, 'Loading game...');
 
   // Dynamically import runtime module
   const { initRuntime } = await import('@/runtime/init');
   await initRuntime({ dataSource: 'cold', startSceneId: config.sceneOverride });
 
-  hideLoading();
+  updateLoadingProgress(100, 'Game ready');
+  hideLoadingScreen();
   console.log(`${LOG_PREFIX} Game ready`);
 }
 
@@ -104,7 +88,7 @@ async function bootGame(config: BootConfig): Promise<void> {
 
 async function bootPlaytest(config: BootConfig): Promise<void> {
   console.log(`${LOG_PREFIX} Booting playtest mode...`);
-  updateLoadingText('Loading playtest...');
+  updateLoadingProgress(75, 'Loading playtest...');
 
   const { initRuntime } = await import('@/runtime/init');
   const { createUnifiedLoader } = await import('@/runtime/loader');
@@ -121,7 +105,8 @@ async function bootPlaytest(config: BootConfig): Promise<void> {
   });
   overlay.show();
 
-  hideLoading();
+  updateLoadingProgress(100, 'Playtest ready');
+  hideLoadingScreen();
   console.log(`${LOG_PREFIX} Playtest ready`);
 }
 
@@ -139,8 +124,10 @@ async function boot(): Promise<void> {
   }
 
   try {
+    updateLoadingProgress(10, 'Starting boot sequence...');
+
     // Initialize hot storage
-    updateLoadingText('Initializing storage...');
+    updateLoadingProgress(20, 'Initializing storage...');
     await initHotStorage();
 
     // Optional: explicit reset trigger (?reset=1) to wipe hot storage and re-seed from repo.
@@ -148,7 +135,7 @@ async function boot(): Promise<void> {
     const params = new URLSearchParams(window.location.search);
     const reset = params.get('reset') === 'true' || params.get('reset') === '1';
     if (reset) {
-      updateLoadingText('Resetting local data...');
+      updateLoadingProgress(30, 'Resetting local data...');
       console.log(`${LOG_PREFIX} Reset requested via query param`);
       try {
         await initScriptStorage();
@@ -165,7 +152,7 @@ async function boot(): Promise<void> {
 
     // Check if migration is needed
     if (await needsMigration()) {
-      updateLoadingText('Loading project data...');
+      updateLoadingProgress(45, 'Loading project data...');
       console.log(`${LOG_PREFIX} Running cold-to-hot migration...`);
       const result = await migrateFromCold();
 
@@ -177,6 +164,7 @@ async function boot(): Promise<void> {
 
     // Load project to verify we have data
     const project = await loadProject();
+    updateLoadingProgress(60, 'Preparing mode routing...');
     if (project) {
       console.log(`${LOG_PREFIX} Project: "${project.name}"`);
     }
