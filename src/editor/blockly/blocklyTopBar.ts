@@ -65,9 +65,11 @@ const STYLES = `
   .blockly-top-bar {
     display: flex;
     align-items: center;
-    background: #0d1220;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 8px 12px;
+    background: var(--irs-surface-dark-alpha);
+    border-bottom: 1px solid var(--irs-color-blue-alpha-12);
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     gap: 8px;
   }
 
@@ -132,12 +134,12 @@ const STYLES = `
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 60px;
+    padding-top: max(60px, env(safe-area-inset-top));
     background: rgba(0,0,0,0.5);
   }
 
   .blockly-target-overlay__panel {
-    background: #131a2e;
+    background: var(--irs-surface-dark-alpha);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px;
     width: 90%;
@@ -146,6 +148,8 @@ const STYLES = `
     overflow-y: auto;
     overscroll-behavior: contain;
     box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .blockly-target-overlay__group-header {
@@ -238,13 +242,13 @@ const STYLES = `
   }
 
   .blockly-top-bar__status--running {
-    background: #22c55e;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+    background: var(--irs-color-green);
+    box-shadow: 0 0 6px var(--irs-color-green-alpha-53);
   }
 
   .blockly-top-bar__status--error {
-    background: #ef4444;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+    background: var(--irs-color-red);
+    box-shadow: 0 0 6px var(--irs-color-red-alpha-53);
   }
 
   .blockly-top-bar__run-btn,

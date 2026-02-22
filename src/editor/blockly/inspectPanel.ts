@@ -64,9 +64,9 @@ const STATUS_ICON: Record<'running' | 'stopped' | 'error', string> = {
 };
 
 const STATUS_COLOR: Record<'running' | 'stopped' | 'error', string> = {
-  running: '#22c55e',
-  stopped: '#6b7280',
-  error: '#ef4444',
+  running: 'var(--irs-color-green)',
+  stopped: 'var(--irs-text-muted)',
+  error: 'var(--irs-color-red)',
 };
 
 const LOG_LEVEL_COLOR: Record<'info' | 'warn' | 'error', string> = {
@@ -91,8 +91,8 @@ function ensureStyles(): void {
       overflow: hidden;
       font-family: sans-serif;
       font-size: 13px;
-      color: #e6ecff;
-      background: #0d1220;
+      color: var(--irs-text);
+      background: transparent;
     }
 
     .iip__section-label {
@@ -152,8 +152,8 @@ function ensureStyles(): void {
       margin: 4px 8px;
       padding: 10px 12px;
       border-radius: 10px;
-      background: rgba(255, 107, 107, 0.08);
-      border: 1px solid rgba(255, 107, 107, 0.25);
+      background: var(--irs-color-red-alpha-15);
+      border: 1px solid var(--irs-color-red-alpha-53);
       display: none;
     }
 
@@ -166,7 +166,7 @@ function ensureStyles(): void {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #ef4444;
+      color: var(--irs-color-red);
       margin-bottom: 4px;
     }
 
@@ -178,7 +178,7 @@ function ensureStyles(): void {
 
     .iip__error-msg {
       font-size: 12px;
-      color: #ff9a9a;
+      color: var(--irs-color-red);
       line-height: 1.45;
       word-break: break-word;
       margin-bottom: 8px;
@@ -187,13 +187,13 @@ function ensureStyles(): void {
     .iip__highlight-btn {
       display: inline-flex;
       align-items: center;
-      min-height: 36px;
+      min-height: 44px;
       min-width: 44px;
       padding: 0 12px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 107, 107, 0.35);
-      background: rgba(255, 107, 107, 0.10);
-      color: #ff9a9a;
+      border: 1px solid var(--irs-color-red-alpha-53);
+      background: var(--irs-color-red-alpha-15);
+      color: var(--irs-color-red);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -201,7 +201,7 @@ function ensureStyles(): void {
     }
 
     .iip__highlight-btn:active {
-      background: rgba(255, 107, 107, 0.20);
+      background: var(--irs-color-red-alpha-53);
     }
 
     /* ── Empty State ──────────────────────────────── */
@@ -427,9 +427,9 @@ export function createInspectPanel(
 
       const label = document.createElement('span');
       label.className = 'iip__script-label';
-      label.style.color = script.status === 'error' ? '#ff9a9a'
-        : script.status === 'running' ? '#e6ecff'
-        : 'rgba(230, 236, 255, 0.55)';
+      label.style.color = script.status === 'error' ? 'var(--irs-color-red)'
+        : script.status === 'running' ? 'var(--irs-text)'
+        : 'var(--irs-text-muted)';
       label.textContent = script.logicTarget;
 
       row.appendChild(icon);

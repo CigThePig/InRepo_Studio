@@ -92,7 +92,7 @@ const STYLES = `
     right: 0;
     bottom: 0;
     display: none;
-    background: #1e1e2e;
+    background: var(--irs-surface-dark);
     touch-action: none;
     overscroll-behavior: none;
   }
@@ -150,7 +150,7 @@ const STYLES = `
     padding: 12px 24px;
     border-radius: 10px;
     border: none;
-    background: #3b82f6;
+    background: var(--irs-color-blue);
     color: #fff;
     font-size: 16px;
     font-weight: 600;
