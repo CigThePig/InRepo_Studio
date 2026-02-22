@@ -33,6 +33,12 @@ export interface EraseToolConfig {
 
   /** History manager for undo/redo */
   history: HistoryManager;
+
+  /**
+   * Optional: called at end() if at least one tile was erased in this stroke.
+   * Callers use this to trigger undo-bar and motion feedback.
+   */
+  onEraseComplete?: (tilesErased: number) => void;
 }
 
 export interface EraseTool {
@@ -81,6 +87,7 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
   let erasing = false;
   let lastTileX: number | null = null;
   let lastTileY: number | null = null;
+  let erasedThisStroke = 0;
 
   function applyErase(points: { x: number; y: number }[]): boolean {
     const scene = getScene();
@@ -138,6 +145,8 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
       return false;
     }
 
+    erasedThisStroke += changes.length;
+
     for (const change of changes) {
       eraseTile(scene, activeLayer, change.x, change.y);
     }
@@ -167,6 +176,7 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
       }
 
       erasing = true;
+      erasedThisStroke = 0;
       history.beginGroup('Erase tiles');
 
       const tile = screenToTileWithOffset(screenX, screenY, viewport, tileSize, TOUCH_OFFSET_Y);
@@ -201,10 +211,16 @@ export function createEraseTool(config: EraseToolConfig): EraseTool {
       if (erasing) {
         console.log(`${LOG_PREFIX} End erase`);
       }
+      const count = erasedThisStroke;
+      erasedThisStroke = 0;
       erasing = false;
       lastTileX = null;
       lastTileY = null;
       history.endGroup();
+
+      if (count > 0) {
+        config.onEraseComplete?.(count);
+      }
     },
 
     isErasing(): boolean {

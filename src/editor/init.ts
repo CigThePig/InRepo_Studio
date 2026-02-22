@@ -1361,6 +1361,13 @@ async function initCanvas(tileSize: number): Promise<void> {
     },
     getBrushSize: () => currentBrushSize,
     history: historyManager,
+    onEraseComplete: (count) => {
+      const label = count === 1 ? '1 tile erased.' : `${count} tiles erased.`;
+      uxFeedback.undo.show(label, () => {
+        historyManager?.undo();
+        canvasController?.invalidateScene();
+      }, { destructive: true });
+    },
   });
 
   clipboard = createClipboard();
