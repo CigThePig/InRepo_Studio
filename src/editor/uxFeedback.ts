@@ -32,9 +32,12 @@ const TOKEN = {
 
   green:        '#6bff95',
   greenAlpha15: 'rgba(107, 255, 149, 0.15)',
+  greenAlpha53: 'rgba(107, 255, 149, 0.53)',
+  greenGlow:    'rgba(107, 255, 149, 0.27)',
 
   red:          '#ff6b6b',
   redAlpha15:   'rgba(255, 107, 107, 0.15)',
+  redAlpha53:   'rgba(255, 107, 107, 0.53)',
 
   yellow:       '#ffc258',
   yellowAlpha20:'rgba(255, 194, 88, 0.20)',
@@ -64,17 +67,61 @@ function ensureStyles(): void {
   style.id = STYLE_ID;
   style.textContent = `
 
+    :root {
+      --irs-color-blue: ${TOKEN.blue};
+      --irs-color-blue-alpha-12: ${TOKEN.blueAlpha12};
+      --irs-color-blue-alpha-22: ${TOKEN.blueAlpha22};
+      --irs-color-blue-alpha-35: ${TOKEN.blueAlpha35};
+      --irs-color-blue-alpha-45: ${TOKEN.blueAlpha45};
+      --irs-color-blue-border: ${TOKEN.blueBorder};
+
+      --irs-color-green: ${TOKEN.green};
+      --irs-color-green-alpha-15: ${TOKEN.greenAlpha15};
+      --irs-color-green-alpha-53: ${TOKEN.greenAlpha53};
+      --irs-color-green-glow: ${TOKEN.greenGlow};
+
+      --irs-color-red: ${TOKEN.red};
+      --irs-color-red-alpha-15: ${TOKEN.redAlpha15};
+      --irs-color-red-alpha-53: ${TOKEN.redAlpha53};
+
+      --irs-color-yellow: ${TOKEN.yellow};
+      --irs-color-yellow-alpha-20: ${TOKEN.yellowAlpha20};
+      --irs-color-yellow-border: ${TOKEN.yellowBorder};
+
+      --irs-surface-dark: ${TOKEN.surfaceDark};
+      --irs-text: ${TOKEN.text};
+      --irs-text-muted: ${TOKEN.textMuted};
+
+      --irs-duration-ack: ${TOKEN.durationAck}ms;
+      --irs-duration-change: ${TOKEN.durationChange}ms;
+      --irs-duration-safe: ${TOKEN.durationSafe}ms;
+      --irs-duration-toast: ${TOKEN.durationToast}ms;
+      --irs-duration-undo-bar: ${TOKEN.durationUndoBar}ms;
+
+      --irs-safe-top: env(safe-area-inset-top, 0px);
+      --irs-safe-bottom: env(safe-area-inset-bottom, 0px);
+      --irs-safe-left: env(safe-area-inset-left, 0px);
+      --irs-safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    .irs-glass-panel {
+      background-color: rgba(26, 43, 82, 0.95);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      background: rgba(26, 43, 82, 0.80);
+    }
+
     /* ── Keyframes ─────────────────────────────────────────── */
 
     @keyframes irs-pulse {
-      0%   { box-shadow: 0 0 0 0 ${TOKEN.blueAlpha35}; }
+      0%   { box-shadow: 0 0 0 0 var(--irs-color-blue-alpha-35); }
       60%  { box-shadow: 0 0 0 6px transparent; }
       100% { box-shadow: 0 0 0 0 transparent; }
     }
 
     @keyframes irs-glow {
-      0%   { box-shadow: 0 0 0 0 ${TOKEN.greenAlpha15}; }
-      50%  { box-shadow: 0 0 8px 4px ${TOKEN.green}44; }
+      0%   { box-shadow: 0 0 0 0 var(--irs-color-green-alpha-15); }
+      50%  { box-shadow: 0 0 8px 4px var(--irs-color-green-glow); }
       100% { box-shadow: 0 0 0 0 transparent; }
     }
 
@@ -110,30 +157,30 @@ function ensureStyles(): void {
 
     /* ── Motion classes ────────────────────────────────────── */
 
-    .irs-pulse  { animation: irs-pulse  ${TOKEN.durationAck}ms ease-out; }
-    .irs-glow   { animation: irs-glow   ${TOKEN.durationSafe}ms ease-out; }
-    .irs-expand { animation: irs-expand-in ${TOKEN.durationChange}ms ease-out; }
+    .irs-pulse  { animation: irs-pulse  var(--irs-duration-ack) ease-out; }
+    .irs-glow   { animation: irs-glow   var(--irs-duration-safe) ease-out; }
+    .irs-expand { animation: irs-expand-in var(--irs-duration-change) ease-out; }
 
     /* ── Selection ─────────────────────────────────────────── */
 
     .irs-selected {
-      outline: 2px solid ${TOKEN.blue};
+      outline: 2px solid var(--irs-color-blue);
       outline-offset: -2px;
-      background: ${TOKEN.blueAlpha12} !important;
+      background: var(--irs-color-blue-alpha-12) !important;
     }
 
     .irs-focused {
-      outline: 2px solid ${TOKEN.blue};
+      outline: 2px solid var(--irs-color-blue);
       outline-offset: -2px;
-      background: ${TOKEN.blueAlpha22} !important;
-      box-shadow: inset 0 0 0 1px ${TOKEN.blue}44;
+      background: var(--irs-color-blue-alpha-22) !important;
+      box-shadow: inset 0 0 0 1px var(--irs-color-blue-alpha-45);
     }
 
     /* ── Storage / Save state ──────────────────────────────── */
 
     .irs-dirty {
-      border-color: ${TOKEN.yellow} !important;
-      color: ${TOKEN.yellow} !important;
+      border-color: var(--irs-color-yellow) !important;
+      color: var(--irs-color-yellow) !important;
     }
 
     .irs-dirty::after {
@@ -141,7 +188,7 @@ function ensureStyles(): void {
       font-size: 8px;
       vertical-align: super;
       margin-left: 4px;
-      color: ${TOKEN.yellow};
+      color: var(--irs-color-yellow);
     }
 
     .irs-saved {
@@ -152,8 +199,12 @@ function ensureStyles(): void {
 
     .irs-toast-host {
       position: fixed;
-      top: 0; right: 0;
-      padding: 12px;
+      top: 0;
+      right: 0;
+      padding-top: calc(12px + var(--irs-safe-top));
+      padding-right: calc(12px + var(--irs-safe-right));
+      padding-bottom: 12px;
+      padding-left: calc(12px + var(--irs-safe-left));
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -169,22 +220,25 @@ function ensureStyles(): void {
       max-width: 320px;
       padding: 11px 14px;
       border-radius: 12px;
-      border: 1px solid ${TOKEN.blueBorder};
-      background: ${TOKEN.surfaceDark};
-      color: ${TOKEN.text};
+      border: 1px solid var(--irs-color-blue-border);
+      background-color: rgba(26, 43, 82, 0.95);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      background: rgba(26, 43, 82, 0.80);
+      color: var(--irs-text);
       font-size: 13px;
       line-height: 1.4;
       pointer-events: all;
-      animation: irs-toast-enter ${TOKEN.durationChange}ms ease-out;
+      animation: irs-toast-enter var(--irs-duration-change) ease-out;
     }
 
     .irs-toast--exiting {
-      animation: irs-toast-exit ${TOKEN.durationChange}ms ease-in forwards;
+      animation: irs-toast-exit var(--irs-duration-change) ease-in forwards;
     }
 
-    .irs-toast--success { border-color: ${TOKEN.green}88; }
-    .irs-toast--error   { border-color: ${TOKEN.red}88; }
-    .irs-toast--warning { border-color: ${TOKEN.yellowBorder}; }
+    .irs-toast--success { border-color: var(--irs-color-green-alpha-53); }
+    .irs-toast--error   { border-color: var(--irs-color-red-alpha-53); }
+    .irs-toast--warning { border-color: var(--irs-color-yellow-border); }
 
     .irs-toast__icon {
       flex-shrink: 0;
@@ -192,16 +246,16 @@ function ensureStyles(): void {
       line-height: 1.3;
     }
 
-    .irs-toast--success .irs-toast__icon { color: ${TOKEN.green}; }
-    .irs-toast--error   .irs-toast__icon { color: ${TOKEN.red}; }
-    .irs-toast--warning .irs-toast__icon { color: ${TOKEN.yellow}; }
-    .irs-toast--info    .irs-toast__icon { color: ${TOKEN.blue}; }
+    .irs-toast--success .irs-toast__icon { color: var(--irs-color-green); }
+    .irs-toast--error   .irs-toast__icon { color: var(--irs-color-red); }
+    .irs-toast--warning .irs-toast__icon { color: var(--irs-color-yellow); }
+    .irs-toast--info    .irs-toast__icon { color: var(--irs-color-blue); }
 
     /* ── Undo bar ──────────────────────────────────────────── */
 
     .irs-undo-bar {
       position: fixed;
-      bottom: 16px;
+      bottom: calc(16px + var(--irs-safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       display: none;
@@ -209,9 +263,12 @@ function ensureStyles(): void {
       gap: 12px;
       padding: 10px 14px;
       border-radius: 12px;
-      border: 1px solid ${TOKEN.blueBorder};
-      background: ${TOKEN.surfaceDark};
-      color: ${TOKEN.text};
+      border: 1px solid var(--irs-color-blue-border);
+      background-color: rgba(26, 43, 82, 0.95);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      background: rgba(26, 43, 82, 0.80);
+      color: var(--irs-text);
       font-size: 13px;
       white-space: nowrap;
       z-index: 9998;
@@ -219,11 +276,11 @@ function ensureStyles(): void {
 
     .irs-undo-bar--visible {
       display: flex;
-      animation: irs-slide-in-up ${TOKEN.durationChange}ms ease-out;
+      animation: irs-slide-in-up var(--irs-duration-change) ease-out;
     }
 
     .irs-undo-bar--destructive {
-      border-color: ${TOKEN.yellowBorder};
+      border-color: var(--irs-color-yellow-border);
     }
 
     .irs-undo-bar__btn {
@@ -231,9 +288,9 @@ function ensureStyles(): void {
       min-height: 36px;
       padding: 0 12px;
       border-radius: 8px;
-      border: 1px solid ${TOKEN.blueAlpha45};
-      background: ${TOKEN.blueAlpha22};
-      color: ${TOKEN.text};
+      border: 1px solid var(--irs-color-blue-alpha-45);
+      background: var(--irs-color-blue-alpha-22);
+      color: var(--irs-text);
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -241,7 +298,7 @@ function ensureStyles(): void {
     }
 
     .irs-undo-bar__btn:active {
-      background: ${TOKEN.blueAlpha35};
+      background: var(--irs-color-blue-alpha-35);
     }
 
     /* ── Empty state ───────────────────────────────────────── */
@@ -254,7 +311,7 @@ function ensureStyles(): void {
       gap: 12px;
       padding: 32px 20px;
       text-align: center;
-      animation: irs-slide-in-down ${TOKEN.durationChange}ms ease-out;
+      animation: irs-slide-in-down var(--irs-duration-change) ease-out;
     }
 
     .irs-empty-state__icon {
@@ -263,7 +320,7 @@ function ensureStyles(): void {
     }
 
     .irs-empty-state__message {
-      color: ${TOKEN.textMuted};
+      color: var(--irs-text-muted);
       font-size: 13px;
       line-height: 1.5;
       max-width: 220px;
@@ -273,9 +330,9 @@ function ensureStyles(): void {
       min-height: 38px;
       padding: 0 16px;
       border-radius: 10px;
-      border: 1px solid ${TOKEN.blueAlpha45};
-      background: ${TOKEN.blueAlpha12};
-      color: ${TOKEN.blue};
+      border: 1px solid var(--irs-color-blue-alpha-45);
+      background: var(--irs-color-blue-alpha-12);
+      color: var(--irs-color-blue);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -283,7 +340,7 @@ function ensureStyles(): void {
     }
 
     .irs-empty-state__action:active {
-      background: ${TOKEN.blueAlpha22};
+      background: var(--irs-color-blue-alpha-22);
     }
 
   `;
