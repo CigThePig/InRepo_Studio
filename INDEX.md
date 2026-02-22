@@ -175,6 +175,10 @@ Micro-format (copy/paste):
   - Role: Non-negotiable UX feedback standards — required reading before marking any feature complete.
   - Lists of truth: FeedbackContract, PolishRules
 
+- `context/repo-audit-report.md`
+  - Role: Reality-based repository audit of current behavior, failure points, and ranked issue backlog.
+  - Lists of truth: none
+
 ## Tracks
 - `tracks/YYYY-MM-DD-track-N-slug/`
   - Role: Planning artifacts for a single bounded unit of work.
