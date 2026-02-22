@@ -72,8 +72,10 @@ const STYLES = `
     left: 0;
     height: 100%;
     width: min(320px, 85vw);
-    background: #0d1220;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--irs-surface-dark-alpha);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid var(--irs-color-blue-alpha-12);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -98,8 +100,8 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-left)) 16px;
+    border-bottom: 1px solid var(--irs-color-blue-alpha-12);
     flex-shrink: 0;
   }
 
@@ -110,8 +112,8 @@ const STYLES = `
   }
 
   .left-berry__close {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 8px;
     border: none;
     background: rgba(255, 255, 255, 0.06);
@@ -137,7 +139,7 @@ const STYLES = `
     padding: 12px 16px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--irs-color-blue-alpha-12);
     scrollbar-width: none;
     flex-shrink: 0;
   }
@@ -150,7 +152,7 @@ const STYLES = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    height: 40px;
+    height: 44px;
     padding: 0 16px;
     border-radius: 8px;
     border: none;
@@ -200,6 +202,7 @@ const STYLES = `
     overflow-y: auto;
     overflow-x: hidden;
     padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     display: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -238,7 +241,7 @@ const STYLES = `
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 28px;
+    width: 44px;
     height: 64px;
     padding: 0;
     border: none;
@@ -254,8 +257,10 @@ const STYLES = `
   .left-berry__handle-tab {
     width: 20px;
     height: 56px;
-    background: rgba(30, 40, 60, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--irs-surface-dark-alpha);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--irs-color-blue-alpha-12);
     border-left: none;
     border-radius: 0 10px 10px 0;
     display: flex;
