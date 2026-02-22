@@ -6,6 +6,7 @@
  */
 
 import type { LayerType } from '@/types';
+import { uxFeedback } from '@/editor/uxFeedback';
 import { LAYER_ORDER } from '@/types';
 
 const LOG_PREFIX = '[TopPanel]';
@@ -68,25 +69,17 @@ const STYLES = `
   .top-panel {
     display: flex;
     flex-direction: column;
-    background: #16213e;
-    border-bottom: 1px solid #0f3460;
-    overflow: hidden;
-    transition: max-height 0.2s ease-out;
-  }
-
-  .top-panel--collapsed {
-    max-height: 48px;
-  }
-
-  .top-panel--expanded {
-    max-height: 240px;
+    background: var(--irs-surface-dark-alpha, rgba(22, 33, 62, 0.85));
+    border-bottom: 1px solid var(--irs-color-blueBorder);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .top-panel__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 0 0 0;
+    padding: max(0px, env(safe-area-inset-top)) 0 0 0;
     height: 48px;
     min-height: 48px;
     user-select: none;
@@ -99,7 +92,7 @@ const STYLES = `
   }
 
   .top-panel__title {
-    color: #fff;
+    color: var(--irs-color-text);
     font-weight: bold;
     font-size: 14px;
     overflow: hidden;
@@ -114,16 +107,12 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #888;
+    color: var(--irs-color-text-muted);
     font-size: 12px;
     background: transparent;
     border: none;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  .top-panel__chevron:active {
-    background: rgba(255, 255, 255, 0.05);
   }
 
   .top-panel__actions {
@@ -138,16 +127,12 @@ const STYLES = `
     padding: 6px 10px;
     border-radius: 8px;
     border: none;
-    background: #4a9eff;
-    color: #fff;
+    background: var(--irs-color-blue);
+    color: var(--irs-color-text);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  .top-panel__playtest:active {
-    background: #3a7fd6;
   }
 
   .top-panel__content {
@@ -156,6 +141,21 @@ const STYLES = `
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    transform-origin: top;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  }
+
+  .top-panel__content--hidden {
+    transform: translateY(-10px);
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .top-panel__content:not(.top-panel__content--hidden) {
+    transform: translateY(0);
+    opacity: 1;
+    position: relative;
   }
 
   .layer-tabs {
@@ -166,6 +166,8 @@ const STYLES = `
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
 
   .layer-tabs::-webkit-scrollbar {
@@ -178,8 +180,8 @@ const STYLES = `
     min-width: 44px;
     border-radius: 6px;
     border: 2px solid transparent;
-    background: #2a2a4e;
-    color: #ccc;
+    background: var(--irs-color-blueAlpha12);
+    color: var(--irs-color-text-muted);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -188,14 +190,10 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .layer-tab:active {
-    background: #3a3a6e;
-  }
-
   .layer-tab--active {
-    border-color: #4a9eff;
-    background: #3a3a6e;
-    color: #fff;
+    border-color: var(--irs-color-blue);
+    background: var(--irs-color-blueAlpha35);
+    color: var(--irs-color-text);
   }
 `;
 
@@ -217,7 +215,7 @@ export function createTopPanel(
 
   // Create DOM
   const panel = document.createElement('div');
-  panel.className = `top-panel ${state.expanded ? 'top-panel--expanded' : 'top-panel--collapsed'}`;
+  panel.className = 'top-panel';
 
   const header = document.createElement('div');
   header.className = 'top-panel__header';
@@ -241,6 +239,7 @@ export function createTopPanel(
   playtestButton.textContent = '▶ Playtest';
 
   playtestButton.addEventListener('click', (event) => {
+    uxFeedback.motion.pulse(playtestButton);
     event.stopPropagation();
     playtestCallback?.();
   });
@@ -251,6 +250,7 @@ export function createTopPanel(
   chevron.textContent = state.expanded ? '▲' : '▼';
 
   chevron.addEventListener('click', (event) => {
+    uxFeedback.motion.pulse(chevron);
     event.stopPropagation();
     state.expanded = !state.expanded;
     updateExpandedState();
@@ -280,6 +280,7 @@ export function createTopPanel(
     tab.setAttribute('data-layer', layerType);
 
     tab.addEventListener('click', () => {
+      uxFeedback.motion.pulse(tab);
       if (state.activeLayer === layerType) return;
 
       // Update state
@@ -302,10 +303,11 @@ export function createTopPanel(
   content.appendChild(layerTabs);
 
   function updateExpandedState(): void {
-    panel.classList.toggle('top-panel--expanded', state.expanded);
-    panel.classList.toggle('top-panel--collapsed', !state.expanded);
+    content.classList.toggle('top-panel__content--hidden', !state.expanded);
     chevron.textContent = state.expanded ? '▲' : '▼';
   }
+
+  updateExpandedState();
 
   panel.appendChild(header);
   panel.appendChild(content);
