@@ -202,6 +202,11 @@ This file is the source of truth for UX behavior in InRepo Studio.
 2. **Rule 2: Mobile-First Sizing.** All interactive elements (buttons, close icons, list items) MUST have a minimum height and width of `var(--irs-touch-target)` (44px).
 3. **Rule 3: Border Radii.** Never use hardcoded pixel values for `border-radius`. Use `var(--irs-radius-sm)` for buttons/inputs, `var(--irs-radius-md)` for panels, and `var(--irs-radius-lg)` for floating modals.
 
+### Shared UI Components
+
+4. **Rule 4: Use Shared Utility Classes.** Do not write custom CSS for standard buttons, text inputs, dialog boxes, or modal overlays. You must use the `.irs-` prefixed classes (e.g., `.irs-btn`, `.irs-input`, `.irs-overlay`, `.irs-dialog`) defined in `common-styles.css`.
+5. **Rule 5: No Duplicate Structural Styles.** Component-specific `<style>` tags injected via TypeScript should only contain layout CSS specific to that component (e.g., CSS Grid layouts, flexbox spacing for toolbars). They should never redefine basic button hover states or input borders.
+
 ### Token Index (`src/shared/theme.css`)
 
 - **Surfaces & Backgrounds**

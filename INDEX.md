@@ -795,6 +795,10 @@ Micro-format (copy/paste):
   - Role: Global UI design tokens for surfaces, accents, borders, typography, and geometry sizing.
   - Lists of truth: IRSThemeTokens
 
+- `src/shared/common-styles.css`
+  - Role: Shared utility classes for standard overlays, dialogs, buttons, and inputs using theme tokens.
+  - Lists of truth: none
+
 - `src/shared/atlasNaming.ts`
   - Role: Stable atlas category naming helpers (`atlas:<groupSlug>`) for editor/runtime/scene mapping.
   - Lists of truth: none
