@@ -21,6 +21,7 @@
  */
 
 import type { EditorIntent } from '@/storage/hot';
+import { uxFeedback } from '@/editor/uxFeedback';
 
 const LOG_PREFIX = '[BottomPanel]';
 
@@ -282,6 +283,11 @@ export function createBottomPanel(
       if (state.currentIntent === intent) return;
       state.currentIntent = intent;
       updateIntentButtons();
+
+      // Acknowledge the intent switch
+      if (intent === 'place') uxFeedback.motion.pulse(placeButton);
+      if (intent === 'remove') uxFeedback.motion.pulse(removeButton);
+      if (intent === 'interact') uxFeedback.motion.pulse(interactButton);
     },
 
     getCurrentIntent() {

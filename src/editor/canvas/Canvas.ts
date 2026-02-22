@@ -16,6 +16,7 @@ import {
   screenToTile,
   type ViewportState,
 } from './viewport';
+import { uxFeedback } from '@/editor/uxFeedback';
 import { createGestureHandler, type GestureHandler } from './gestures';
 import { drawGrid, createDefaultGridConfig, type GridConfig } from './grid';
 import {
@@ -321,6 +322,13 @@ export function createCanvas(
   const gestureHandler: GestureHandler = createGestureHandler(canvas, {
     onPan: handlePan,
     onZoom: handleZoom,
+    onPendingStart: () => {
+      // Pulse the canvas container as "I heard you" acknowledgement
+      uxFeedback.motion.pulse(canvas);
+    },
+    onPendingEnd: () => {
+      // No cleanup needed — pulse is fire-and-forget
+    },
     onToolStart: (x, y) => {
       const rect = canvas.getBoundingClientRect();
       const canvasX = x - rect.left;
