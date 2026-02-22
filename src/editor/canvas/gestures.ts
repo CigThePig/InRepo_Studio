@@ -31,13 +31,11 @@ export interface GestureCallbacks {
   /** Called when a long press is detected (for future context menu) */
   onLongPress?: (x: number, y: number) => void;
 
-  /**
-   * Called immediately when a single pointer goes down and enters
-   * the pending state. Use to show a visual "I heard you" signal
-   * (e.g. a pulse ripple at the touch point) before the intent
-   * is confirmed as a tool action or pan/zoom.
-   */
+  /** Called immediately on frame-1 when a single finger touches, before tool/pan disambiguation */
   onPendingStart?: (x: number, y: number) => void;
+
+  /** Called when pending is cancelled before disambiguation (e.g. second finger begins pan/zoom) */
+  onPendingCancel?: () => void;
 
   /**
    * Called when the pending state resolves or is cancelled.
@@ -179,10 +177,10 @@ export function createGestureHandler(
     if (pointerCount === 1) {
       // First finger - start pending, may become tool, long-press, or pan/zoom
       gestureState = 'pending';
-      callbacks.onPendingStart?.(e.clientX, e.clientY);
 
       const startX = e.clientX;
       const startY = e.clientY;
+      callbacks.onPendingStart?.(startX, startY);
 
       // Track start position for long-press movement detection
       longPressStartX = startX;
@@ -206,6 +204,9 @@ export function createGestureHandler(
       // If we were in tool mode, end it first
       if (gestureState === 'tool') {
         callbacks.onToolEnd?.();
+      }
+      if (gestureState === 'pending') {
+        callbacks.onPendingCancel?.();
       }
       startPanZoom();
     }
