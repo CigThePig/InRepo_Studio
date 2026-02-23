@@ -110,3 +110,66 @@
 .irs-input--error {
   border-color: var(--irs-accent-danger);
 }
+
+.irs-input::placeholder {
+  color: var(--irs-text-secondary);
+  opacity: 1;
+}
+
+.irs-search {
+  position: relative;
+}
+
+.irs-search__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  color: var(--irs-text-secondary);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.irs-search__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.irs-search__input {
+  padding-left: 38px;
+  padding-right: 42px;
+}
+
+.irs-search__clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--irs-border-light);
+  color: var(--irs-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.irs-search__clear:active {
+  background: var(--irs-border-light);
+  color: var(--irs-text-primary);
+}
+
+.irs-search__clear:focus-visible {
+  outline: none;
+  border-color: var(--irs-accent-primary);
+}
