@@ -13,7 +13,7 @@ export const BLOCKS_PALETTE_STYLES = `
     top: 0;
     z-index: 2;
     padding: 0 0 12px 0;
-    background: var(--irs-surface-base);
+    background: var(--irs-surface-panel);
     flex-shrink: 0;
   }
 .blocks-palette__list {
