@@ -20,12 +20,12 @@ const STYLES = `
     display: flex;
     flex-direction: column;
     gap: 12px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__preview {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 18px;
     padding: 12px;
     display: flex;
@@ -38,8 +38,8 @@ const STYLES = `
     width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 14px;
-    background: #0f172f;
-    border: 1px solid rgba(83, 101, 164, 0.6);
+    background: var(--irs-surface-base);
+    border: 1px solid var(--irs-border-heavy);
     overflow: hidden;
     touch-action: none;
   }
@@ -64,9 +64,9 @@ const STYLES = `
     min-height: 32px;
     padding: 6px 10px;
     border-radius: 999px;
-    border: 1px solid rgba(83, 101, 164, 0.7);
-    background: rgba(18, 26, 52, 0.85);
-    color: #dbe4ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     display: inline-flex;
@@ -78,24 +78,24 @@ const STYLES = `
   }
 
   .animation-tab__chip:active {
-    background: rgba(40, 54, 92, 0.9);
+    background: var(--irs-color-blue-alpha-22);
   }
 
   .animation-tab__chip--active {
-    border-color: #4a9eff;
-    background: rgba(74, 158, 255, 0.2);
-    color: #ffffff;
+    border-color: var(--irs-color-blue);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__preview-hint {
     font-size: 12px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
   }
 
   .animation-tab__source-cta {
     border-radius: 14px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -105,7 +105,7 @@ const STYLES = `
   .animation-tab__source-cta-title {
     font-size: 12px;
     font-weight: 700;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__source-cta-actions {
@@ -115,8 +115,8 @@ const STYLES = `
   }
 
   .animation-tab__frames {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 18px;
     padding: 10px;
     display: flex;
@@ -127,7 +127,7 @@ const STYLES = `
   .animation-tab__frames-title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__frames-strip {
@@ -144,7 +144,7 @@ const STYLES = `
     height: 56px;
     border-radius: 12px;
     border: 2px solid transparent;
-    background: rgba(22, 30, 60, 0.85);
+    background: var(--irs-surface-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -159,12 +159,12 @@ const STYLES = `
   }
 
   .animation-tab__frame--selected {
-    border-color: #4a9eff;
+    border-color: var(--irs-color-blue);
   }
 
   .animation-tab__frame--dragging {
     opacity: 0.6;
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--irs-border-light);
   }
 
   .animation-tab__frame-index {
@@ -172,8 +172,8 @@ const STYLES = `
     bottom: 2px;
     right: 4px;
     font-size: 10px;
-    color: #dbe4ff;
-    background: rgba(10, 15, 30, 0.7);
+    color: var(--irs-text-primary);
+    background: var(--irs-surface-base);
     padding: 2px 4px;
     border-radius: 6px;
   }
@@ -185,9 +185,9 @@ const STYLES = `
     width: 20px;
     height: 20px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 100, 100, 0.6);
-    background: rgba(200, 40, 40, 0.85);
-    color: #fff;
+    border: 1px solid var(--irs-color-red-alpha-53);
+    background: var(--irs-color-red-alpha-53);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 700;
     line-height: 1;
@@ -200,20 +200,20 @@ const STYLES = `
   }
 
   .animation-tab__frame-delete:active {
-    background: rgba(255, 60, 60, 0.95);
+    background: var(--irs-accent-danger-active);
   }
 
   .animation-tab__frame-add {
     border-style: dashed;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
     font-size: 20px;
     font-weight: 700;
     cursor: pointer;
   }
 
   .animation-tab__context {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 18px;
     padding: 12px;
     display: flex;
@@ -233,8 +233,8 @@ const STYLES = `
     padding: 8px 12px;
     border-radius: 12px;
     border: 2px solid transparent;
-    background: #1b2a52;
-    color: #dbe4ff;
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -242,21 +242,21 @@ const STYLES = `
   }
 
   .animation-tab__button:active {
-    background: #26386a;
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .animation-tab__button--primary {
-    background: #2f3b66;
-    color: #ffffff;
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__button--primary:active {
-    background: #3a4a80;
+    background: var(--irs-color-blue-alpha-35);
   }
 
   .animation-tab__button--ghost {
     background: transparent;
-    border-color: rgba(83, 101, 164, 0.6);
+    border-color: var(--irs-border-heavy);
   }
 
   .animation-tab__button[disabled] {
@@ -266,13 +266,13 @@ const STYLES = `
 
   .animation-tab__hint {
     font-size: 12px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
   }
 
   .animation-tab__sheet {
     position: fixed;
     inset: 0;
-    background: rgba(5, 8, 20, 0.6);
+    background: var(--irs-surface-base);
     display: none;
     align-items: flex-end;
     justify-content: center;
@@ -285,9 +285,9 @@ const STYLES = `
 
   .animation-tab__sheet-panel {
     width: min(420px, 92vw);
-    background: #0f162c;
+    background: var(--irs-surface-base);
     border-radius: 20px 20px 0 0;
-    border: 1px solid rgba(83, 101, 164, 0.6);
+    border: 1px solid var(--irs-border-heavy);
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -299,7 +299,7 @@ const STYLES = `
   .animation-tab__sheet-title {
     font-size: 14px;
     font-weight: 700;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__sheet-actions {
@@ -312,9 +312,9 @@ const STYLES = `
     min-height: 44px;
     padding: 8px 12px;
     border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     font-size: 13px;
   }
 
@@ -329,12 +329,12 @@ const STYLES = `
   .animation-tab__label {
     font-size: 12px;
     font-weight: 600;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__helper {
     font-size: 11px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
   }
 
   .animation-tab__asset-list {
@@ -349,8 +349,8 @@ const STYLES = `
     align-items: center;
     padding: 8px;
     border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
     cursor: pointer;
   }
 
@@ -364,12 +364,12 @@ const STYLES = `
   .animation-tab__asset-name {
     font-size: 13px;
     font-weight: 600;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .animation-tab__asset-meta {
     font-size: 11px;
-    color: #93a1d8;
+    color: var(--irs-text-secondary);
   }
 
   .animation-tab__pivot {
@@ -377,20 +377,20 @@ const STYLES = `
     width: 16px;
     height: 16px;
     border-radius: 999px;
-    border: 2px solid #4a9eff;
+    border: 2px solid var(--irs-color-blue);
     transform: translate(-50%, -50%);
     pointer-events: none;
   }
 
   .animation-tab__pivot-line {
     position: absolute;
-    background: rgba(74, 158, 255, 0.5);
+    background: var(--irs-color-blue-alpha-45);
     pointer-events: none;
   }
 
   .animation-tab__pivot-hud {
     font-size: 12px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     font-weight: 600;
   }
 
@@ -405,8 +405,8 @@ const STYLES = `
     width: 96px;
     height: 96px;
     border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(10, 15, 30, 0.7);
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-base);
     object-fit: contain;
   }
 
@@ -430,7 +430,7 @@ const STYLES = `
     appearance: none;
     height: 6px;
     border-radius: 3px;
-    background: rgba(83, 101, 164, 0.4);
+    background: var(--irs-color-blue-alpha-35);
     outline: none;
     cursor: pointer;
     min-width: 0;
@@ -442,7 +442,7 @@ const STYLES = `
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: var(--irs-color-blue);
     cursor: pointer;
   }
 
@@ -450,14 +450,14 @@ const STYLES = `
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: var(--irs-color-blue);
     cursor: pointer;
     border: none;
   }
 
   .animation-tab__scrubber-label {
     font-size: 11px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
     white-space: nowrap;
     min-width: 38px;
     text-align: right;
@@ -468,8 +468,8 @@ const STYLES = `
     bottom: 2px;
     left: 3px;
     font-size: 9px;
-    color: #9aa7d6;
-    background: rgba(10, 15, 30, 0.75);
+    color: var(--irs-text-secondary);
+    background: var(--irs-surface-base);
     padding: 1px 3px;
     border-radius: 4px;
     cursor: pointer;
@@ -479,7 +479,7 @@ const STYLES = `
   }
 
   .animation-tab__frame-duration--custom {
-    color: #f59e0b;
+    color: var(--irs-color-yellow);
   }
 
   .animation-tab__frame-duration-input {
@@ -488,9 +488,9 @@ const STYLES = `
     left: 2px;
     width: 50px;
     font-size: 9px;
-    background: #1b2a52;
-    border: 1px solid #4a9eff;
-    color: #fff;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-color-blue);
+    color: var(--irs-text-primary);
     border-radius: 4px;
     padding: 1px 3px;
     z-index: 10;
@@ -508,9 +508,9 @@ const STYLES = `
     min-height: 32px;
     padding: 4px 10px;
     border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
+    border: 1px solid var(--irs-border-heavy);
     background: transparent;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -518,9 +518,9 @@ const STYLES = `
   }
 
   .animation-tab__select-btn--active {
-    border-color: #4a9eff;
-    color: #4a9eff;
-    background: rgba(74, 158, 255, 0.12);
+    border-color: var(--irs-color-blue);
+    color: var(--irs-color-blue);
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .animation-tab__batch-toolbar {
@@ -535,9 +535,9 @@ const STYLES = `
     min-height: 36px;
     padding: 6px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: #1b2a52;
-    color: #dbe4ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -545,12 +545,12 @@ const STYLES = `
   }
 
   .animation-tab__batch-btn:active {
-    background: #26386a;
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .animation-tab__batch-btn--danger {
-    border-color: rgba(255, 100, 100, 0.5);
-    color: #fca5a5;
+    border-color: var(--irs-color-red-alpha-53);
+    color: var(--irs-accent-danger);
   }
 
   .animation-tab__batch-duration-wrap {
@@ -565,9 +565,9 @@ const STYLES = `
     min-height: 36px;
     padding: 4px 8px;
     border-radius: 10px;
-    border: 1px solid #4a9eff;
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-color-blue);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     font-size: 12px;
     width: 70px;
   }
@@ -577,8 +577,8 @@ const STYLES = `
   }
 
   .animation-tab__frame--multi-selected {
-    border-color: #4a9eff;
-    background: rgba(74, 158, 255, 0.18);
+    border-color: var(--irs-color-blue);
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .animation-tab__fps-slider-wrap {
@@ -593,7 +593,7 @@ const STYLES = `
     appearance: none;
     height: 6px;
     border-radius: 3px;
-    background: rgba(83, 101, 164, 0.4);
+    background: var(--irs-color-blue-alpha-35);
     outline: none;
     cursor: pointer;
   }
@@ -604,7 +604,7 @@ const STYLES = `
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: var(--irs-color-blue);
     cursor: pointer;
   }
 
@@ -612,7 +612,7 @@ const STYLES = `
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: var(--irs-color-blue);
     cursor: pointer;
     border: none;
   }
@@ -771,15 +771,18 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function ensureStyles(): void {
+  if (document.getElementById('animation-tab-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'animation-tab-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 export function createAnimationTab(config: AnimationTabConfig): AnimationTabController {
   const { container, assetRegistry, getEditorState, entityManager, history, onBackToList } = config;
 
-  if (!document.getElementById('animation-tab-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'animation-tab-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const state: AnimationTabState = {
     sourceAssetId: null,
@@ -1636,7 +1639,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const error = document.createElement('div');
     error.className = 'animation-tab__helper';
-    error.style.color = '#ff9db0';
+    error.style.color = 'var(--irs-accent-danger)';
 
     const updatePreview = () => {
       const rect = rects[selectedIndex - 1];
@@ -2101,7 +2104,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     lastDrawBounds = null;
 
     if (state.frames.length === 0) {
-      ctx.fillStyle = '#9aa7d6';
+      ctx.fillStyle = 'var(--irs-text-secondary)';
       ctx.font = '12px sans-serif';
       ctx.fillText('No frames yet', 12, rect.height / 2);
       updatePivotOverlay();
@@ -2115,7 +2118,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     const frameSourceImage =
       getCachedSourceImage(frame.ref.sourceAssetId) ?? state.sourceImage;
     if (!frameSourceImage) {
-      ctx.fillStyle = '#9aa7d6';
+      ctx.fillStyle = 'var(--irs-text-secondary)';
       ctx.font = '12px sans-serif';
       ctx.fillText('Loading frame...', 12, rect.height / 2);
       updatePivotOverlay();

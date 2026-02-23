@@ -310,7 +310,7 @@ const STYLES = `
     border-radius: 10px;
     max-height: 240px;
     overflow-y: auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px var(--irs-surface-dark-alpha);
   }
 
   .entities-tab__anim-dropdown-option {
@@ -345,7 +345,7 @@ const STYLES = `
     border: 1px solid var(--irs-border-heavy);
     border-radius: 8px;
     padding: 4px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 16px var(--irs-surface-dark-alpha);
     display: none;
   }
 

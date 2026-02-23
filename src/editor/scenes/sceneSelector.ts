@@ -8,6 +8,7 @@
 import type { SceneListItem } from './sceneManager';
 
 const LOG_PREFIX = '[SceneSelector]';
+const STYLE_ID = 'irs-scene-selector-styles';
 
 // --- Types ---
 
@@ -75,7 +76,7 @@ const STYLES = `
   }
 
   .scene-selector__name {
-    color: #fff;
+    color: var(--irs-text-primary);
     font-weight: bold;
     font-size: 14px;
     overflow: hidden;
@@ -85,7 +86,7 @@ const STYLES = `
   }
 
   .scene-selector__chevron {
-    color: #888;
+    color: var(--irs-text-muted);
     font-size: 10px;
     transition: transform 0.2s;
   }
@@ -99,8 +100,8 @@ const STYLES = `
     top: 100%;
     left: 0;
     right: 0;
-    background: #16213e;
-    border: 1px solid #3a3a6e;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     z-index: 100;
@@ -139,7 +140,7 @@ const STYLES = `
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: var(--irs-color-blue);
     margin-right: 10px;
     opacity: 0;
   }
@@ -150,7 +151,7 @@ const STYLES = `
 
   .scene-selector__item-name {
     flex: 1;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
     font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -165,7 +166,7 @@ const STYLES = `
     justify-content: center;
     background: transparent;
     border: none;
-    color: #888;
+    color: var(--irs-text-muted);
     font-size: 18px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -174,7 +175,7 @@ const STYLES = `
 
   .scene-selector__item-menu:active {
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--irs-text-primary);
   }
 
   .scene-selector__divider {
@@ -189,7 +190,7 @@ const STYLES = `
     gap: 8px;
     padding: 12px;
     min-height: 44px;
-    color: #4a9eff;
+    color: var(--irs-color-blue);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -206,8 +207,8 @@ const STYLES = `
 
   .scene-selector__menu-popup {
     position: fixed;
-    background: #1f1f3a;
-    border: 1px solid #3a3a6e;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     z-index: 200;
@@ -224,8 +225,8 @@ const STYLES = `
     display: flex;
     align-items: center;
     padding: 10px 16px;
-    min-height: 40px;
-    color: #e6ecff;
+    min-height: var(--irs-touch-target);
+    color: var(--irs-text-primary);
     font-size: 14px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -240,6 +241,14 @@ const STYLES = `
   }
 `;
 
+function ensureStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 // --- Factory ---
 
 export function createSceneSelector(
@@ -251,10 +260,7 @@ export function createSceneSelector(
   let isDropdownOpen = false;
   let activeMenuSceneId: string | null = null;
 
-  // Inject styles
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  ensureStyles();
 
   // Create root element
   const root = document.createElement('div');
@@ -513,7 +519,7 @@ export function createSceneSelector(
       document.removeEventListener('click', handleDocumentClick);
       container.removeChild(root);
       document.body.removeChild(menuPopup);
-      document.head.removeChild(styleEl);
+      document.getElementById(STYLE_ID)?.remove();
       console.log(`${LOG_PREFIX} Scene selector destroyed`);
     },
   };

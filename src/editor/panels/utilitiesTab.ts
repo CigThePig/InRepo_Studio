@@ -93,15 +93,18 @@ export interface UtilitiesTabController {
   destroy(): void;
 }
 
+function ensureStyles(): void {
+  if (document.getElementById('utilities-tab-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'utilities-tab-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabController {
   const { container, authManager, assetRegistry } = config;
 
-  if (!document.getElementById('utilities-tab-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'utilities-tab-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const root = document.createElement('div');
   root.className = 'utilities-tab';

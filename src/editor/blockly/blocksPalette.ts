@@ -37,6 +37,14 @@ export interface BlocksPaletteDeps {
   onEnablePreset?: (categoryId: string) => void;
 }
 
+function ensureStyles(): void {
+  if (document.getElementById('irs-blocks-palette-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'irs-blocks-palette-styles';
+  styleEl.textContent = BLOCKS_PALETTE_STYLES;
+  document.head.appendChild(styleEl);
+}
+
 // --- Factory ---
 
 export function createBlocksPalette(
@@ -45,13 +53,7 @@ export function createBlocksPalette(
 ): BlocksPaletteController {
   const { registry, workspace, getPresetConfig, onEnablePreset } = deps;
 
-  // Inject styles
-  if (!document.getElementById('blocks-palette-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'blocks-palette-styles';
-    styleEl.textContent = BLOCKS_PALETTE_STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   // --- State ---
 
@@ -70,16 +72,16 @@ export function createBlocksPalette(
   // --- DOM ---
 
   const root = document.createElement('div');
-  root.className = 'blocks-palette';
+  root.className = 'irs-blocks-palette';
 
   // Search bar
   const searchSection = document.createElement('div');
-  searchSection.className = 'blocks-palette__search';
+  searchSection.className = 'irs-blocks-palette__search';
 
   const search = createSearchInput({
     placeholder: 'Search blocks...',
     ariaLabel: 'Search blocks',
-    className: 'blocks-palette__search-wrap',
+    className: 'irs-blocks-palette__search-wrap',
     onInput: (value) => {
       searchQuery = value;
       render();
@@ -94,7 +96,7 @@ export function createBlocksPalette(
 
   // Block list
   const listContainer = document.createElement('div');
-  listContainer.className = 'blocks-palette__list';
+  listContainer.className = 'irs-blocks-palette__list';
 
   root.appendChild(searchSection);
   root.appendChild(listContainer);
@@ -128,7 +130,7 @@ export function createBlocksPalette(
       if (!isCategoryVisible(catDef, targetType)) continue;
 
       const section = document.createElement('div');
-      section.className = 'blocks-palette__category';
+      section.className = 'irs-blocks-palette__category';
 
       const isExpanded = expandedCategories.has(catDef.id);
       const enabled = isCategoryEnabled(catDef, getPresetConfig());
@@ -143,23 +145,23 @@ export function createBlocksPalette(
       // Header
       const header = document.createElement('button');
       header.type = 'button';
-      header.className = 'blocks-palette__cat-header';
+      header.className = 'irs-blocks-palette__cat-header';
 
       const icon = document.createElement('div');
-      icon.className = 'blocks-palette__cat-icon';
+      icon.className = 'irs-blocks-palette__cat-icon';
       icon.textContent = catDef.icon;
 
       const label = document.createElement('span');
-      label.className = 'blocks-palette__cat-label';
+      label.className = 'irs-blocks-palette__cat-label';
       label.textContent = catDef.label;
 
       const count = document.createElement('span');
-      count.className = 'blocks-palette__cat-count';
+      count.className = 'irs-blocks-palette__cat-count';
       count.textContent = enabled ? String(blocks.length) : '';
 
       const chevron = document.createElement('span');
-      chevron.className = 'blocks-palette__cat-chevron';
-      if (isExpanded) chevron.classList.add('blocks-palette__cat-chevron--expanded');
+      chevron.className = 'irs-blocks-palette__cat-chevron';
+      if (isExpanded) chevron.classList.add('irs-blocks-palette__cat-chevron--expanded');
       chevron.textContent = '\u203a';
 
       header.appendChild(icon);
@@ -169,13 +171,13 @@ export function createBlocksPalette(
 
       // Body
       const body = document.createElement('div');
-      body.className = 'blocks-palette__cat-body';
-      if (isExpanded) body.classList.add('blocks-palette__cat-body--expanded');
+      body.className = 'irs-blocks-palette__cat-body';
+      if (isExpanded) body.classList.add('irs-blocks-palette__cat-body--expanded');
 
       if (!enabled && catDef.presetDriven) {
         // Disabled preset placeholder
         const placeholder = document.createElement('div');
-        placeholder.className = 'blocks-palette__disabled-placeholder';
+        placeholder.className = 'irs-blocks-palette__disabled-placeholder';
         placeholder.textContent = `Enable ${catDef.label} preset to use these blocks.`;
 
         const enableBtn = document.createElement('button');
@@ -206,7 +208,7 @@ export function createBlocksPalette(
         if (hasAdvanced && !showAdvanced[catDef.id]) {
           const advBtn = document.createElement('button');
           advBtn.type = 'button';
-          advBtn.className = 'blocks-palette__advanced-toggle';
+          advBtn.className = 'irs-blocks-palette__advanced-toggle';
           advBtn.textContent = 'Show advanced';
           advBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -217,7 +219,7 @@ export function createBlocksPalette(
         } else if (hasAdvanced && showAdvanced[catDef.id]) {
           const advBtn = document.createElement('button');
           advBtn.type = 'button';
-          advBtn.className = 'blocks-palette__advanced-toggle';
+          advBtn.className = 'irs-blocks-palette__advanced-toggle';
           advBtn.textContent = 'Hide advanced';
           advBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -249,14 +251,14 @@ export function createBlocksPalette(
 
     if (results.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'blocks-palette__empty-search';
+      empty.className = 'irs-blocks-palette__empty-search';
       empty.textContent = "No blocks found. Try searching for 'jump', 'move', or 'event'.";
       listContainer.appendChild(empty);
       return;
     }
 
     const resultsCount = document.createElement('div');
-    resultsCount.className = 'blocks-palette__results-count';
+    resultsCount.className = 'irs-blocks-palette__results-count';
     resultsCount.textContent = `Found ${results.length} block${results.length === 1 ? '' : 's'}`;
     listContainer.appendChild(resultsCount);
 
@@ -276,22 +278,22 @@ export function createBlocksPalette(
       const catLabel = catDef?.label ?? catId;
 
       const section = document.createElement('div');
-      section.className = 'blocks-palette__category';
+      section.className = 'irs-blocks-palette__category';
 
       const header = document.createElement('div');
-      header.className = 'blocks-palette__cat-header';
+      header.className = 'irs-blocks-palette__cat-header';
       header.style.cursor = 'default';
 
       const icon = document.createElement('div');
-      icon.className = 'blocks-palette__cat-icon';
+      icon.className = 'irs-blocks-palette__cat-icon';
       icon.textContent = catDef?.icon ?? '?';
 
       const label = document.createElement('span');
-      label.className = 'blocks-palette__cat-label';
+      label.className = 'irs-blocks-palette__cat-label';
       label.textContent = catLabel;
 
       const count = document.createElement('span');
-      count.className = 'blocks-palette__cat-count';
+      count.className = 'irs-blocks-palette__cat-count';
       count.textContent = String(entries.length);
 
       header.appendChild(icon);
@@ -299,7 +301,7 @@ export function createBlocksPalette(
       header.appendChild(count);
 
       const body = document.createElement('div');
-      body.className = 'blocks-palette__cat-body blocks-palette__cat-body--expanded';
+      body.className = 'irs-blocks-palette__cat-body irs-blocks-palette__cat-body--expanded';
 
       for (const entry of entries) {
         const item = createBlockItem(entry, true);
@@ -326,13 +328,13 @@ export function createBlocksPalette(
 
     const item = document.createElement('button');
     item.type = 'button';
-    item.className = 'blocks-palette__block-item';
+    item.className = 'irs-blocks-palette__block-item';
 
     const dot = document.createElement('div');
-    dot.className = `blocks-palette__block-dot blocks-palette__block-dot--${entry.blockFamily}`;
+    dot.className = `irs-blocks-palette__block-dot irs-blocks-palette__block-dot--${entry.blockFamily}`;
 
     const label = document.createElement('span');
-    label.className = 'blocks-palette__block-label';
+    label.className = 'irs-blocks-palette__block-label';
     // Strip emoji prefix from message0 for display
     label.textContent = displayLabel;
 
@@ -345,7 +347,7 @@ export function createBlocksPalette(
       );
       if (catDef) {
         const tag = document.createElement('span');
-        tag.className = 'blocks-palette__cat-tag';
+        tag.className = 'irs-blocks-palette__cat-tag';
         tag.textContent = catDef.label;
         item.appendChild(tag);
       }
@@ -357,7 +359,7 @@ export function createBlocksPalette(
       if (!depEnabled) {
         const depDef = PALETTE_CATEGORIES.find((c) => c.id === depCatId || c.categoryId === depCatId);
         const requires = document.createElement('span');
-        requires.className = 'blocks-palette__cat-tag';
+        requires.className = 'irs-blocks-palette__cat-tag';
         requires.textContent = `Requires: ${depDef?.label ?? depCatId}`;
         item.appendChild(requires);
       }
@@ -400,16 +402,16 @@ export function createBlocksPalette(
     const catLabel = catDef?.label ?? catId;
 
     // Find the block item in the DOM and show a prompt after it
-    const items = listContainer.querySelectorAll('.blocks-palette__block-item');
+    const items = listContainer.querySelectorAll('.irs-blocks-palette__block-item');
     for (const item of items) {
-      const labelEl = item.querySelector('.blocks-palette__block-label');
+      const labelEl = item.querySelector('.irs-blocks-palette__block-label');
       if (labelEl && labelEl.textContent === getDisplayLabel(entry)) {
         // Remove any existing prompt
-        const existing = item.parentElement?.querySelector('.blocks-palette__dep-prompt');
+        const existing = item.parentElement?.querySelector('.irs-blocks-palette__dep-prompt');
         if (existing) existing.remove();
 
         const prompt = document.createElement('div');
-        prompt.className = 'blocks-palette__dep-prompt blocks-palette__dep-prompt--visible';
+        prompt.className = 'irs-blocks-palette__dep-prompt irs-blocks-palette__dep-prompt--visible';
 
         const text = document.createElement('span');
         text.textContent = `Requires ${catLabel} preset`;

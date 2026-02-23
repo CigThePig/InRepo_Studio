@@ -107,7 +107,7 @@ const STYLES = `
     border-radius: 10px;
     border: 1px solid var(--irs-border-light);
     background: var(--irs-border-light);
-    color: #fff;
+    color: var(--irs-text-primary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -147,7 +147,7 @@ const STYLES = `
     max-height: 60vh;
     overflow-y: auto;
     overscroll-behavior: contain;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    box-shadow: 0 8px 32px var(--irs-surface-dark-alpha);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
@@ -238,7 +238,7 @@ const STYLES = `
   }
 
   .irs-blockly-bar__status--stopped {
-    background: #666;
+    background: var(--irs-text-muted);
   }
 
   .irs-blockly-bar__status--running {
@@ -269,7 +269,7 @@ const STYLES = `
 
   .irs-blockly-bar__run-btn {
     background: var(--irs-color-green);
-    color: #fff;
+    color: var(--irs-text-primary);
   }
 
   .irs-blockly-bar__run-btn:active {
@@ -288,7 +288,7 @@ const STYLES = `
 
   .irs-blockly-bar__stop-btn {
     background: var(--irs-color-red);
-    color: #fff;
+    color: var(--irs-text-primary);
   }
 
   .irs-blockly-bar__stop-btn:active {

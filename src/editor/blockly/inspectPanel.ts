@@ -91,7 +91,7 @@ function ensureStyles(): void {
       overflow: hidden;
       font-family: sans-serif;
       font-size: 13px;
-      color: var(--irs-text);
+      color: var(--irs-text-primary);
       background: transparent;
     }
 
@@ -428,7 +428,7 @@ export function createInspectPanel(
       const label = document.createElement('span');
       label.className = 'irs-inspect-panel__script-label';
       label.style.color = script.status === 'error' ? 'var(--irs-color-red)'
-        : script.status === 'running' ? 'var(--irs-text)'
+        : script.status === 'running' ? 'var(--irs-text-primary)'
         : 'var(--irs-text-muted)';
       label.textContent = script.logicTarget;
 
