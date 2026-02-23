@@ -196,7 +196,7 @@ export function createBlocksPalette(
 
         const enableBtn = document.createElement('button');
         enableBtn.type = 'button';
-        enableBtn.className = 'blocks-palette__enable-btn';
+        enableBtn.className = 'irs-btn irs-btn--primary';
         enableBtn.textContent = 'Enable';
         enableBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -427,7 +427,7 @@ export function createBlocksPalette(
 
         const enableBtn = document.createElement('button');
         enableBtn.type = 'button';
-        enableBtn.className = 'blocks-palette__dep-enable';
+        enableBtn.className = 'irs-btn irs-btn--primary';
         enableBtn.textContent = 'Enable';
         enableBtn.addEventListener('click', (e) => {
           e.stopPropagation();

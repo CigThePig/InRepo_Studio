@@ -204,24 +204,6 @@ export const BLOCKS_PALETTE_STYLES = `
     line-height: 1.4;
   }
 
-  .blocks-palette__enable-btn {
-    display: inline-block;
-    margin-top: 8px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    background: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    min-height: 36px;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .blocks-palette__enable-btn:active {
-    background: rgba(59, 130, 246, 0.2);
-  }
 
   .blocks-palette__dep-prompt {
     padding: 6px 8px 6px 40px;
@@ -236,17 +218,6 @@ export const BLOCKS_PALETTE_STYLES = `
     gap: 8px;
   }
 
-  .blocks-palette__dep-enable {
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-  }
 
   .blocks-palette__empty-search {
     padding: 24px 8px;
