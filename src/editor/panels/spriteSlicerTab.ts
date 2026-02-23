@@ -1815,3 +1815,70 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     },
   };
 }
+
+
+export const SpriteSlicerPlugin = {
+  id: 'sprites',
+  label: 'Sprites',
+  icon: 'S',
+  mount: (container: HTMLElement, context: import('@/editor/core/tabRegistry').EditorPluginContext) => createSpriteSlicerTab({
+    container,
+    onSlicesConfirmed: (payload) => {
+      const registry = context.assetRegistry;
+      if (!registry) {
+        return;
+      }
+      const { slices, groupName, groupType, imageName, sliceSize } = payload;
+      const baseName = groupName || imageName || 'Asset Group';
+      const assetType = groupType === 'entities' ? 'entity' as const : groupType === 'props' ? 'sprite' as const : 'tile' as const;
+      const assetsToAdd = slices.map((slice, index) => ({
+        name: `${baseName} ${index + 1}`,
+        type: assetType,
+        dataUrl: slice.dataUrl,
+        width: sliceSize.width,
+        height: sliceSize.height,
+        source: 'local' as const,
+      }));
+      registry.addAssets({ groupType, groupName: baseName, assets: assetsToAdd });
+      context.openTab('assets');
+    },
+    onAtlasConfirmed: (payload) => {
+      const registry = context.assetRegistry;
+      if (!registry) {
+        return;
+      }
+      const { imageDataUrl, imageWidth, imageHeight, slices, groupName, groupType, imageName } = payload;
+      const baseName = groupName || imageName || 'Asset Group';
+      const assetType = groupType === 'entities' ? 'entity' as const : groupType === 'props' ? 'sprite' as const : 'tile' as const;
+      const sourceAssets = registry.addAssets({
+        groupType,
+        groupName: baseName,
+        assets: [{
+          name: `${baseName} (sheet)`,
+          type: assetType,
+          dataUrl: imageDataUrl,
+          width: imageWidth,
+          height: imageHeight,
+          source: 'local',
+        }],
+      });
+      const sourceAsset = sourceAssets[0];
+      if (!sourceAsset) return;
+      registry.addAssets({
+        groupType,
+        groupName: baseName,
+        assets: slices.map((slice) => ({
+          name: slice.name,
+          type: assetType,
+          dataUrl: imageDataUrl,
+          width: slice.rect.w,
+          height: slice.rect.h,
+          source: 'local',
+          sourceAssetId: sourceAsset.id,
+          rect: { ...slice.rect },
+        })),
+      });
+      context.openTab('assets');
+    },
+  }),
+} satisfies import('@/editor/core/tabRegistry').BerryTabPlugin;

@@ -1,64 +1,90 @@
-import { LEFT_BERRY_TABS, type LeftBerryTab, type LeftBerryTabId } from './leftBerryTabs';
-import { createSpriteSlicerTab } from './spriteSlicerTab';
-import { createAssetLibraryTab, type AssetLibraryTabController } from './assetLibraryTab';
-import type { AssetEntryInput, AssetRegistry } from '@/editor/assets';
-import type { EditorState } from '@/storage/hot';
-import type { EntityManager } from '@/editor/entities/entityManager';
-import type { HistoryManager } from '@/editor/history';
-import type { Scene } from '@/types';
-import { createAnimationTab, type AnimationTabController } from './animationTab';
-import type { PresetRegistry } from '@/runtime/presets/presetRegistry';
-import type { PresetConfigStore } from '@/editor/presets/presetConfigStore';
-import { createPresetsTab, type PresetsTabController } from '@/editor/presets/presetsTab';
 import { createBerryShell } from './berryShell';
+import {
+  type BerryTabPlugin,
+  type EditorPluginContext,
+  type TabController,
+  TabRegistry,
+} from '@/editor/core/tabRegistry';
+
+const LEFT_BERRY_PLUGIN_STYLES = `
+  .irs-berry__plugin-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--irs-border-light);
+    border-radius: var(--irs-radius-md);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 140ms ease, transform 140ms ease;
+  }
+
+  .irs-berry__plugin-empty-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--irs-text-primary);
+  }
+
+  .irs-berry__plugin-empty-description {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--irs-text-secondary);
+  }
+
+  .irs-berry__plugin-empty-cta {
+    align-self: flex-start;
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
+  }
+`;
+
+function ensureLeftBerryPluginStyles(): void {
+  if (document.getElementById('left-berry-plugin-styles')) {
+    return;
+  }
+  const styleEl = document.createElement('style');
+  styleEl.id = 'left-berry-plugin-styles';
+  styleEl.textContent = LEFT_BERRY_PLUGIN_STYLES;
+  document.head.appendChild(styleEl);
+}
 
 export interface LeftBerryConfig {
   initialOpen?: boolean;
-  initialTab?: LeftBerryTabId;
-  tabs?: LeftBerryTab[];
-  assetRegistry?: AssetRegistry;
-  assetLibraryEnabled?: boolean;
-  assetUploadEnabled?: boolean;
-  getEditorState?: () => EditorState | null;
-  getCurrentScene?: () => Scene | null;
-  entityManager?: EntityManager;
-  history?: HistoryManager;
-  presetRegistry?: PresetRegistry;
-  presetConfigStore?: PresetConfigStore;
+  initialTab?: string;
+  tabRegistry?: TabRegistry;
+  tabs?: BerryTabPlugin[];
+  pluginContext: Omit<EditorPluginContext, 'openTab'>;
 }
 
 export interface LeftBerryController {
-  open(tab?: LeftBerryTabId): void;
+  open(tab?: string): void;
   openAnimation(animationId: string): void;
   close(): void;
   isOpen(): boolean;
-  getActiveTab(): LeftBerryTabId | null;
-  setActiveTab(tab: LeftBerryTabId, options?: { silent?: boolean }): void;
-  getTabContentContainer(tab: LeftBerryTabId): HTMLElement | null;
-  onTabChange(callback: (tab: LeftBerryTabId) => void): void;
+  getActiveTab(): string | null;
+  setActiveTab(tab: string, options?: { silent?: boolean }): void;
+  getTabContentContainer(tab: string): HTMLElement | null;
+  onTabChange(callback: (tab: string) => void): void;
   onOpenChange(callback: (open: boolean) => void): void;
-  refreshTab(tab: LeftBerryTabId): void;
+  refreshTab(tab: string): void;
   setInsertBlockFn(fn: ((blockType: string) => void) | null): void;
   setOpenInBlocklyFn(fn: ((blockType: string) => void | Promise<void>) | null): void;
   destroy(): void;
 }
 
-export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig = {}): LeftBerryController {
-  const tabs = config.tabs ?? LEFT_BERRY_TABS;
-  const activeTabId = config.initialTab ?? tabs[0]?.id ?? 'sprites';
+export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig): LeftBerryController {
+  ensureLeftBerryPluginStyles();
+
+  const plugins = config.tabs ?? config.tabRegistry?.getLeftBerryTabs() ?? [];
+  const activeTabId = config.initialTab ?? plugins[0]?.id ?? null;
   let isOpen = config.initialOpen ?? false;
-  let currentTab: LeftBerryTabId | null = null;
-  const tabChangeCallbacks: Array<(tab: LeftBerryTabId) => void> = [];
+  let currentTab: string | null = null;
+  const tabChangeCallbacks: Array<(tab: string) => void> = [];
   const openChangeCallbacks: Array<(open: boolean) => void> = [];
-  const assetRegistry = config.assetRegistry;
-  const assetLibraryEnabled = config.assetLibraryEnabled ?? true;
-  const assetUploadEnabled = config.assetUploadEnabled ?? false;
-  const getEditorState = config.getEditorState;
-  const entityManager = config.entityManager;
-  const history = config.history;
-  let assetLibraryController: AssetLibraryTabController | null = null;
-  let animationTabController: AnimationTabController | null = null;
-  let presetsTabController: PresetsTabController | null = null;
 
   const shell = createBerryShell({
     container,
@@ -71,142 +97,44 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     },
   });
 
-  const tabContentMap = new Map<LeftBerryTabId, HTMLElement>();
+  const tabContentMap = new Map<string, HTMLElement>();
+  const pluginControllers = new Map<string, TabController>();
 
-  tabs.forEach((tab) => {
+  const pluginContext: EditorPluginContext = {
+    ...config.pluginContext,
+    openTab: (tabId: string) => setActiveTab(tabId),
+    openAnimation: (animationId: string) => {
+      shell.setOpen(true);
+      setActiveTab('animation');
+      pluginControllers.get('animation')?.openAnimation?.(animationId);
+    },
+  };
+
+  plugins.forEach((plugin) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'irs-berry__tab';
-    button.dataset.tab = tab.id;
-    button.innerHTML = `<span class="irs-berry__tab-icon">${tab.icon}</span>${tab.label}`;
-    button.addEventListener('click', () => setActiveTab(tab.id));
+    button.dataset.tab = plugin.id;
+    button.style.minHeight = 'var(--irs-touch-target)';
+    button.style.minWidth = 'var(--irs-touch-target)';
+    button.innerHTML = `<span class="irs-berry__tab-icon">${plugin.icon}</span>${plugin.label}`;
+    button.addEventListener('click', () => setActiveTab(plugin.id));
     shell.tabBar.appendChild(button);
 
     const tabContent = document.createElement('div');
     tabContent.className = 'irs-berry__tab-content';
-    tabContent.dataset.tab = tab.id;
+    tabContent.dataset.tab = plugin.id;
     shell.content.appendChild(tabContent);
-    tabContentMap.set(tab.id, tabContent);
+    tabContentMap.set(plugin.id, tabContent);
+
+    const controller = plugin.mount(tabContent, pluginContext);
+    pluginControllers.set(plugin.id, controller);
   });
 
-  const spritesContainer = tabContentMap.get('sprites');
-  if (spritesContainer) {
-    createSpriteSlicerTab({
-      container: spritesContainer,
-      onSlicesConfirmed: (payload) => {
-        if (!assetRegistry) return;
-        const { slices, groupName, groupType, imageName, sliceSize } = payload;
-        const baseName = groupName || imageName || 'Asset Group';
-        const assetsToAdd: AssetEntryInput[] = slices.map((slice, index) => ({
-          name: `${baseName} ${index + 1}`,
-          type: groupType === 'entities' ? 'entity' : groupType === 'props' ? 'sprite' : 'tile',
-          dataUrl: slice.dataUrl,
-          width: sliceSize.width,
-          height: sliceSize.height,
-          source: 'local',
-        }));
-        assetRegistry.addAssets({
-          groupType,
-          groupName: baseName,
-          assets: assetsToAdd,
-        });
-        setActiveTab('assets');
-      },
-      onAtlasConfirmed: (payload) => {
-        if (!assetRegistry) return;
-        const { imageDataUrl, imageWidth, imageHeight, slices, groupName, groupType, imageName } = payload;
-        const baseName = groupName || imageName || 'Asset Group';
-        const assetType = groupType === 'entities' ? 'entity' as const : groupType === 'props' ? 'sprite' as const : 'tile' as const;
-
-        const sourceAssets = assetRegistry.addAssets({
-          groupType,
-          groupName: baseName,
-          assets: [{
-            name: `${baseName} (sheet)`,
-            type: assetType,
-            dataUrl: imageDataUrl,
-            width: imageWidth,
-            height: imageHeight,
-            source: 'local',
-          }],
-        });
-        const sourceAsset = sourceAssets[0];
-        if (!sourceAsset) return;
-
-        const sliceAssets: AssetEntryInput[] = slices.map((slice) => ({
-          name: slice.name,
-          type: assetType,
-          dataUrl: imageDataUrl,
-          width: slice.rect.w,
-          height: slice.rect.h,
-          source: 'local' as const,
-          sourceAssetId: sourceAsset.id,
-          rect: { ...slice.rect },
-        }));
-        assetRegistry.addAssets({
-          groupType,
-          groupName: baseName,
-          assets: sliceAssets,
-        });
-        setActiveTab('assets');
-      },
-    });
-  }
-
-  const animationContainer = tabContentMap.get('animation');
-  if (animationContainer) {
-    if (assetRegistry) {
-      animationTabController = createAnimationTab({
-        container: animationContainer,
-        assetRegistry,
-        getEditorState: getEditorState ?? (() => null),
-        entityManager,
-        history,
-        onBackToList: () => setActiveTab('assets'),
-      });
-    } else {
-      animationContainer.appendChild(
-        createLeftBerryPlaceholder('Animation tools need an asset registry to run.')
-      );
+  function setActiveTab(tab: string, options?: { silent?: boolean }): void {
+    if (currentTab !== null && currentTab === tab) {
+      return;
     }
-  }
-
-  const assetsContainer = tabContentMap.get('assets');
-  if (assetsContainer) {
-    if (assetLibraryEnabled && assetRegistry) {
-      assetLibraryController = createAssetLibraryTab({
-        container: assetsContainer,
-        assetRegistry,
-        uploadEnabled: assetUploadEnabled,
-        getCurrentScene: config.getCurrentScene,
-        entityManager,
-        onOpenAnimation: (id) => {
-          setActiveTab('animation');
-          animationTabController?.openAnimation(id);
-        },
-      });
-    } else {
-      assetsContainer.appendChild(createLeftBerryPlaceholder('Asset library is disabled for this session.'));
-    }
-  }
-
-  const presetsContainer = tabContentMap.get('presets');
-  if (presetsContainer) {
-    if (config.presetRegistry && config.presetConfigStore) {
-      presetsTabController = createPresetsTab({
-        container: presetsContainer,
-        registry: config.presetRegistry,
-        configStore: config.presetConfigStore,
-      });
-    } else {
-      presetsContainer.appendChild(
-        createLeftBerryPlaceholder('Presets require a project to be loaded.')
-      );
-    }
-  }
-
-  function setActiveTab(tab: LeftBerryTabId, options?: { silent?: boolean }): void {
-    if (currentTab !== null && currentTab === tab) return;
     currentTab = tab;
 
     for (const button of shell.tabBar.querySelectorAll<HTMLButtonElement>('.irs-berry__tab')) {
@@ -219,9 +147,7 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
       tabContent.classList.toggle('irs-berry__tab-content--active', isActive);
     }
 
-    if (tab === 'animation') {
-      animationTabController?.refresh();
-    }
+    pluginControllers.get(tab)?.refresh?.();
 
     if (!options?.silent) {
       tabChangeCallbacks.forEach((cb) => cb(tab));
@@ -229,17 +155,21 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
   }
 
   shell.setOpen(isOpen);
-  setActiveTab(activeTabId, { silent: true });
+  if (activeTabId) {
+    setActiveTab(activeTabId, { silent: true });
+  }
 
   return {
     open: (tab) => {
       shell.setOpen(true);
-      if (tab) setActiveTab(tab);
+      if (tab) {
+        setActiveTab(tab);
+      }
     },
     openAnimation: (animationId) => {
       shell.setOpen(true);
       setActiveTab('animation');
-      animationTabController?.openAnimation(animationId);
+      pluginControllers.get('animation')?.openAnimation?.(animationId);
     },
     close: () => shell.setOpen(false),
     isOpen: () => shell.isOpen(),
@@ -249,27 +179,18 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig 
     onTabChange: (callback) => tabChangeCallbacks.push(callback),
     onOpenChange: (callback) => openChangeCallbacks.push(callback),
     refreshTab: (tab) => {
-      if (tab === 'animation') {
-        animationTabController?.refresh();
-      }
-      if (tab === 'assets') {
-        assetLibraryController?.refresh();
-      }
-      if (tab === 'presets') {
-        presetsTabController?.refresh();
-      }
+      pluginControllers.get(tab)?.refresh?.();
     },
     setInsertBlockFn: (fn) => {
-      presetsTabController?.setInsertBlockFn(fn);
+      pluginControllers.get('presets')?.setInsertBlockFn?.(fn);
     },
-
     setOpenInBlocklyFn: (fn) => {
-      presetsTabController?.setOpenInBlocklyFn(fn);
+      pluginControllers.get('presets')?.setOpenInBlocklyFn?.(fn);
     },
     destroy: () => {
-      assetLibraryController?.destroy();
-      animationTabController?.destroy();
-      presetsTabController?.destroy();
+      pluginControllers.forEach((controller) => {
+        controller.destroy?.();
+      });
       shell.destroy();
     },
   };

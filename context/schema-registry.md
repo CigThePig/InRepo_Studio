@@ -121,6 +121,10 @@ Rules:
   - `MODE_TO_TOOL` — mode to legacy tool mapping
     - Invariant: select -> select, entities -> entity
 
+- `/src/editor/core/tabRegistry.ts`
+  - `TabRegistry.leftBerryTabs` — plugin registry for left berry tabs
+    - Invariant: plugin IDs are unique; registry insertion order controls tab order
+
 - `/src/editor/panels/rightBerryTabs.ts`
   - `RIGHT_BERRY_TABS` — right berry mode tab definitions
     - Invariant: order matches editor mode order
@@ -128,6 +132,10 @@ Rules:
 - `/src/editor/panels/leftBerryTabs.ts`
   - `LEFT_BERRY_TABS` — left berry asset workflow tabs
     - Invariant: order matches left berry navigation (Sprites, Animation, Assets, Tools, Presets)
+
+- `/src/editor/panels/leftBerryPlugins.ts`
+  - `createDefaultLeftBerryPlugins` — default left berry plugin order
+    - Invariant: default order remains Sprites, Animation, Assets, Tools, Presets
 
 - `/src/editor/presets/presetConfigStore.ts`
   - `PresetConfigStore` — editor preset config mutations + subscriptions

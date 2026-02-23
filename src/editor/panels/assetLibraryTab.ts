@@ -2386,3 +2386,36 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     },
   };
 }
+
+
+export const AssetLibraryPlugin = {
+  id: 'assets',
+  label: 'Assets',
+  icon: 'A',
+  mount: (container: HTMLElement, context: import('@/editor/core/tabRegistry').EditorPluginContext) => {
+    if (!context.assetLibraryEnabled || !context.assetRegistry) {
+      const empty = document.createElement('section');
+      empty.className = 'irs-berry__plugin-empty-state';
+      empty.innerHTML = '<h3 class="irs-berry__plugin-empty-title">Asset library unavailable</h3><p class="irs-berry__plugin-empty-description">Enable the asset library and load an editable project to browse assets.</p>';
+      const cta = document.createElement('button');
+      cta.type = 'button';
+      cta.className = 'irs-btn irs-btn--secondary irs-berry__plugin-empty-cta';
+      cta.textContent = 'Open Sprites';
+      cta.style.minHeight = 'var(--irs-touch-target)';
+      cta.style.minWidth = 'var(--irs-touch-target)';
+      cta.addEventListener('click', () => context.openTab('sprites'));
+      empty.appendChild(cta);
+      container.appendChild(empty);
+      return {};
+    }
+
+    return createAssetLibraryTab({
+      container,
+      assetRegistry: context.assetRegistry,
+      uploadEnabled: context.assetUploadEnabled,
+      getCurrentScene: context.getCurrentScene,
+      entityManager: context.entityManager,
+      onOpenAnimation: (animationId) => context.openAnimation?.(animationId),
+    });
+  },
+} satisfies import('@/editor/core/tabRegistry').BerryTabPlugin;

@@ -28,13 +28,14 @@ export { createLeftBerry, createLeftBerryPlaceholder } from './leftBerry';
 export type { LeftBerryController, LeftBerryConfig } from './leftBerry';
 export { LEFT_BERRY_TABS } from './leftBerryTabs';
 export type { LeftBerryTab, LeftBerryTabId } from './leftBerryTabs';
-export { createSpriteSlicerTab } from './spriteSlicerTab';
-export { createAnimationTab } from './animationTab';
+export { createSpriteSlicerTab, SpriteSlicerPlugin } from './spriteSlicerTab';
+export { createAnimationTab, AnimationPlugin } from './animationTab';
 export type { AnimationTabController, AnimationTabConfig } from './animationTab';
-export { createAssetLibraryTab } from './assetLibraryTab';
+export { createAssetLibraryTab, AssetLibraryPlugin } from './assetLibraryTab';
 export type { AssetLibraryTabController, AssetLibraryTabConfig } from './assetLibraryTab';
 export { createAssetPalette } from './assetPalette';
 export type { AssetPaletteController, AssetPaletteConfig } from './assetPalette';
+export { createDefaultLeftBerryPlugins, PresetsPlugin, UtilitiesPlugin } from './leftBerryPlugins';
 export { createUtilitiesTab } from './utilitiesTab';
 export type { UtilitiesTabController, UtilitiesTabConfig } from './utilitiesTab';
 
