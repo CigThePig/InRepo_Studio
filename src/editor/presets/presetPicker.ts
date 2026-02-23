@@ -47,11 +47,6 @@ const STYLES = `
 
   .preset-picker__close {
     align-self: flex-end;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.06);
-    color: #dbe4ff;
-    padding: 0 12px;
   }
 
   .preset-picker__card {
@@ -88,7 +83,7 @@ export function createPresetPicker(config: PresetPickerConfig): PresetPickerCont
 
   const close = document.createElement('button');
   close.type = 'button';
-  close.className = 'preset-picker__close';
+  close.className = 'irs-btn irs-btn--secondary preset-picker__close';
   close.textContent = 'Close';
   close.addEventListener('click', () => config.onClose());
   sheet.appendChild(close);

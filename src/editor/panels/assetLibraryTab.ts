@@ -47,23 +47,6 @@ const STYLES = `
     font-size: 13px;
   }
 
-  .asset-library__button {
-    min-height: 44px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    background: #1b2a52;
-    color: #dbe4ff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .asset-library__button:active {
-    background: #26386a;
-  }
-
   .asset-library__hint {
     font-size: 12px;
     color: #9aa7d6;
@@ -294,22 +277,6 @@ const STYLES = `
     margin-bottom: 4px;
   }
 
-  .asset-library__sheet-button {
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.65);
-    background: rgba(27, 42, 82, 0.92);
-    color: #e6ecff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .asset-library__sheet-button--danger {
-    border-color: rgba(255, 128, 153, 0.8);
-    color: #ffc5d2;
-  }
-
   .asset-library__sheet-note {
     font-size: 12px;
     color: #b9c5ef;
@@ -424,17 +391,6 @@ const STYLES = `
     flex-wrap: wrap;
   }
 
-  .asset-library__animation-action {
-    min-height: 32px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    border-radius: 8px;
-    background: rgba(18, 26, 52, 0.85);
-    color: #dbe4ff;
-    font-size: 11px;
-    padding: 4px 8px;
-    cursor: pointer;
-  }
-
   .asset-library__animation-card canvas {
     width: 100%;
     border-radius: 10px;
@@ -471,19 +427,6 @@ const STYLES = `
     min-height: 36px;
     padding: 4px 8px;
     min-width: 0;
-  }
-
-  .asset-library__anim-rename-btn {
-    min-height: 36px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(27, 42, 82, 0.92);
-    color: #dbe4ff;
-    font-size: 11px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 
   .asset-library__anim-where-used {
@@ -527,28 +470,6 @@ const STYLES = `
   .asset-library__anim-delete-row {
     display: flex;
     gap: 6px;
-  }
-
-  .asset-library__anim-delete-btn {
-    flex: 1;
-    min-height: 32px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 128, 153, 0.8);
-    background: rgba(80, 20, 30, 0.9);
-    color: #ffc5d2;
-    font-size: 11px;
-    cursor: pointer;
-  }
-
-  .asset-library__anim-cancel-btn {
-    flex: 1;
-    min-height: 32px;
-    border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(27, 42, 82, 0.92);
-    color: #dbe4ff;
-    font-size: 11px;
-    cursor: pointer;
   }
 
   .asset-library__anim-set-create-inline {
@@ -860,7 +781,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   const createButton = document.createElement('button');
   createButton.type = 'button';
-  createButton.className = 'asset-library__button';
+  createButton.className = 'irs-btn irs-btn--primary';
   createButton.textContent = 'Add Group';
 
   const createHint = document.createElement('div');
@@ -1314,7 +1235,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const organizeToggle = document.createElement('button');
         organizeToggle.type = 'button';
-        organizeToggle.className = 'asset-library__button';
+        organizeToggle.className = 'irs-btn irs-btn--secondary';
         organizeToggle.textContent = organizeEnabled ? 'Done' : 'Organize';
         organizeToggle.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -1361,7 +1282,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const uploadButton = document.createElement('button');
           uploadButton.type = 'button';
-          uploadButton.className = 'asset-library__button';
+          uploadButton.className = 'irs-btn irs-btn--primary';
           uploadButton.textContent = 'Upload';
 
           const hasLocalAssets = group.assets.some((asset) => asset.source === 'local');
@@ -1628,14 +1549,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const okBtn = document.createElement('button');
           okBtn.type = 'button';
-          okBtn.className = 'asset-library__anim-rename-btn';
+          okBtn.className = 'irs-btn irs-btn--primary';
           okBtn.textContent = '✓';
           okBtn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent blur on input
           okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitRename(); });
 
           const cancelBtn = document.createElement('button');
           cancelBtn.type = 'button';
-          cancelBtn.className = 'asset-library__anim-rename-btn';
+          cancelBtn.className = 'irs-btn irs-btn--secondary';
           cancelBtn.textContent = '✕';
           cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
           cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelRename(); });
@@ -1661,7 +1582,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const renameButton = document.createElement('button');
         renameButton.type = 'button';
-        renameButton.className = 'asset-library__animation-action';
+        renameButton.className = 'irs-btn irs-btn--secondary';
         renameButton.textContent = 'Rename';
         renameButton.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -1673,7 +1594,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const duplicateButton = document.createElement('button');
         duplicateButton.type = 'button';
-        duplicateButton.className = 'asset-library__animation-action';
+        duplicateButton.className = 'irs-btn irs-btn--secondary';
         duplicateButton.textContent = 'Duplicate';
         duplicateButton.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -1685,7 +1606,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const whereUsedButton = document.createElement('button');
         whereUsedButton.type = 'button';
-        whereUsedButton.className = 'asset-library__animation-action';
+        whereUsedButton.className = 'irs-btn irs-btn--secondary';
         whereUsedButton.textContent = 'Where Used';
         whereUsedButton.addEventListener('click', async (event) => {
           event.stopPropagation();
@@ -1798,7 +1719,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const cancelBtn = document.createElement('button');
           cancelBtn.type = 'button';
-          cancelBtn.className = 'asset-library__anim-cancel-btn';
+          cancelBtn.className = 'irs-btn irs-btn--secondary';
           cancelBtn.textContent = 'Cancel';
           cancelBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1809,7 +1730,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const confirmBtn = document.createElement('button');
           confirmBtn.type = 'button';
-          confirmBtn.className = 'asset-library__anim-delete-btn';
+          confirmBtn.className = 'irs-btn irs-btn--danger';
           confirmBtn.textContent = 'Delete';
           confirmBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -1911,14 +1832,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const createBtn = document.createElement('button');
         createBtn.type = 'button';
-        createBtn.className = 'asset-library__button';
+        createBtn.className = 'irs-btn irs-btn--primary';
         createBtn.textContent = 'Create';
         createBtn.addEventListener('mousedown', (e) => e.preventDefault());
         createBtn.addEventListener('click', () => { uxFeedback.motion.pulse(createBtn); commitCreate(); });
 
         const cancelCreateBtn = document.createElement('button');
         cancelCreateBtn.type = 'button';
-        cancelCreateBtn.className = 'asset-library__button';
+        cancelCreateBtn.className = 'irs-btn irs-btn--secondary';
         cancelCreateBtn.textContent = 'Cancel';
         cancelCreateBtn.addEventListener('mousedown', (e) => e.preventDefault());
         cancelCreateBtn.addEventListener('click', () => { inlineSetCreateOpen = false; refresh(); });
@@ -1931,7 +1852,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       } else {
         const createSetButton = document.createElement('button');
         createSetButton.type = 'button';
-        createSetButton.className = 'asset-library__button';
+        createSetButton.className = 'irs-btn irs-btn--primary';
         createSetButton.textContent = '+ Create Animation Set';
         createSetButton.addEventListener('click', () => {
           inlineSetCreateOpen = true;
@@ -1987,14 +1908,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
             const okBtn = document.createElement('button');
             okBtn.type = 'button';
-            okBtn.className = 'asset-library__anim-rename-btn';
+            okBtn.className = 'irs-btn irs-btn--primary';
             okBtn.textContent = '✓';
             okBtn.addEventListener('mousedown', (e) => e.preventDefault());
             okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitSetRename(); });
 
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
-            cancelBtn.className = 'asset-library__anim-rename-btn';
+            cancelBtn.className = 'irs-btn irs-btn--secondary';
             cancelBtn.textContent = '✕';
             cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
             cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelSetRename(); });
@@ -2031,7 +1952,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const assignBtn = document.createElement('button');
           assignBtn.type = 'button';
-          assignBtn.className = 'asset-library__animation-action';
+          assignBtn.className = 'irs-btn irs-btn--secondary';
           assignBtn.textContent = 'Assign Directions';
           assignBtn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2041,7 +1962,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const renameSetBtn = document.createElement('button');
           renameSetBtn.type = 'button';
-          renameSetBtn.className = 'asset-library__animation-action';
+          renameSetBtn.className = 'irs-btn irs-btn--secondary';
           renameSetBtn.textContent = 'Rename';
           renameSetBtn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2052,8 +1973,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const deleteSetBtn = document.createElement('button');
           deleteSetBtn.type = 'button';
-          deleteSetBtn.className = 'asset-library__animation-action';
-          deleteSetBtn.style.color = '#ffc5d2';
+          deleteSetBtn.className = 'irs-btn irs-btn--danger';
           deleteSetBtn.textContent = 'Delete Set';
           deleteSetBtn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2089,7 +2009,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const setDeleteCancel = document.createElement('button');
           setDeleteCancel.type = 'button';
-          setDeleteCancel.className = 'asset-library__anim-cancel-btn';
+          setDeleteCancel.className = 'irs-btn irs-btn--secondary';
           setDeleteCancel.textContent = 'Cancel';
           setDeleteCancel.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2100,7 +2020,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const setDeleteConfirm = document.createElement('button');
           setDeleteConfirm.type = 'button';
-          setDeleteConfirm.className = 'asset-library__anim-delete-btn';
+          setDeleteConfirm.className = 'irs-btn irs-btn--danger';
           setDeleteConfirm.textContent = 'Delete';
           setDeleteConfirm.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -2275,7 +2195,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
-    saveBtn.className = 'asset-library__sheet-button';
+    saveBtn.className = 'irs-btn irs-btn--primary';
     saveBtn.textContent = 'Save';
     saveBtn.addEventListener('click', () => {
       assetRegistry.updateAnimationSet(animationSet.id, {
@@ -2287,7 +2207,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'asset-library__sheet-button';
+    cancelBtn.className = 'irs-btn irs-btn--secondary';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', () => {
       directionSheetSetId = null;
@@ -2352,7 +2272,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       actions.forEach((action) => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `asset-library__sheet-button${action.danger ? ' asset-library__sheet-button--danger' : ''}`;
+        button.className = `irs-btn ${action.danger ? 'irs-btn--danger' : 'irs-btn--secondary'}`;
         button.textContent = action.label;
         button.addEventListener('click', action.onClick);
         sheet.appendChild(button);
@@ -2374,7 +2294,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const saveButton = document.createElement('button');
       saveButton.type = 'button';
-      saveButton.className = 'asset-library__sheet-button';
+      saveButton.className = 'irs-btn irs-btn--primary';
       saveButton.textContent = 'Save';
       saveButton.addEventListener('click', () => {
         assetRegistry.renameAsset(activeAsset.id, input.value);
@@ -2385,7 +2305,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
-      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.className = 'irs-btn irs-btn--secondary';
       cancelButton.textContent = 'Cancel';
       cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
       sheet.appendChild(cancelButton);
@@ -2405,7 +2325,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'asset-library__sheet-button asset-library__sheet-button--danger';
+      deleteButton.className = 'irs-btn irs-btn--danger';
       deleteButton.textContent = 'Delete';
       deleteButton.addEventListener('click', () => {
         uxFeedback.motion.pulse(deleteButton);
@@ -2418,7 +2338,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
-      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.className = 'irs-btn irs-btn--secondary';
       cancelButton.textContent = 'Cancel';
       cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
       sheet.appendChild(cancelButton);
@@ -2479,7 +2399,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
-      cancelButton.className = 'asset-library__sheet-button';
+      cancelButton.className = 'irs-btn irs-btn--secondary';
       cancelButton.textContent = 'Cancel';
       cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
       sheet.appendChild(cancelButton);
