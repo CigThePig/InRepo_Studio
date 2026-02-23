@@ -40,12 +40,8 @@ const STYLES = `
   }
 
   .preset-picker__card {
-    border-radius: 12px;
-    border: 1px solid var(--irs-border-heavy);
-    background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
     text-align: left;
-    padding: 10px;
   }
 
   .preset-picker__label { font-weight: 700; font-size: 13px; }
@@ -88,7 +84,7 @@ export function createPresetPicker(config: PresetPickerConfig): PresetPickerCont
   for (const entry of entries) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'preset-picker__card';
+    button.className = 'irs-dialog preset-picker__card';
 
     const warning = entry.definition.compatibility.conflictsWith?.some((id) => activePresetIds.has(id));
     const isRecommended = (entry.definition.recommendedProfiles ?? []).includes(config.configStore.getConfig().profile);

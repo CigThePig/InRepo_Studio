@@ -278,19 +278,8 @@ const STYLES = `
 
   .asset-library__move-type-btn {
     flex: 1;
-    min-height: 40px;
-    border-radius: 10px;
-    border: 2px solid var(--irs-border-heavy);
-    background: var(--irs-surface-panel);
-    color: var(--irs-text-primary);
-    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-  }
-
-  .asset-library__move-type-btn--active {
-    border-color: var(--irs-accent-primary);
-    background: var(--irs-accent-primary);
   }
 
   .asset-library__move-group-list {
@@ -302,20 +291,9 @@ const STYLES = `
   }
 
   .asset-library__move-group-btn {
-    min-height: 40px;
-    border-radius: 10px;
-    border: 1px solid var(--irs-border-heavy);
-    background: var(--irs-surface-panel);
-    color: var(--irs-text-primary);
-    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
-    padding: 8px 12px;
-  }
-
-  .asset-library__move-group-btn:active {
-    background: var(--irs-accent-primary);
   }
 
   .asset-library__move-group-btn--current {
@@ -358,13 +336,6 @@ const STYLES = `
     position: absolute;
     top: 6px;
     right: 6px;
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: 999px;
-    border: none;
-    background: var(--irs-surface-panel);
-    color: var(--irs-accent-danger);
-    font-size: 12px;
     cursor: pointer;
   }
 
@@ -1650,7 +1621,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         // ── Delete button (× absolute in corner) ──
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'asset-library__animation-delete';
+        deleteButton.className = 'irs-btn irs-btn--danger asset-library__animation-delete';
         deleteButton.textContent = '×';
         deleteButton.addEventListener('pointerdown', (event) => event.stopPropagation());
         deleteButton.addEventListener('click', async (event) => {
@@ -2327,8 +2298,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       types.forEach((type) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'asset-library__move-type-btn';
-        btn.classList.toggle('asset-library__move-type-btn--active', type === moveToType);
+        const isActiveType = type === moveToType;
+        btn.className = `irs-btn ${isActiveType ? 'irs-btn--primary' : 'irs-btn--secondary'} asset-library__move-type-btn`;
         btn.textContent = GROUP_TYPE_LABELS[type];
         btn.addEventListener('click', () => {
           moveToType = type;
@@ -2347,7 +2318,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       groupsOfType.forEach((grp) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'asset-library__move-group-btn';
+        btn.className = 'irs-btn irs-btn--secondary asset-library__move-group-btn';
         const key = groupKey(grp);
         const isCurrent = key === currentKey;
         btn.classList.toggle('asset-library__move-group-btn--current', isCurrent);
