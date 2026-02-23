@@ -52,7 +52,6 @@ import {
   createBrushSizeControl,
   createLayerPanel,
   type LayerPanelController,
-  createUtilitiesTab,
 } from '@/editor/panels';
 import {
   createAssetRegistry,
@@ -115,6 +114,8 @@ import {
   type EditorMode,
 } from '@/editor/core/editorMode';
 import { uxFeedback } from '@/editor/uxFeedback';
+import { TabRegistry } from '@/editor/core/tabRegistry';
+import { createDefaultLeftBerryPlugins } from '@/editor/panels/leftBerryPlugins';
 
 import { downloadJson } from '@/utils/download';
 import {
@@ -1891,28 +1892,26 @@ async function initPanels(): Promise<void> {
       await presetConfigStore.load();
       presetConfigStoreRef = presetConfigStore;
 
+      const leftBerryRegistry = new TabRegistry();
+      createDefaultLeftBerryPlugins().forEach((plugin) => leftBerryRegistry.registerLeftBerryTab(plugin));
+
       leftBerryController = createLeftBerry(editorContainer, {
         initialOpen: editorState.leftBerryOpen,
         initialTab: 'sprites',
-        assetRegistry: assetRegistry ?? undefined,
-        assetLibraryEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_LIBRARY),
-        assetUploadEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_UPLOAD),
-        getEditorState: () => editorState,
-        getCurrentScene: () => currentScene,
-        entityManager: entityManager ?? undefined,
-        history: historyManager ?? undefined,
-        presetRegistry,
-        presetConfigStore,
-      });
-
-      const toolsContainer = leftBerryController.getTabContentContainer('tools');
-      if (toolsContainer) {
-        createUtilitiesTab({
-          container: toolsContainer,
-          authManager: authManager ?? undefined,
+        tabRegistry: leftBerryRegistry,
+        pluginContext: {
           assetRegistry: assetRegistry ?? undefined,
-        });
-      }
+          assetLibraryEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_LIBRARY),
+          assetUploadEnabled: isFlagEnabled(EDITOR_FLAGS.ASSET_UPLOAD),
+          getEditorState: () => editorState,
+          getCurrentScene: () => currentScene,
+          entityManager: entityManager ?? undefined,
+          history: historyManager ?? undefined,
+          presetRegistry,
+          presetConfigStore,
+          authManager: authManager ?? undefined,
+        },
+      });
 
       leftBerryController.onOpenChange((open) => {
         if (!editorState) return;

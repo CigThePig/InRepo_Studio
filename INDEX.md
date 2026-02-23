@@ -508,8 +508,12 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/leftBerry.ts`
-  - Role: Left berry slide-out panel shell for asset workflows.
+  - Role: Left berry slide-out shell that renders registered tab plugins.
   - Lists of truth: none
+
+- `src/editor/panels/leftBerryPlugins.ts`
+  - Role: Default plugin registrations for left berry tabs.
+  - Lists of truth: createDefaultLeftBerryPlugins
 
 - `src/editor/panels/leftBerryTabs.ts`
   - Role: Left berry asset workflow tab definitions.
@@ -603,6 +607,10 @@ Micro-format (copy/paste):
 - `src/editor/core/modeMapping.ts`
   - Role: Legacy tool/layer to mode mapping.
   - Lists of truth: MODE_TO_LAYER, MODE_TO_TOOL
+
+- `src/editor/core/tabRegistry.ts`
+  - Role: Plugin contracts and tab registry for berry shell composition.
+  - Lists of truth: TabRegistry.leftBerryTabs
 
 ### Scene Management (Track 17)
 - `src/editor/scenes/AGENTS.md`
