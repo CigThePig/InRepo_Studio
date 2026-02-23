@@ -31,7 +31,7 @@ const BERRY_STYLES = `
   .irs-berry__overlay {
     position: absolute;
     inset: 0;
-    background: var(--irs-surface-panel);
+    background: transparent;
     opacity: 0;
     transition: opacity 0.25s ease-out;
     pointer-events: none;
