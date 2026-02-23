@@ -14,88 +14,79 @@ export interface BrushSizeControlController {
   destroy(): void;
 }
 
-const STYLE_ID = 'berry-controls-styles';
+const STYLE_ID = 'irs-berry-controls-styles';
 
 const STYLES = `
-  .berry-section {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+  .irs-berry-section {
+    background: var(--irs-surface-elevated);
+    border: 1px solid var(--irs-border-light);
     border-radius: 12px;
     padding: 16px;
-    color: #fff;
+    color: var(--irs-text-primary);
   }
 
-  .berry-section + .berry-section {
+  .irs-berry-section + .irs-berry-section {
     margin-top: 12px;
   }
 
-  .berry-section__title {
+  .irs-berry-section__title {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--irs-text-primary);
     margin-bottom: 12px;
   }
 
-  .berry-brush-control {
+  .irs-brush-control {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
-  .berry-brush-control__row {
+  .irs-brush-control__row {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .berry-brush-control__label {
+  .irs-brush-control__label {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--irs-text-muted);
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.5px;
     min-width: 40px;
   }
 
-  .berry-brush-control__buttons {
+  .irs-brush-control__buttons {
     display: flex;
     gap: 8px;
   }
 
-  .berry-brush-control__button {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
+  .irs-brush-control__button {
+    min-width: var(--irs-touch-target);
+    width: var(--irs-touch-target);
+    min-height: var(--irs-touch-target);
     font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
+    padding: 0;
   }
 
-  .berry-brush-control__button:active {
-    background: rgba(255, 255, 255, 0.1);
+  .irs-brush-control__button:active {
+    background: var(--irs-color-blue-alpha-12);
     transform: scale(0.95);
   }
 
-  .berry-brush-control__button--active {
-    background: rgba(74, 158, 255, 0.2);
-    color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.4);
+  .irs-brush-control__button--active {
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
+    box-shadow: inset 0 0 0 1px var(--irs-color-blue-alpha-45);
   }
 
-  .berry-brush-control__hint {
+  .irs-brush-control__hint {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--irs-text-muted);
     line-height: 1.5;
     padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--irs-surface-base);
     border-radius: 8px;
   }
 `;
@@ -115,24 +106,24 @@ export function createBrushSizeControl(config: BrushSizeControlConfig): BrushSiz
   let currentSize: BrushSize = config.initialSize;
 
   const section = document.createElement('section');
-  section.className = 'berry-section';
+  section.className = 'irs-berry-section';
 
   const titleEl = document.createElement('div');
-  titleEl.className = 'berry-section__title';
+  titleEl.className = 'irs-berry-section__title';
   titleEl.textContent = title;
 
   const control = document.createElement('div');
-  control.className = 'berry-brush-control';
+  control.className = 'irs-brush-control';
 
   const row = document.createElement('div');
-  row.className = 'berry-brush-control__row';
+  row.className = 'irs-brush-control__row';
 
   const label = document.createElement('span');
-  label.className = 'berry-brush-control__label';
+  label.className = 'irs-brush-control__label';
   label.textContent = 'Size';
 
   const buttons = document.createElement('div');
-  buttons.className = 'berry-brush-control__buttons';
+  buttons.className = 'irs-brush-control__buttons';
 
   const sizes: BrushSize[] = [1, 2, 3];
   const buttonMap = new Map<BrushSize, HTMLButtonElement>();
@@ -140,16 +131,16 @@ export function createBrushSizeControl(config: BrushSizeControlConfig): BrushSiz
   sizes.forEach((size) => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'berry-brush-control__button';
+    button.className = 'irs-btn irs-btn--secondary irs-brush-control__button';
     button.textContent = String(size);
     button.setAttribute('aria-label', `Brush size ${size}`);
     button.setAttribute('title', `Brush size ${size}`);
-    button.classList.toggle('berry-brush-control__button--active', size === currentSize);
+    button.classList.toggle('irs-brush-control__button--active', size === currentSize);
     button.addEventListener('click', () => {
       if (currentSize === size) return;
       currentSize = size;
       buttonMap.forEach((btn, value) => {
-        btn.classList.toggle('berry-brush-control__button--active', value === size);
+        btn.classList.toggle('irs-brush-control__button--active', value === size);
       });
       onChange?.(size);
     });
@@ -163,7 +154,7 @@ export function createBrushSizeControl(config: BrushSizeControlConfig): BrushSiz
 
   if (hint) {
     const hintEl = document.createElement('div');
-    hintEl.className = 'berry-brush-control__hint';
+    hintEl.className = 'irs-brush-control__hint';
     hintEl.textContent = hint;
     control.appendChild(hintEl);
   }
@@ -177,7 +168,7 @@ export function createBrushSizeControl(config: BrushSizeControlConfig): BrushSiz
       if (currentSize === size) return;
       currentSize = size;
       buttonMap.forEach((btn, value) => {
-        btn.classList.toggle('berry-brush-control__button--active', value === size);
+        btn.classList.toggle('irs-brush-control__button--active', value === size);
       });
     },
     getSize() {

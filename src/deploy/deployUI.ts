@@ -43,7 +43,7 @@ const STYLES = `
     flex-direction: column;
     gap: 6px;
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
   .deploy-results {
@@ -51,7 +51,7 @@ const STYLES = `
     flex-direction: column;
     gap: 6px;
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
   .deploy-result-item {
@@ -62,15 +62,15 @@ const STYLES = `
   }
 
   .deploy-result-item.success {
-    color: #6bff95;
+    color: var(--irs-accent-success);
   }
 
   .deploy-result-item.error {
-    color: #ff6b6b;
+    color: var(--irs-accent-danger);
   }
 
   .deploy-error {
-    color: #ff6b6b;
+    color: var(--irs-accent-danger);
     font-size: 12px;
   }
 `;
@@ -90,7 +90,7 @@ export function createDeployUI(config: DeployUIConfig): DeployUI {
 
   ensureStyles();
 
-  const messageEl = container.querySelector<HTMLElement>('.deploy-status-subtitle');
+  const messageEl = container.querySelector<HTMLElement>('.irs-deploy-panel__status-subtitle');
   const progressEl = document.createElement('div');
   progressEl.className = 'deploy-progress';
   const resultsEl = document.createElement('div');

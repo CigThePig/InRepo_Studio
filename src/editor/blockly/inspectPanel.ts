@@ -70,9 +70,9 @@ const STATUS_COLOR: Record<'running' | 'stopped' | 'error', string> = {
 };
 
 const LOG_LEVEL_COLOR: Record<'info' | 'warn' | 'error', string> = {
-  info: '#aab0d4',
-  warn: '#ffc258',
-  error: '#ff6b6b',
+  info: 'var(--irs-text-secondary)',
+  warn: 'var(--irs-color-yellow)',
+  error: 'var(--irs-accent-danger)',
 };
 
 // --- Styles ---
@@ -84,7 +84,7 @@ function ensureStyles(): void {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
-    .iip {
+    .irs-inspect-panel {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -95,23 +95,23 @@ function ensureStyles(): void {
       background: transparent;
     }
 
-    .iip__section-label {
+    .irs-inspect-panel__section-label {
       padding: 8px 12px 4px;
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: rgba(230, 236, 255, 0.4);
+      color: var(--irs-text-muted);
     }
 
     /* ── Status Strip ─────────────────────────────── */
 
-    .iip__status-strip {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    .irs-inspect-panel__status-strip {
+      border-bottom: 1px solid var(--irs-border-light);
       padding-bottom: 4px;
     }
 
-    .iip__script-row {
+    .irs-inspect-panel__script-row {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -119,14 +119,14 @@ function ensureStyles(): void {
       min-height: 44px;
     }
 
-    .iip__status-icon {
+    .irs-inspect-panel__status-icon {
       font-size: 11px;
       width: 18px;
       text-align: center;
       flex-shrink: 0;
     }
 
-    .iip__script-label {
+    .irs-inspect-panel__script-label {
       flex: 1;
       min-width: 0;
       font-size: 13px;
@@ -136,19 +136,19 @@ function ensureStyles(): void {
       white-space: nowrap;
     }
 
-    .iip__timer-badge {
+    .irs-inspect-panel__timer-badge {
       font-size: 10px;
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(230, 236, 255, 0.5);
+      background: var(--irs-color-blue-alpha-8);
+      color: var(--irs-text-muted);
       white-space: nowrap;
     }
 
     /* ── Error Card ───────────────────────────────── */
 
-    .iip__error-section {
+    .irs-inspect-panel__error-section {
       margin: 4px 8px;
       padding: 10px 12px;
       border-radius: 10px;
@@ -157,11 +157,11 @@ function ensureStyles(): void {
       display: none;
     }
 
-    .iip__error-section--visible {
+    .irs-inspect-panel__error-section--visible {
       display: block;
     }
 
-    .iip__error-title {
+    .irs-inspect-panel__error-title {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
@@ -170,13 +170,13 @@ function ensureStyles(): void {
       margin-bottom: 4px;
     }
 
-    .iip__error-target {
+    .irs-inspect-panel__error-target {
       font-size: 11px;
-      color: rgba(230, 236, 255, 0.5);
+      color: var(--irs-text-muted);
       margin-bottom: 4px;
     }
 
-    .iip__error-msg {
+    .irs-inspect-panel__error-msg {
       font-size: 12px;
       color: var(--irs-color-red);
       line-height: 1.45;
@@ -184,7 +184,7 @@ function ensureStyles(): void {
       margin-bottom: 8px;
     }
 
-    .iip__highlight-btn {
+    .irs-inspect-panel__highlight-btn {
       display: inline-flex;
       align-items: center;
       min-height: 44px;
@@ -200,13 +200,13 @@ function ensureStyles(): void {
       -webkit-tap-highlight-color: transparent;
     }
 
-    .iip__highlight-btn:active {
+    .irs-inspect-panel__highlight-btn:active {
       background: var(--irs-color-red-alpha-53);
     }
 
     /* ── Empty State ──────────────────────────────── */
 
-    .iip__empty {
+    .irs-inspect-panel__empty {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -216,13 +216,13 @@ function ensureStyles(): void {
       text-align: center;
     }
 
-    .iip__empty-icon {
+    .irs-inspect-panel__empty-icon {
       font-size: 26px;
       opacity: 0.35;
     }
 
-    .iip__empty-msg {
-      color: rgba(230, 236, 255, 0.38);
+    .irs-inspect-panel__empty-msg {
+      color: var(--irs-text-muted);
       font-size: 12px;
       line-height: 1.5;
       max-width: 200px;
@@ -230,22 +230,22 @@ function ensureStyles(): void {
 
     /* ── Log Section ──────────────────────────────── */
 
-    .iip__log-section {
+    .irs-inspect-panel__log-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--irs-border-light);
     }
 
-    .iip__log-list {
+    .irs-inspect-panel__log-list {
       flex: 1;
       overflow-y: auto;
       overscroll-behavior: contain;
       padding: 4px 0 8px;
     }
 
-    .iip__log-entry {
+    .irs-inspect-panel__log-entry {
       display: flex;
       gap: 6px;
       align-items: flex-start;
@@ -254,17 +254,17 @@ function ensureStyles(): void {
       line-height: 1.5;
     }
 
-    .iip__log-time {
+    .irs-inspect-panel__log-time {
       flex-shrink: 0;
-      color: rgba(230, 236, 255, 0.28);
+      color: var(--irs-text-muted);
       font-size: 10px;
       font-variant-numeric: tabular-nums;
       margin-top: 1px;
     }
 
-    .iip__log-target {
+    .irs-inspect-panel__log-target {
       flex-shrink: 0;
-      color: rgba(230, 236, 255, 0.40);
+      color: var(--irs-text-muted);
       font-size: 10px;
       margin-top: 1px;
       max-width: 64px;
@@ -273,15 +273,15 @@ function ensureStyles(): void {
       white-space: nowrap;
     }
 
-    .iip__log-msg {
+    .irs-inspect-panel__log-msg {
       flex: 1;
       min-width: 0;
       word-break: break-word;
     }
 
-    .iip__log-placeholder {
+    .irs-inspect-panel__log-placeholder {
       padding: 16px 12px;
-      color: rgba(230, 236, 255, 0.28);
+      color: var(--irs-text-muted);
       font-size: 12px;
       text-align: center;
     }
@@ -313,14 +313,14 @@ export function createInspectPanel(
   // --- DOM ---
 
   const root = document.createElement('div');
-  root.className = 'iip';
+  root.className = 'irs-inspect-panel';
 
   // Status strip
   const statusStrip = document.createElement('div');
-  statusStrip.className = 'iip__status-strip';
+  statusStrip.className = 'irs-inspect-panel__status-strip';
 
   const statusLabel = document.createElement('div');
-  statusLabel.className = 'iip__section-label';
+  statusLabel.className = 'irs-inspect-panel__section-label';
   statusLabel.textContent = 'Scripts';
 
   const scriptRows = document.createElement('div');
@@ -330,21 +330,21 @@ export function createInspectPanel(
 
   // Error card
   const errorSection = document.createElement('div');
-  errorSection.className = 'iip__error-section';
+  errorSection.className = 'irs-inspect-panel__error-section';
 
   const errorTitle = document.createElement('div');
-  errorTitle.className = 'iip__error-title';
+  errorTitle.className = 'irs-inspect-panel__error-title';
   errorTitle.textContent = 'Error';
 
   const errorTarget = document.createElement('div');
-  errorTarget.className = 'iip__error-target';
+  errorTarget.className = 'irs-inspect-panel__error-target';
 
   const errorMsg = document.createElement('div');
-  errorMsg.className = 'iip__error-msg';
+  errorMsg.className = 'irs-inspect-panel__error-msg';
 
   const highlightBtn = document.createElement('button');
   highlightBtn.type = 'button';
-  highlightBtn.className = 'iip__highlight-btn';
+  highlightBtn.className = 'irs-inspect-panel__highlight-btn';
   highlightBtn.textContent = '→ Highlight block';
   highlightBtn.style.display = 'none';
 
@@ -362,14 +362,14 @@ export function createInspectPanel(
 
   // Empty state (shown when no scripts)
   const emptyEl = document.createElement('div');
-  emptyEl.className = 'iip__empty';
+  emptyEl.className = 'irs-inspect-panel__empty';
 
   const emptyIcon = document.createElement('div');
-  emptyIcon.className = 'iip__empty-icon';
+  emptyIcon.className = 'irs-inspect-panel__empty-icon';
   emptyIcon.textContent = '◎';
 
   const emptyMsg = document.createElement('div');
-  emptyMsg.className = 'iip__empty-msg';
+  emptyMsg.className = 'irs-inspect-panel__empty-msg';
   emptyMsg.textContent = 'No scripts running. Press ▶ to run.';
 
   emptyEl.appendChild(emptyIcon);
@@ -377,17 +377,17 @@ export function createInspectPanel(
 
   // Log section
   const logSection = document.createElement('div');
-  logSection.className = 'iip__log-section';
+  logSection.className = 'irs-inspect-panel__log-section';
 
   const logLabel = document.createElement('div');
-  logLabel.className = 'iip__section-label';
+  logLabel.className = 'irs-inspect-panel__section-label';
   logLabel.textContent = 'Console';
 
   const logList = document.createElement('div');
-  logList.className = 'iip__log-list';
+  logList.className = 'irs-inspect-panel__log-list';
 
   const logPlaceholder = document.createElement('div');
-  logPlaceholder.className = 'iip__log-placeholder';
+  logPlaceholder.className = 'irs-inspect-panel__log-placeholder';
   logPlaceholder.textContent = 'No output yet.';
   logList.appendChild(logPlaceholder);
 
@@ -418,15 +418,15 @@ export function createInspectPanel(
 
     for (const script of scripts) {
       const row = document.createElement('div');
-      row.className = 'iip__script-row';
+      row.className = 'irs-inspect-panel__script-row';
 
       const icon = document.createElement('span');
-      icon.className = 'iip__status-icon';
+      icon.className = 'irs-inspect-panel__status-icon';
       icon.textContent = STATUS_ICON[script.status];
       icon.style.color = STATUS_COLOR[script.status];
 
       const label = document.createElement('span');
-      label.className = 'iip__script-label';
+      label.className = 'irs-inspect-panel__script-label';
       label.style.color = script.status === 'error' ? 'var(--irs-color-red)'
         : script.status === 'running' ? 'var(--irs-text)'
         : 'var(--irs-text-muted)';
@@ -437,7 +437,7 @@ export function createInspectPanel(
 
       if (script.activeTimerCount > 0) {
         const badge = document.createElement('span');
-        badge.className = 'iip__timer-badge';
+        badge.className = 'irs-inspect-panel__timer-badge';
         badge.textContent = `${script.activeTimerCount}t`;
         row.appendChild(badge);
       }
@@ -449,12 +449,12 @@ export function createInspectPanel(
   function renderErrorSection(scripts: ScriptInspectEntry[]): void {
     const errorScript = scripts.find((s) => s.status === 'error');
     if (!errorScript) {
-      errorSection.classList.remove('iip__error-section--visible');
+      errorSection.classList.remove('irs-inspect-panel__error-section--visible');
       currentErrorBlockId = undefined;
       return;
     }
 
-    errorSection.classList.add('iip__error-section--visible');
+    errorSection.classList.add('irs-inspect-panel__error-section--visible');
     errorTarget.textContent = errorScript.logicTarget;
     errorMsg.textContent = errorScript.errorMessage ?? 'An unknown error occurred.';
     currentErrorBlockId = errorScript.errorBlockId;
@@ -470,27 +470,27 @@ export function createInspectPanel(
 
     // Cap displayed entries at MAX_LOG_ENTRIES
     if (displayedLogCount >= MAX_LOG_ENTRIES) {
-      const first = logList.querySelector('.iip__log-entry');
+      const first = logList.querySelector('.irs-inspect-panel__log-entry');
       if (first) first.remove();
     } else {
       displayedLogCount++;
     }
 
     const row = document.createElement('div');
-    row.className = 'iip__log-entry';
+    row.className = 'irs-inspect-panel__log-entry';
 
     const timeEl = document.createElement('span');
-    timeEl.className = 'iip__log-time';
+    timeEl.className = 'irs-inspect-panel__log-time';
     timeEl.textContent = formatTimestamp(entry.timestamp);
 
     const targetEl = document.createElement('span');
-    targetEl.className = 'iip__log-target';
+    targetEl.className = 'irs-inspect-panel__log-target';
     // Abbreviate "Game Logic (main)" → "Game" for narrow columns
     targetEl.title = entry.logicTarget;
     targetEl.textContent = entry.logicTarget.split(' ')[0];
 
     const msgEl = document.createElement('span');
-    msgEl.className = 'iip__log-msg';
+    msgEl.className = 'irs-inspect-panel__log-msg';
     msgEl.style.color = LOG_LEVEL_COLOR[entry.level];
     msgEl.textContent = entry.message;
 

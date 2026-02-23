@@ -59,8 +59,10 @@ const LAYER_LABELS: Record<LayerType, string> = {
 
 // --- Styles ---
 
+const STYLE_ID = 'irs-layer-panel-styles';
+
 const STYLES = `
-  .layer-panel {
+  .irs-layer-panel {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -69,11 +71,11 @@ const STYLES = `
     min-height: 0;
   }
 
-  .layer-panel--hidden {
+  .irs-layer-panel--hidden {
     display: none;
   }
 
-  .layer-panel__list {
+  .irs-layer-panel__list {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -85,28 +87,28 @@ const STYLES = `
     scrollbar-width: thin;
   }
 
-  .layer-panel__list::-webkit-scrollbar {
+  .irs-layer-panel__list::-webkit-scrollbar {
     display: none;
   }
 
-  .layer-panel__header {
+  .irs-layer-panel__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 8px 4px 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--irs-border-light);
     margin-bottom: 4px;
   }
 
-  .layer-panel__title {
-    color: #8a90b8;
+  .irs-layer-panel__title {
+    color: var(--irs-text-secondary);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
-  .layer-row {
+  .irs-layer-panel__row {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -120,38 +122,38 @@ const STYLES = `
     border: 1px solid transparent;
   }
 
-  .layer-row:active {
-    background: rgba(255, 255, 255, 0.05);
+  .irs-layer-panel__row:active {
+    background: var(--irs-surface-elevated);
   }
 
-  .layer-row--active {
-    background: rgba(74, 158, 255, 0.12);
-    border-color: rgba(74, 158, 255, 0.35);
+  .irs-layer-panel__row--active {
+    background: var(--irs-color-blue-alpha-12);
+    border-color: var(--irs-color-blue-alpha-35);
   }
 
-  .layer-row--locked {
+  .irs-layer-panel__row--locked {
     opacity: 0.7;
   }
 
-  .layer-row--hidden {
+  .irs-layer-panel__row--hidden {
     opacity: 0.5;
   }
 
-  .layer-row__reorder-group {
+  .irs-layer-panel__row__reorder-group {
     display: flex;
     flex-direction: column;
     gap: 0;
     margin-right: 2px;
   }
 
-  .layer-row__reorder {
+  .irs-layer-panel__row__reorder {
     width: 24px;
     height: 18px;
     padding: 0;
     border-radius: 4px;
     border: none;
     background: transparent;
-    color: #6a70a0;
+    color: var(--irs-text-muted);
     cursor: pointer;
     font-size: 10px;
     line-height: 1;
@@ -161,23 +163,23 @@ const STYLES = `
     transition: background 0.12s, color 0.12s;
   }
 
-  .layer-row__reorder:hover {
-    background: rgba(255, 255, 255, 0.08);
+  .irs-layer-panel__row__reorder:hover {
+    background: var(--irs-color-blue-alpha-8);
     color: #aab0d4;
   }
 
-  .layer-row__reorder:active {
-    background: rgba(255, 255, 255, 0.12);
+  .irs-layer-panel__row__reorder:active {
+    background: var(--irs-color-blue-alpha-12);
   }
 
-  .layer-row__reorder--disabled,
-  .layer-row__reorder:disabled {
+  .irs-layer-panel__row__reorder--disabled,
+  .irs-layer-panel__row__reorder:disabled {
     opacity: 0.25;
     cursor: default;
     pointer-events: none;
   }
 
-  .layer-row__indicator {
+  .irs-layer-panel__row__indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
@@ -187,15 +189,15 @@ const STYLES = `
     transition: all 0.15s;
   }
 
-  .layer-row--active .layer-row__indicator {
-    background: #4a9eff;
-    border-color: #4a9eff;
-    box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+  .irs-layer-panel__row--active .irs-layer-panel__row__indicator {
+    background: var(--irs-color-blue);
+    border-color: var(--irs-color-blue);
+    box-shadow: 0 0 8px var(--irs-color-blue-alpha-45);
   }
 
-  .layer-row__name {
+  .irs-layer-panel__row__name {
     flex: 1;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
     font-size: 13px;
     font-weight: 500;
     padding: 0 4px;
@@ -204,12 +206,12 @@ const STYLES = `
     text-overflow: ellipsis;
   }
 
-  .layer-row--hidden .layer-row__name {
-    color: #888;
+  .irs-layer-panel__row--hidden .irs-layer-panel__row__name {
+    color: var(--irs-text-muted);
     text-decoration: line-through;
   }
 
-  .layer-row__toggle {
+  .irs-layer-panel__row__toggle {
     min-width: 40px;
     min-height: 40px;
     display: flex;
@@ -221,32 +223,40 @@ const STYLES = `
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     font-size: 15px;
-    color: #555;
+    color: var(--irs-text-muted);
     transition: background 0.12s, color 0.12s;
   }
 
-  .layer-row__toggle:active {
-    background: rgba(255, 255, 255, 0.1);
+  .irs-layer-panel__row__toggle:active {
+    background: var(--irs-color-blue-alpha-12);
   }
 
-  .layer-row__toggle--on {
-    color: #4a9eff;
+  .irs-layer-panel__row__toggle--on {
+    color: var(--irs-color-blue);
   }
 
-  .layer-row__toggle--off {
-    color: #555;
+  .irs-layer-panel__row__toggle--off {
+    color: var(--irs-text-muted);
   }
 
-  .layer-row__toggle--warning {
-    color: #ff6b6b;
+  .irs-layer-panel__row__toggle--warning {
+    color: var(--irs-accent-danger);
   }
 
-  .layer-row__toggles {
+  .irs-layer-panel__row__toggles {
     display: flex;
     align-items: center;
     gap: 2px;
   }
 `;
+
+function ensureStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 // --- Factory ---
 
@@ -260,26 +270,24 @@ export function createLayerPanel(
   const emitOrderChange = onOrderChange ?? (() => {});
 
   // Inject styles
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  ensureStyles();
 
   // Create root element
   const root = document.createElement('div');
-  root.className = 'layer-panel';
+  root.className = 'irs-layer-panel';
 
   // Add header
   const header = document.createElement('div');
-  header.className = 'layer-panel__header';
+  header.className = 'irs-layer-panel__header';
   const title = document.createElement('span');
-  title.className = 'layer-panel__title';
+  title.className = 'irs-layer-panel__title';
   title.textContent = 'Layers';
   header.appendChild(title);
   root.appendChild(header);
 
   // Scrollable list container
   const list = document.createElement('div');
-  list.className = 'layer-panel__list';
+  list.className = 'irs-layer-panel__list';
   root.appendChild(list);
 
   // Layer rows
@@ -291,25 +299,25 @@ export function createLayerPanel(
 
   for (const layerType of layerOrder) {
     const row = document.createElement('div');
-    row.className = 'layer-row';
+    row.className = 'irs-layer-panel__row';
     row.dataset.layer = layerType;
 
     if (layerType === activeLayer) {
-      row.classList.add('layer-row--active');
+      row.classList.add('irs-layer-panel__row--active');
     }
     if (!visibility[layerType]) {
-      row.classList.add('layer-row--hidden');
+      row.classList.add('irs-layer-panel__row--hidden');
     }
     if (locks[layerType]) {
-      row.classList.add('layer-row--locked');
+      row.classList.add('irs-layer-panel__row--locked');
     }
 
     // Reorder controls group (left side)
     const reorderGroup = document.createElement('div');
-    reorderGroup.className = 'layer-row__reorder-group';
+    reorderGroup.className = 'irs-layer-panel__row__reorder-group';
 
     const moveUp = document.createElement('button');
-    moveUp.className = 'layer-row__reorder';
+    moveUp.className = 'irs-layer-panel__row__reorder';
     moveUp.type = 'button';
     moveUp.textContent = '▲';
     moveUp.setAttribute('aria-label', 'Move layer up');
@@ -320,7 +328,7 @@ export function createLayerPanel(
     });
 
     const moveDown = document.createElement('button');
-    moveDown.className = 'layer-row__reorder';
+    moveDown.className = 'irs-layer-panel__row__reorder';
     moveDown.type = 'button';
     moveDown.textContent = '▼';
     moveDown.setAttribute('aria-label', 'Move layer down');
@@ -335,26 +343,26 @@ export function createLayerPanel(
 
     // Active indicator
     const indicator = document.createElement('div');
-    indicator.className = 'layer-row__indicator';
+    indicator.className = 'irs-layer-panel__row__indicator';
 
     // Layer name
     const name = document.createElement('span');
-    name.className = 'layer-row__name';
+    name.className = 'irs-layer-panel__row__name';
     name.textContent = LAYER_LABELS[layerType];
 
     // Toggles group (right side)
     const togglesGroup = document.createElement('div');
-    togglesGroup.className = 'layer-row__toggles';
+    togglesGroup.className = 'irs-layer-panel__row__toggles';
 
     // Visibility toggle - use clearer icons
     const visToggle = document.createElement('button');
-    visToggle.className = 'layer-row__toggle';
+    visToggle.className = 'irs-layer-panel__row__toggle';
     visToggle.type = 'button';
     visToggle.textContent = visibility[layerType] ? '👁' : '○';
     if (visibility[layerType]) {
-      visToggle.classList.add('layer-row__toggle--on');
+      visToggle.classList.add('irs-layer-panel__row__toggle--on');
     } else {
-      visToggle.classList.add('layer-row__toggle--off');
+      visToggle.classList.add('irs-layer-panel__row__toggle--off');
     }
     visToggle.title = visibility[layerType] ? 'Hide layer' : 'Show layer';
 
@@ -369,11 +377,11 @@ export function createLayerPanel(
 
     // Lock toggle
     const lockToggle = document.createElement('button');
-    lockToggle.className = 'layer-row__toggle';
+    lockToggle.className = 'irs-layer-panel__row__toggle';
     lockToggle.type = 'button';
     lockToggle.textContent = locks[layerType] ? '🔒' : '🔓';
     if (locks[layerType]) {
-      lockToggle.classList.add('layer-row__toggle--warning');
+      lockToggle.classList.add('irs-layer-panel__row__toggle--warning');
     }
     lockToggle.title = locks[layerType] ? 'Unlock layer' : 'Lock layer';
 
@@ -434,8 +442,8 @@ export function createLayerPanel(
       if (!up || !down) continue;
       up.disabled = idx <= 0;
       down.disabled = idx < 0 || idx >= layerOrder.length - 1;
-      up.classList.toggle('layer-row__reorder--disabled', up.disabled);
-      down.classList.toggle('layer-row__reorder--disabled', down.disabled);
+      up.classList.toggle('irs-layer-panel__row__reorder--disabled', up.disabled);
+      down.classList.toggle('irs-layer-panel__row__reorder--disabled', down.disabled);
     }
   }
 
@@ -467,19 +475,19 @@ export function createLayerPanel(
     if (!row || !visToggle || !lockToggle) return;
 
     // Update active state
-    row.classList.toggle('layer-row--active', layerType === activeLayer);
+    row.classList.toggle('irs-layer-panel__row--active', layerType === activeLayer);
 
     // Update visibility state
-    row.classList.toggle('layer-row--hidden', !visibility[layerType]);
+    row.classList.toggle('irs-layer-panel__row--hidden', !visibility[layerType]);
     visToggle.textContent = visibility[layerType] ? '👁' : '○';
-    visToggle.classList.toggle('layer-row__toggle--on', visibility[layerType]);
-    visToggle.classList.toggle('layer-row__toggle--off', !visibility[layerType]);
+    visToggle.classList.toggle('irs-layer-panel__row__toggle--on', visibility[layerType]);
+    visToggle.classList.toggle('irs-layer-panel__row__toggle--off', !visibility[layerType]);
     visToggle.title = visibility[layerType] ? 'Hide layer' : 'Show layer';
 
     // Update lock state
-    row.classList.toggle('layer-row--locked', locks[layerType]);
+    row.classList.toggle('irs-layer-panel__row--locked', locks[layerType]);
     lockToggle.textContent = locks[layerType] ? '🔒' : '🔓';
-    lockToggle.classList.toggle('layer-row__toggle--warning', locks[layerType]);
+    lockToggle.classList.toggle('irs-layer-panel__row__toggle--warning', locks[layerType]);
     lockToggle.title = locks[layerType] ? 'Unlock layer' : 'Lock layer';
   }
 
@@ -524,7 +532,6 @@ export function createLayerPanel(
 
     destroy(): void {
       container.removeChild(root);
-      document.head.removeChild(styleEl);
       console.log(`${LOG_PREFIX} Layer panel destroyed`);
     },
   };

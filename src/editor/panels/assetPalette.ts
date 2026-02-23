@@ -1,55 +1,57 @@
 import type { AssetRegistry, AssetGroupType, AssetEntry, AssetGroup } from '@/editor/assets';
 import { resolveAssetUrl } from '@/shared/paths';
 
+const STYLE_ID = 'irs-asset-palette-styles';
+
 const STYLES = `
-  .asset-palette {
+  .irs-asset-palette {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
-  .asset-palette__section {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
+  .irs-asset-palette__section {
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 14px;
     padding: 12px;
   }
 
-  .asset-palette__title {
+  .irs-asset-palette__title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     margin-bottom: 8px;
   }
 
-  .asset-palette__group {
+  .irs-asset-palette__group {
     margin-bottom: 10px;
   }
 
-  .asset-palette__group:last-child {
+  .irs-asset-palette__group:last-child {
     margin-bottom: 0;
   }
 
-  .asset-palette__group-title {
+  .irs-asset-palette__group-title {
     font-size: 12px;
     font-weight: 600;
-    color: #b6c4f1;
+    color: var(--irs-text-secondary);
     margin-bottom: 6px;
   }
 
-  .asset-palette__grid {
+  .irs-asset-palette__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
     gap: 8px;
   }
 
-  .asset-palette__card {
+  .irs-asset-palette__card {
     border-radius: 10px;
     border: 2px solid transparent;
-    background: rgba(22, 30, 60, 0.85);
+    background: var(--irs-surface-modal);
     padding: 6px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     font-size: 11px;
     display: flex;
     flex-direction: column;
@@ -57,26 +59,26 @@ const STYLES = `
     cursor: pointer;
   }
 
-  .asset-palette__card--selected {
-    border-color: #4a9eff;
-    background: rgba(47, 59, 102, 0.9);
+  .irs-asset-palette__card--selected {
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
   }
 
-  .asset-palette__card img,
-  .asset-palette__card canvas {
+  .irs-asset-palette__card img,
+  .irs-asset-palette__card canvas {
     width: 100%;
     border-radius: 8px;
     object-fit: cover;
   }
 
-  .asset-palette__meta {
+  .irs-asset-palette__meta {
     font-size: 10px;
-    color: #93a1d8;
+    color: var(--irs-text-secondary);
   }
 
-  .asset-palette__empty {
+  .irs-asset-palette__empty {
     font-size: 12px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
   }
 `;
 
@@ -92,24 +94,27 @@ export interface AssetPaletteController {
   destroy(): void;
 }
 
+function ensureStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteController {
   const { container, assetRegistry, groupType, title } = config;
 
-  if (!document.getElementById('asset-palette-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'asset-palette-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const root = document.createElement('div');
-  root.className = 'asset-palette';
+  root.className = 'irs-asset-palette';
 
   const section = document.createElement('section');
-  section.className = 'asset-palette__section';
+  section.className = 'irs-asset-palette__section';
 
   const heading = document.createElement('div');
-  heading.className = 'asset-palette__title';
+  heading.className = 'irs-asset-palette__title';
   heading.textContent = title;
 
   section.appendChild(heading);
@@ -143,8 +148,8 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
 
   function renderAssetCard(asset: AssetEntry, selectedAssetId: string | null): HTMLElement {
     const card = document.createElement('div');
-    card.className = 'asset-palette__card';
-    card.classList.toggle('asset-palette__card--selected', asset.id === selectedAssetId);
+    card.className = 'irs-asset-palette__card';
+    card.classList.toggle('irs-asset-palette__card--selected', asset.id === selectedAssetId);
 
     if (asset.sourceAssetId && asset.rect) {
       card.appendChild(renderSliceThumbnail(asset));
@@ -159,7 +164,7 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
     name.textContent = asset.name;
 
     const meta = document.createElement('div');
-    meta.className = 'asset-palette__meta';
+    meta.className = 'irs-asset-palette__meta';
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
     meta.textContent = `${sizeLabel} · ${sourceLabel}`;
@@ -175,13 +180,13 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
   }
 
   function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {
-    section.querySelectorAll('.asset-palette__group, .asset-palette__empty').forEach((node) =>
+    section.querySelectorAll('.irs-asset-palette__group, .irs-asset-palette__empty').forEach((node) =>
       node.remove()
     );
 
     if (groups.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'asset-palette__empty';
+      empty.className = 'irs-asset-palette__empty';
       empty.textContent = 'No assets yet. Use the left berry to import and slice sprites.';
       section.appendChild(empty);
       return;
@@ -189,18 +194,18 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
 
     groups.forEach((group) => {
       const groupWrapper = document.createElement('div');
-      groupWrapper.className = 'asset-palette__group';
+      groupWrapper.className = 'irs-asset-palette__group';
 
       const groupTitle = document.createElement('div');
-      groupTitle.className = 'asset-palette__group-title';
+      groupTitle.className = 'irs-asset-palette__group-title';
       groupTitle.textContent = group.name;
 
       const grid = document.createElement('div');
-      grid.className = 'asset-palette__grid';
+      grid.className = 'irs-asset-palette__grid';
 
       if (group.assets.length === 0) {
         const empty = document.createElement('div');
-        empty.className = 'asset-palette__empty';
+        empty.className = 'irs-asset-palette__empty';
         empty.textContent = 'No assets in this group.';
         grid.appendChild(empty);
       } else {
