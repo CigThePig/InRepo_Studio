@@ -491,6 +491,10 @@ Micro-format (copy/paste):
   - Role: Layer panel with visibility and lock toggles.
   - Lists of truth: none
 
+- `src/editor/panels/berryShell.ts`
+  - Role: Shared Berry side panel shell factory (DOM shell, styles, open/close + swipe behavior).
+  - Lists of truth: BerryShellConfig
+
 - `src/editor/panels/rightBerry.ts`
   - Role: Right berry slide-out panel shell for editor modes.
   - Lists of truth: none
