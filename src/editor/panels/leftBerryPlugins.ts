@@ -4,6 +4,7 @@ import { AssetLibraryPlugin } from './assetLibraryTab';
 import { AnimationPlugin } from './animationTab';
 import { SpriteSlicerPlugin } from './spriteSlicerTab';
 import { createUtilitiesTab } from './utilitiesTab';
+import { createEmptyState } from './leftBerry';
 
 export const UtilitiesPlugin: BerryTabPlugin = {
   id: 'tools',
@@ -22,18 +23,13 @@ export const PresetsPlugin: BerryTabPlugin = {
   icon: 'P',
   mount: (container, context) => {
     if (!context.presetRegistry || !context.presetConfigStore) {
-      const empty = document.createElement('section');
-      empty.className = 'irs-berry__plugin-empty-state';
-      empty.innerHTML = '<h3 class="irs-berry__plugin-empty-title">Presets require a project</h3><p class="irs-berry__plugin-empty-description">Load a project to configure preset categories and Blockly hooks.</p>';
-      const cta = document.createElement('button');
-      cta.type = 'button';
-      cta.className = 'irs-btn irs-btn--secondary irs-berry__plugin-empty-cta';
-      cta.textContent = 'Open Tools';
-      cta.style.minHeight = 'var(--irs-touch-target)';
-      cta.style.minWidth = 'var(--irs-touch-target)';
-      cta.addEventListener('click', () => context.openTab('tools'));
-      empty.appendChild(cta);
-      container.appendChild(empty);
+      container.appendChild(createEmptyState({
+        icon: '🧩',
+        title: 'No Project Loaded',
+        description: 'Load a project to configure presets and Blockly hooks.',
+        ctaText: 'Open Tools',
+        onCtaClick: () => context.openTab('tools'),
+      }));
       return {};
     }
 

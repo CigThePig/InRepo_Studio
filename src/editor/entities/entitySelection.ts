@@ -14,6 +14,7 @@
  */
 
 import type { EditorState } from '@/storage/hot';
+import { editorEventBus } from '@/editor/core';
 
 export interface EntitySelectionState {
   selectedIds: string[];
@@ -40,7 +41,14 @@ function normalizeSelection(ids: string[]): string[] {
 export function createEntitySelection(config: EntitySelectionConfig): EntitySelection {
   const { getEditorState, onSelectionChange } = config;
 
-  function updateSelection(nextIds: string[]): void {
+  editorEventBus.on('UI_CONTEXT_CHANGED', ({ context }) => {
+    if (context !== 'library') {
+      return;
+    }
+    updateSelection([], { suppressContextDispatch: true });
+  });
+
+  function updateSelection(nextIds: string[], options?: { suppressContextDispatch?: boolean }): void {
     const editorState = getEditorState();
     if (!editorState) return;
 
@@ -54,6 +62,10 @@ export function createEntitySelection(config: EntitySelectionConfig): EntitySele
 
     editorState.selectedEntityIds = normalized;
     onSelectionChange?.(normalized);
+
+    if (!options?.suppressContextDispatch && normalized.length > 0) {
+      editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'canvas' });
+    }
   }
 
   return {

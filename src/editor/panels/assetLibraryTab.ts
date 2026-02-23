@@ -7,6 +7,8 @@ import { resolveAssetUrl } from '@/shared/paths';
 import type { Scene } from '@/types';
 import { createAnimationClock } from '@/editor/canvas/animationClock';
 import { uxFeedback } from '@/editor/uxFeedback';
+import { createEmptyState } from './leftBerry';
+import { editorEventBus } from '@/editor/core';
 
 const STYLES = `
   .asset-library {
@@ -1112,6 +1114,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       if (organizeGroupKey !== null) return;
       uxFeedback.selection.mark(card);
       assetRegistry.setSelectedAsset(asset.id);
+      editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
     });
 
     return card;
@@ -2367,6 +2370,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   createButton.addEventListener('click', handleCreateGroup);
 
   const unsubscribe = assetRegistry.onChange(() => refresh());
+  const unsubscribeUiContext = editorEventBus.on('UI_CONTEXT_CHANGED', ({ context }) => {
+    if (context !== 'canvas') {
+      return;
+    }
+    if (assetRegistry.getState().selectedAssetId === null) {
+      return;
+    }
+    assetRegistry.setSelectedAsset(null);
+  });
 
   refresh();
 
@@ -2374,6 +2386,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     refresh,
     destroy: () => {
       unsubscribe();
+      unsubscribeUiContext();
       stopRafLoop();
       animIntersectionObserver?.disconnect();
       animIntersectionObserver = null;
@@ -2394,18 +2407,13 @@ export const AssetLibraryPlugin = {
   icon: 'A',
   mount: (container: HTMLElement, context: import('@/editor/core/tabRegistry').EditorPluginContext) => {
     if (!context.assetLibraryEnabled || !context.assetRegistry) {
-      const empty = document.createElement('section');
-      empty.className = 'irs-berry__plugin-empty-state';
-      empty.innerHTML = '<h3 class="irs-berry__plugin-empty-title">Asset library unavailable</h3><p class="irs-berry__plugin-empty-description">Enable the asset library and load an editable project to browse assets.</p>';
-      const cta = document.createElement('button');
-      cta.type = 'button';
-      cta.className = 'irs-btn irs-btn--secondary irs-berry__plugin-empty-cta';
-      cta.textContent = 'Open Sprites';
-      cta.style.minHeight = 'var(--irs-touch-target)';
-      cta.style.minWidth = 'var(--irs-touch-target)';
-      cta.addEventListener('click', () => context.openTab('sprites'));
-      empty.appendChild(cta);
-      container.appendChild(empty);
+      container.appendChild(createEmptyState({
+        icon: '🗂️',
+        title: 'No Asset Library Available',
+        description: 'Enable the asset library and load an editable project to browse assets.',
+        ctaText: 'Open Sprites',
+        onCtaClick: () => context.openTab('sprites'),
+      }));
       return {};
     }
 
