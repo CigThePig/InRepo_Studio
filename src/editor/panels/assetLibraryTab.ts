@@ -21,7 +21,7 @@ const STYLES = `
   .irs-asset-library__section {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
   }
 
@@ -42,7 +42,7 @@ const STYLES = `
   .irs-asset-library__select {
     min-height: 44px;
     padding: 8px 10px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -80,7 +80,7 @@ const STYLES = `
     gap: 8px;
     min-height: 44px;
     padding: 8px 10px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid transparent;
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -133,7 +133,7 @@ const STYLES = `
 
   .irs-asset-library__asset {
     position: relative;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
     background: var(--irs-surface-panel);
     padding: 6px;
@@ -155,7 +155,7 @@ const STYLES = `
   .irs-asset-library__asset img,
   .irs-asset-library__asset canvas {
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     object-fit: cover;
   }
 
@@ -181,7 +181,7 @@ const STYLES = `
     right: 6px;
     width: 36px;
     height: 36px;
-    border-radius: 999px;
+    border-radius: var(--irs-radius-pill);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -205,7 +205,7 @@ const STYLES = `
     right: 6px;
     width: var(--irs-touch-target);
     height: var(--irs-touch-target);
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 1px solid var(--irs-border-blue-alpha);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -229,7 +229,7 @@ const STYLES = `
   }
 
   .irs-asset-library__placeholder {
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px dashed var(--irs-border-blue-alpha);
     background: var(--irs-surface-panel);
     min-height: 132px;
@@ -307,7 +307,7 @@ const STYLES = `
   }
 
   .irs-asset-library__animation-card {
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
     background: var(--irs-surface-panel);
     padding: 8px;
@@ -321,7 +321,7 @@ const STYLES = `
 
   .irs-asset-library__animation-card img {
     width: 100%;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     object-fit: cover;
   }
 
@@ -345,7 +345,7 @@ const STYLES = `
 
   .irs-asset-library__animation-card canvas {
     width: 100%;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     image-rendering: pixelated;
     display: block;
   }
@@ -384,7 +384,7 @@ const STYLES = `
   .irs-asset-library__anim-where-used {
     margin-top: 6px;
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     background: var(--irs-surface-input);
     border: 1px solid var(--irs-border-heavy);
     font-size: 10px;
@@ -406,7 +406,7 @@ const STYLES = `
   .irs-asset-library__anim-delete-confirm {
     margin-top: 6px;
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-accent-danger);
     display: flex;
@@ -464,7 +464,7 @@ const STYLES = `
     flex: 1;
     min-height: 44px;
     padding: 8px 10px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -475,7 +475,7 @@ const STYLES = `
     width: 44px;
     height: 44px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-blue-alpha);
     image-rendering: pixelated;

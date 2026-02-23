@@ -13,20 +13,20 @@ export interface KnobEditorController {
 }
 
 const STYLES = `
-  .knob-editor {
+  .irs-knob-editor {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .knob-editor__group {
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    border-radius: 12px;
-    background: rgba(12, 19, 37, 0.95);
+  .irs-knob-editor__group {
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-lg);
+    background: var(--irs-surface-dark);
     overflow: hidden;
   }
 
-  .knob-editor__summary {
+  .irs-knob-editor__summary {
     list-style: none;
     min-height: 44px;
     display: flex;
@@ -36,59 +36,59 @@ const STYLES = `
     padding: 10px 12px;
     font-size: 12px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .knob-editor__summary::-webkit-details-marker {
+  .irs-knob-editor__summary::-webkit-details-marker {
     display: none;
   }
 
-  .knob-editor__rows {
+  .irs-knob-editor__rows {
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 0 10px 10px;
   }
 
-  .knob-editor__row {
+  .irs-knob-editor__row {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .knob-editor__label {
+  .irs-knob-editor__label {
     font-size: 12px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
-  .knob-editor__help {
+  .irs-knob-editor__help {
     font-size: 11px;
-    color: #9fb1e0;
+    color: var(--irs-text-secondary);
     line-height: 1.35;
   }
 
-  .knob-editor__control,
-  .knob-editor__range,
-  .knob-editor__number {
+  .irs-knob-editor__control,
+  .irs-knob-editor__range,
+  .irs-knob-editor__number {
     min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(14, 21, 40, 0.95);
-    color: #dbe4ff;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     padding: 10px;
     font-size: 13px;
   }
 
-  .knob-editor__range-wrap {
+  .irs-knob-editor__range-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .knob-editor__range {
+  .irs-knob-editor__range {
     flex: 1;
     min-height: 0;
     padding: 0;
@@ -96,25 +96,25 @@ const STYLES = `
     border: none;
   }
 
-  .knob-editor__number {
+  .irs-knob-editor__number {
     width: 92px;
     text-align: right;
   }
 
-  .knob-editor__toggle {
+  .irs-knob-editor__toggle {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     font-size: 12px;
   }
 `;
 
 function ensureStyles(): void {
-  if (document.getElementById('knob-editor-styles')) return;
+  if (document.getElementById('irs-knob-editor-styles')) return;
   const style = document.createElement('style');
-  style.id = 'knob-editor-styles';
+  style.id = 'irs-knob-editor-styles';
   style.textContent = STYLES;
   document.head.appendChild(style);
 }
@@ -138,15 +138,15 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
   ensureStyles();
 
   const root = document.createElement('div');
-  root.className = 'knob-editor';
+  root.className = 'irs-knob-editor';
   config.container.appendChild(root);
 
   function renderKnob(knob: KnobDef, values: Record<string, unknown>): HTMLElement {
     const row = document.createElement('div');
-    row.className = 'knob-editor__row';
+    row.className = 'irs-knob-editor__row';
 
     const label = document.createElement('label');
-    label.className = 'knob-editor__label';
+    label.className = 'irs-knob-editor__label';
     label.textContent = knob.label;
     row.appendChild(label);
 
@@ -154,10 +154,10 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
 
     if (knob.type === 'number') {
       const wrap = document.createElement('div');
-      wrap.className = 'knob-editor__range-wrap';
+      wrap.className = 'irs-knob-editor__range-wrap';
 
       const range = document.createElement('input');
-      range.className = 'knob-editor__range';
+      range.className = 'irs-input irs-knob-editor__range';
       range.type = 'range';
       range.min = String(knob.constraints?.min ?? 0);
       range.max = String(knob.constraints?.max ?? 100);
@@ -165,7 +165,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       range.value = String(typeof value === 'number' ? value : Number(knob.default));
 
       const number = document.createElement('input');
-      number.className = 'knob-editor__number';
+      number.className = 'irs-input irs-knob-editor__number';
       number.type = 'number';
       number.min = String(knob.constraints?.min ?? '');
       number.max = String(knob.constraints?.max ?? '');
@@ -189,7 +189,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       inputRefs.set(knob.id, { type: 'number', elements: [range, number] });
     } else if (knob.type === 'boolean') {
       const toggle = document.createElement('label');
-      toggle.className = 'knob-editor__toggle';
+      toggle.className = 'irs-knob-editor__toggle';
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = Boolean(value);
@@ -206,7 +206,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       inputRefs.set(knob.id, { type: 'boolean', elements: [checkbox] });
     } else if (knob.type === 'enum') {
       const select = document.createElement('select');
-      select.className = 'knob-editor__control';
+      select.className = 'irs-input irs-knob-editor__control';
       const options = knob.constraints?.options ?? [];
       for (const optionValue of options) {
         const option = document.createElement('option');
@@ -222,7 +222,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       inputRefs.set(knob.id, { type: 'enum', elements: [select as unknown as HTMLInputElement] });
     } else {
       const input = document.createElement('input');
-      input.className = 'knob-editor__control';
+      input.className = 'irs-input irs-knob-editor__control';
       input.type = 'text';
       input.value = String(value ?? '');
       input.addEventListener('change', () => {
@@ -233,7 +233,7 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
     }
 
     const help = document.createElement('div');
-    help.className = 'knob-editor__help';
+    help.className = 'irs-knob-editor__help';
     help.textContent = knob.description;
     row.appendChild(help);
 
@@ -259,16 +259,16 @@ export function createKnobEditor(config: KnobEditorConfig): KnobEditorController
       if (section.knobs.length === 0) continue;
 
       const details = document.createElement('details');
-      details.className = 'knob-editor__group';
+      details.className = 'irs-knob-editor__group';
       details.open = section.open;
 
       const summary = document.createElement('summary');
-      summary.className = 'knob-editor__summary';
+      summary.className = 'irs-knob-editor__summary';
       summary.textContent = `${section.title} (${section.knobs.length})`;
       details.appendChild(summary);
 
       const rows = document.createElement('div');
-      rows.className = 'knob-editor__rows';
+      rows.className = 'irs-knob-editor__rows';
       for (const knob of section.knobs) {
         rows.appendChild(renderKnob(knob, values));
       }

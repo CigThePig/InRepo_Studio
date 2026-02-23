@@ -51,49 +51,49 @@ const CATEGORY_META: readonly CategoryMeta[] = [
 ];
 
 const STYLES = `
-  .presets-tab {
+  .irs-presets-tab {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
-  .presets-tab__section {
-    background: rgba(18, 28, 53, 0.9);
-    border: 1px solid rgba(88, 116, 173, 0.6);
-    border-radius: 14px;
+  .irs-presets-tab__section {
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-xl);
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  .presets-tab__heading {
+  .irs-presets-tab__heading {
     margin: 0;
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
-  .presets-tab__subtext {
+  .irs-presets-tab__subtext {
     margin: 0;
     font-size: 12px;
-    color: #9fb1e0;
+    color: var(--irs-text-secondary);
     line-height: 1.4;
   }
 
-  .presets-tab__chips {
+  .irs-presets-tab__chips {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
 
-  .presets-tab__chip {
+  .irs-presets-tab__chip {
     min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(14, 21, 40, 0.95);
-    color: #dbe4ff;
+    border-radius: var(--irs-radius-lg);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     padding: 8px 12px;
     font-size: 12px;
     font-weight: 700;
@@ -101,72 +101,72 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .presets-tab__chip:active {
-    background: rgba(35, 55, 95, 0.95);
+  .irs-presets-tab__chip:active {
+    background: var(--irs-color-blue-alpha-16);
   }
 
-  .presets-tab__chip--active {
-    border-color: #4a9eff;
-    background: rgba(74, 158, 255, 0.2);
-    color: #ffffff;
+  .irs-presets-tab__chip--active {
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
-  .presets-tab__status {
+  .irs-presets-tab__status {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(12, 19, 37, 0.95);
+    border-radius: var(--irs-radius-lg);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-dark);
     padding: 10px 12px;
     font-size: 12px;
   }
 
-  .presets-tab__warning {
+  .irs-presets-tab__warning {
     min-height: 44px;
-    border-radius: 999px;
+    border-radius: var(--irs-radius-pill);
     padding: 2px 10px;
     font-size: 11px;
     font-weight: 700;
-    border: 1px solid rgba(255, 181, 71, 0.6);
-    color: #ffc870;
-    background: rgba(79, 53, 11, 0.7);
+    border: 1px solid var(--irs-color-yellow-border);
+    color: var(--irs-color-yellow);
+    background: var(--irs-color-yellow-alpha-20);
     cursor: pointer;
   }
 
-  .presets-tab__categories {
+  .irs-presets-tab__categories {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  .presets-tab__row {
+  .irs-presets-tab__row {
     min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(12, 19, 37, 0.95);
+    border-radius: var(--irs-radius-lg);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-dark);
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .presets-tab__row:active {
-    background: rgba(34, 54, 92, 0.95);
+  .irs-presets-tab__row:active {
+    background: var(--irs-color-blue-alpha-16);
   }
 
-  .presets-tab__icon {
+  .irs-presets-tab__icon {
     width: 24px;
     text-align: center;
     font-size: 16px;
   }
 
-  .presets-tab__info {
+  .irs-presets-tab__info {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -174,79 +174,79 @@ const STYLES = `
     min-width: 0;
   }
 
-  .presets-tab__name {
+  .irs-presets-tab__name {
     font-size: 13px;
     font-weight: 700;
   }
 
-  .presets-tab__preset {
+  .irs-presets-tab__preset {
     font-size: 11px;
-    color: #9fb1e0;
+    color: var(--irs-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .presets-tab__right {
+  .irs-presets-tab__right {
     display: inline-flex;
     align-items: center;
     gap: 8px;
   }
 
-  .presets-tab__chip-status {
-    border-radius: 999px;
+  .irs-presets-tab__chip-status {
+    border-radius: var(--irs-radius-pill);
     padding: 2px 8px;
     font-size: 11px;
     font-weight: 700;
   }
 
-  .presets-tab__chip-status--off {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #96a0bf;
-    background: rgba(255, 255, 255, 0.06);
+  .irs-presets-tab__chip-status--off {
+    border: 1px solid var(--irs-border-light);
+    color: var(--irs-text-muted);
+    background: var(--irs-surface-elevated);
   }
 
-  .presets-tab__chip-status--default {
-    border: 1px solid rgba(107, 191, 122, 0.55);
-    color: #aef9bd;
-    background: rgba(26, 77, 33, 0.65);
+  .irs-presets-tab__chip-status--default {
+    border: 1px solid var(--irs-color-green-alpha-53);
+    color: var(--irs-color-green);
+    background: var(--irs-color-green-alpha-15);
   }
 
-  .presets-tab__chip-status--modified {
-    border: 1px solid rgba(74, 158, 255, 0.6);
-    color: #cde6ff;
-    background: rgba(26, 58, 97, 0.75);
+  .irs-presets-tab__chip-status--modified {
+    border: 1px solid var(--irs-color-blue-border);
+    color: var(--irs-text-primary);
+    background: var(--irs-color-blue-alpha-22);
   }
 
-  .presets-tab__chip-status--conflict {
-    border: 1px solid rgba(255, 105, 105, 0.7);
-    color: #ffd4d4;
-    background: rgba(103, 28, 28, 0.72);
+  .irs-presets-tab__chip-status--conflict {
+    border: 1px solid var(--irs-color-red-alpha-53);
+    color: var(--irs-text-primary);
+    background: var(--irs-color-red-alpha-15);
   }
 
-  .presets-tab__chip-status--missing {
-    border: 1px solid rgba(255, 181, 71, 0.7);
-    color: #ffe3b5;
-    background: rgba(88, 55, 16, 0.8);
+  .irs-presets-tab__chip-status--missing {
+    border: 1px solid var(--irs-color-yellow-border);
+    color: var(--irs-color-yellow);
+    background: var(--irs-color-yellow-alpha-20);
   }
 
-  .presets-tab__chevron {
-    color: rgba(255, 255, 255, 0.5);
+  .irs-presets-tab__chevron {
+    color: var(--irs-text-secondary);
     font-size: 14px;
   }
 `;
 
 function ensureStyles(): void {
-  if (document.getElementById('presets-tab-styles')) return;
+  if (document.getElementById('irs-presets-tab-styles')) return;
   const styleEl = document.createElement('style');
-  styleEl.id = 'presets-tab-styles';
+  styleEl.id = 'irs-presets-tab-styles';
   styleEl.textContent = STYLES;
   document.head.appendChild(styleEl);
 }
 
 function createStatusChip(status: string): HTMLElement {
   const chip = document.createElement('span');
-  chip.className = `presets-tab__chip-status presets-tab__chip-status--${status.toLowerCase()}`;
+  chip.className = `irs-presets-tab__chip-status irs-presets-tab__chip-status--${status.toLowerCase()}`;
   chip.textContent = status;
   return chip;
 }
@@ -255,18 +255,18 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   ensureStyles();
 
   const root = document.createElement('div');
-  root.className = 'presets-tab';
+  root.className = 'irs-presets-tab';
 
   const profileSection = document.createElement('section');
-  profileSection.className = 'presets-tab__section';
+  profileSection.className = 'irs-presets-tab__section';
   const profileHeading = document.createElement('h3');
-  profileHeading.className = 'presets-tab__heading';
+  profileHeading.className = 'irs-presets-tab__heading';
   profileHeading.textContent = 'Game Profile';
   const profileSubtext = document.createElement('p');
-  profileSubtext.className = 'presets-tab__subtext';
+  profileSubtext.className = 'irs-presets-tab__subtext';
   profileSubtext.textContent = 'Choose a preset mix for your game style.';
   const chipWrap = document.createElement('div');
-  chipWrap.className = 'presets-tab__chips';
+  chipWrap.className = 'irs-presets-tab__chips';
 
   const profileButtons = new Map<GameProfile, HTMLButtonElement>();
 
@@ -289,7 +289,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   for (const profile of GAME_PROFILES) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'presets-tab__chip';
+    button.className = 'irs-presets-tab__chip';
     button.textContent = profile.label;
     button.title = profile.description;
     button.addEventListener('click', () => {
@@ -314,24 +314,24 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
   profileSection.append(profileHeading, profileSubtext, chipWrap);
 
   const statusSection = document.createElement('section');
-  statusSection.className = 'presets-tab__section';
+  statusSection.className = 'irs-presets-tab__section';
   const statusRow = document.createElement('div');
-  statusRow.className = 'presets-tab__status';
+  statusRow.className = 'irs-presets-tab__status';
   const statusText = document.createElement('span');
   const warningBadge = document.createElement('button');
   warningBadge.type = 'button';
-  warningBadge.className = 'presets-tab__warning';
+  warningBadge.className = 'irs-presets-tab__warning';
   warningBadge.hidden = true;
   statusRow.append(statusText, warningBadge);
   statusSection.appendChild(statusRow);
 
   const categoriesSection = document.createElement('section');
-  categoriesSection.className = 'presets-tab__section';
+  categoriesSection.className = 'irs-presets-tab__section';
   const categoriesHeading = document.createElement('h3');
-  categoriesHeading.className = 'presets-tab__heading';
+  categoriesHeading.className = 'irs-presets-tab__heading';
   categoriesHeading.textContent = 'Categories';
   const categoriesWrap = document.createElement('div');
-  categoriesWrap.className = 'presets-tab__categories';
+  categoriesWrap.className = 'irs-presets-tab__categories';
   categoriesSection.append(categoriesHeading, categoriesWrap);
 
   root.append(profileSection, statusSection, categoriesSection);
@@ -374,7 +374,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
     }
     const activeProfile = config.configStore.getConfig().profile as GameProfile;
     for (const [id, button] of profileButtons.entries()) {
-      button.classList.toggle('presets-tab__chip--active', id === activeProfile);
+      button.classList.toggle('irs-presets-tab__chip--active', id === activeProfile);
     }
 
     const conflicts = config.configStore.getConflicts();
@@ -419,25 +419,25 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
 
       const row = document.createElement('button');
       row.type = 'button';
-      row.className = 'presets-tab__row';
+      row.className = 'irs-presets-tab__row';
       row.addEventListener('click', () => {
         config.onCategorySelect?.(category.id);
         showCategoryDetail(category.id);
       });
 
       const icon = document.createElement('span');
-      icon.className = 'presets-tab__icon';
+      icon.className = 'irs-presets-tab__icon';
       icon.textContent = category.icon;
 
       const info = document.createElement('div');
-      info.className = 'presets-tab__info';
+      info.className = 'irs-presets-tab__info';
 
       const name = document.createElement('div');
-      name.className = 'presets-tab__name';
+      name.className = 'irs-presets-tab__name';
       name.textContent = category.label;
 
       const presetText = document.createElement('div');
-      presetText.className = 'presets-tab__preset';
+      presetText.className = 'irs-presets-tab__preset';
       presetText.textContent = presetEntry
         ? presetEntry.definition.label
         : `${categoryConfig.presetId} (missing)`;
@@ -445,10 +445,10 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
       info.append(name, presetText);
 
       const right = document.createElement('div');
-      right.className = 'presets-tab__right';
+      right.className = 'irs-presets-tab__right';
       const statusChip = createStatusChip(status);
       const chevron = document.createElement('span');
-      chevron.className = 'presets-tab__chevron';
+      chevron.className = 'irs-presets-tab__chevron';
       chevron.textContent = '›';
       right.append(statusChip, chevron);
 

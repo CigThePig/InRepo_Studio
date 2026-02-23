@@ -45,30 +45,30 @@ const CATEGORY_LABELS: Record<PresetCategoryId, string> = {
 };
 
 const STYLES = `
-  .preset-category-detail {
+  .irs-preset-category {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
-  .preset-category-detail__header,
-  .preset-category-detail__section {
-    background: rgba(18, 28, 53, 0.9);
-    border: 1px solid rgba(88, 116, 173, 0.6);
-    border-radius: 14px;
+  .irs-preset-category__header,
+  .irs-preset-category__section {
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-xl);
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  .preset-category-detail__back {
+  .irs-preset-category__back {
     min-height: 44px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    border-radius: 10px;
-    background: rgba(14, 21, 40, 0.95);
-    color: #dbe4ff;
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-md);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 700;
     text-align: left;
@@ -76,38 +76,38 @@ const STYLES = `
     cursor: pointer;
   }
 
-  .preset-category-detail__title {
+  .irs-preset-category__title {
     font-size: 14px;
     font-weight: 700;
   }
 
-  .preset-category-detail__tabs {
+  .irs-preset-category__tabs {
     display: flex;
     gap: 8px;
   }
 
-  .preset-category-detail__tab {
+  .irs-preset-category__tab {
     min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(14, 21, 40, 0.95);
-    color: #dbe4ff;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     padding: 0 12px;
     font-size: 12px;
     font-weight: 700;
   }
 
-  .preset-category-detail__tab--active {
-    border-color: #4a9eff;
-    background: rgba(74, 158, 255, 0.2);
-    color: #fff;
+  .irs-preset-category__tab--active {
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
-  .preset-category-detail__row {
+  .irs-preset-category__row {
     min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(12, 19, 37, 0.95);
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-dark);
     padding: 10px;
     display: flex;
     align-items: center;
@@ -116,23 +116,23 @@ const STYLES = `
     font-size: 12px;
   }
 
-  .preset-category-detail__status {
-    border-radius: 999px;
+  .irs-preset-category__status {
+    border-radius: var(--irs-radius-pill);
     padding: 2px 8px;
     font-size: 11px;
     font-weight: 700;
-    border: 1px solid rgba(107, 191, 122, 0.55);
-    color: #aef9bd;
-    background: rgba(26, 77, 33, 0.65);
+    border: 1px solid var(--irs-color-green-alpha-53);
+    color: var(--irs-color-green);
+    background: var(--irs-color-green-alpha-15);
   }
 
-  .preset-category-detail__status--off {
-    border-color: rgba(255, 255, 255, 0.2);
-    color: #96a0bf;
-    background: rgba(255, 255, 255, 0.06);
+  .irs-preset-category__status--off {
+    border-color: var(--irs-border-light);
+    color: var(--irs-text-muted);
+    background: var(--irs-surface-elevated);
   }
 
-  .preset-category-detail__toggle {
+  .irs-preset-category__toggle {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -140,12 +140,12 @@ const STYLES = `
     font-size: 12px;
   }
 
-  .preset-category-detail__reset {
+  .irs-preset-category__reset {
     min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(88, 116, 173, 0.7);
-    background: rgba(14, 21, 40, 0.95);
-    color: #dbe4ff;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 700;
     padding: 0 12px;
@@ -154,9 +154,9 @@ const STYLES = `
 `;
 
 function ensureStyles(): void {
-  if (document.getElementById('preset-category-detail-styles')) return;
+  if (document.getElementById('irs-preset-category-styles')) return;
   const style = document.createElement('style');
-  style.id = 'preset-category-detail-styles';
+  style.id = 'irs-preset-category-styles';
   style.textContent = STYLES;
   document.head.appendChild(style);
 }
@@ -165,46 +165,46 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
   ensureStyles();
 
   const root = document.createElement('div');
-  root.className = 'preset-category-detail';
+  root.className = 'irs-preset-category';
   config.container.appendChild(root);
 
   const header = document.createElement('section');
-  header.className = 'preset-category-detail__header';
+  header.className = 'irs-preset-category__header';
 
   const backButton = document.createElement('button');
   backButton.type = 'button';
-  backButton.className = 'preset-category-detail__back';
+  backButton.className = 'irs-preset-category__back';
   backButton.textContent = '‹ Back to Presets';
   backButton.addEventListener('click', () => config.onBack());
 
   const titleRow = document.createElement('div');
-  titleRow.className = 'preset-category-detail__row';
+  titleRow.className = 'irs-preset-category__row';
   const title = document.createElement('div');
-  title.className = 'preset-category-detail__title';
+  title.className = 'irs-preset-category__title';
   title.textContent = CATEGORY_LABELS[config.categoryId];
   const statusChip = document.createElement('span');
-  statusChip.className = 'preset-category-detail__status';
+  statusChip.className = 'irs-preset-category__status';
   titleRow.append(title, statusChip);
 
   const tabs = document.createElement('div');
-  tabs.className = 'preset-category-detail__tabs';
+  tabs.className = 'irs-preset-category__tabs';
   const configureTab = document.createElement('button');
   configureTab.type = 'button';
-  configureTab.className = 'preset-category-detail__tab preset-category-detail__tab--active';
+  configureTab.className = 'irs-preset-category__tab irs-preset-category__tab--active';
   configureTab.textContent = 'Configure';
   const hooksTab = document.createElement('button');
   hooksTab.type = 'button';
-  hooksTab.className = 'preset-category-detail__tab';
+  hooksTab.className = 'irs-preset-category__tab';
   hooksTab.textContent = 'Blockly Hooks';
   tabs.append(configureTab, hooksTab);
 
   header.append(backButton, titleRow, tabs);
 
   const contentSection = document.createElement('section');
-  contentSection.className = 'preset-category-detail__section';
+  contentSection.className = 'irs-preset-category__section';
 
   const enabledRow = document.createElement('label');
-  enabledRow.className = 'preset-category-detail__row preset-category-detail__toggle';
+  enabledRow.className = 'irs-preset-category__row irs-preset-category__toggle';
   const enabledText = document.createElement('span');
   enabledText.textContent = 'Enabled';
   const enabledToggle = document.createElement('input');
@@ -213,7 +213,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
 
   const presetRow = document.createElement('button');
   presetRow.type = 'button';
-  presetRow.className = 'preset-category-detail__row';
+  presetRow.className = 'irs-preset-category__row';
   const presetLabel = document.createElement('span');
   presetLabel.textContent = 'Preset';
   const presetValue = document.createElement('strong');
@@ -225,7 +225,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
 
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
-  resetButton.className = 'preset-category-detail__reset';
+  resetButton.className = 'irs-preset-category__reset';
   resetButton.textContent = 'Reset to Defaults';
 
   contentSection.append(enabledRow, presetRow, knobsContainer, hooksContainer, resetButton);
@@ -245,7 +245,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     currentPresetId = categoryConfig.presetId;
 
     statusChip.textContent = isEnabled ? 'Enabled' : 'Off';
-    statusChip.classList.toggle('preset-category-detail__status--off', !isEnabled);
+    statusChip.classList.toggle('irs-preset-category__status--off', !isEnabled);
     enabledToggle.checked = isEnabled;
 
     if (entry) {
@@ -285,7 +285,7 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
       hooksTabController = null;
       knobsContainer.innerHTML = '';
       const missing = document.createElement('div');
-      missing.className = 'preset-category-detail__row';
+      missing.className = 'irs-preset-category__row';
       missing.textContent = `${categoryConfig.presetId} is missing from the preset registry.`;
       knobsContainer.appendChild(missing);
       presetValue.textContent = categoryConfig.presetId;
@@ -297,8 +297,8 @@ export function createCategoryDetail(config: CategoryDetailConfig): CategoryDeta
     knobsContainer.hidden = !showConfigure;
     resetButton.hidden = !showConfigure;
     hooksContainer.hidden = showConfigure;
-    configureTab.classList.toggle('preset-category-detail__tab--active', showConfigure);
-    hooksTab.classList.toggle('preset-category-detail__tab--active', !showConfigure);
+    configureTab.classList.toggle('irs-preset-category__tab--active', showConfigure);
+    hooksTab.classList.toggle('irs-preset-category__tab--active', !showConfigure);
   }
 
   enabledToggle.addEventListener('change', () => {

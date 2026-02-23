@@ -140,7 +140,7 @@ function ensureStyles(): void {
       font-size: 10px;
       font-weight: 700;
       padding: 2px 6px;
-      border-radius: 8px;
+      border-radius: var(--irs-radius-sm);
       background: var(--irs-color-blue-alpha-8);
       color: var(--irs-text-muted);
       white-space: nowrap;
@@ -151,7 +151,7 @@ function ensureStyles(): void {
     .irs-inspect-panel__error-section {
       margin: 4px 8px;
       padding: 10px 12px;
-      border-radius: 10px;
+      border-radius: var(--irs-radius-md);
       background: var(--irs-color-red-alpha-15);
       border: 1px solid var(--irs-color-red-alpha-53);
       display: none;
@@ -190,7 +190,7 @@ function ensureStyles(): void {
       min-height: 44px;
       min-width: 44px;
       padding: 0 12px;
-      border-radius: 8px;
+      border-radius: var(--irs-radius-sm);
       border: 1px solid var(--irs-color-red-alpha-53);
       background: var(--irs-color-red-alpha-15);
       color: var(--irs-color-red);

@@ -150,7 +150,7 @@ const STYLES = `
 
   .irs-blockly-workspace__empty__btn {
     padding: 12px 24px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: none;
     background: var(--irs-color-blue);
     color: var(--irs-text-primary);
