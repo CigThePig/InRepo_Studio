@@ -292,7 +292,7 @@ The `assetLibraryTab.ts` `14px` value is used as a large panel radius. Adding `-
 
 ## TIER 3 — Major: Non-`irs-input` Text Inputs in Migrated Files
 
-### Issue #28 — `animationTab.ts` and `assetLibraryTab.ts` Text Inputs Bypass `irs-input`
+### Issue #28 — `animationTab.ts` and `assetLibraryTab.ts` Text Inputs Bypass `irs-input` ✅ COMPLETED
 
 **Severity: Major**  
 **Files:** `src/editor/panels/animationTab.ts`, `src/editor/panels/assetLibraryTab.ts`
@@ -311,7 +311,7 @@ All are `createElement('input')` with no class, or just a local component class.
 
 ## TIER 4 — Major: Touch Target Violations
 
-### Issue #29 — Berry Shell Handle Tab Is Only 20px Wide
+### Issue #29 — Berry Shell Handle Tab Is Only 20px Wide ✅ COMPLETED
 
 **Severity: Major**  
 **File:** `src/editor/panels/berryShell.ts` (lines 259–286)
@@ -332,7 +332,7 @@ If the visual appearance of a narrow handle is desired, create an inner `::befor
 
 ---
 
-### Issue #30 — `berryControls.ts` Icon Button Min-Width Is 40px
+### Issue #30 — `berryControls.ts` Icon Button Min-Width Is 40px ✅ COMPLETED
 
 **Severity: Moderate**  
 **File:** `src/editor/panels/berryControls.ts` (line 57)
@@ -401,7 +401,7 @@ Convert to the named `ensureStyles()` function pattern.
 
 ---
 
-### Issue #35 — `deployPanel.ts` Has a Secondary Button Class Not Using `irs-btn`
+### Issue #35 — `deployPanel.ts` Has a Secondary Button Class Not Using `irs-btn` ✅ COMPLETED
 
 **Severity: Low**  
 **File:** `src/editor/panels/deployPanel.ts`
@@ -419,7 +419,7 @@ Remove any structural/color CSS from `.irs-deploy-panel__secondary-btn` in the S
 
 ---
 
-## New Tokens Required
+## New Tokens Required ✅ COMPLETED
 
 The following tokens need to be added to `theme.css` to support a complete migration of all new files:
 

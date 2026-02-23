@@ -64,13 +64,6 @@ const STYLES = `
   }
 
   .irs-deploy-panel__secondary-btn {
-    min-height: 44px;
-    border-radius: 8px;
-    border: 1px solid var(--irs-border-heavy);
-    background: var(--irs-surface-panel);
-    color: var(--irs-text-primary);
-    font-weight: 600;
-    cursor: pointer;
     padding: 0 12px;
   }
 
@@ -192,7 +185,7 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
         </div>
         <div class="irs-deploy-panel__warning">Use a classic PAT with the <strong>repo</strong> scope.</div>
       </div>
-      <button class="irs-deploy-panel__secondary-btn" type="button" disabled>Deploy (Track 13)</button>
+      <button class="irs-btn irs-btn--secondary irs-deploy-panel__secondary-btn" type="button" disabled>Deploy (Track 13)</button>
     `;
 
     panel.querySelector('.irs-btn')?.addEventListener('click', () => {
@@ -212,7 +205,7 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
         <div class="irs-deploy-panel__status-subtitle">${storageLabel}</div>
         <div class="irs-deploy-panel__scopes">Token scopes: ${scopes}</div>
         <div class="irs-deploy-panel__status-actions">
-          <button class="irs-deploy-panel__secondary-btn" type="button">Disconnect</button>
+          <button class="irs-btn irs-btn--secondary irs-deploy-panel__secondary-btn" type="button">Disconnect</button>
         </div>
       </div>
       <div class="irs-deploy-panel__status-card">
@@ -226,8 +219,8 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
           <input class="irs-deploy-panel__input" name="repo" placeholder="my-game" value="${resolvedRepo?.repo ?? ''}" />
         </div>
         <div class="irs-deploy-panel__inline" data-repo-actions>
-          <button class="irs-deploy-panel__secondary-btn" data-save-repo type="button">Save repo</button>
-          <button class="irs-deploy-panel__secondary-btn" data-use-url type="button">Use URL</button>
+          <button class="irs-btn irs-btn--secondary irs-deploy-panel__secondary-btn" data-save-repo type="button">Save repo</button>
+          <button class="irs-btn irs-btn--secondary irs-deploy-panel__secondary-btn" data-use-url type="button">Use URL</button>
         </div>
         <div class="irs-deploy-panel__helper">${resolvedRepo ? `Using ${resolvedRepo.source} config.` : 'Enter repository info to enable deploy.'}</div>
       </div>

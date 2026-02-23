@@ -42,6 +42,7 @@
 
   /* --- Borders --- */
   --irs-border-light: rgba(255, 255, 255, 0.08);
+  --irs-border-medium: rgba(88, 116, 173, 0.65);
   --irs-border-heavy: #3a3a6e;
   --irs-border-blue-alpha: rgba(74, 158, 255, 0.12); /* Specifically for panel edges */
 
@@ -51,10 +52,16 @@
   --irs-text-muted: #aab0d4;
 
   /* --- Geometry & Sizing --- */
+  --irs-radius-xs: 2px;
   --irs-radius-sm: 8px;   /* Standard buttons, inputs */
   --irs-radius-md: 10px;  /* Small panels, inner containers */
   --irs-radius-lg: 12px;  /* Modals, Dialogs */
+  --irs-radius-xl: 14px;
+  --irs-radius-pill: 999px;
   --irs-touch-target: 44px; /* Strict minimum for mobile-first tap targets */
+
+  --irs-shadow-panel: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --irs-shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.60);
 
   --irs-safe-top: env(safe-area-inset-top, 0px);
   --irs-safe-bottom: env(safe-area-inset-bottom, 0px);

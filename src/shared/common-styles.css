@@ -116,6 +116,11 @@
   opacity: 1;
 }
 
+.irs-range {
+  width: 100%;
+  min-height: var(--irs-touch-target);
+}
+
 /* --- Search Input --- */
 .irs-search {
   position: relative;
