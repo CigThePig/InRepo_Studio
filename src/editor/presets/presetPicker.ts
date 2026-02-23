@@ -17,12 +17,7 @@ export interface PresetPickerController {
 
 const STYLES = `
   .preset-picker-overlay {
-    position: absolute;
-    inset: 0;
     z-index: 15;
-    background: rgba(2, 8, 20, 0.75);
-    backdrop-filter: blur(2px);
-    display: flex;
     align-items: flex-end;
   }
 
@@ -30,11 +25,6 @@ const STYLES = `
     width: 100%;
     max-height: 78%;
     overflow-y: auto;
-    background: #121b33;
-    border-top: 1px solid rgba(88, 116, 173, 0.75);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -76,10 +66,10 @@ export function createPresetPicker(config: PresetPickerConfig): PresetPickerCont
   ensureStyles();
 
   const overlay = document.createElement('div');
-  overlay.className = 'preset-picker-overlay';
+  overlay.className = 'irs-overlay irs-overlay--visible preset-picker-overlay';
 
   const sheet = document.createElement('div');
-  sheet.className = 'preset-picker';
+  sheet.className = 'irs-dialog preset-picker';
 
   const close = document.createElement('button');
   close.type = 'button';
