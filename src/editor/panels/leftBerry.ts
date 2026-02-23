@@ -7,6 +7,7 @@ import {
 } from '@/editor/core/tabRegistry';
 
 const LEFT_BERRY_PLUGIN_STYLES = `
+  .irs-empty-state,
   .irs-berry__plugin-empty-state {
     display: flex;
     flex-direction: column;
@@ -19,6 +20,11 @@ const LEFT_BERRY_PLUGIN_STYLES = `
     opacity: 1;
     transform: translateY(0);
     transition: opacity 140ms ease, transform 140ms ease;
+  }
+
+  .irs-empty-state__icon {
+    font-size: 20px;
+    line-height: 1;
   }
 
   .irs-berry__plugin-empty-title {
@@ -37,6 +43,11 @@ const LEFT_BERRY_PLUGIN_STYLES = `
 
   .irs-berry__plugin-empty-cta {
     align-self: flex-start;
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
+  }
+
+  .irs-empty-state .irs-btn {
     min-height: var(--irs-touch-target);
     min-width: var(--irs-touch-target);
   }
@@ -194,6 +205,43 @@ export function createLeftBerry(container: HTMLElement, config: LeftBerryConfig)
       shell.destroy();
     },
   };
+}
+
+export interface LeftBerryEmptyStateConfig {
+  title: string;
+  description: string;
+  ctaText: string;
+  onCtaClick: () => void;
+  icon?: string;
+}
+
+export function createEmptyState(config: LeftBerryEmptyStateConfig): HTMLElement {
+  const root = document.createElement('section');
+  root.className = 'irs-empty-state irs-berry__plugin-empty-state';
+
+  const icon = document.createElement('span');
+  icon.className = 'irs-empty-state__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = config.icon ?? '✨';
+
+  const title = document.createElement('h3');
+  title.className = 'irs-berry__plugin-empty-title';
+  title.textContent = config.title;
+
+  const description = document.createElement('p');
+  description.className = 'irs-berry__plugin-empty-description';
+  description.textContent = config.description;
+
+  const cta = document.createElement('button');
+  cta.type = 'button';
+  cta.className = 'irs-btn irs-btn--secondary irs-berry__plugin-empty-cta';
+  cta.textContent = config.ctaText;
+  cta.style.minHeight = 'var(--irs-touch-target)';
+  cta.style.minWidth = 'var(--irs-touch-target)';
+  cta.addEventListener('click', config.onCtaClick);
+
+  root.append(icon, title, description, cta);
+  return root;
 }
 
 export function createLeftBerryPlaceholder(text: string): HTMLElement {

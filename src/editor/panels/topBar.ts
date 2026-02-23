@@ -125,24 +125,26 @@ const STYLES = `
   }
 
   .top-bar-v2__content-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
     overflow: hidden;
-    max-height: 280px;
     opacity: 1;
     transform: translateY(0);
     transition:
-      max-height 180ms ease,
-      opacity 180ms ease,
-      transform 180ms ease;
+      grid-template-rows 200ms ease-in-out,
+      opacity 200ms ease-in-out,
+      transform 200ms ease-in-out;
   }
 
   .top-bar-v2__content {
+    min-height: 0;
     padding: 0;
   }
 
   .top-bar-v2--collapsed .top-bar-v2__content-wrap {
-    max-height: 0;
+    grid-template-rows: 0fr;
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(calc(var(--irs-touch-target) * -0.25));
   }
 
   .top-bar-v2__content:empty + .top-bar-v2__content-empty {

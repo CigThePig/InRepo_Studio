@@ -15,6 +15,7 @@ export interface EditorEventMap {
   STATE_SCENE_CHANGED: { sceneName: string };
   STATE_HISTORY_CHANGED: { canUndo: boolean; canRedo: boolean };
   STATE_MODE_CHANGED: { mode: EditorModeState };
+  UI_CONTEXT_CHANGED: { context: 'canvas' | 'library' };
 }
 
 type EditorEventKey = keyof EditorEventMap;
