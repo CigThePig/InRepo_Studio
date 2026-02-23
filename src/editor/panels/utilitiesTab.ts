@@ -8,78 +8,90 @@ import {
   clearAllData,
   forceRefreshFromCold,
 } from '@/storage';
+import { uxFeedback } from '@/editor/uxFeedback';
 import { createDeployPanel, type DeployPanelController } from './deployPanel';
 
 const STYLES = `
-  .utilities-tab {
+  .irs-utilities-tab {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
-  .utilities-tab__section {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
-    border-radius: 14px;
+  .irs-utilities-tab__section {
+    background: var(--irs-surface-dark-alpha);
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
   }
 
-  .utilities-tab__section-title {
+  .irs-utilities-tab__section-title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     margin-bottom: 8px;
   }
 
-  .utilities-tab__section-desc {
+  .irs-utilities-tab__section-desc {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--irs-text-secondary);
     margin-bottom: 10px;
     line-height: 1.4;
   }
 
-  .utilities-tab__actions {
+  .irs-utilities-tab__actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
 
-  .utilities-tab__button {
-    height: 44px;
+  .irs-utilities-tab__button {
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
     padding: 0 14px;
     font-size: 13px;
-    font-weight: 600;
-    border-radius: 10px;
-    border: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.85);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: all 0.15s ease;
   }
 
-  .utilities-tab__button:active {
-    background: rgba(255, 255, 255, 0.14);
-    transform: scale(0.98);
-  }
-
-  .utilities-tab__status {
+  .irs-utilities-tab__status {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--irs-text-secondary);
     margin-top: 12px;
     padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
+    background: var(--irs-surface-base);
+    border-radius: var(--irs-radius-sm);
   }
 
-  .utilities-tab__placeholder {
+  .irs-utilities-tab__placeholder {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--irs-text-muted);
     padding: 12px;
-    border-radius: 10px;
-    border: 1px dashed rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--irs-radius-md);
+    border: 1px dashed var(--irs-border-light);
+    background: var(--irs-surface-elevated);
+  }
+
+  .irs-utilities-tab__confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .irs-utilities-tab__confirm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .irs-utilities-tab__confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
   }
 `;
 
@@ -107,13 +119,13 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
   ensureStyles();
 
   const root = document.createElement('div');
-  root.className = 'utilities-tab';
+  root.className = 'irs-utilities-tab';
 
   const deploySection = document.createElement('section');
-  deploySection.className = 'utilities-tab__section';
+  deploySection.className = 'irs-utilities-tab__section';
 
   const deployTitle = document.createElement('div');
-  deployTitle.className = 'utilities-tab__section-title';
+  deployTitle.className = 'irs-utilities-tab__section-title';
   deployTitle.textContent = 'Deploy to GitHub';
 
   deploySection.appendChild(deployTitle);
@@ -127,27 +139,27 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
     });
   } else {
     const placeholder = document.createElement('div');
-    placeholder.className = 'utilities-tab__placeholder';
+    placeholder.className = 'irs-utilities-tab__placeholder';
     placeholder.textContent = 'Deploy panel unavailable';
     deploySection.appendChild(placeholder);
   }
 
   const dataSection = document.createElement('section');
-  dataSection.className = 'utilities-tab__section';
+  dataSection.className = 'irs-utilities-tab__section';
 
   const dataTitle = document.createElement('div');
-  dataTitle.className = 'utilities-tab__section-title';
+  dataTitle.className = 'irs-utilities-tab__section-title';
   dataTitle.textContent = 'Data Tools';
 
   const dataDesc = document.createElement('div');
-  dataDesc.className = 'utilities-tab__section-desc';
+  dataDesc.className = 'irs-utilities-tab__section-desc';
   dataDesc.textContent = 'Export or import hot storage data (projects, scenes, editor state).';
 
   const dataActions = document.createElement('div');
-  dataActions.className = 'utilities-tab__actions';
+  dataActions.className = 'irs-utilities-tab__actions';
 
   const dataStatus = document.createElement('div');
-  dataStatus.className = 'utilities-tab__status';
+  dataStatus.className = 'irs-utilities-tab__status';
   dataStatus.textContent = '';
 
   function formatBytes(bytes: number): string {
@@ -173,10 +185,71 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
     URL.revokeObjectURL(url);
   }
 
+  function confirmReset(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'irs-overlay irs-utilities-tab__confirm-overlay';
+
+      const dialog = document.createElement('div');
+      dialog.className = 'irs-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-label', 'Confirm environment reset');
+
+      const body = document.createElement('div');
+      body.className = 'irs-utilities-tab__confirm-body';
+      const title = document.createElement('strong');
+      title.textContent = 'Reset environment?';
+      const copy = document.createElement('p');
+      copy.textContent = message;
+
+      const actions = document.createElement('div');
+      actions.className = 'irs-utilities-tab__confirm-actions';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'irs-btn irs-btn--secondary';
+      cancelBtn.textContent = 'Cancel';
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.type = 'button';
+      confirmBtn.className = 'irs-btn irs-btn--danger';
+      confirmBtn.textContent = 'Reset';
+
+      let closed = false;
+      const close = (result: boolean): void => {
+        if (closed) return;
+        closed = true;
+        overlay.remove();
+        resolve(result);
+      };
+
+      cancelBtn.addEventListener('click', () => {
+        uxFeedback.motion.pulse(cancelBtn);
+        close(false);
+      });
+      confirmBtn.addEventListener('click', () => {
+        uxFeedback.motion.pulse(confirmBtn);
+        close(true);
+      });
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) close(false);
+      });
+
+      actions.append(cancelBtn, confirmBtn);
+      body.append(title, copy, actions);
+      dialog.appendChild(body);
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      confirmBtn.focus();
+    });
+  }
+
   const btnCheck = document.createElement('button');
-  btnCheck.className = 'utilities-tab__button';
+  btnCheck.className = 'irs-btn irs-btn--secondary irs-utilities-tab__button';
   btnCheck.textContent = 'Check Storage';
   btnCheck.addEventListener('click', async () => {
+    uxFeedback.motion.pulse(btnCheck);
     try {
       dataStatus.textContent = 'Checking storage...';
       const info: StorageQuotaInfo | null = await checkStorageQuota();
@@ -195,15 +268,17 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
   });
 
   const btnExport = document.createElement('button');
-  btnExport.className = 'utilities-tab__button';
+  btnExport.className = 'irs-btn irs-btn--secondary irs-utilities-tab__button';
   btnExport.textContent = 'Export JSON';
   btnExport.addEventListener('click', async () => {
+    uxFeedback.motion.pulse(btnExport);
     try {
       dataStatus.textContent = 'Exporting...';
       const data = await exportAllData();
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
       downloadJson(`inrepo-export-${ts}.json`, data);
       dataStatus.textContent = 'Export complete.';
+      uxFeedback.toast.success('Export complete.');
     } catch (error) {
       console.error(error);
       dataStatus.textContent = 'Export failed (see console).';
@@ -211,9 +286,10 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
   });
 
   const btnCopy = document.createElement('button');
-  btnCopy.className = 'utilities-tab__button';
+  btnCopy.className = 'irs-btn irs-btn--secondary irs-utilities-tab__button';
   btnCopy.textContent = 'Copy JSON';
   btnCopy.addEventListener('click', async () => {
+    uxFeedback.motion.pulse(btnCopy);
     try {
       dataStatus.textContent = 'Preparing JSON...';
       const data = await exportAllData();
@@ -221,6 +297,7 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
         dataStatus.textContent = 'Copied to clipboard.';
+        uxFeedback.toast.success('Copied to clipboard.');
         return;
       }
       window.prompt('Copy the JSON below:', text);
@@ -237,9 +314,10 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
   importInput.style.display = 'none';
 
   const btnImport = document.createElement('button');
-  btnImport.className = 'utilities-tab__button';
+  btnImport.className = 'irs-btn irs-btn--secondary irs-utilities-tab__button';
   btnImport.textContent = 'Import JSON';
   btnImport.addEventListener('click', () => {
+    uxFeedback.motion.pulse(btnImport);
     importInput.value = '';
     importInput.click();
   });
@@ -253,6 +331,7 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
       const parsed = JSON.parse(text);
       await importAllData(parsed);
       dataStatus.textContent = 'Import complete. Reloading...';
+      uxFeedback.toast.success('Import complete. Reloading…');
       window.location.reload();
     } catch (error) {
       console.error(error);
@@ -261,10 +340,11 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
   });
 
   const btnResetEnvironment = document.createElement('button');
-  btnResetEnvironment.className = 'utilities-tab__button';
+  btnResetEnvironment.className = 'irs-btn irs-btn--danger irs-utilities-tab__button';
   btnResetEnvironment.textContent = 'Reset Environment';
   btnResetEnvironment.addEventListener('click', async () => {
-    const confirmed = window.confirm(
+    uxFeedback.motion.pulse(btnResetEnvironment);
+    const confirmed = await confirmReset(
       'This clears local IndexedDB project/scenes/editor-state cache. '
       + 'Repo token is kept. Unsaved local changes not deployed to the repo will be lost.'
     );
@@ -282,6 +362,7 @@ export function createUtilitiesTab(config: UtilitiesTabConfig): UtilitiesTabCont
         await clearAllData();
       }
       dataStatus.textContent = 'Environment reset complete. Reloading...';
+      uxFeedback.toast.success('Environment reset complete. Reloading…');
       window.location.reload();
     } catch (error) {
       console.error(error);

@@ -1197,6 +1197,7 @@ export function createAnimStateMachineEditor(
     undoStack.push(entry);
     if (undoStack.length > 50) undoStack.shift();
     redoStack.length = 0;
+    uxFeedback.storage.markDirty(saveButton);
   }
 
   function applyHistory(entry: HistoryEntry): void {
@@ -1368,17 +1369,21 @@ export function createAnimStateMachineEditor(
     label.textContent = 'Simulation';
     const stopBtn = document.createElement('button');
     stopBtn.type = 'button';
-    stopBtn.className = 'asm-editor__sim-reset-btn';
+    stopBtn.className = 'irs-btn irs-btn--danger asm-editor__sim-reset-btn';
     stopBtn.textContent = '■ Stop';
-    stopBtn.addEventListener('click', () => exitSimMode());
+    stopBtn.addEventListener('click', () => {
+      uxFeedback.motion.pulse(stopBtn);
+      exitSimMode();
+    });
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
-    resetBtn.className = 'asm-editor__sim-reset-btn';
+    resetBtn.className = 'irs-btn irs-btn--secondary asm-editor__sim-reset-btn';
     resetBtn.textContent = '↺ Reset';
     resetBtn.style.borderColor = 'rgba(74, 158, 255, 0.4)';
     resetBtn.style.color = '#a8c8ff';
     resetBtn.style.background = 'rgba(74, 158, 255, 0.08)';
     resetBtn.addEventListener('click', () => {
+      uxFeedback.motion.pulse(resetBtn);
       simulator?.reset();
       simClock?.reset();
       refreshSimPanel();
@@ -1449,9 +1454,10 @@ export function createAnimStateMachineEditor(
       for (const name of eventNames) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'asm-editor__sim-event-btn';
+        btn.className = 'irs-btn irs-btn--secondary asm-editor__sim-event-btn';
         btn.textContent = name;
         btn.addEventListener('click', () => {
+          uxFeedback.motion.pulse(btn);
           simulator?.sendEvent(name);
         });
         eventsRow.appendChild(btn);
@@ -1950,7 +1956,7 @@ export function createAnimStateMachineEditor(
     labelEl.textContent = label;
 
     const input = document.createElement('input');
-    input.className = 'asm-editor__field-input';
+    input.className = 'irs-input asm-editor__field-input';
     input.type = 'text';
     input.value = value;
     input.addEventListener('change', () => onChange(input.value));

@@ -299,6 +299,7 @@ export function createPresetsTab(config: PresetsTabConfig): PresetsTabController
         return;
       }
       const snapshot = config.configStore.snapshot();
+      uxFeedback.motion.pulse(button);
       config.configStore.setProfile(profile.id);
       refresh();
       uxFeedback.undo.show('Profile applied. Undo?', () => config.configStore.restore(snapshot), {
