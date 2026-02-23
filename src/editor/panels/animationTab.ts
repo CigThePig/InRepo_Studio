@@ -899,7 +899,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   pivotXLabel.className = 'animation-tab__label';
   pivotXLabel.textContent = 'Pivot X';
   const pivotXInput = document.createElement('input');
-  pivotXInput.className = 'animation-tab__input';
+  pivotXInput.className = 'irs-input animation-tab__input';
   pivotXInput.type = 'number';
   pivotXInput.min = '0';
   pivotXInput.max = '1';
@@ -913,7 +913,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
   pivotYLabel.className = 'animation-tab__label';
   pivotYLabel.textContent = 'Pivot Y';
   const pivotYInput = document.createElement('input');
-  pivotYInput.className = 'animation-tab__input';
+  pivotYInput.className = 'irs-input animation-tab__input';
   pivotYInput.type = 'number';
   pivotYInput.min = '0';
   pivotYInput.max = '1';
@@ -973,7 +973,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const scrubberInput = document.createElement('input');
   scrubberInput.type = 'range';
-  scrubberInput.className = 'animation-tab__scrubber';
+  scrubberInput.className = 'irs-range animation-tab__scrubber';
   scrubberInput.min = '0';
   scrubberInput.max = '0';
   scrubberInput.value = '0';
@@ -1020,7 +1020,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const batchDurationInput = document.createElement('input');
   batchDurationInput.type = 'number';
-  batchDurationInput.className = 'animation-tab__batch-duration-input';
+  batchDurationInput.className = 'irs-input animation-tab__batch-duration-input';
   batchDurationInput.placeholder = 'ms';
   batchDurationInput.min = '1';
 
@@ -1494,25 +1494,25 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     };
 
     const widthInput = document.createElement('input');
-    widthInput.className = 'animation-tab__input';
+    widthInput.className = 'irs-input animation-tab__input';
     widthInput.type = 'number';
     widthInput.min = '1';
     widthInput.value = `${settings.tileWidth}`;
 
     const heightInput = document.createElement('input');
-    heightInput.className = 'animation-tab__input';
+    heightInput.className = 'irs-input animation-tab__input';
     heightInput.type = 'number';
     heightInput.min = '1';
     heightInput.value = `${settings.tileHeight}`;
 
     const marginInput = document.createElement('input');
-    marginInput.className = 'animation-tab__input';
+    marginInput.className = 'irs-input animation-tab__input';
     marginInput.type = 'number';
     marginInput.min = '0';
     marginInput.value = `${settings.margin}`;
 
     const spacingInput = document.createElement('input');
-    spacingInput.className = 'animation-tab__input';
+    spacingInput.className = 'irs-input animation-tab__input';
     spacingInput.type = 'number';
     spacingInput.min = '0';
     spacingInput.value = `${settings.spacing}`;
@@ -1616,7 +1616,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     indexLabel.className = 'animation-tab__label';
     indexLabel.textContent = 'Frame index';
     const indexInput = document.createElement('input');
-    indexInput.className = 'animation-tab__input';
+    indexInput.className = 'irs-input animation-tab__input';
     indexInput.type = 'number';
     indexInput.min = '1';
     indexInput.max = `${rects.length}`;
@@ -1891,13 +1891,13 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     content.style.gap = '10px';
 
     const nameInput = document.createElement('input');
-    nameInput.className = 'animation-tab__input';
+    nameInput.className = 'irs-input animation-tab__input';
     nameInput.type = 'text';
     nameInput.placeholder = 'Animation name';
     nameInput.value = state.animationName || '';
 
     const fpsInput = document.createElement('input');
-    fpsInput.className = 'animation-tab__input';
+    fpsInput.className = 'irs-input animation-tab__input';
     fpsInput.type = 'number';
     fpsInput.min = '1';
     fpsInput.max = '60';
@@ -2341,7 +2341,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
         const durationInput = document.createElement('input');
         durationInput.type = 'number';
-        durationInput.className = 'animation-tab__frame-duration-input';
+        durationInput.className = 'irs-input animation-tab__frame-duration-input';
         durationInput.min = '1';
         durationInput.value = hasCustomDuration ? String(frame.ref.durationMs) : '';
         durationInput.placeholder = String(defaultDuration);

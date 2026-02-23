@@ -257,7 +257,7 @@ const BERRY_STYLES = `
   }
 
   .irs-berry__handle-tab {
-    width: 20px;
+    width: var(--irs-touch-target);
     height: 56px;
     background: var(--irs-surface-dark-alpha);
     backdrop-filter: blur(12px);
@@ -283,7 +283,7 @@ const BERRY_STYLES = `
 
   .irs-berry__handle:active .irs-berry__handle-tab {
     background: var(--irs-surface-panel);
-    width: 24px;
+    width: var(--irs-touch-target);
   }
 
   .irs-berry__handle-icon {
