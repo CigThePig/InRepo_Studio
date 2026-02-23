@@ -234,20 +234,7 @@ const STYLES = `
   }
 
   .asset-library__sheet-scrim {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 140ms ease;
     z-index: 120;
-  }
-
-  .asset-library__sheet-scrim--open {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .asset-library__sheet {
@@ -255,10 +242,6 @@ const STYLES = `
     left: 12px;
     right: 12px;
     bottom: max(12px, env(safe-area-inset-bottom));
-    border: 1px solid rgba(83, 101, 164, 0.65);
-    border-radius: 16px;
-    background: rgba(20, 30, 60, 0.95);
-    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -266,7 +249,7 @@ const STYLES = `
     transition: transform 140ms ease;
   }
 
-  .asset-library__sheet-scrim--open .asset-library__sheet {
+  .irs-overlay--visible .asset-library__sheet {
     transform: translateY(0);
   }
 
@@ -486,20 +469,7 @@ const STYLES = `
   }
 
   .asset-library__anim-scrim {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 140ms ease;
     z-index: 120;
-  }
-
-  .asset-library__anim-scrim--open {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .asset-library__direction-row {
@@ -808,7 +778,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   root.appendChild(librarySection);
 
   const sheetScrim = document.createElement('div');
-  sheetScrim.className = 'asset-library__sheet-scrim';
+  sheetScrim.className = 'irs-overlay asset-library__sheet-scrim';
   sheetScrim.addEventListener('click', () => {
     sheetAssetId = null;
     refresh();
@@ -817,7 +787,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   // Separate scrim for animation direction assignment bottom sheet
   const animScrim = document.createElement('div');
-  animScrim.className = 'asset-library__anim-scrim';
+  animScrim.className = 'irs-overlay asset-library__anim-scrim';
   animScrim.addEventListener('click', () => {
     directionSheetSetId = null;
     renderAnimSheet();
@@ -2060,21 +2030,21 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     animScrim.innerHTML = '';
     directionPreviewCanvasMap.clear();
     if (!directionSheetSetId) {
-      animScrim.classList.remove('asset-library__anim-scrim--open');
+      animScrim.classList.remove('irs-overlay--visible');
       return;
     }
 
     const animationSet = assetRegistry.getAnimationSets().find((s) => s.id === directionSheetSetId);
     if (!animationSet) {
       directionSheetSetId = null;
-      animScrim.classList.remove('asset-library__anim-scrim--open');
+      animScrim.classList.remove('irs-overlay--visible');
       return;
     }
 
-    animScrim.classList.add('asset-library__anim-scrim--open');
+    animScrim.classList.add('irs-overlay--visible');
 
     const sheet = document.createElement('div');
-    sheet.className = 'asset-library__sheet';
+    sheet.className = 'irs-dialog asset-library__sheet';
     sheet.addEventListener('click', (e) => e.stopPropagation());
 
     const title = document.createElement('div');
@@ -2222,7 +2192,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   function renderSheet(): void {
     sheetScrim.innerHTML = '';
     if (!sheetAssetId) {
-      sheetScrim.classList.remove('asset-library__sheet-scrim--open');
+      sheetScrim.classList.remove('irs-overlay--visible');
       return;
     }
 
@@ -2231,13 +2201,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     const activeAsset = activeGroup?.assets.find((asset) => asset.id === sheetAssetId);
     if (!activeAsset || !activeGroup) {
       sheetAssetId = null;
-      sheetScrim.classList.remove('asset-library__sheet-scrim--open');
+      sheetScrim.classList.remove('irs-overlay--visible');
       return;
     }
 
-    sheetScrim.classList.add('asset-library__sheet-scrim--open');
+    sheetScrim.classList.add('irs-overlay--visible');
     const sheet = document.createElement('div');
-    sheet.className = 'asset-library__sheet';
+    sheet.className = 'irs-dialog asset-library__sheet';
     sheet.addEventListener('click', (event) => event.stopPropagation());
 
     if (sheetView === 'menu') {
