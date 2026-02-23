@@ -80,7 +80,7 @@ const STYLES = `
   .irs-blockly-bar__back-btn {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: none;
     background: var(--irs-border-light);
     color: var(--irs-text-secondary);
@@ -104,7 +104,7 @@ const STYLES = `
     min-width: 0;
     height: 44px;
     padding: 0 32px 0 12px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-light);
     background: var(--irs-border-light);
     color: var(--irs-text-primary);
@@ -141,7 +141,7 @@ const STYLES = `
   .irs-target-overlay__panel {
     background: var(--irs-surface-dark-alpha);
     border: 1px solid var(--irs-border-light);
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     width: 90%;
     max-width: 340px;
     max-height: 60vh;
@@ -255,7 +255,7 @@ const STYLES = `
   .irs-blockly-bar__stop-btn {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: none;
     font-size: 16px;
     cursor: pointer;

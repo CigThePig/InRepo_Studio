@@ -34,7 +34,7 @@ export const BLOCKS_PALETTE_STYLES = `
 
   .irs-blocks-palette__list::-webkit-scrollbar-thumb {
     background: var(--irs-border-light);
-    border-radius: 2px;
+    border-radius: var(--irs-radius-xs);
   }
 
   .irs-blocks-palette__category {
@@ -72,7 +72,7 @@ export const BLOCKS_PALETTE_STYLES = `
   .irs-blocks-palette__cat-icon {
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
     background: var(--irs-border-light);
     display: flex;
     align-items: center;
@@ -128,7 +128,7 @@ export const BLOCKS_PALETTE_STYLES = `
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
     transition: background 0.1s;
   }
 
@@ -206,7 +206,7 @@ export const BLOCKS_PALETTE_STYLES = `
     color: var(--irs-text-muted);
     background: var(--irs-border-light);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-sm);
     flex-shrink: 0;
   }
 `;

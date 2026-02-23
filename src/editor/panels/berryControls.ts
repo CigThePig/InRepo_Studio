@@ -20,7 +20,7 @@ const STYLES = `
   .irs-berry-section {
     background: var(--irs-surface-elevated);
     border: 1px solid var(--irs-border-light);
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     padding: 16px;
     color: var(--irs-text-primary);
   }
@@ -87,7 +87,7 @@ const STYLES = `
     line-height: 1.5;
     padding: 10px 12px;
     background: var(--irs-surface-base);
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
   }
 `;
 

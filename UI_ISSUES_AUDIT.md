@@ -151,7 +151,7 @@ All raw colors — same pattern as other unmigrated files. `utilities-tab__butto
 
 ---
 
-### Issue #23 — `presets/presetsTab.ts`, `presets/categoryDetail.ts`, `presets/knobEditor.ts`, `presets/blocklyHooksTab.ts` Are Fully Unthemed
+### Issue #23 — `presets/presetsTab.ts`, `presets/categoryDetail.ts`, `presets/knobEditor.ts`, `presets/blocklyHooksTab.ts` Are Fully Unthemed ✅ COMPLETED
 
 **Severity: Critical**  
 **Files:** `src/editor/presets/presetsTab.ts`, `categoryDetail.ts`, `knobEditor.ts`, `blocklyHooksTab.ts`
@@ -194,7 +194,7 @@ All four presets-subsystem files were built as a standalone island. None use `va
 
 ---
 
-### Issue #25 — `deploy/conflictResolver.ts` Has No UX Feedback and Wrong Namespace
+### Issue #25 — `deploy/conflictResolver.ts` Has No UX Feedback and Wrong Namespace ✅ COMPLETED
 
 **Severity: Critical**  
 **File:** `src/deploy/conflictResolver.ts`
@@ -252,7 +252,7 @@ const CURSOR_DEFAULT_BORDER = 'rgba(255, 255, 255, 0.9)'; // --irs-text-primary
 
 ## TIER 2 — Major: Systematic `border-radius` Token Violations in Previously-Migrated Files
 
-### Issue #27 — `border-radius` Literal Values in All Migrated Files
+### Issue #27 — `border-radius` Literal Values in All Migrated Files ✅ COMPLETED
 
 **Severity: Major**  
 **Files:** `blocklyTopBar.ts`, `blocklyCockpit.ts`, `inspectPanel.ts`, `berryControls.ts`, `assetLibraryTab.ts`, `blocksPaletteStyles.ts`
