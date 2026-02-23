@@ -1614,7 +1614,7 @@ async function initPanels(): Promise<void> {
   const topPanelContainer = document.getElementById('top-panel-container');
   if (topPanelContainer) {
     const useTopBarV2 = isFlagEnabled(EDITOR_FLAGS.TOP_BAR_GLOBAL);
-    const topExpanded = useTopBarV2 ? true : editorState.panelStates.topExpanded;
+    const topExpanded = editorState.panelStates.topExpanded ?? true;
 
     topPanelController = useTopBarV2
       ? createTopBarV2(
