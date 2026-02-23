@@ -116,54 +116,69 @@
   opacity: 1;
 }
 
+/* --- Search Input --- */
 .irs-search {
   position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .irs-search__icon {
   position: absolute;
   left: 12px;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  transform: translateY(-50%);
-  color: var(--irs-text-secondary);
-  opacity: 0.85;
+  width: 16px;
+  height: 16px;
+  color: var(--irs-text-muted);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .irs-search__icon svg {
-  display: block;
   width: 100%;
   height: 100%;
-  fill: currentColor;
 }
 
-.irs-search__input {
-  padding-left: 38px;
-  padding-right: 42px;
+/* Base irs-input + override padding/shape for a modern search pill look */
+.irs-search__input.irs-input {
+  padding-left: 36px;
+  padding-right: 36px;
+  border-radius: 22px;
+  background: var(--irs-surface-modal);
+  transition: all 0.2s ease;
+}
+
+.irs-search__input.irs-input::placeholder {
+  color: var(--irs-text-muted);
+  opacity: 0.8;
+}
+
+.irs-search__input.irs-input:focus {
+  border-color: var(--irs-accent-primary);
+  background: var(--irs-surface-input);
+  box-shadow: 0 0 0 3px var(--irs-border-blue-alpha);
 }
 
 .irs-search__clear {
   position: absolute;
   right: 6px;
-  top: 50%;
-  width: 32px;
-  height: 32px;
-  transform: translateY(-50%);
-  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--irs-text-muted);
+  display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--irs-border-light);
-  color: var(--irs-text-secondary);
-  font-size: 18px;
-  line-height: 1;
   cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
+.irs-search__clear:hover,
 .irs-search__clear:active {
   background: var(--irs-border-light);
   color: var(--irs-text-primary);
@@ -171,5 +186,5 @@
 
 .irs-search__clear:focus-visible {
   outline: none;
-  border-color: var(--irs-accent-primary);
+  border: 1px solid var(--irs-accent-primary);
 }

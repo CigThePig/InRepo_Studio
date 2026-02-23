@@ -20,7 +20,8 @@ export type SearchInputHandle = {
   destroy: () => void;
 };
 
-const SEARCH_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.5 3a7.5 7.5 0 1 1 4.74 13.3l4.23 4.23a1 1 0 0 1-1.42 1.42l-4.23-4.23A7.5 7.5 0 0 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>`;
+const SEARCH_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+const CLEAR_ICON_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
 export function createSearchInput(opts: SearchInputOptions = {}): SearchInputHandle {
   const {
@@ -59,7 +60,7 @@ export function createSearchInput(opts: SearchInputOptions = {}): SearchInputHan
     clearBtn.type = 'button';
     clearBtn.className = 'irs-search__clear';
     clearBtn.setAttribute('aria-label', 'Clear search');
-    clearBtn.textContent = '\u00d7';
+    clearBtn.innerHTML = CLEAR_ICON_SVG;
     root.appendChild(clearBtn);
   }
 

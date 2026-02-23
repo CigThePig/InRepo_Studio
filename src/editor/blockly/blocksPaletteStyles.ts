@@ -16,10 +16,7 @@ export const BLOCKS_PALETTE_STYLES = `
     background: var(--irs-surface-base);
     flex-shrink: 0;
   }
-  .blocks-palette__search-wrap {
-    position: relative;
-  }
-  .blocks-palette__list {
+.blocks-palette__list {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
