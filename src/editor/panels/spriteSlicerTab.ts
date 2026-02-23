@@ -165,7 +165,7 @@ const STYLES = `
 
   .sprite-slicer__mode-option {
     flex: 1;
-    min-height: 40px;
+    min-height: var(--irs-touch-target);
     padding: 6px 10px;
     border: none;
     background: rgba(22, 30, 60, 0.85);
@@ -370,15 +370,18 @@ interface SpriteSlicerState {
   lastPreviewLayout: { w: number; h: number; scale: number; dpr: number } | null;
 }
 
+function ensureStyles(): void {
+  if (document.getElementById('sprite-slicer-tab-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'sprite-slicer-tab-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy: () => void } {
   const { container, onSlicesConfirmed, onAtlasConfirmed } = config;
 
-  if (!document.getElementById('sprite-slicer-tab-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'sprite-slicer-tab-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const state: SpriteSlicerState = {
     imageBlob: null,

@@ -64,7 +64,7 @@ export interface BottomPanelController {
 // --- Styles ---
 
 const STYLES = `
-  .bottom-panel {
+  .irs-bottom-panel {
     display: flex;
     flex-direction: column;
     background: var(--irs-surface-dark-alpha);
@@ -74,7 +74,7 @@ const STYLES = `
     overflow: hidden;
   }
 
-  .bottom-panel__context-row {
+  .irs-bottom-panel__context-row {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -82,7 +82,7 @@ const STYLES = `
     padding: 10px 12px max(12px, env(safe-area-inset-bottom));
   }
 
-  .bottom-panel__tool-group {
+  .irs-bottom-panel__tool-group {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -92,14 +92,14 @@ const STYLES = `
     align-self: flex-start;
   }
 
-  .bottom-panel__tool-button {
+  .irs-bottom-panel__tool-button {
     height: 44px;
     min-width: 44px;
     padding: 0 12px;
     border-radius: 10px;
     border: none;
     background: var(--irs-color-blue-alpha-12);
-    color: var(--irs-text);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -112,54 +112,62 @@ const STYLES = `
     text-align: left;
   }
 
-  .bottom-panel__tool-button:active {
+  .irs-bottom-panel__tool-button:active {
     background: var(--irs-color-blue-alpha-22);
   }
 
-  .bottom-panel__tool-button--active {
+  .irs-bottom-panel__tool-button--active {
     background: var(--irs-color-blue-alpha-22);
     color: var(--irs-color-blue);
     box-shadow: inset 0 0 0 1px var(--irs-color-blue-border);
   }
 
-  .bottom-panel__tool-button:disabled {
+  .irs-bottom-panel__tool-button:disabled {
     opacity: 0.45;
     cursor: not-allowed;
   }
 
-  .bottom-panel__tool-icon {
+  .irs-bottom-panel__tool-icon {
     font-size: 16px;
     line-height: 1;
   }
 
-  .bottom-panel__tool-labels {
+  .irs-bottom-panel__tool-labels {
     display: flex;
     flex-direction: column;
     line-height: 1.1;
   }
 
-  .bottom-panel__tool-title {
+  .irs-bottom-panel__tool-title {
     font-size: 14px;
     font-weight: 600;
   }
 
-  .bottom-panel__tool-sublabel {
+  .irs-bottom-panel__tool-sublabel {
     font-size: 11px;
     color: var(--irs-text-muted);
     font-weight: 500;
   }
 
-  .bottom-panel__tool-button--locked .bottom-panel__tool-sublabel::after {
+  .irs-bottom-panel__tool-button--locked .irs-bottom-panel__tool-sublabel::after {
     content: ' • Locked';
     color: var(--irs-color-yellow);
   }
 
-  .bottom-panel__context-strip {
+  .irs-bottom-panel__context-strip {
     flex: 1;
     min-width: 0;
     width: 100%;
   }
 `;
+
+function ensureStyles(): void {
+  if (document.getElementById('irs-bottom-panel-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'irs-bottom-panel-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 // --- Factory ---
 
@@ -178,32 +186,27 @@ export function createBottomPanel(
     isLocked: false,
   };
 
-  if (!document.getElementById('bottom-panel-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'bottom-panel-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const panel = document.createElement('div');
-  panel.className = 'bottom-panel';
+  panel.className = 'irs-bottom-panel';
 
   const contextRow = document.createElement('div');
-  contextRow.className = 'bottom-panel__context-row';
+  contextRow.className = 'irs-bottom-panel__context-row';
 
   const toolGroup = document.createElement('div');
-  toolGroup.className = 'bottom-panel__tool-group';
+  toolGroup.className = 'irs-bottom-panel__tool-group';
 
   const placeButton = document.createElement('button');
   placeButton.type = 'button';
-  placeButton.className = 'bottom-panel__tool-button';
+  placeButton.className = 'irs-bottom-panel__tool-button';
   placeButton.setAttribute('aria-label', 'Place');
   placeButton.setAttribute('title', 'Place');
   placeButton.innerHTML = `
-    <span class="bottom-panel__tool-icon">＋</span>
-    <span class="bottom-panel__tool-labels">
-      <span class="bottom-panel__tool-title">Place</span>
-      <span class="bottom-panel__tool-sublabel"></span>
+    <span class="irs-bottom-panel__tool-icon">＋</span>
+    <span class="irs-bottom-panel__tool-labels">
+      <span class="irs-bottom-panel__tool-title">Place</span>
+      <span class="irs-bottom-panel__tool-sublabel"></span>
     </span>
   `;
 
@@ -214,12 +217,12 @@ export function createBottomPanel(
 
   const interactButton = document.createElement('button');
   interactButton.type = 'button';
-  interactButton.className = 'bottom-panel__tool-button';
+  interactButton.className = 'irs-bottom-panel__tool-button';
   interactButton.setAttribute('aria-label', 'Interact');
   interactButton.setAttribute('title', 'Interact');
   interactButton.innerHTML = `
-    <span class="bottom-panel__tool-icon">⬚</span>
-    <span class="bottom-panel__tool-title">Interact</span>
+    <span class="irs-bottom-panel__tool-icon">⬚</span>
+    <span class="irs-bottom-panel__tool-title">Interact</span>
   `;
 
   interactButton.addEventListener('click', () => {
@@ -229,14 +232,14 @@ export function createBottomPanel(
 
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
-  removeButton.className = 'bottom-panel__tool-button';
+  removeButton.className = 'irs-bottom-panel__tool-button';
   removeButton.setAttribute('aria-label', 'Remove');
   removeButton.setAttribute('title', 'Remove');
   removeButton.innerHTML = `
-    <span class="bottom-panel__tool-icon">⌫</span>
-    <span class="bottom-panel__tool-labels">
-      <span class="bottom-panel__tool-title">Remove</span>
-      <span class="bottom-panel__tool-sublabel"></span>
+    <span class="irs-bottom-panel__tool-icon">⌫</span>
+    <span class="irs-bottom-panel__tool-labels">
+      <span class="irs-bottom-panel__tool-title">Remove</span>
+      <span class="irs-bottom-panel__tool-sublabel"></span>
     </span>
   `;
 
@@ -250,7 +253,7 @@ export function createBottomPanel(
   toolGroup.appendChild(removeButton);
 
   const contextStripContainer = document.createElement('div');
-  contextStripContainer.className = 'bottom-panel__context-strip';
+  contextStripContainer.className = 'irs-bottom-panel__context-strip';
 
   contextRow.appendChild(toolGroup);
   contextRow.appendChild(contextStripContainer);
@@ -259,21 +262,21 @@ export function createBottomPanel(
   container.appendChild(panel);
 
   function updateIntentButtons(): void {
-    placeButton.classList.toggle('bottom-panel__tool-button--active', state.currentIntent === 'place');
+    placeButton.classList.toggle('irs-bottom-panel__tool-button--active', state.currentIntent === 'place');
     interactButton.classList.toggle(
-      'bottom-panel__tool-button--active',
+      'irs-bottom-panel__tool-button--active',
       state.currentIntent === 'interact'
     );
-    removeButton.classList.toggle('bottom-panel__tool-button--active', state.currentIntent === 'remove');
+    removeButton.classList.toggle('irs-bottom-panel__tool-button--active', state.currentIntent === 'remove');
 
     placeButton.disabled = !intentContext.placeEnabled;
     removeButton.disabled = !intentContext.removeEnabled;
 
-    placeButton.classList.toggle('bottom-panel__tool-button--locked', intentContext.isLocked);
-    removeButton.classList.toggle('bottom-panel__tool-button--locked', intentContext.isLocked);
+    placeButton.classList.toggle('irs-bottom-panel__tool-button--locked', intentContext.isLocked);
+    removeButton.classList.toggle('irs-bottom-panel__tool-button--locked', intentContext.isLocked);
 
-    const placeLabel = placeButton.querySelector('.bottom-panel__tool-sublabel');
-    const removeLabel = removeButton.querySelector('.bottom-panel__tool-sublabel');
+    const placeLabel = placeButton.querySelector('.irs-bottom-panel__tool-sublabel');
+    const removeLabel = removeButton.querySelector('.irs-bottom-panel__tool-sublabel');
     if (placeLabel) placeLabel.textContent = intentContext.layerLabel;
     if (removeLabel) removeLabel.textContent = intentContext.layerLabel;
   }
@@ -321,7 +324,7 @@ export function createBottomPanel(
 
     destroy() {
       container.removeChild(panel);
-      const styleEl = document.getElementById('bottom-panel-styles');
+      const styleEl = document.getElementById('irs-bottom-panel-styles');
       if (styleEl) styleEl.remove();
       console.log(`${LOG_PREFIX} Bottom panel destroyed`);
     },

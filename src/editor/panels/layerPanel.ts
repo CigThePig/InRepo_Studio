@@ -165,7 +165,7 @@ const STYLES = `
 
   .irs-layer-panel__row__reorder:hover {
     background: var(--irs-color-blue-alpha-8);
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
   .irs-layer-panel__row__reorder:active {
@@ -212,8 +212,8 @@ const STYLES = `
   }
 
   .irs-layer-panel__row__toggle {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: var(--irs-touch-target);
+    min-height: var(--irs-touch-target);
     display: flex;
     align-items: center;
     justify-content: center;

@@ -49,7 +49,6 @@
   --irs-text-primary: #ffffff;
   --irs-text-secondary: #aab0d4;
   --irs-text-muted: #aab0d4;
-  --irs-text: var(--irs-text-primary);
 
   /* --- Geometry & Sizing --- */
   --irs-radius-sm: 8px;   /* Standard buttons, inputs */

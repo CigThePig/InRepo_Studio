@@ -11,35 +11,35 @@ import { createEmptyState } from './leftBerry';
 import { editorEventBus } from '@/editor/core';
 
 const STYLES = `
-  .asset-library {
+  .irs-asset-library {
     display: flex;
     flex-direction: column;
     gap: 12px;
     color: var(--irs-text-primary);
   }
 
-  .asset-library__section {
+  .irs-asset-library__section {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
     border-radius: 14px;
     padding: 12px;
   }
 
-  .asset-library__title {
+  .irs-asset-library__title {
     font-size: 13px;
     font-weight: 700;
     color: var(--irs-text-primary);
     margin-bottom: 8px;
   }
 
-  .asset-library__row {
+  .irs-asset-library__row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
   }
 
-  .asset-library__select {
+  .irs-asset-library__select {
     min-height: 44px;
     padding: 8px 10px;
     border-radius: 10px;
@@ -49,31 +49,31 @@ const STYLES = `
     font-size: 13px;
   }
 
-  .asset-library__hint {
+  .irs-asset-library__hint {
     font-size: 12px;
     color: var(--irs-text-secondary);
   }
 
-  .asset-library__group {
+  .irs-asset-library__group {
     border-top: 1px solid var(--irs-border-heavy);
     padding-top: 10px;
     margin-top: 10px;
   }
 
-  .asset-library__group:first-of-type {
+  .irs-asset-library__group:first-of-type {
     border-top: none;
     padding-top: 0;
     margin-top: 0;
   }
 
-  .asset-library__group-header {
+  .irs-asset-library__group-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
   }
 
-  .asset-library__group-toggle {
+  .irs-asset-library__group-toggle {
     flex: 1;
     display: flex;
     align-items: center;
@@ -90,48 +90,48 @@ const STYLES = `
     text-align: left;
   }
 
-  .asset-library__group-toggle:active {
+  .irs-asset-library__group-toggle:active {
     background: var(--irs-accent-primary-active);
   }
 
-  .asset-library__group-count {
+  .irs-asset-library__group-count {
     font-size: 12px;
     color: var(--irs-text-secondary);
   }
 
-  .asset-library__group-actions {
+  .irs-asset-library__group-actions {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .asset-library__upload-status {
+  .irs-asset-library__upload-status {
     font-size: 11px;
     color: var(--irs-text-secondary);
     max-width: 160px;
     text-align: right;
   }
 
-  .asset-library__upload-status--error {
+  .irs-asset-library__upload-status--error {
     color: var(--irs-accent-danger);
   }
 
-  .asset-library__upload-status--success {
+  .irs-asset-library__upload-status--success {
     color: var(--irs-accent-success);
   }
 
-  .asset-library__assets {
+  .irs-asset-library__assets {
     margin-top: 10px;
     display: none;
     grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 10px;
   }
 
-  .asset-library__assets--open {
+  .irs-asset-library__assets--open {
     display: grid;
   }
 
-  .asset-library__asset {
+  .irs-asset-library__asset {
     position: relative;
     border-radius: 12px;
     border: 2px solid transparent;
@@ -147,19 +147,19 @@ const STYLES = `
     min-width: 0;
   }
 
-  .asset-library__asset--selected {
+  .irs-asset-library__asset--selected {
     border-color: var(--irs-accent-primary);
     background: var(--irs-accent-primary);
   }
 
-  .asset-library__asset img,
-  .asset-library__asset canvas {
+  .irs-asset-library__asset img,
+  .irs-asset-library__asset canvas {
     width: 100%;
     border-radius: 8px;
     object-fit: cover;
   }
 
-  .asset-library__asset-name {
+  .irs-asset-library__asset-name {
     font-size: 11px;
     color: var(--irs-text-primary);
     max-width: 100%;
@@ -170,12 +170,12 @@ const STYLES = `
     word-break: break-word;
   }
 
-  .asset-library__asset-meta {
+  .irs-asset-library__asset-meta {
     font-size: 10px;
     color: var(--irs-text-secondary);
   }
 
-  .asset-library__asset-more {
+  .irs-asset-library__asset-more {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -192,19 +192,19 @@ const STYLES = `
     -webkit-backdrop-filter: blur(8px);
   }
 
-  .asset-library__asset--organizing {
+  .irs-asset-library__asset--organizing {
     border-color: var(--irs-border-blue-alpha);
     background: var(--irs-surface-panel);
     box-shadow: 0 0 0 1px var(--irs-border-blue-alpha) inset;
     user-select: none;
   }
 
-  .asset-library__drag-handle {
+  .irs-asset-library__drag-handle {
     position: absolute;
     top: 6px;
     right: 6px;
-    width: 40px;
-    height: 40px;
+    width: var(--irs-touch-target);
+    height: var(--irs-touch-target);
     border-radius: 12px;
     border: 1px solid var(--irs-border-blue-alpha);
     background: var(--irs-surface-panel);
@@ -218,7 +218,7 @@ const STYLES = `
     cursor: grab;
   }
 
-  .asset-library__ghost {
+  .irs-asset-library__ghost {
     position: fixed;
     width: 84px;
     pointer-events: none;
@@ -228,18 +228,18 @@ const STYLES = `
     box-shadow: 0 10px 20px var(--irs-surface-dark-alpha);
   }
 
-  .asset-library__placeholder {
+  .irs-asset-library__placeholder {
     border-radius: 12px;
     border: 2px dashed var(--irs-border-blue-alpha);
     background: var(--irs-surface-panel);
     min-height: 132px;
   }
 
-  .asset-library__sheet-scrim {
+  .irs-asset-library__sheet-scrim {
     z-index: 120;
   }
 
-  .asset-library__sheet {
+  .irs-asset-library__sheet {
     position: absolute;
     left: 12px;
     right: 12px;
@@ -251,38 +251,38 @@ const STYLES = `
     transition: transform 140ms ease;
   }
 
-  .irs-overlay--visible .asset-library__sheet {
+  .irs-overlay--visible .irs-asset-library__sheet {
     transform: translateY(0);
   }
 
-  .asset-library__sheet-title {
+  .irs-asset-library__sheet-title {
     font-size: 15px;
     font-weight: 700;
     color: var(--irs-text-primary);
     margin-bottom: 4px;
   }
 
-  .asset-library__sheet-note {
+  .irs-asset-library__sheet-note {
     font-size: 12px;
     color: var(--irs-text-secondary);
   }
 
-  .asset-library__empty {
+  .irs-asset-library__empty {
     font-size: 12px;
     color: var(--irs-text-secondary);
     padding: 4px 0;
   }
 
-  .asset-library__move-type-row {
+  .irs-asset-library__move-type-row {
     display: flex;
     gap: 6px;
   }
 
-  .asset-library__move-type-btn {
+  .irs-asset-library__move-type-btn {
     flex: 1;
   }
 
-  .asset-library__move-group-list {
+  .irs-asset-library__move-group-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -290,23 +290,23 @@ const STYLES = `
     overflow-y: auto;
   }
 
-  .asset-library__move-group-btn {
+  .irs-asset-library__move-group-btn {
     text-align: left;
   }
 
-  .asset-library__move-group-btn--current {
+  .irs-asset-library__move-group-btn--current {
     opacity: 0.4;
     cursor: default;
   }
 
-  .asset-library__animations {
+  .irs-asset-library__animations {
     margin-top: 12px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
     gap: 10px;
   }
 
-  .asset-library__animation-card {
+  .irs-asset-library__animation-card {
     border-radius: 12px;
     border: 2px solid transparent;
     background: var(--irs-surface-panel);
@@ -319,42 +319,42 @@ const STYLES = `
     position: relative;
   }
 
-  .asset-library__animation-card img {
+  .irs-asset-library__animation-card img {
     width: 100%;
     border-radius: 10px;
     object-fit: cover;
   }
 
-  .asset-library__animation-meta {
+  .irs-asset-library__animation-meta {
     font-size: 10px;
     color: var(--irs-text-secondary);
   }
 
-  .asset-library__animation-delete {
+  .irs-asset-library__animation-delete {
     position: absolute;
     top: 6px;
     right: 6px;
     cursor: pointer;
   }
 
-  .asset-library__animation-actions {
+  .irs-asset-library__animation-actions {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
   }
 
-  .asset-library__animation-card canvas {
+  .irs-asset-library__animation-card canvas {
     width: 100%;
     border-radius: 10px;
     image-rendering: pixelated;
     display: block;
   }
 
-  .asset-library__anim-section {
+  .irs-asset-library__anim-section {
     margin-top: 12px;
   }
 
-  .asset-library__anim-section-header {
+  .irs-asset-library__anim-section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -362,26 +362,26 @@ const STYLES = `
     margin-bottom: 8px;
   }
 
-  .asset-library__anim-search {
+  .irs-asset-library__anim-search {
     width: 100%;
     margin-bottom: 10px;
   }
 
-  .asset-library__anim-rename-row {
+  .irs-asset-library__anim-rename-row {
     display: flex;
     gap: 4px;
     align-items: center;
     margin-top: 4px;
   }
 
-  .asset-library__anim-rename-input {
+  .irs-asset-library__anim-rename-input {
     flex: 1;
     min-height: 36px;
     padding: 4px 8px;
     min-width: 0;
   }
 
-  .asset-library__anim-where-used {
+  .irs-asset-library__anim-where-used {
     margin-top: 6px;
     padding: 6px 8px;
     border-radius: 8px;
@@ -393,17 +393,17 @@ const STYLES = `
     overflow-y: auto;
   }
 
-  .asset-library__anim-where-used-hit {
+  .irs-asset-library__anim-where-used-hit {
     padding: 3px 0;
     border-bottom: 1px solid var(--irs-border-blue-alpha);
     word-break: break-word;
   }
 
-  .asset-library__anim-where-used-hit:last-child {
+  .irs-asset-library__anim-where-used-hit:last-child {
     border-bottom: none;
   }
 
-  .asset-library__anim-delete-confirm {
+  .irs-asset-library__anim-delete-confirm {
     margin-top: 6px;
     padding: 6px 8px;
     border-radius: 8px;
@@ -414,17 +414,17 @@ const STYLES = `
     gap: 4px;
   }
 
-  .asset-library__anim-delete-label {
+  .irs-asset-library__anim-delete-label {
     font-size: 10px;
     color: var(--irs-accent-danger);
   }
 
-  .asset-library__anim-delete-row {
+  .irs-asset-library__anim-delete-row {
     display: flex;
     gap: 6px;
   }
 
-  .asset-library__anim-set-create-inline {
+  .irs-asset-library__anim-set-create-inline {
     display: flex;
     gap: 6px;
     align-items: center;
@@ -432,16 +432,16 @@ const STYLES = `
     flex-wrap: wrap;
   }
 
-  .asset-library__anim-set-create-input {
+  .irs-asset-library__anim-set-create-input {
     flex: 1;
     min-width: 100px;
   }
 
-  .asset-library__anim-scrim {
+  .irs-asset-library__anim-scrim {
     z-index: 120;
   }
 
-  .asset-library__direction-row {
+  .irs-asset-library__direction-row {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -449,18 +449,18 @@ const STYLES = `
     border-bottom: 1px solid var(--irs-border-blue-alpha);
   }
 
-  .asset-library__direction-row:last-of-type {
+  .irs-asset-library__direction-row:last-of-type {
     border-bottom: none;
   }
 
-  .asset-library__direction-label {
+  .irs-asset-library__direction-label {
     width: 48px;
     font-size: 12px;
     color: var(--irs-text-secondary);
     flex-shrink: 0;
   }
 
-  .asset-library__direction-select {
+  .irs-asset-library__direction-select {
     flex: 1;
     min-height: 44px;
     padding: 8px 10px;
@@ -471,7 +471,7 @@ const STYLES = `
     font-size: 12px;
   }
 
-  .asset-library__direction-preview {
+  .irs-asset-library__direction-preview {
     width: 44px;
     height: 44px;
     flex-shrink: 0;
@@ -481,15 +481,15 @@ const STYLES = `
     image-rendering: pixelated;
   }
 
-  .asset-library__animation-card--where-used-open {
+  .irs-asset-library__animation-card--where-used-open {
     border-color: var(--irs-border-blue-alpha);
   }
 
-  .asset-library__animation-card--delete-open {
+  .irs-asset-library__animation-card--delete-open {
     border-color: var(--irs-accent-danger);
   }
 
-  .asset-library__anim-no-match {
+  .irs-asset-library__anim-no-match {
     font-size: 12px;
     color: var(--irs-text-secondary);
     padding: 8px 0;
@@ -516,6 +516,14 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
   props: 'Props',
   entities: 'Entities',
 };
+
+function ensureStyles(): void {
+  if (document.getElementById('irs-asset-library-tab-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'irs-asset-library-tab-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibraryTabController {
   const {
@@ -564,12 +572,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return clearedCount;
   }
 
-  if (!document.getElementById('asset-library-tab-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'asset-library-tab-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   const expandedGroups = new Set<string>();
   let organizeGroupKey: string | null = null;
@@ -692,17 +695,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   const root = document.createElement('div');
-  root.className = 'asset-library';
+  root.className = 'irs-asset-library';
 
   const createSection = document.createElement('section');
-  createSection.className = 'asset-library__section';
+  createSection.className = 'irs-asset-library__section';
 
   const createTitle = document.createElement('div');
-  createTitle.className = 'asset-library__title';
+  createTitle.className = 'irs-asset-library__title';
   createTitle.textContent = 'Create Group';
 
   const createRow = document.createElement('div');
-  createRow.className = 'asset-library__row';
+  createRow.className = 'irs-asset-library__row';
 
   const nameInput = document.createElement('input');
   nameInput.className = 'irs-input';
@@ -711,7 +714,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   nameInput.maxLength = 32;
 
   const typeSelect = document.createElement('select');
-  typeSelect.className = 'asset-library__select';
+  typeSelect.className = 'irs-asset-library__select';
   typeSelect.innerHTML = `
     <option value="tilesets">Tilesets</option>
     <option value="props">Props</option>
@@ -724,7 +727,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   createButton.textContent = 'Add Group';
 
   const createHint = document.createElement('div');
-  createHint.className = 'asset-library__hint';
+  createHint.className = 'irs-asset-library__hint';
   createHint.textContent = 'Groups organize assets for paint, props, and entity palettes.';
 
   createRow.appendChild(nameInput);
@@ -737,17 +740,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   root.appendChild(createSection);
 
   const librarySection = document.createElement('section');
-  librarySection.className = 'asset-library__section';
+  librarySection.className = 'irs-asset-library__section';
 
   const libraryTitle = document.createElement('div');
-  libraryTitle.className = 'asset-library__title';
+  libraryTitle.className = 'irs-asset-library__title';
   libraryTitle.textContent = 'Assets Library';
 
   librarySection.appendChild(libraryTitle);
   root.appendChild(librarySection);
 
   const sheetScrim = document.createElement('div');
-  sheetScrim.className = 'irs-overlay asset-library__sheet-scrim';
+  sheetScrim.className = 'irs-overlay irs-asset-library__sheet-scrim';
   sheetScrim.addEventListener('click', () => {
     sheetAssetId = null;
     refresh();
@@ -756,7 +759,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   // Separate scrim for animation direction assignment bottom sheet
   const animScrim = document.createElement('div');
-  animScrim.className = 'irs-overlay asset-library__anim-scrim';
+  animScrim.className = 'irs-overlay irs-asset-library__anim-scrim';
   animScrim.addEventListener('click', () => {
     directionSheetSetId = null;
     renderAnimSheet();
@@ -814,7 +817,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     const { event, card, grid, group, fromIndex, assetId, captureEl } = options;
     const rect = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
-    ghost.classList.add('asset-library__ghost');
+    ghost.classList.add('irs-asset-library__ghost');
     ghost.style.width = `${rect.width}px`;
     ghost.style.height = `${rect.height}px`;
     ghost.style.left = `${rect.left}px`;
@@ -822,7 +825,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     document.body.appendChild(ghost);
 
     const placeholder = document.createElement('div');
-    placeholder.className = 'asset-library__placeholder';
+    placeholder.className = 'irs-asset-library__placeholder';
     placeholder.style.width = `${rect.width}px`;
     placeholder.style.height = `${rect.height}px`;
     grid.insertBefore(placeholder, card);
@@ -881,7 +884,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       }
     }
 
-    const cardNodes = Array.from(active.targetGrid.querySelectorAll<HTMLElement>('.asset-library__asset')).filter(
+    const cardNodes = Array.from(active.targetGrid.querySelectorAll<HTMLElement>('.irs-asset-library__asset')).filter(
       (node) => node !== active.card
     );
     const targetIndex = findClosestIndex(cardNodes, event.clientX, event.clientY);
@@ -952,12 +955,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
     const wrapper = document.createElement('div');
-    wrapper.className = 'asset-library__assets';
+    wrapper.className = 'irs-asset-library__assets';
     wrapper.setAttribute('data-group-key', makeGroupKey(group.type, group.slug));
 
     if (group.assets.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'asset-library__empty';
+      empty.className = 'irs-asset-library__empty';
       empty.textContent = 'No assets in this group yet.';
       wrapper.appendChild(empty);
       return wrapper;
@@ -1011,8 +1014,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }): HTMLElement {
     const { group, asset, assetIndex, selectedAssetId, organizeMode, openAssetSheet } = options;
     const card = document.createElement('div');
-    card.className = 'asset-library__asset';
-    card.classList.toggle('asset-library__asset--selected', asset.id === selectedAssetId);
+    card.className = 'irs-asset-library__asset';
+    card.classList.toggle('irs-asset-library__asset--selected', asset.id === selectedAssetId);
 
     if (asset.sourceAssetId && asset.rect) {
       card.appendChild(renderSliceThumbnail(asset));
@@ -1024,12 +1027,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }
 
     const name = document.createElement('div');
-    name.className = 'asset-library__asset-name';
+    name.className = 'irs-asset-library__asset-name';
     name.textContent = asset.name;
     card.appendChild(name);
 
     const meta = document.createElement('div');
-    meta.className = 'asset-library__asset-meta';
+    meta.className = 'irs-asset-library__asset-meta';
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
     const sliceLabel = asset.sourceAssetId ? ' · Slice' : '';
@@ -1038,9 +1041,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     card.appendChild(meta);
 
     if (organizeMode) {
-      card.classList.add('asset-library__asset--organizing');
+      card.classList.add('irs-asset-library__asset--organizing');
       const dragHandle = document.createElement('div');
-      dragHandle.className = 'asset-library__drag-handle';
+      dragHandle.className = 'irs-asset-library__drag-handle';
       dragHandle.textContent = '≡';
       dragHandle.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
@@ -1098,7 +1101,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     } else if (organizeGroupKey === null) {
       const moreButton = document.createElement('button');
       moreButton.type = 'button';
-      moreButton.className = 'asset-library__asset-more';
+      moreButton.className = 'irs-asset-library__asset-more';
       moreButton.textContent = '⋯';
       moreButton.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
@@ -1121,8 +1124,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {
-    librarySection.querySelectorAll('.asset-library__group').forEach((node) => node.remove());
-    librarySection.querySelectorAll('.asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
+    librarySection.querySelectorAll('.irs-asset-library__group').forEach((node) => node.remove());
+    librarySection.querySelectorAll('.irs-asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
 
     if (groups.length === 0) {
       const emptyContainer = document.createElement('div');
@@ -1149,14 +1152,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       typeGroups.forEach((group) => {
         const groupWrapper = document.createElement('div');
-        groupWrapper.className = 'asset-library__group';
+        groupWrapper.className = 'irs-asset-library__group';
 
         const header = document.createElement('div');
-        header.className = 'asset-library__group-header';
+        header.className = 'irs-asset-library__group-header';
 
         const toggle = document.createElement('button');
         toggle.type = 'button';
-        toggle.className = 'asset-library__group-toggle';
+        toggle.className = 'irs-asset-library__group-toggle';
         const key = groupKey(group);
         const isOpen = expandedGroups.has(key) || group.assets.length > 0;
         if (isOpen) {
@@ -1165,7 +1168,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         toggle.innerHTML = `
           <span>${GROUP_TYPE_LABELS[group.type]} · ${group.name}</span>
-          <span class="asset-library__group-count">${group.assets.length} assets</span>
+          <span class="irs-asset-library__group-count">${group.assets.length} assets</span>
         `;
 
         const organizeEnabled = organizeGroupKey === key;
@@ -1185,7 +1188,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         });
 
         const assetsContainer = renderAssets(group, selectedAssetId, organizeEnabled);
-        assetsContainer.classList.toggle('asset-library__assets--open', isOpen);
+        assetsContainer.classList.toggle('irs-asset-library__assets--open', isOpen);
 
         toggle.addEventListener('click', () => {
           const open = !expandedGroups.has(key);
@@ -1194,28 +1197,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           } else {
             expandedGroups.delete(key);
           }
-          assetsContainer.classList.toggle('asset-library__assets--open', open);
+          assetsContainer.classList.toggle('irs-asset-library__assets--open', open);
         });
 
         header.appendChild(toggle);
 
         if (uploadEnabled) {
           const actions = document.createElement('div');
-          actions.className = 'asset-library__group-actions';
+          actions.className = 'irs-asset-library__group-actions';
 
           const status = document.createElement('div');
-          status.className = 'asset-library__upload-status';
+          status.className = 'irs-asset-library__upload-status';
 
           const statusKey = groupKey(group);
           const currentStatus = uploadStatus.get(statusKey);
           if (currentStatus) {
             status.textContent = currentStatus.message;
             status.classList.toggle(
-              'asset-library__upload-status--error',
+              'irs-asset-library__upload-status--error',
               currentStatus.state === 'error'
             );
             status.classList.toggle(
-              'asset-library__upload-status--success',
+              'irs-asset-library__upload-status--success',
               currentStatus.state === 'success'
             );
           }
@@ -1291,7 +1294,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           header.appendChild(actions);
         } else {
           const actions = document.createElement('div');
-          actions.className = 'asset-library__group-actions';
+          actions.className = 'irs-asset-library__group-actions';
           actions.appendChild(organizeToggle);
           header.appendChild(actions);
         }
@@ -1309,7 +1312,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     animationCanvases.clear();
     animationClock.destroy();
 
-    librarySection.querySelectorAll('.asset-library__anim-section')
+    librarySection.querySelectorAll('.irs-asset-library__anim-section')
       .forEach((node) => node.remove());
 
     const animations = assetRegistry.getAnimations();
@@ -1323,17 +1326,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     // ── Outer collapsible section ──────────────────────────────────────
     const section = document.createElement('div');
-    section.className = 'asset-library__anim-section';
+    section.className = 'irs-asset-library__anim-section';
 
     const sectionHeader = document.createElement('div');
-    sectionHeader.className = 'asset-library__anim-section-header';
+    sectionHeader.className = 'irs-asset-library__anim-section-header';
 
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
-    toggleBtn.className = 'asset-library__group-toggle';
+    toggleBtn.className = 'irs-asset-library__group-toggle';
     toggleBtn.innerHTML = `
       <span>${animationsCollapsed ? '▶' : '▼'} Animations</span>
-      <span class="asset-library__group-count">${animations.length} clips · ${animationSets.length} sets</span>
+      <span class="irs-asset-library__group-count">${animations.length} clips · ${animationSets.length} sets</span>
     `;
     toggleBtn.addEventListener('click', () => {
       animationsCollapsed = !animationsCollapsed;
@@ -1347,7 +1350,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       // ── Search / filter input ────────────────────────────────────────
       const searchInput = document.createElement('input');
       searchInput.type = 'text';
-      searchInput.className = 'irs-input asset-library__anim-search';
+      searchInput.className = 'irs-input irs-asset-library__anim-search';
       searchInput.placeholder = 'Search animations…';
       searchInput.value = animFilter;
       searchInput.addEventListener('input', () => {
@@ -1368,10 +1371,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       // ── Clips grid ──────────────────────────────────────────────────
       const grid = document.createElement('div');
-      grid.className = 'asset-library__animations';
+      grid.className = 'irs-asset-library__animations';
 
       const noMatchMsg = document.createElement('div');
-      noMatchMsg.className = 'asset-library__anim-no-match';
+      noMatchMsg.className = 'irs-asset-library__anim-no-match';
       noMatchMsg.textContent = 'No animations match.';
       noMatchMsg.style.display = 'none';
       grid.appendChild(noMatchMsg);
@@ -1405,7 +1408,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         const isVisible = !lower || animation.name.toLowerCase().includes(lower);
 
         const card = document.createElement('div');
-        card.className = 'asset-library__animation-card';
+        card.className = 'irs-asset-library__animation-card';
         card.dataset.animId = animation.id;
         card.dataset.animName = animation.name;
         if (!isVisible) card.style.display = 'none';
@@ -1453,18 +1456,18 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         // ── Name / inline rename ──
         const nameDiv = document.createElement('div');
-        nameDiv.className = 'asset-library__asset-name';
+        nameDiv.className = 'irs-asset-library__asset-name';
         nameDiv.textContent = animation.name;
 
         if (activeRenameId === animation.id) {
           // Show inline rename row
           const renameRow = document.createElement('div');
-          renameRow.className = 'asset-library__anim-rename-row';
+          renameRow.className = 'irs-asset-library__anim-rename-row';
           renameRow.addEventListener('click', (e) => e.stopPropagation());
 
           const renameInput = document.createElement('input');
           renameInput.type = 'text';
-          renameInput.className = 'irs-input asset-library__anim-rename-input';
+          renameInput.className = 'irs-input irs-asset-library__anim-rename-input';
           renameInput.value = animation.name;
           renameInput.maxLength = 64;
 
@@ -1512,13 +1515,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         // ── Meta ──
         const meta = document.createElement('div');
-        meta.className = 'asset-library__animation-meta';
+        meta.className = 'irs-asset-library__animation-meta';
         meta.textContent = `${animation.frames.length} frames · ${animation.fps} fps`;
         card.appendChild(meta);
 
         // ── Action buttons ──
         const actions = document.createElement('div');
-        actions.className = 'asset-library__animation-actions';
+        actions.className = 'irs-asset-library__animation-actions';
 
         const renameButton = document.createElement('button');
         renameButton.type = 'button';
@@ -1553,16 +1556,16 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           // Toggle: if already open for this card, collapse it
           if (activeWhereUsedId === animation.id) {
             activeWhereUsedId = null;
-            card.classList.remove('asset-library__animation-card--where-used-open');
+            card.classList.remove('irs-asset-library__animation-card--where-used-open');
             whereUsedPanel.remove();
             return;
           }
           // Show loading state, then scan
           activeWhereUsedId = animation.id;
           activeDeleteId = null;
-          card.classList.add('asset-library__animation-card--where-used-open');
+          card.classList.add('irs-asset-library__animation-card--where-used-open');
 
-          whereUsedPanel.innerHTML = '<div class="asset-library__anim-where-used-hit">Scanning…</div>';
+          whereUsedPanel.innerHTML = '<div class="irs-asset-library__anim-where-used-hit">Scanning…</div>';
           whereUsedPanel.style.display = '';
 
           const scenes = await getAllScenes();
@@ -1576,13 +1579,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           whereUsedPanel.innerHTML = '';
           if (hits.length === 0) {
             const msg = document.createElement('div');
-            msg.className = 'asset-library__anim-where-used-hit';
+            msg.className = 'irs-asset-library__anim-where-used-hit';
             msg.textContent = 'Not used anywhere.';
             whereUsedPanel.appendChild(msg);
           } else {
             hits.slice(0, 20).forEach((hit) => {
               const row = document.createElement('div');
-              row.className = 'asset-library__anim-where-used-hit';
+              row.className = 'irs-asset-library__anim-where-used-hit';
               if (hit.kind === 'entity') {
                 row.textContent = `Scene ${hit.sceneId} → Entity ${hit.entityId}`;
               } else if (hit.kind === 'animationSet') {
@@ -1594,7 +1597,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             });
             if (hits.length > 20) {
               const more = document.createElement('div');
-              more.className = 'asset-library__anim-where-used-hit';
+              more.className = 'irs-asset-library__anim-where-used-hit';
               more.textContent = `…and ${hits.length - 20} more.`;
               whereUsedPanel.appendChild(more);
             }
@@ -1608,19 +1611,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         // ── Where Used panel (shown below actions when active) ──
         const whereUsedPanel = document.createElement('div');
-        whereUsedPanel.className = 'asset-library__anim-where-used';
+        whereUsedPanel.className = 'irs-asset-library__anim-where-used';
         whereUsedPanel.addEventListener('click', (e) => e.stopPropagation());
         if (activeWhereUsedId !== animation.id) {
           whereUsedPanel.style.display = 'none';
         } else {
-          card.classList.add('asset-library__animation-card--where-used-open');
+          card.classList.add('irs-asset-library__animation-card--where-used-open');
         }
         card.appendChild(whereUsedPanel);
 
         // ── Delete button (× absolute in corner) ──
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'irs-btn irs-btn--danger asset-library__animation-delete';
+        deleteButton.className = 'irs-btn irs-btn--danger irs-asset-library__animation-delete';
         deleteButton.textContent = '×';
         deleteButton.addEventListener('pointerdown', (event) => event.stopPropagation());
         deleteButton.addEventListener('click', async (event) => {
@@ -1628,13 +1631,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           if (activeDeleteId === animation.id) {
             // Already showing confirm — tapping × again cancels it
             activeDeleteId = null;
-            card.classList.remove('asset-library__animation-card--delete-open');
+            card.classList.remove('irs-asset-library__animation-card--delete-open');
             deleteConfirmEl.style.display = 'none';
             return;
           }
           activeDeleteId = animation.id;
           activeWhereUsedId = null;
-          card.classList.add('asset-library__animation-card--delete-open');
+          card.classList.add('irs-asset-library__animation-card--delete-open');
 
           // Build the inline delete confirm
           deleteConfirmEl.innerHTML = '';
@@ -1648,14 +1651,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           );
 
           const label = document.createElement('div');
-          label.className = 'asset-library__anim-delete-label';
+          label.className = 'irs-asset-library__anim-delete-label';
           label.textContent = hits.length > 0
             ? `Used by ${hits.length} — delete anyway?`
             : `Delete "${animation.name}"?`;
           deleteConfirmEl.appendChild(label);
 
           const confirmRow = document.createElement('div');
-          confirmRow.className = 'asset-library__anim-delete-row';
+          confirmRow.className = 'irs-asset-library__anim-delete-row';
 
           const cancelBtn = document.createElement('button');
           cancelBtn.type = 'button';
@@ -1664,7 +1667,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           cancelBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             activeDeleteId = null;
-            card.classList.remove('asset-library__animation-card--delete-open');
+            card.classList.remove('irs-asset-library__animation-card--delete-open');
             deleteConfirmEl.style.display = 'none';
           });
 
@@ -1715,11 +1718,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         // ── Inline delete confirm panel ──
         const deleteConfirmEl = document.createElement('div');
-        deleteConfirmEl.className = 'asset-library__anim-delete-confirm';
+        deleteConfirmEl.className = 'irs-asset-library__anim-delete-confirm';
         deleteConfirmEl.addEventListener('click', (e) => e.stopPropagation());
         deleteConfirmEl.style.display = 'none';
         if (activeDeleteId === animation.id) {
-          card.classList.add('asset-library__animation-card--delete-open');
+          card.classList.add('irs-asset-library__animation-card--delete-open');
         }
         card.appendChild(deleteConfirmEl);
 
@@ -1737,21 +1740,21 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       // ── Animation Sets section ────────────────────────────────────
       const setsTitle = document.createElement('div');
-      setsTitle.className = 'asset-library__title';
+      setsTitle.className = 'irs-asset-library__title';
       setsTitle.style.marginTop = '16px';
       setsTitle.textContent = 'Animation Sets';
       section.appendChild(setsTitle);
 
       // Inline create form or button
       const createSetRow = document.createElement('div');
-      createSetRow.className = 'asset-library__row';
+      createSetRow.className = 'irs-asset-library__row';
       if (inlineSetCreateOpen) {
         const createInline = document.createElement('div');
-        createInline.className = 'asset-library__anim-set-create-inline';
+        createInline.className = 'irs-asset-library__anim-set-create-inline';
 
         const createInput = document.createElement('input');
         createInput.type = 'text';
-        createInput.className = 'irs-input asset-library__anim-set-create-input';
+        createInput.className = 'irs-input irs-asset-library__anim-set-create-input';
         createInput.placeholder = 'Animation set name…';
         createInput.maxLength = 64;
 
@@ -1812,21 +1815,21 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         section.appendChild(emptyContainer);
       } else {
         const setGrid = document.createElement('div');
-        setGrid.className = 'asset-library__animations';
+        setGrid.className = 'irs-asset-library__animations';
 
         for (const animationSet of animationSets) {
           const card = document.createElement('div');
-          card.className = 'asset-library__animation-card';
+          card.className = 'irs-asset-library__animation-card';
 
           // ── Set name / inline rename ──
           if (activeSetRenameId === animationSet.id) {
             const renameRow = document.createElement('div');
-            renameRow.className = 'asset-library__anim-rename-row';
+            renameRow.className = 'irs-asset-library__anim-rename-row';
             renameRow.addEventListener('click', (e) => e.stopPropagation());
 
             const renameInput = document.createElement('input');
             renameInput.type = 'text';
-            renameInput.className = 'irs-input asset-library__anim-rename-input';
+            renameInput.className = 'irs-input irs-asset-library__anim-rename-input';
             renameInput.value = animationSet.name;
             renameInput.maxLength = 64;
 
@@ -1867,7 +1870,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
           } else {
             const name = document.createElement('div');
-            name.className = 'asset-library__asset-name';
+            name.className = 'irs-asset-library__asset-name';
             name.textContent = animationSet.name;
             card.appendChild(name);
           }
@@ -1875,7 +1878,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           // ── Direction summary ──
           const order = ['up', 'left', 'right', 'down'] as const;
           const directions = document.createElement('div');
-          directions.className = 'asset-library__animation-meta';
+          directions.className = 'irs-asset-library__animation-meta';
           directions.textContent = order
             .map((facing) => {
               const val = animationSet.directions[facing];
@@ -1888,7 +1891,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           // ── Set action buttons ──
           const actions = document.createElement('div');
-          actions.className = 'asset-library__animation-actions';
+          actions.className = 'irs-asset-library__animation-actions';
 
           const assignBtn = document.createElement('button');
           assignBtn.type = 'button';
@@ -1924,7 +1927,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             }
             activeSetDeleteId = animationSet.id;
             activeSetRenameId = null;
-            card.classList.add('asset-library__animation-card--delete-open');
+            card.classList.add('irs-asset-library__animation-card--delete-open');
             setDeleteConfirmEl.style.display = '';
           });
 
@@ -1935,17 +1938,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           // ── Inline set delete confirm ──
           const setDeleteConfirmEl = document.createElement('div');
-          setDeleteConfirmEl.className = 'asset-library__anim-delete-confirm';
+          setDeleteConfirmEl.className = 'irs-asset-library__anim-delete-confirm';
           setDeleteConfirmEl.addEventListener('click', (e) => e.stopPropagation());
           setDeleteConfirmEl.style.display = 'none';
 
           const setDeleteLabel = document.createElement('div');
-          setDeleteLabel.className = 'asset-library__anim-delete-label';
+          setDeleteLabel.className = 'irs-asset-library__anim-delete-label';
           setDeleteLabel.textContent = `Delete set "${animationSet.name}"?`;
           setDeleteConfirmEl.appendChild(setDeleteLabel);
 
           const setDeleteRow = document.createElement('div');
-          setDeleteRow.className = 'asset-library__anim-delete-row';
+          setDeleteRow.className = 'irs-asset-library__anim-delete-row';
 
           const setDeleteCancel = document.createElement('button');
           setDeleteCancel.type = 'button';
@@ -1954,7 +1957,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           setDeleteCancel.addEventListener('click', (e) => {
             e.stopPropagation();
             activeSetDeleteId = null;
-            card.classList.remove('asset-library__animation-card--delete-open');
+            card.classList.remove('irs-asset-library__animation-card--delete-open');
             setDeleteConfirmEl.style.display = 'none';
           });
 
@@ -1977,7 +1980,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           card.appendChild(setDeleteConfirmEl);
 
           if (activeSetDeleteId === animationSet.id) {
-            card.classList.add('asset-library__animation-card--delete-open');
+            card.classList.add('irs-asset-library__animation-card--delete-open');
             setDeleteConfirmEl.style.display = '';
           }
 
@@ -2014,11 +2017,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     animScrim.classList.add('irs-overlay--visible');
 
     const sheet = document.createElement('div');
-    sheet.className = 'irs-dialog asset-library__sheet';
+    sheet.className = 'irs-dialog irs-asset-library__sheet';
     sheet.addEventListener('click', (e) => e.stopPropagation());
 
     const title = document.createElement('div');
-    title.className = 'asset-library__sheet-title';
+    title.className = 'irs-asset-library__sheet-title';
     title.textContent = `Assign Directions — ${animationSet.name}`;
     sheet.appendChild(title);
 
@@ -2033,17 +2036,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     (['up', 'down', 'left', 'right'] as const).forEach((facing) => {
       const row = document.createElement('div');
-      row.className = 'asset-library__direction-row';
+      row.className = 'irs-asset-library__direction-row';
 
       const label = document.createElement('div');
-      label.className = 'asset-library__direction-label';
+      label.className = 'irs-asset-library__direction-label';
       label.textContent = facing.charAt(0).toUpperCase() + facing.slice(1);
 
       // ── Mini live-preview canvas for this direction ──
       const prevCanvas = document.createElement('canvas');
       prevCanvas.width = 44;
       prevCanvas.height = 44;
-      prevCanvas.className = 'asset-library__direction-preview';
+      prevCanvas.className = 'irs-asset-library__direction-preview';
 
       let prevAnimId = pendingDirections[facing] ?? '';
 
@@ -2084,7 +2087,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       }
 
       const select = document.createElement('select');
-      select.className = 'asset-library__direction-select';
+      select.className = 'irs-asset-library__direction-select';
 
       const noneOpt = document.createElement('option');
       noneOpt.value = '';
@@ -2177,7 +2180,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     sheetScrim.classList.add('irs-overlay--visible');
     const sheet = document.createElement('div');
-    sheet.className = 'irs-dialog asset-library__sheet';
+    sheet.className = 'irs-dialog irs-asset-library__sheet';
     sheet.addEventListener('click', (event) => event.stopPropagation());
 
     if (sheetView === 'menu') {
@@ -2221,7 +2224,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     if (sheetView === 'rename') {
       const title = document.createElement('div');
-      title.className = 'asset-library__sheet-title';
+      title.className = 'irs-asset-library__sheet-title';
       title.textContent = 'Rename Asset';
       sheet.appendChild(title);
 
@@ -2254,12 +2257,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     if (sheetView === 'delete-confirm') {
       const title = document.createElement('div');
-      title.className = 'asset-library__sheet-title';
+      title.className = 'irs-asset-library__sheet-title';
       title.textContent = 'Delete this asset?';
       sheet.appendChild(title);
 
       const note = document.createElement('div');
-      note.className = 'asset-library__sheet-note';
+      note.className = 'irs-asset-library__sheet-note';
       note.textContent = activeAsset.name;
       sheet.appendChild(note);
 
@@ -2286,19 +2289,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     if (sheetView === 'move-to') {
       const title = document.createElement('div');
-      title.className = 'asset-library__sheet-title';
+      title.className = 'irs-asset-library__sheet-title';
       title.textContent = 'Move to\u2026';
       sheet.appendChild(title);
 
       // Category type selector row
       const typeRow = document.createElement('div');
-      typeRow.className = 'asset-library__move-type-row';
+      typeRow.className = 'irs-asset-library__move-type-row';
       const types: AssetGroupType[] = ['tilesets', 'props', 'entities'];
       types.forEach((type) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         const isActiveType = type === moveToType;
-        btn.className = `irs-btn ${isActiveType ? 'irs-btn--primary' : 'irs-btn--secondary'} asset-library__move-type-btn`;
+        btn.className = `irs-btn ${isActiveType ? 'irs-btn--primary' : 'irs-btn--secondary'} irs-asset-library__move-type-btn`;
         btn.textContent = GROUP_TYPE_LABELS[type];
         btn.addEventListener('click', () => {
           moveToType = type;
@@ -2310,17 +2313,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       // Group list for the selected type
       const groupList = document.createElement('div');
-      groupList.className = 'asset-library__move-group-list';
+      groupList.className = 'irs-asset-library__move-group-list';
       const groupsOfType = assetRegistry.getGroupsByType(moveToType);
       const currentKey = groupKey(activeGroup);
 
       groupsOfType.forEach((grp) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'irs-btn irs-btn--secondary asset-library__move-group-btn';
+        btn.className = 'irs-btn irs-btn--secondary irs-asset-library__move-group-btn';
         const key = groupKey(grp);
         const isCurrent = key === currentKey;
-        btn.classList.toggle('asset-library__move-group-btn--current', isCurrent);
+        btn.classList.toggle('irs-asset-library__move-group-btn--current', isCurrent);
         btn.textContent = `${grp.name}${isCurrent ? ' (current)' : ''}`;
         if (!isCurrent) {
           btn.addEventListener('click', () => {
