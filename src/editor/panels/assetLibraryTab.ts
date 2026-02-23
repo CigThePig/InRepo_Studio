@@ -278,8 +278,6 @@ const STYLES = `
 
   .asset-library__move-type-btn {
     flex: 1;
-    font-weight: 600;
-    cursor: pointer;
   }
 
   .asset-library__move-group-list {
@@ -291,8 +289,6 @@ const STYLES = `
   }
 
   .asset-library__move-group-btn {
-    font-weight: 500;
-    cursor: pointer;
     text-align: left;
   }
 
