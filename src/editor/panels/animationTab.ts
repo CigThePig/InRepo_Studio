@@ -13,6 +13,7 @@ import { parseAtlasJson } from '@/editor/assets/atlasImporter';
 import { resolveAssetUrl } from '@/shared/paths';
 import { createAnimationClock } from '@/editor/canvas/animationClock';
 import { uxFeedback } from '@/editor/uxFeedback';
+import { createEmptyState } from './leftBerry';
 
 const STYLES = `
   .animation-tab {
@@ -2961,18 +2962,13 @@ export const AnimationPlugin = {
   icon: '▶',
   mount: (container: HTMLElement, context: import('@/editor/core/tabRegistry').EditorPluginContext) => {
     if (!context.assetRegistry) {
-      const empty = document.createElement('section');
-      empty.className = 'irs-berry__plugin-empty-state';
-      empty.innerHTML = '<h3 class="irs-berry__plugin-empty-title">Animation needs assets</h3><p class="irs-berry__plugin-empty-description">Load a project with an asset registry to edit animation clips.</p>';
-      const cta = document.createElement('button');
-      cta.type = 'button';
-      cta.className = 'irs-btn irs-btn--secondary irs-berry__plugin-empty-cta';
-      cta.textContent = 'Open Sprites';
-      cta.style.minHeight = 'var(--irs-touch-target)';
-      cta.style.minWidth = 'var(--irs-touch-target)';
-      cta.addEventListener('click', () => context.openTab('sprites'));
-      empty.appendChild(cta);
-      container.appendChild(empty);
+      container.appendChild(createEmptyState({
+        icon: '🎞️',
+        title: 'No Asset Registry Found',
+        description: 'You need an asset registry to use animation tools.',
+        ctaText: 'Open Sprites',
+        onCtaClick: () => context.openTab('sprites'),
+      }));
       return {};
     }
 
