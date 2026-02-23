@@ -29,17 +29,17 @@ interface RepoConfig {
 }
 
 const STYLES = `
-  .deploy-panel {
+  .irs-deploy-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 8px 0;
-    color: #e6e6f0;
+    color: var(--irs-text-primary);
   }
 
-  .deploy-status-card {
-    background: #1f1f3a;
-    border: 1px solid #2a2a4e;
+  .irs-deploy-panel__status-card {
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 10px;
     padding: 12px;
     display: flex;
@@ -47,95 +47,79 @@ const STYLES = `
     gap: 8px;
   }
 
-  .deploy-status-title {
+  .irs-deploy-panel__status-title {
     font-size: 13px;
     font-weight: 600;
-    color: #fff;
+    color: var(--irs-text-primary);
   }
 
-  .deploy-status-subtitle {
+  .irs-deploy-panel__status-subtitle {
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
-  .deploy-status-actions {
+  .irs-deploy-panel__status-actions {
     display: flex;
     gap: 8px;
   }
 
-  .deploy-btn {
-    flex: 1;
+  .irs-deploy-panel__secondary-btn {
     min-height: 44px;
     border-radius: 8px;
-    border: none;
-    background: #4a9eff;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .deploy-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .deploy-secondary-btn {
-    min-height: 44px;
-    border-radius: 8px;
-    border: 1px solid #3a3a6e;
-    background: #2a2a4e;
-    color: #fff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-weight: 600;
     cursor: pointer;
     padding: 0 12px;
   }
 
-  .deploy-scopes {
+  .irs-deploy-panel__scopes {
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
-  .deploy-warning {
+  .irs-deploy-panel__warning {
     font-size: 12px;
-    color: #ffb347;
+    color: var(--irs-color-yellow);
   }
 
-  .deploy-input {
+  .irs-deploy-panel__input {
     width: 100%;
     min-height: 44px;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid #3a3a6e;
-    background: #131321;
-    color: #fff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-input);
+    color: var(--irs-text-primary);
     font-size: 13px;
   }
 
-  .deploy-form-row {
+  .irs-deploy-panel__form-row {
     display: flex;
     flex-direction: column;
     gap: 6px;
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 
-  .deploy-inline {
+  .irs-deploy-panel__inline {
     display: flex;
     gap: 8px;
   }
 
-  .deploy-helper {
+  .irs-deploy-panel__helper {
     font-size: 12px;
-    color: #aab0d4;
+    color: var(--irs-text-secondary);
   }
 `;
 
 function ensureStyles(): void {
-  if (document.getElementById('deploy-panel-styles')) {
+  if (document.getElementById('irs-deploy-panel-styles')) {
     return;
   }
   const styleEl = document.createElement('style');
-  styleEl.id = 'deploy-panel-styles';
+  styleEl.id = 'irs-deploy-panel-styles';
   styleEl.textContent = STYLES;
   document.head.appendChild(styleEl);
 }
@@ -146,7 +130,7 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
   ensureStyles();
 
   const panel = document.createElement('div');
-  panel.className = 'deploy-panel';
+  panel.className = 'irs-deploy-panel';
   container.appendChild(panel);
 
   const authModal = createAuthModal(document.body, {
@@ -200,18 +184,18 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
     deployUI?.destroy();
     deployUI = null;
     panel.innerHTML = `
-      <div class="deploy-status-card">
-        <div class="deploy-status-title">GitHub status</div>
-        <div class="deploy-status-subtitle">Not connected</div>
-        <div class="deploy-status-actions">
-          <button class="deploy-btn" type="button">Connect to GitHub</button>
+      <div class="irs-deploy-panel__status-card">
+        <div class="irs-deploy-panel__status-title">GitHub status</div>
+        <div class="irs-deploy-panel__status-subtitle">Not connected</div>
+        <div class="irs-deploy-panel__status-actions">
+          <button class="irs-btn irs-btn--primary" type="button">Connect to GitHub</button>
         </div>
-        <div class="deploy-warning">Use a classic PAT with the <strong>repo</strong> scope.</div>
+        <div class="irs-deploy-panel__warning">Use a classic PAT with the <strong>repo</strong> scope.</div>
       </div>
-      <button class="deploy-secondary-btn" type="button" disabled>Deploy (Track 13)</button>
+      <button class="irs-deploy-panel__secondary-btn" type="button" disabled>Deploy (Track 13)</button>
     `;
 
-    panel.querySelector('.deploy-btn')?.addEventListener('click', () => {
+    panel.querySelector('.irs-btn')?.addEventListener('click', () => {
       authModal.show();
     });
   }
@@ -223,38 +207,38 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
     const storageLabel = state.isPersistent ? 'Remembered on this device' : 'Session only';
     const resolvedRepo = resolveRepoConfig();
     panel.innerHTML = `
-      <div class="deploy-status-card">
-        <div class="deploy-status-title">Connected as ${state.username ?? 'Unknown'}</div>
-        <div class="deploy-status-subtitle">${storageLabel}</div>
-        <div class="deploy-scopes">Token scopes: ${scopes}</div>
-        <div class="deploy-status-actions">
-          <button class="deploy-secondary-btn" type="button">Disconnect</button>
+      <div class="irs-deploy-panel__status-card">
+        <div class="irs-deploy-panel__status-title">Connected as ${state.username ?? 'Unknown'}</div>
+        <div class="irs-deploy-panel__status-subtitle">${storageLabel}</div>
+        <div class="irs-deploy-panel__scopes">Token scopes: ${scopes}</div>
+        <div class="irs-deploy-panel__status-actions">
+          <button class="irs-deploy-panel__secondary-btn" type="button">Disconnect</button>
         </div>
       </div>
-      <div class="deploy-status-card">
-        <div class="deploy-status-title">Repository</div>
-        <div class="deploy-form-row">
+      <div class="irs-deploy-panel__status-card">
+        <div class="irs-deploy-panel__status-title">Repository</div>
+        <div class="irs-deploy-panel__form-row">
           <label>Owner</label>
-          <input class="deploy-input" name="owner" placeholder="octocat" value="${resolvedRepo?.owner ?? ''}" />
+          <input class="irs-deploy-panel__input" name="owner" placeholder="octocat" value="${resolvedRepo?.owner ?? ''}" />
         </div>
-        <div class="deploy-form-row">
+        <div class="irs-deploy-panel__form-row">
           <label>Repository</label>
-          <input class="deploy-input" name="repo" placeholder="my-game" value="${resolvedRepo?.repo ?? ''}" />
+          <input class="irs-deploy-panel__input" name="repo" placeholder="my-game" value="${resolvedRepo?.repo ?? ''}" />
         </div>
-        <div class="deploy-inline" data-repo-actions>
-          <button class="deploy-secondary-btn" data-save-repo type="button">Save repo</button>
-          <button class="deploy-secondary-btn" data-use-url type="button">Use URL</button>
+        <div class="irs-deploy-panel__inline" data-repo-actions>
+          <button class="irs-deploy-panel__secondary-btn" data-save-repo type="button">Save repo</button>
+          <button class="irs-deploy-panel__secondary-btn" data-use-url type="button">Use URL</button>
         </div>
-        <div class="deploy-helper">${resolvedRepo ? `Using ${resolvedRepo.source} config.` : 'Enter repository info to enable deploy.'}</div>
+        <div class="irs-deploy-panel__helper">${resolvedRepo ? `Using ${resolvedRepo.source} config.` : 'Enter repository info to enable deploy.'}</div>
       </div>
-      <div class="deploy-status-card" data-deploy-status>
-        <div class="deploy-status-title">Deploy status</div>
-        <div class="deploy-status-subtitle">Ready to deploy.</div>
+      <div class="irs-deploy-panel__status-card" data-deploy-status>
+        <div class="irs-deploy-panel__status-title">Deploy status</div>
+        <div class="irs-deploy-panel__status-subtitle">Ready to deploy.</div>
       </div>
-      <button class="deploy-btn" type="button">Deploy now</button>
+      <button class="irs-btn irs-btn--primary" type="button">Deploy now</button>
     `;
 
-    panel.querySelector('.deploy-secondary-btn')?.addEventListener('click', () => {
+    panel.querySelector('.irs-deploy-panel__secondary-btn')?.addEventListener('click', () => {
       const confirmed = window.confirm('Disconnect from GitHub and forget the stored token?');
       if (!confirmed) return;
       authManager.logout().catch(() => undefined);
@@ -264,7 +248,7 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
     const repoInput = panel.querySelector<HTMLInputElement>('input[name="repo"]');
     const saveButton = panel.querySelector<HTMLButtonElement>('[data-save-repo]');
     const useUrlButton = panel.querySelector<HTMLButtonElement>('[data-use-url]');
-    const deployButton = panel.querySelector<HTMLButtonElement>('.deploy-btn');
+    const deployButton = panel.querySelector<HTMLButtonElement>('.irs-btn');
     const statusCard = panel.querySelector<HTMLElement>('[data-deploy-status]');
 
     const conflictResolver = createConflictResolver(document.body);

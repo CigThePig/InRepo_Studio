@@ -29,27 +29,27 @@ export interface BottomContextStripController {
 }
 
 const STYLES = `
-  .bottom-context-strip {
+  .irs-context-strip {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--irs-border-light);
     scrollbar-width: none;
   }
 
-  .bottom-context-strip::-webkit-scrollbar {
+  .irs-context-strip::-webkit-scrollbar {
     display: none;
   }
 
-  .bottom-context-strip--hidden {
+  .irs-context-strip--hidden {
     display: none;
   }
 
-  .bottom-context-strip__label {
-    color: rgba(255, 255, 255, 0.5);
+  .irs-context-strip__label {
+    color: var(--irs-text-muted);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -58,19 +58,20 @@ const STYLES = `
     padding: 0 8px;
   }
 
-  .bottom-context-strip__group {
+  .irs-context-strip__group {
     display: flex;
     gap: 6px;
     align-items: center;
   }
 
-  .bottom-context-strip__button {
-    height: 40px;
+  .irs-context-strip__button {
+    min-height: var(--irs-touch-target);
+    height: var(--irs-touch-target);
     padding: 0 14px;
     border-radius: 8px;
     border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.8);
+    background: var(--irs-border-light);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -79,66 +80,70 @@ const STYLES = `
     white-space: nowrap;
   }
 
-  .bottom-context-strip__button:active {
-    background: rgba(255, 255, 255, 0.1);
+  .irs-context-strip__button:active {
+    background: var(--irs-color-blue-alpha-12);
     transform: scale(0.97);
   }
 
-  .bottom-context-strip__button--danger {
-    background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
+  .irs-context-strip__button--danger {
+    background: var(--irs-color-red-alpha-15);
+    color: var(--irs-accent-danger);
   }
 
-  .bottom-context-strip__button--danger:active {
-    background: rgba(239, 68, 68, 0.25);
+  .irs-context-strip__button--danger:active {
+    background: var(--irs-color-red-alpha-53);
   }
 
-  .bottom-context-strip__button--ghost {
-    width: 40px;
-    height: 40px;
+  .irs-context-strip__button--ghost {
+    width: var(--irs-touch-target);
+    min-height: var(--irs-touch-target);
+    height: var(--irs-touch-target);
     padding: 0;
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--irs-text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .bottom-context-strip__button--ghost:active {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.8);
+  .irs-context-strip__button--ghost:active {
+    background: var(--irs-border-light);
+    color: var(--irs-text-primary);
   }
 
-  .bottom-context-strip__button:disabled {
+  .irs-context-strip__button:disabled {
     opacity: 0.35;
     cursor: not-allowed;
   }
 
-  .bottom-context-strip__button:disabled:active {
+  .irs-context-strip__button:disabled:active {
     transform: none;
   }
 `;
+
+function ensureStyles(): void {
+  if (document.getElementById('irs-context-strip-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'irs-context-strip-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 export function createBottomContextStrip(
   container: HTMLElement,
   config: BottomContextStripConfig
 ): BottomContextStripController {
   // Ensure styles are only added once
-  if (!document.getElementById('bottom-context-strip-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'bottom-context-strip-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
-  container.classList.add('bottom-context-strip', 'bottom-context-strip--hidden');
+  container.classList.add('irs-context-strip', 'irs-context-strip--hidden');
 
   const label = document.createElement('div');
-  label.className = 'bottom-context-strip__label';
+  label.className = 'irs-context-strip__label';
   label.textContent = '';
 
   const tileGroup = document.createElement('div');
-  tileGroup.className = 'bottom-context-strip__group';
+  tileGroup.className = 'irs-context-strip__group';
 
   const moveButton = buildButton('Move', (_btn) => config.onMove());
   const copyButton = buildButton('Copy', (_btn) => config.onCopy());
@@ -155,7 +160,7 @@ export function createBottomContextStrip(
   tileGroup.appendChild(cancelButton);
 
   const entityGroup = document.createElement('div');
-  entityGroup.className = 'bottom-context-strip__group';
+  entityGroup.className = 'irs-context-strip__group';
 
   const duplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
   const entityDeleteButton = buildButton('Delete', (btn) => config.onDelete(btn), 'danger');
@@ -167,7 +172,7 @@ export function createBottomContextStrip(
 
 
   const propSpriteGroup = document.createElement('div');
-  propSpriteGroup.className = 'bottom-context-strip__group';
+  propSpriteGroup.className = 'irs-context-strip__group';
 
   const propDuplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
   const moveToEntityButton = buildButton('Move to Entities', (_btn) => config.onConvertToEntity());
@@ -180,7 +185,7 @@ export function createBottomContextStrip(
   propSpriteGroup.appendChild(propClearButton);
 
   const triggerGroup = document.createElement('div');
-  triggerGroup.className = 'bottom-context-strip__group';
+  triggerGroup.className = 'irs-context-strip__group';
 
   const resizeButton = buildButton('Resize', (_btn) => config.onResize());
   const triggerDuplicateButton = buildButton('Duplicate', (_btn) => config.onDuplicate());
@@ -205,7 +210,7 @@ export function createBottomContextStrip(
   function updateVisibility(): void {
     const hasTileSelection = selectionType === 'tiles';
     const isHidden = selectionType === 'none' && !selectToolActive;
-    container.classList.toggle('bottom-context-strip--hidden', isHidden);
+    container.classList.toggle('irs-context-strip--hidden', isHidden);
 
     if (selectionType === 'tiles') {
       label.textContent = 'Selection';
@@ -277,8 +282,8 @@ export function createBottomContextStrip(
 
   function destroy(): void {
     container.innerHTML = '';
-    container.classList.remove('bottom-context-strip', 'bottom-context-strip--hidden');
-    const styleEl = document.getElementById('bottom-context-strip-styles');
+    container.classList.remove('irs-context-strip', 'irs-context-strip--hidden');
+    const styleEl = document.getElementById('irs-context-strip-styles');
     if (styleEl) styleEl.remove();
   }
 
@@ -289,12 +294,12 @@ export function createBottomContextStrip(
   ): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'bottom-context-strip__button';
+    button.className = 'irs-context-strip__button';
     if (variant === 'danger') {
-      button.classList.add('bottom-context-strip__button--danger');
+      button.classList.add('irs-context-strip__button--danger');
     }
     if (variant === 'ghost') {
-      button.classList.add('bottom-context-strip__button--ghost');
+      button.classList.add('irs-context-strip__button--ghost');
     }
     button.textContent = text;
     button.addEventListener('click', (event) => {

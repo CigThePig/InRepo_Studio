@@ -8,6 +8,8 @@ import { createAssetPalette, type AssetPaletteController } from './assetPalette'
 import { createAnimationClock, type AnimationClock } from '@/editor/canvas/animationClock';
 import { uxFeedback } from '@/editor/uxFeedback';
 
+const STYLE_ID = 'irs-entities-tab-styles';
+
 const STYLES = `
   .entities-tab {
     display: flex;
@@ -16,17 +18,17 @@ const STYLES = `
   }
 
   .entities-tab__section {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
+    background: var(--irs-surface-panel);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 14px;
     padding: 12px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
   .entities-tab__section-title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     margin-bottom: 8px;
   }
 
@@ -47,8 +49,8 @@ const STYLES = `
     padding: 8px 12px;
     border-radius: 12px;
     border: 2px solid transparent;
-    background: #1b2a52;
-    color: #dbe4ff;
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 13px;
     font-weight: 600;
     display: flex;
@@ -60,18 +62,18 @@ const STYLES = `
   }
 
   .entities-tab__palette-button:active {
-    background: #26386a;
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .entities-tab__palette-button--active {
-    border-color: #4a9eff;
-    background: #2a3e74;
-    color: #ffffff;
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
   .entities-tab__palette-tag {
     font-size: 11px;
-    color: #9fb2e3;
+    color: var(--irs-text-secondary);
   }
 
   .entities-tab__place-button {
@@ -80,8 +82,8 @@ const STYLES = `
     padding: 0 12px;
     border-radius: 12px;
     border: none;
-    background: rgba(74, 158, 255, 0.18);
-    color: #eaf2ff;
+    background: var(--irs-color-blue-alpha-12);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -89,7 +91,7 @@ const STYLES = `
   }
 
   .entities-tab__place-button:active {
-    background: rgba(74, 158, 255, 0.28);
+    background: var(--irs-color-blue-alpha-22);
   }
 
   .entities-tab__selection-title {
@@ -99,13 +101,13 @@ const STYLES = `
 
   .entities-tab__selection-subtitle {
     font-size: 12px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
     margin-top: 4px;
   }
 
   .entities-tab__empty {
     font-size: 12px;
-    color: #8c94c9;
+    color: var(--irs-text-muted);
     padding: 6px 0;
   }
 
@@ -120,7 +122,7 @@ const STYLES = `
     flex-direction: column;
     gap: 6px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(62, 84, 148, 0.25);
+    border-bottom: 1px solid var(--irs-border-light);
   }
 
   .entities-tab__property-row:last-child {
@@ -130,16 +132,16 @@ const STYLES = `
   .entities-tab__label {
     font-size: 12px;
     font-weight: 600;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
   .entities-tab__input,
   .entities-tab__toggle {
     min-height: 44px;
     border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     padding: 8px 12px;
     font-size: 13px;
   }
@@ -154,24 +156,24 @@ const STYLES = `
   }
 
   .entities-tab__toggle--active {
-    border-color: #4a9eff;
-    background: rgba(74, 158, 255, 0.2);
-    color: #ffffff;
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
   .entities-tab__hint {
     font-size: 11px;
-    color: #8f98c8;
+    color: var(--irs-text-muted);
   }
 
   .entities-tab__error {
     font-size: 11px;
-    color: #ff9fb3;
+    color: var(--irs-accent-danger);
   }
 
   .entities-tab__property-row--error .entities-tab__input,
   .entities-tab__property-row--error .entities-tab__toggle {
-    border-color: rgba(255, 124, 152, 0.8);
+    border-color: var(--irs-color-red-alpha-53);
   }
 
   .entities-tab__toggle-row {
@@ -190,9 +192,9 @@ const STYLES = `
   .entities-tab__action-button {
     min-height: 44px;
     border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(33, 46, 89, 0.85);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 13px;
     font-weight: 700;
     padding: 10px 12px;
@@ -202,7 +204,7 @@ const STYLES = `
   }
 
   .entities-tab__action-button:active {
-    background: rgba(52, 70, 128, 0.9);
+    background: var(--irs-color-blue-alpha-22);
   }
 
   .entities-tab__action-button:disabled {
@@ -221,24 +223,24 @@ const STYLES = `
     width: 56px;
     height: 56px;
     border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.4);
-    background: rgba(12, 18, 40, 0.8);
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-input);
     display: block;
     flex-shrink: 0;
   }
 
   .entities-tab__anim-preview-label {
     font-size: 11px;
-    color: #8c94c9;
+    color: var(--irs-text-muted);
   }
 
   .entities-tab__anim-dropdown {
     position: relative;
     min-height: 44px;
     border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     font-size: 13px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -252,7 +254,7 @@ const STYLES = `
   }
 
   .entities-tab__anim-dropdown:focus-visible {
-    outline: 2px solid #4a9eff;
+    outline: 2px solid var(--irs-color-blue);
     outline-offset: 1px;
   }
 
@@ -266,7 +268,7 @@ const STYLES = `
     height: 32px;
     border-radius: 4px;
     object-fit: cover;
-    background: rgba(12, 18, 40, 0.6);
+    background: var(--irs-surface-input);
     flex-shrink: 0;
   }
 
@@ -274,13 +276,13 @@ const STYLES = `
     width: 32px;
     height: 32px;
     border-radius: 4px;
-    background: rgba(50, 65, 110, 0.4);
+    background: var(--irs-color-blue-alpha-16);
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
-    color: rgba(155, 178, 227, 0.4);
+    color: var(--irs-text-muted);
   }
 
   .entities-tab__anim-dropdown-name {
@@ -293,7 +295,7 @@ const STYLES = `
 
   .entities-tab__anim-dropdown-arrow {
     font-size: 10px;
-    color: #8c94c9;
+    color: var(--irs-text-muted);
     flex-shrink: 0;
   }
 
@@ -303,8 +305,8 @@ const STYLES = `
     left: 0;
     right: 0;
     z-index: 1000;
-    background: rgba(20, 28, 58, 0.98);
-    border: 1px solid rgba(83, 101, 164, 0.8);
+    background: var(--irs-surface-dark);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 10px;
     max-height: 240px;
     overflow-y: auto;
@@ -318,7 +320,7 @@ const STYLES = `
     padding: 6px 10px;
     min-height: 44px;
     cursor: pointer;
-    border-bottom: 1px solid rgba(62, 84, 148, 0.2);
+    border-bottom: 1px solid var(--irs-border-light);
     box-sizing: border-box;
   }
 
@@ -328,19 +330,19 @@ const STYLES = `
 
   .entities-tab__anim-dropdown-option:hover,
   .entities-tab__anim-dropdown-option--hovered {
-    background: rgba(74, 158, 255, 0.15);
+    background: var(--irs-color-blue-alpha-12);
   }
 
   .entities-tab__anim-dropdown-option--selected {
-    background: rgba(74, 158, 255, 0.1);
+    background: var(--irs-color-blue-alpha-8);
   }
 
   .entities-tab__hover-preview {
     position: fixed;
     z-index: 9999;
     pointer-events: none;
-    background: rgba(12, 18, 40, 0.95);
-    border: 1px solid rgba(83, 101, 164, 0.8);
+    background: var(--irs-surface-dark);
+    border: 1px solid var(--irs-border-heavy);
     border-radius: 8px;
     padding: 4px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -418,6 +420,14 @@ function getEntityTypeLabel(entityType: Project['entityTypes'][number] | undefin
   return entityType.displayName ?? entityType.name;
 }
 
+function ensureStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
+
 export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabController {
   const {
     container,
@@ -429,9 +439,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
     onEntityTypeSelect,
   } = config;
 
-  const styleEl = document.createElement('style');
-  styleEl.textContent = STYLES;
-  document.head.appendChild(styleEl);
+  ensureStyles();
 
   const root = document.createElement('div');
   root.className = 'entities-tab';
@@ -1456,7 +1464,6 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
       hoverPreviewEl.remove();
       assetPaletteController?.destroy();
       root.remove();
-      styleEl.remove();
       assetList?.remove();
     },
   };

@@ -4,7 +4,9 @@
   --irs-surface-panel: #16213e;   /* Sidebars, toolbars, left/right berries */
   --irs-surface-modal: #1a1a2e;   /* Floating dialogs and sheets */
   --irs-surface-input: #131321;   /* Text inputs, selects, toggles */
-  --irs-surface-dark-alpha: rgba(13, 18, 32, 0.85); /* Blurred overlay panels */
+  --irs-surface-dark: rgba(26, 43, 82, 0.95);
+  --irs-surface-dark-alpha: rgba(26, 43, 82, 0.85); /* Blurred overlay panels */
+  --irs-surface-elevated: rgba(255, 255, 255, 0.03);
   
   /* --- Accent Colors --- */
   --irs-accent-primary: #3b82f6;
@@ -14,6 +16,30 @@
   --irs-accent-success: #6bff95;
   --irs-accent-warning: #ffd66b;
 
+  /* --- Extended Color Palette --- */
+  --irs-color-blue: #4a9eff;
+  --irs-color-blue-alpha-4: rgba(74, 158, 255, 0.04);
+  --irs-color-blue-alpha-8: rgba(74, 158, 255, 0.08);
+  --irs-color-blue-alpha-12: rgba(74, 158, 255, 0.12);
+  --irs-color-blue-alpha-16: rgba(74, 158, 255, 0.16);
+  --irs-color-blue-alpha-22: rgba(74, 158, 255, 0.22);
+  --irs-color-blue-alpha-35: rgba(74, 158, 255, 0.35);
+  --irs-color-blue-alpha-45: rgba(107, 165, 255, 0.45);
+  --irs-color-blue-border: rgba(107, 165, 255, 0.45);
+
+  --irs-color-green: #6bff95;
+  --irs-color-green-alpha-15: rgba(107, 255, 149, 0.15);
+  --irs-color-green-alpha-53: rgba(107, 255, 149, 0.53);
+  --irs-color-green-glow: rgba(107, 255, 149, 0.27);
+
+  --irs-color-red: #ff6b6b;
+  --irs-color-red-alpha-15: rgba(255, 107, 107, 0.15);
+  --irs-color-red-alpha-53: rgba(255, 107, 107, 0.53);
+
+  --irs-color-yellow: #ffc258;
+  --irs-color-yellow-alpha-20: rgba(255, 194, 88, 0.2);
+  --irs-color-yellow-border: rgba(255, 194, 88, 0.65);
+
   /* --- Borders --- */
   --irs-border-light: rgba(255, 255, 255, 0.08);
   --irs-border-heavy: #3a3a6e;
@@ -22,11 +48,24 @@
   /* --- Typography --- */
   --irs-text-primary: #ffffff;
   --irs-text-secondary: #aab0d4;
-  --irs-text-muted: rgba(255, 255, 255, 0.5);
+  --irs-text-muted: #aab0d4;
+  --irs-text: var(--irs-text-primary);
 
   /* --- Geometry & Sizing --- */
   --irs-radius-sm: 8px;   /* Standard buttons, inputs */
   --irs-radius-md: 10px;  /* Small panels, inner containers */
   --irs-radius-lg: 12px;  /* Modals, Dialogs */
   --irs-touch-target: 44px; /* Strict minimum for mobile-first tap targets */
+
+  --irs-safe-top: env(safe-area-inset-top, 0px);
+  --irs-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --irs-safe-left: env(safe-area-inset-left, 0px);
+  --irs-safe-right: env(safe-area-inset-right, 0px);
+
+  /* --- Animation Durations --- */
+  --irs-duration-ack: 120ms;
+  --irs-duration-change: 220ms;
+  --irs-duration-safe: 350ms;
+  --irs-duration-toast: 4000ms;
+  --irs-duration-undo-bar: 5000ms;
 }

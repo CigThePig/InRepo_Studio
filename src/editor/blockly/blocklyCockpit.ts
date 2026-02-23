@@ -84,8 +84,10 @@ export interface BlocklyCockpitController {
 
 // --- Styles ---
 
+const STYLE_ID = 'irs-blockly-cockpit-styles';
+
 const STYLES = `
-  .blockly-container {
+  .irs-blockly-workspace {
     position: absolute;
     top: 0;
     left: 0;
@@ -97,61 +99,61 @@ const STYLES = `
     overscroll-behavior: none;
   }
 
-  .blockly-container .blocklySvg {
+  .irs-blockly-workspace .blocklySvg {
     touch-action: none;
     overscroll-behavior: none;
   }
 
-  .blockly-container .blocklyScrollbarHorizontal,
-  .blockly-container .blocklyScrollbarVertical,
-  .blockly-container .blocklyScrollbarBackground,
-  .blockly-container .blocklyScrollbarHandle {
+  .irs-blockly-workspace .blocklyScrollbarHorizontal,
+  .irs-blockly-workspace .blocklyScrollbarVertical,
+  .irs-blockly-workspace .blocklyScrollbarBackground,
+  .irs-blockly-workspace .blocklyScrollbarHandle {
     display: none !important;
     opacity: 0 !important;
     pointer-events: none !important;
   }
 
-  .blockly-container--active {
+  .irs-blockly-workspace--active {
     display: block;
   }
 
-  .blockly-container__loading {
+  .irs-blockly-workspace__loading {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--irs-text-secondary);
     font-size: 16px;
     font-family: sans-serif;
   }
 
-  .blockly-empty-state {
+  .irs-blockly-workspace__empty {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--irs-text-secondary);
     font-size: 16px;
     font-family: sans-serif;
     z-index: 10;
     display: none;
   }
 
-  .blockly-empty-state--visible {
+  .irs-blockly-workspace__empty--visible {
     display: block;
   }
 
-  .blockly-empty-state__text {
+  .irs-blockly-workspace__empty__text {
     margin-bottom: 16px;
   }
 
-  .blockly-empty-state__btn {
+  .irs-blockly-workspace__empty__btn {
     padding: 12px 24px;
     border-radius: 10px;
     border: none;
     background: var(--irs-color-blue);
-    color: #fff;
+    color: var(--irs-text-primary);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -160,11 +162,19 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .blockly-empty-state__btn:active {
-    background: #2563eb;
+  .irs-blockly-workspace__empty__btn:active {
+    background: var(--irs-accent-primary-active);
     transform: scale(0.98);
   }
 `;
+
+function ensureStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 // --- Factory ---
 
@@ -185,33 +195,28 @@ export function createBlocklyCockpit(
   } = deps;
 
   // Inject styles
-  if (!document.getElementById('blockly-cockpit-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'blockly-cockpit-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   // --- DOM ---
 
   const workspaceContainer = document.createElement('div');
-  workspaceContainer.className = 'blockly-container';
+  workspaceContainer.className = 'irs-blockly-workspace';
   canvasContainer.appendChild(workspaceContainer);
 
   const loadingEl = document.createElement('div');
-  loadingEl.className = 'blockly-container__loading';
+  loadingEl.className = 'irs-blockly-workspace__loading';
   loadingEl.textContent = 'Loading Blockly...';
   workspaceContainer.appendChild(loadingEl);
 
   const emptyState = document.createElement('div');
-  emptyState.className = 'blockly-empty-state';
+  emptyState.className = 'irs-blockly-workspace__empty';
 
   const emptyText = document.createElement('div');
-  emptyText.className = 'blockly-empty-state__text';
+  emptyText.className = 'irs-blockly-workspace__empty__text';
   emptyText.textContent = 'No script exists for this target. Create one?';
 
   const createBtn = document.createElement('button');
-  createBtn.className = 'blockly-empty-state__btn';
+  createBtn.className = 'irs-blockly-workspace__empty__btn';
   createBtn.type = 'button';
   createBtn.textContent = 'Create Script';
 
@@ -550,14 +555,14 @@ export function createBlocklyCockpit(
   function updateEmptyState(): void {
     const modeState = getBlocklyModeState();
     const showEmpty = !modeState.scriptExists && s.manager && !s.manager.getScriptExists();
-    emptyState.classList.toggle('blockly-empty-state--visible', !!showEmpty);
+    emptyState.classList.toggle('irs-blockly-workspace__empty--visible', !!showEmpty);
 
     const targetLabel = modeState.currentLogicTarget?.label ?? 'this target';
     emptyText.textContent = `No script exists for ${targetLabel}. Create one?`;
   }
 
   function showUI(): void {
-    workspaceContainer.classList.add('blockly-container--active');
+    workspaceContainer.classList.add('irs-blockly-workspace--active');
     setWorldTopBarVisible(false);
     setWorldBottomBarVisible?.(false);
     s.topBar?.setVisible(true);
@@ -569,7 +574,7 @@ export function createBlocklyCockpit(
   }
 
   function hideUI(): void {
-    workspaceContainer.classList.remove('blockly-container--active');
+    workspaceContainer.classList.remove('irs-blockly-workspace--active');
     setWorldTopBarVisible(true);
     setWorldBottomBarVisible?.(true);
     s.topBar?.setVisible(false);
@@ -783,7 +788,7 @@ export function createBlocklyCockpit(
       logBuffer.length = 0;
 
       hideUI();
-      emptyState.classList.remove('blockly-empty-state--visible');
+      emptyState.classList.remove('irs-blockly-workspace__empty--visible');
       exitBlocklyMode();
 
       console.log(`${LOG_PREFIX} Blockly Mode exited`);
@@ -825,7 +830,7 @@ export function createBlocklyCockpit(
 
       workspaceContainer.remove();
 
-      const styleEl = document.getElementById('blockly-cockpit-styles');
+      const styleEl = document.getElementById(STYLE_ID);
       if (styleEl) styleEl.remove();
 
       console.log(`${LOG_PREFIX} Cockpit disposed`);

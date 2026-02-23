@@ -21,40 +21,33 @@
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 // Keep in sync with the visual language used across all panels.
 
-const TOKEN = {
-  // Base palette
-  blue:         '#4a9eff',
-  blueAlpha12:  'rgba(74, 158, 255, 0.12)',
-  blueAlpha22:  'rgba(74, 158, 255, 0.22)',
-  blueAlpha35:  'rgba(74, 158, 255, 0.35)',
-  blueAlpha45:  'rgba(107, 165, 255, 0.45)',
-  blueBorder:   'rgba(107, 165, 255, 0.45)',
-
-  green:        '#6bff95',
-  greenAlpha15: 'rgba(107, 255, 149, 0.15)',
-  greenAlpha53: 'rgba(107, 255, 149, 0.53)',
-  greenGlow:    'rgba(107, 255, 149, 0.27)',
-
-  red:          '#ff6b6b',
-  redAlpha15:   'rgba(255, 107, 107, 0.15)',
-  redAlpha53:   'rgba(255, 107, 107, 0.53)',
-
-  yellow:       '#ffc258',
-  yellowAlpha20:'rgba(255, 194, 88, 0.20)',
-  yellowBorder: 'rgba(255, 194, 88, 0.65)',
-
-  // Surfaces
-  surfaceDark:  'rgba(26, 43, 82, 0.95)',
-  text:         '#e6ecff',
-  textMuted:    '#aab0d4',
-
-  // Timing (ms) — scales with action weight
-  durationAck:      120,   // Acknowledgement: instant
-  durationChange:   220,   // State change: fast
-  durationSafe:     350,   // Safety/Completion: deliberate
-  durationToast:    4000,  // Auto-dismiss default
-  durationUndoBar:  5000,  // Undo window default
+const DEFAULT_DURATION_MS = {
+  ack: 120,
+  change: 220,
+  safe: 350,
+  toast: 4000,
+  undoBar: 5000,
 } as const;
+
+function readDurationMs(variableName: string, fallback: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+  if (!raw) return fallback;
+  if (raw.endsWith('ms')) {
+    const parsed = Number.parseFloat(raw.slice(0, -2));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  if (raw.endsWith('s')) {
+    const parsed = Number.parseFloat(raw.slice(0, -1));
+    return Number.isFinite(parsed) ? parsed * 1000 : fallback;
+  }
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getDurationMs(kind: keyof typeof DEFAULT_DURATION_MS): number {
+  const varName = kind === 'undoBar' ? '--irs-duration-undo-bar' : `--irs-duration-${kind}`;
+  return readDurationMs(varName, DEFAULT_DURATION_MS[kind]);
+}
 
 // ─── Style Injection ──────────────────────────────────────────────────────────
 
@@ -67,49 +60,11 @@ function ensureStyles(): void {
   style.id = STYLE_ID;
   style.textContent = `
 
-    :root {
-      --irs-color-blue: ${TOKEN.blue};
-      --irs-color-blue-alpha-12: ${TOKEN.blueAlpha12};
-      --irs-color-blue-alpha-22: ${TOKEN.blueAlpha22};
-      --irs-color-blue-alpha-35: ${TOKEN.blueAlpha35};
-      --irs-color-blue-alpha-45: ${TOKEN.blueAlpha45};
-      --irs-color-blue-border: ${TOKEN.blueBorder};
-
-      --irs-color-green: ${TOKEN.green};
-      --irs-color-green-alpha-15: ${TOKEN.greenAlpha15};
-      --irs-color-green-alpha-53: ${TOKEN.greenAlpha53};
-      --irs-color-green-glow: ${TOKEN.greenGlow};
-
-      --irs-color-red: ${TOKEN.red};
-      --irs-color-red-alpha-15: ${TOKEN.redAlpha15};
-      --irs-color-red-alpha-53: ${TOKEN.redAlpha53};
-
-      --irs-color-yellow: ${TOKEN.yellow};
-      --irs-color-yellow-alpha-20: ${TOKEN.yellowAlpha20};
-      --irs-color-yellow-border: ${TOKEN.yellowBorder};
-
-      --irs-surface-dark: ${TOKEN.surfaceDark};
-      --irs-surface-dark-alpha: rgba(26, 43, 82, 0.85);
-      --irs-text: ${TOKEN.text};
-      --irs-text-muted: ${TOKEN.textMuted};
-
-      --irs-duration-ack: ${TOKEN.durationAck}ms;
-      --irs-duration-change: ${TOKEN.durationChange}ms;
-      --irs-duration-safe: ${TOKEN.durationSafe}ms;
-      --irs-duration-toast: ${TOKEN.durationToast}ms;
-      --irs-duration-undo-bar: ${TOKEN.durationUndoBar}ms;
-
-      --irs-safe-top: env(safe-area-inset-top, 0px);
-      --irs-safe-bottom: env(safe-area-inset-bottom, 0px);
-      --irs-safe-left: env(safe-area-inset-left, 0px);
-      --irs-safe-right: env(safe-area-inset-right, 0px);
-    }
-
-    .irs-glass-panel {
-      background-color: rgba(26, 43, 82, 0.95);
+        .irs-glass-panel {
+      background-color: var(--irs-surface-dark);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
-      background: rgba(26, 43, 82, 0.80);
+      background: var(--irs-surface-dark-alpha);
     }
 
     /* ── Keyframes ─────────────────────────────────────────── */
@@ -193,7 +148,7 @@ function ensureStyles(): void {
     }
 
     .irs-saved {
-      animation: irs-glow ${TOKEN.durationSafe}ms ease-out;
+      animation: irs-glow var(--irs-duration-safe) ease-out;
     }
 
     /* ── Toast ─────────────────────────────────────────────── */
@@ -222,11 +177,11 @@ function ensureStyles(): void {
       padding: 11px 14px;
       border-radius: 12px;
       border: 1px solid var(--irs-color-blue-border);
-      background-color: rgba(26, 43, 82, 0.95);
+      background-color: var(--irs-surface-dark);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
-      background: rgba(26, 43, 82, 0.80);
-      color: var(--irs-text);
+      background: var(--irs-surface-dark-alpha);
+      color: var(--irs-text-primary);
       font-size: 13px;
       line-height: 1.4;
       pointer-events: all;
@@ -269,7 +224,7 @@ function ensureStyles(): void {
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
       background: var(--irs-surface-dark-alpha);
-      color: var(--irs-text);
+      color: var(--irs-text-primary);
       font-size: 13px;
       white-space: nowrap;
       z-index: 9998;
@@ -291,7 +246,7 @@ function ensureStyles(): void {
       border-radius: 8px;
       border: 1px solid var(--irs-color-blue-alpha-45);
       background: var(--irs-color-blue-alpha-22);
-      color: var(--irs-text);
+      color: var(--irs-text-primary);
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -390,7 +345,7 @@ function getOrCreateToastHost(): HTMLElement {
   return host;
 }
 
-function showToast(message: string, kind: ToastKind, durationMs: number = TOKEN.durationToast): void {
+function showToast(message: string, kind: ToastKind, timeoutMs: number = getDurationMs('toast')): void {
   ensureStyles();
   const host = getOrCreateToastHost();
 
@@ -412,7 +367,7 @@ function showToast(message: string, kind: ToastKind, durationMs: number = TOKEN.
     el.addEventListener('animationend', () => el.remove(), { once: true });
   }
 
-  const timer = window.setTimeout(dismiss, durationMs);
+  const timer = window.setTimeout(dismiss, timeoutMs);
 
   // Tap to dismiss early on mobile
   el.addEventListener('click', () => {
@@ -439,9 +394,9 @@ const MOTION_CLASS: Partial<Record<MotionKind, string>> = {
 };
 
 const MOTION_DURATION: Partial<Record<MotionKind, number>> = {
-  pulse:  TOKEN.durationAck,
-  glow:   TOKEN.durationSafe,
-  expand: TOKEN.durationChange,
+  pulse:  getDurationMs('ack'),
+  glow:   getDurationMs('safe'),
+  expand: getDurationMs('change'),
 };
 
 function applyMotion(el: HTMLElement, kind: MotionKind): void {
@@ -449,24 +404,24 @@ function applyMotion(el: HTMLElement, kind: MotionKind): void {
 
   if (kind === 'shrink') {
     // Shrink/fade: caller is responsible for removing the element after
-    el.style.animation = `irs-shrink-out ${TOKEN.durationChange}ms ease-in forwards`;
+    el.style.animation = `irs-shrink-out ${getDurationMs('change')}ms ease-in forwards`;
     return;
   }
 
   if (kind === 'slideUp') {
-    el.style.animation = `irs-slide-in-up ${TOKEN.durationChange}ms ease-out`;
+    el.style.animation = `irs-slide-in-up ${getDurationMs('change')}ms ease-out`;
     el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
     return;
   }
 
   if (kind === 'slideDown') {
-    el.style.animation = `irs-slide-in-down ${TOKEN.durationChange}ms ease-out`;
+    el.style.animation = `irs-slide-in-down ${getDurationMs('change')}ms ease-out`;
     el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
     return;
   }
 
   const cls = MOTION_CLASS[kind];
-  const dur = MOTION_DURATION[kind] ?? TOKEN.durationChange;
+  const dur = MOTION_DURATION[kind] ?? getDurationMs('change');
   if (!cls) return;
 
   // Remove first so re-triggering on same element works
@@ -502,7 +457,7 @@ const motion = {
    */
   shrink: (el: HTMLElement, onDone?: () => void) => {
     ensureStyles();
-    el.style.animation = `irs-shrink-out ${TOKEN.durationChange}ms ease-in forwards`;
+    el.style.animation = `irs-shrink-out ${getDurationMs('change')}ms ease-in forwards`;
     el.style.overflow = 'hidden';
     el.style.pointerEvents = 'none';
     el.addEventListener('animationend', () => onDone?.(), { once: true });
@@ -593,7 +548,7 @@ const storage = {
     ensureStyles();
     el.classList.remove('irs-dirty');
     el.classList.add('irs-saved');
-    window.setTimeout(() => el.classList.remove('irs-saved'), TOKEN.durationSafe + 50);
+    window.setTimeout(() => el.classList.remove('irs-saved'), getDurationMs('safe') + 50);
   },
 
   /**
@@ -658,7 +613,7 @@ const undoModule = {
     bar.classList.toggle('irs-undo-bar--destructive', options?.destructive ?? false);
     bar.classList.add('irs-undo-bar--visible');
 
-    _undoTimer = window.setTimeout(() => undoModule.dismiss(), options?.durationMs ?? TOKEN.durationUndoBar);
+    _undoTimer = window.setTimeout(() => undoModule.dismiss(), options?.durationMs ?? getDurationMs('undoBar'));
   },
 
   /** Dismiss the undo bar immediately. */

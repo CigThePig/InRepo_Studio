@@ -62,7 +62,7 @@ export interface BlocklyTopBarController {
 // --- Styles ---
 
 const STYLES = `
-  .blockly-top-bar {
+  .irs-blockly-bar {
     display: flex;
     align-items: center;
     background: var(--irs-surface-dark-alpha);
@@ -73,17 +73,17 @@ const STYLES = `
     gap: 8px;
   }
 
-  .blockly-top-bar--hidden {
+  .irs-blockly-bar--hidden {
     display: none;
   }
 
-  .blockly-top-bar__back-btn {
+  .irs-blockly-bar__back-btn {
     width: 44px;
     height: 44px;
     border-radius: 10px;
     border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--irs-border-light);
+    color: var(--irs-text-secondary);
     font-size: 20px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -94,19 +94,19 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  .blockly-top-bar__back-btn:active {
-    background: rgba(255, 255, 255, 0.1);
+  .irs-blockly-bar__back-btn:active {
+    background: var(--irs-color-blue-alpha-12);
     transform: scale(0.95);
   }
 
-  .blockly-top-bar__target-btn {
+  .irs-blockly-bar__target-btn {
     flex: 1;
     min-width: 0;
     height: 44px;
     padding: 0 32px 0 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--irs-border-light);
+    background: var(--irs-border-light);
     color: #fff;
     font-size: 14px;
     font-weight: 600;
@@ -122,12 +122,12 @@ const STYLES = `
     background-position: right 12px center;
   }
 
-  .blockly-top-bar__target-btn:active {
-    background-color: rgba(255, 255, 255, 0.1);
+  .irs-blockly-bar__target-btn:active {
+    background-color: var(--irs-color-blue-alpha-12);
   }
 
   /* --- Overlay picker --- */
-  .blockly-target-overlay {
+  .irs-target-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 9999;
@@ -135,12 +135,12 @@ const STYLES = `
     align-items: flex-start;
     justify-content: center;
     padding-top: max(60px, env(safe-area-inset-top));
-    background: rgba(0,0,0,0.5);
+    background: var(--irs-surface-dark-alpha);
   }
 
-  .blockly-target-overlay__panel {
+  .irs-target-overlay__panel {
     background: var(--irs-surface-dark-alpha);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--irs-border-light);
     border-radius: 12px;
     width: 90%;
     max-width: 340px;
@@ -152,12 +152,12 @@ const STYLES = `
     -webkit-backdrop-filter: blur(12px);
   }
 
-  .blockly-target-overlay__group-header {
+  .irs-target-overlay__group-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    color: rgba(255,255,255,0.5);
+    color: var(--irs-text-muted);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -165,31 +165,31 @@ const STYLES = `
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--irs-border-light);
   }
 
-  .blockly-target-overlay__group-header:active {
-    background: rgba(255,255,255,0.03);
+  .irs-target-overlay__group-header:active {
+    background: var(--irs-surface-elevated);
   }
 
-  .blockly-target-overlay__group-chevron {
+  .irs-target-overlay__group-chevron {
     font-size: 14px;
     transition: transform 0.15s ease;
   }
 
-  .blockly-target-overlay__group-chevron--collapsed {
+  .irs-target-overlay__group-chevron--collapsed {
     transform: rotate(-90deg);
   }
 
-  .blockly-target-overlay__group-body {
+  .irs-target-overlay__group-body {
     overflow: hidden;
   }
 
-  .blockly-target-overlay__group-body--collapsed {
+  .irs-target-overlay__group-body--collapsed {
     display: none;
   }
 
-  .blockly-target-overlay__item {
+  .irs-target-overlay__item {
     display: flex;
     align-items: center;
     width: 100%;
@@ -197,7 +197,7 @@ const STYLES = `
     padding: 8px 14px 8px 28px;
     border: none;
     background: none;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -205,31 +205,31 @@ const STYLES = `
     text-align: left;
   }
 
-  .blockly-target-overlay__item-main {
+  .irs-target-overlay__item-main {
     display: block;
     font-size: 13px;
     font-weight: 700;
   }
 
-  .blockly-target-overlay__item-sub {
+  .irs-target-overlay__item-sub {
     display: block;
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.65);
+    color: var(--irs-text-secondary);
     margin-top: 2px;
     margin-left: 10px;
   }
 
-  .blockly-target-overlay__item:active {
-    background: rgba(59,130,246,0.15);
+  .irs-target-overlay__item:active {
+    background: var(--irs-color-blue-alpha-12);
   }
 
-  .blockly-target-overlay__item--active {
-    color: #3b82f6;
+  .irs-target-overlay__item--active {
+    color: var(--irs-color-blue);
     font-weight: 700;
   }
 
-  .blockly-top-bar__status {
+  .irs-blockly-bar__status {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -237,22 +237,22 @@ const STYLES = `
     transition: background-color 0.2s ease;
   }
 
-  .blockly-top-bar__status--stopped {
+  .irs-blockly-bar__status--stopped {
     background: #666;
   }
 
-  .blockly-top-bar__status--running {
+  .irs-blockly-bar__status--running {
     background: var(--irs-color-green);
     box-shadow: 0 0 6px var(--irs-color-green-alpha-53);
   }
 
-  .blockly-top-bar__status--error {
+  .irs-blockly-bar__status--error {
     background: var(--irs-color-red);
     box-shadow: 0 0 6px var(--irs-color-red-alpha-53);
   }
 
-  .blockly-top-bar__run-btn,
-  .blockly-top-bar__stop-btn {
+  .irs-blockly-bar__run-btn,
+  .irs-blockly-bar__stop-btn {
     width: 44px;
     height: 44px;
     border-radius: 10px;
@@ -267,44 +267,53 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  .blockly-top-bar__run-btn {
-    background: #22c55e;
+  .irs-blockly-bar__run-btn {
+    background: var(--irs-color-green);
     color: #fff;
   }
 
-  .blockly-top-bar__run-btn:active {
-    background: #16a34a;
+  .irs-blockly-bar__run-btn:active {
+    background: var(--irs-accent-success);
     transform: scale(0.95);
   }
 
-  .blockly-top-bar__run-btn:disabled {
+  .irs-blockly-bar__run-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
 
-  .blockly-top-bar__run-btn:disabled:active {
+  .irs-blockly-bar__run-btn:disabled:active {
     transform: none;
   }
 
-  .blockly-top-bar__stop-btn {
-    background: #ef4444;
+  .irs-blockly-bar__stop-btn {
+    background: var(--irs-color-red);
     color: #fff;
   }
 
-  .blockly-top-bar__stop-btn:active {
-    background: #dc2626;
+  .irs-blockly-bar__stop-btn:active {
+    background: var(--irs-accent-danger-active);
     transform: scale(0.95);
   }
 
-  .blockly-top-bar__stop-btn:disabled {
+  .irs-blockly-bar__stop-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
 
-  .blockly-top-bar__stop-btn:disabled:active {
+  .irs-blockly-bar__stop-btn:disabled:active {
     transform: none;
   }
 `;
+
+
+function ensureStyles(): void {
+  if (document.getElementById('irs-blockly-bar-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'irs-blockly-bar-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
+}
 
 // --- Factory ---
 
@@ -312,12 +321,7 @@ export function createBlocklyTopBar(
   container: HTMLElement,
 ): BlocklyTopBarController {
   // Inject styles once
-  if (!document.getElementById('blockly-top-bar-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'blockly-top-bar-styles';
-    styleEl.textContent = STYLES;
-    document.head.appendChild(styleEl);
-  }
+  ensureStyles();
 
   let backCallback: (() => void) | null = null;
   let targetChangeCallback: ((target: ScriptLogicTarget) => void) | null = null;
@@ -333,37 +337,37 @@ export function createBlocklyTopBar(
   // --- DOM ---
 
   const bar = document.createElement('div');
-  bar.className = 'blockly-top-bar blockly-top-bar--hidden';
+  bar.className = 'irs-blockly-bar irs-blockly-bar--hidden';
 
   // Back button
   const backBtn = document.createElement('button');
-  backBtn.className = 'blockly-top-bar__back-btn';
+  backBtn.className = 'irs-blockly-bar__back-btn';
   backBtn.type = 'button';
   backBtn.textContent = '\u2190'; // ←
   backBtn.setAttribute('aria-label', 'Back to World Mode');
 
   // Target picker button (replaces the <select>)
   const targetBtn = document.createElement('button');
-  targetBtn.className = 'blockly-top-bar__target-btn';
+  targetBtn.className = 'irs-blockly-bar__target-btn';
   targetBtn.type = 'button';
   targetBtn.textContent = 'Select Target';
   targetBtn.setAttribute('aria-label', 'Logic Target');
 
   // Status indicator
   const statusDot = document.createElement('div');
-  statusDot.className = 'blockly-top-bar__status blockly-top-bar__status--stopped';
+  statusDot.className = 'irs-blockly-bar__status irs-blockly-bar__status--stopped';
   statusDot.setAttribute('aria-label', 'Script status: stopped');
 
   // Run button
   const runBtn = document.createElement('button');
-  runBtn.className = 'blockly-top-bar__run-btn';
+  runBtn.className = 'irs-blockly-bar__run-btn';
   runBtn.type = 'button';
   runBtn.textContent = '\u25B6'; // ▶
   runBtn.setAttribute('aria-label', 'Run script');
 
   // Stop button
   const stopBtn = document.createElement('button');
-  stopBtn.className = 'blockly-top-bar__stop-btn';
+  stopBtn.className = 'irs-blockly-bar__stop-btn';
   stopBtn.type = 'button';
   stopBtn.textContent = '\u25A0'; // ■
   stopBtn.setAttribute('aria-label', 'Stop script');
@@ -390,10 +394,10 @@ export function createBlocklyTopBar(
     if (overlayEl) return;
 
     const overlay = document.createElement('div');
-    overlay.className = 'blockly-target-overlay';
+    overlay.className = 'irs-target-overlay';
 
     const panel = document.createElement('div');
-    panel.className = 'blockly-target-overlay__panel';
+    panel.className = 'irs-target-overlay__panel';
 
     // Build grouped content
     const groupsToRender = currentGroups.length > 0 ? currentGroups : autoGroupTargets();
@@ -402,35 +406,35 @@ export function createBlocklyTopBar(
       if (group.items.length === 0) continue;
 
       const groupHeader = document.createElement('div');
-      groupHeader.className = 'blockly-target-overlay__group-header';
+      groupHeader.className = 'irs-target-overlay__group-header';
 
       const groupLabel = document.createElement('span');
       groupLabel.textContent = group.label;
 
       const chevron = document.createElement('span');
-      chevron.className = 'blockly-target-overlay__group-chevron';
+      chevron.className = 'irs-target-overlay__group-chevron';
       chevron.textContent = '\u203a'; // ›
 
       groupHeader.appendChild(groupLabel);
       groupHeader.appendChild(chevron);
 
       const groupBody = document.createElement('div');
-      groupBody.className = 'blockly-target-overlay__group-body';
+      groupBody.className = 'irs-target-overlay__group-body';
 
       for (const item of group.items) {
         const itemBtn = document.createElement('button');
         itemBtn.type = 'button';
-        itemBtn.className = 'blockly-target-overlay__item';
+        itemBtn.className = 'irs-target-overlay__item';
         if (isTargetMatch(item.target, selectedTarget)) {
-          itemBtn.classList.add('blockly-target-overlay__item--active');
+          itemBtn.classList.add('irs-target-overlay__item--active');
         }
         const itemMain = document.createElement('span');
-        itemMain.className = 'blockly-target-overlay__item-main';
+        itemMain.className = 'irs-target-overlay__item-main';
         itemMain.textContent = item.label;
         itemBtn.appendChild(itemMain);
         if (item.subLabel) {
           const itemSub = document.createElement('span');
-          itemSub.className = 'blockly-target-overlay__item-sub';
+          itemSub.className = 'irs-target-overlay__item-sub';
           itemSub.textContent = item.subLabel;
           itemBtn.appendChild(itemSub);
         }
@@ -442,8 +446,8 @@ export function createBlocklyTopBar(
       }
 
       groupHeader.addEventListener('click', () => {
-        const isCollapsed = groupBody.classList.toggle('blockly-target-overlay__group-body--collapsed');
-        chevron.classList.toggle('blockly-target-overlay__group-chevron--collapsed', isCollapsed);
+        const isCollapsed = groupBody.classList.toggle('irs-target-overlay__group-body--collapsed');
+        chevron.classList.toggle('irs-target-overlay__group-chevron--collapsed', isCollapsed);
       });
 
       panel.appendChild(groupHeader);
@@ -503,7 +507,7 @@ export function createBlocklyTopBar(
   // --- Helpers ---
 
   function updateStatusUI(): void {
-    statusDot.className = `blockly-top-bar__status blockly-top-bar__status--${currentStatus}`;
+    statusDot.className = `irs-blockly-bar__status irs-blockly-bar__status--${currentStatus}`;
     statusDot.setAttribute('aria-label', `Script status: ${currentStatus}`);
 
     const isRunning = currentStatus === 'running';
@@ -544,7 +548,7 @@ export function createBlocklyTopBar(
     },
 
     setVisible(visible: boolean): void {
-      bar.classList.toggle('blockly-top-bar--hidden', !visible);
+      bar.classList.toggle('irs-blockly-bar--hidden', !visible);
       if (!visible) closeOverlay();
     },
 
@@ -567,7 +571,7 @@ export function createBlocklyTopBar(
     destroy(): void {
       closeOverlay();
       bar.remove();
-      const styleEl = document.getElementById('blockly-top-bar-styles');
+      const styleEl = document.getElementById('irs-blockly-bar-styles');
       if (styleEl) styleEl.remove();
       console.log(`${LOG_PREFIX} Blockly top bar destroyed`);
     },
