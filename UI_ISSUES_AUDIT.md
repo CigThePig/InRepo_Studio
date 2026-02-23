@@ -110,7 +110,7 @@ Fix: `input.className = 'irs-input asm-editor__field-input'`
 
 ---
 
-### Issue #21 — `utilitiesTab.ts` Has No UX Feedback and Uses `window.confirm`
+### Issue #21 — `utilitiesTab.ts` Has No UX Feedback and Uses `window.confirm` ✅ COMPLETED
 
 **Severity: Critical**  
 **File:** `src/editor/panels/utilitiesTab.ts`
@@ -173,7 +173,7 @@ All four presets-subsystem files were built as a standalone island. None use `va
 
 ---
 
-### Issue #24 — `scenes/sceneSelector.ts` Has No UX Feedback and Wrong Namespace
+### Issue #24 — `scenes/sceneSelector.ts` Has No UX Feedback and Wrong Namespace ✅ COMPLETED
 
 **Severity: Critical**  
 **File:** `src/editor/scenes/sceneSelector.ts`
@@ -351,7 +351,7 @@ min-width: var(--irs-touch-target);  /* 44px */
 
 ## TIER 5 — Moderate: UX Feedback Gaps in Existing Components
 
-### Issue #31 — `animStateMachine.ts` Delete Actions Are Missing Undo
+### Issue #31 — `animStateMachine.ts` Delete Actions Are Missing Undo ✅ COMPLETED
 
 **Severity: Moderate**  
 **File:** `src/editor/panels/animStateMachine.ts`
@@ -362,7 +362,7 @@ Additionally, the **save action** at line 2046 (`uxFeedback.combos.saved(...)`) 
 
 ---
 
-### Issue #32 — `presetsTab.ts` Profile Apply Has No Acknowledgement Motion
+### Issue #32 — `presetsTab.ts` Profile Apply Has No Acknowledgement Motion ✅ COMPLETED
 
 **Severity: Moderate**  
 **File:** `src/editor/presets/presetsTab.ts`
@@ -373,7 +373,7 @@ Additionally, the **save action** at line 2046 (`uxFeedback.combos.saved(...)`) 
 
 ---
 
-### Issue #33 — `sceneSelector.ts` Scene Creation Has No Expand Motion
+### Issue #33 — `sceneSelector.ts` Scene Creation Has No Expand Motion ✅ COMPLETED
 
 **Severity: Moderate**  
 **File:** `src/editor/scenes/sceneSelector.ts`
@@ -384,7 +384,7 @@ Per the motion grammar, **Expand = Creation**. When a new scene is created, the 
 
 ## TIER 6 — Low: Pattern Consistency
 
-### Issue #34 — `berryControls.ts` Still Uses `ensureStyles()` Inline Pattern
+### Issue #34 — `berryControls.ts` Still Uses `ensureStyles()` Inline Pattern ✅ COMPLETED
 
 **Severity: Low**  
 **File:** `src/editor/panels/berryControls.ts`
