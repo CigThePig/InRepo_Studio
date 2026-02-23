@@ -62,29 +62,29 @@ export interface TilePickerOptions {
 // --- Styles ---
 
 const STYLES = `
-  .tile-picker {
+  .irs-tile-picker {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
   }
 
-  .tile-picker--hidden {
+  .irs-tile-picker--hidden {
     display: none;
   }
 
-  .tile-picker__empty {
+  .irs-tile-picker__empty {
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #666;
+    color: var(--irs-text-muted);
     font-size: 13px;
     text-align: center;
     padding: 12px;
   }
 
-  .category-tabs {
+  .irs-tile-picker__category-tabs {
     display: flex;
     gap: 4px;
     padding: 4px 0;
@@ -94,18 +94,18 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  .category-tabs::-webkit-scrollbar {
+  .irs-tile-picker__category-tabs::-webkit-scrollbar {
     display: none;
   }
 
-  .category-tab {
+  .irs-tile-picker__category-tab {
     padding: 8px 16px;
     min-height: 44px;
     min-width: 44px;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
     border: 2px solid transparent;
-    background: #2a2a4e;
-    color: #ccc;
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-secondary);
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
@@ -114,17 +114,17 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .category-tab:active {
-    background: #3a3a6e;
+  .irs-tile-picker__category-tab:active {
+    background: var(--irs-border-heavy);
   }
 
-  .category-tab--active {
-    border-color: #4a9eff;
-    background: #3a3a6e;
-    color: #fff;
+  .irs-tile-picker__category-tab--active {
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-border-heavy);
+    color: var(--irs-text-primary);
   }
 
-  .tile-grid {
+  .irs-tile-picker__tile-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
     gap: 4px;
@@ -135,13 +135,13 @@ const STYLES = `
     -webkit-overflow-scrolling: touch;
   }
 
-  .tile-cell {
+  .irs-tile-picker__tile-cell {
     aspect-ratio: 1;
     min-width: 48px;
     min-height: 48px;
     border: 2px solid transparent;
-    border-radius: 4px;
-    background: #1a1a3a;
+    border-radius: var(--irs-radius-sm);
+    background: var(--irs-surface-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -150,31 +150,31 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .tile-cell:active {
-    background: #2a2a5e;
+  .irs-tile-picker__tile-cell:active {
+    background: var(--irs-surface-panel);
   }
 
-  .tile-cell--selected {
-    border-color: #4a9eff;
-    background: #2a2a5e;
+  .irs-tile-picker__tile-cell--selected {
+    border-color: var(--irs-accent-primary);
+    background: var(--irs-surface-panel);
   }
 
-  .tile-cell__img {
+  .irs-tile-picker__tile-cell-img {
     max-width: 32px;
     max-height: 32px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
 
-  .tile-cell__placeholder {
+  .irs-tile-picker__tile-cell-placeholder {
     width: 24px;
     height: 24px;
-    background: #333;
+    background: var(--irs-surface-base);
     border-radius: 2px;
   }
 
-  .tile-cell__error {
-    color: #f66;
+  .irs-tile-picker__tile-cell-error {
+    color: var(--irs-color-red);
     font-size: 16px;
   }
 `;
@@ -228,7 +228,7 @@ export function createTilePicker(
 
   // Create DOM
   const picker = document.createElement('div');
-  picker.className = 'tile-picker';
+  picker.className = 'irs-tile-picker';
 
   // Handle empty categories
   if (categories.length === 0) {
@@ -249,7 +249,7 @@ export function createTilePicker(
       onTileSelect() {},
       onCategoryChange() {},
       setVisible(visible) {
-        picker.classList.toggle('tile-picker--hidden', !visible);
+        picker.classList.toggle('irs-tile-picker--hidden', !visible);
       },
       destroy() {
         container.removeChild(picker);
@@ -260,13 +260,13 @@ export function createTilePicker(
 
   // Create category tabs
   const categoryTabs = document.createElement('div');
-  categoryTabs.className = 'category-tabs';
+  categoryTabs.className = 'irs-tile-picker__category-tabs';
 
   const tabButtons = new Map<string, HTMLButtonElement>();
 
   for (const category of categories) {
     const tab = document.createElement('button');
-    tab.className = `category-tab ${state.selectedCategory === category.name ? 'category-tab--active' : ''}`;
+    tab.className = `irs-btn irs-btn--secondary irs-tile-picker__category-tab ${state.selectedCategory === category.name ? 'irs-tile-picker__category-tab--active' : ''}`;
     tab.textContent = category.name;
     tab.setAttribute('data-category', category.name);
 
@@ -278,7 +278,7 @@ export function createTilePicker(
 
       // Update tab UI
       tabButtons.forEach((btn, name) => {
-        btn.classList.toggle('category-tab--active', name === category.name);
+        btn.classList.toggle('irs-tile-picker__category-tab--active', name === category.name);
       });
 
       // Render new tile grid
@@ -295,7 +295,7 @@ export function createTilePicker(
 
   // Create tile grid container
   const tileGrid = document.createElement('div');
-  tileGrid.className = 'tile-grid';
+  tileGrid.className = 'irs-tile-picker__tile-grid';
 
   picker.appendChild(categoryTabs);
   picker.appendChild(tileGrid);
@@ -317,7 +317,7 @@ export function createTilePicker(
   ): void {
     cell.innerHTML = '';
     const imgEl = document.createElement('img');
-    imgEl.className = 'tile-cell__img';
+    imgEl.className = 'irs-tile-picker__tile-cell-img';
     imgEl.alt = filename;
 
     if (sharedTileCache) {
@@ -325,7 +325,7 @@ export function createTilePicker(
       if (!cachedImg) {
         // Not ready yet; keep placeholder.
         const placeholder = document.createElement('div');
-        placeholder.className = 'tile-cell__placeholder';
+        placeholder.className = 'irs-tile-picker__tile-cell-placeholder';
         cell.appendChild(placeholder);
         pendingCells.set(index, { filename });
         return;
@@ -344,7 +344,7 @@ export function createTilePicker(
       .catch(() => {
         cell.innerHTML = '';
         const errorEl = document.createElement('span');
-        errorEl.className = 'tile-cell__error';
+        errorEl.className = 'irs-tile-picker__tile-cell-error';
         errorEl.textContent = '?';
         errorEl.title = `Failed to load: ${filename}`;
         cell.appendChild(errorEl);
@@ -368,7 +368,7 @@ export function createTilePicker(
       if (img) {
         cell.innerHTML = '';
         const imgEl = document.createElement('img');
-        imgEl.className = 'tile-cell__img';
+        imgEl.className = 'irs-tile-picker__tile-cell-img';
         imgEl.src = img.src;
         imgEl.alt = meta.filename;
         cell.appendChild(imgEl);
@@ -412,7 +412,7 @@ export function createTilePicker(
 
     category.files.forEach((filename, index) => {
       const cell = document.createElement('div');
-      cell.className = `tile-cell ${state.selectedTileIndex === index ? 'tile-cell--selected' : ''}`;
+      cell.className = `irs-tile-picker__tile-cell ${state.selectedTileIndex === index ? 'irs-tile-picker__tile-cell--selected' : ''}`;
       cell.setAttribute('data-index', String(index));
 
       // Render tile image (shared cache preferred; falls back to direct image loading)
@@ -427,7 +427,7 @@ export function createTilePicker(
 
         // Update UI
         tileCells.forEach((c, i) => {
-          c.classList.toggle('tile-cell--selected', i === index);
+          c.classList.toggle('irs-tile-picker__tile-cell--selected', i === index);
         });
         uxFeedback.selection.mark(cell);
 
@@ -471,7 +471,7 @@ export function createTilePicker(
 
       // Update tab UI
       tabButtons.forEach((btn, name) => {
-        btn.classList.toggle('category-tab--active', name === categoryName);
+        btn.classList.toggle('irs-tile-picker__category-tab--active', name === categoryName);
       });
 
       // Re-render grid
@@ -486,13 +486,13 @@ export function createTilePicker(
       const category = categories.find(c => c.name === state.selectedCategory);
       if (!category || index < 0 || index >= category.files.length) {
         state.selectedTileIndex = -1;
-        tileCells.forEach(c => c.classList.remove('tile-cell--selected'));
+        tileCells.forEach(c => c.classList.remove('irs-tile-picker__tile-cell--selected'));
         return;
       }
 
       state.selectedTileIndex = index;
       tileCells.forEach((c, i) => {
-        c.classList.toggle('tile-cell--selected', i === index);
+        c.classList.toggle('irs-tile-picker__tile-cell--selected', i === index);
       });
     },
 
@@ -518,7 +518,7 @@ export function createTilePicker(
     },
 
     setVisible(visible) {
-      picker.classList.toggle('tile-picker--hidden', !visible);
+      picker.classList.toggle('irs-tile-picker--hidden', !visible);
     },
 
     destroy() {
