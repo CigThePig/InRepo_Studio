@@ -41,17 +41,17 @@ const STYLES = `
 
   .preset-picker__card {
     border-radius: 12px;
-    border: 1px solid rgba(88, 116, 173, 0.65);
-    background: rgba(12, 19, 37, 0.95);
-    color: #e6ecff;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
     text-align: left;
     padding: 10px;
   }
 
   .preset-picker__label { font-weight: 700; font-size: 13px; }
-  .preset-picker__desc { font-size: 11px; color: #9fb1e0; margin-top: 3px; }
-  .preset-picker__meta { margin-top: 5px; font-size: 11px; color: #c8d7ff; }
-  .preset-picker__warning { color: #ffc870; }
+  .preset-picker__desc { font-size: 11px; color: var(--irs-text-secondary); margin-top: 3px; }
+  .preset-picker__meta { margin-top: 5px; font-size: 11px; color: var(--irs-text-secondary); }
+  .preset-picker__warning { color: var(--irs-accent-warning); }
 `;
 
 function ensureStyles(): void {
