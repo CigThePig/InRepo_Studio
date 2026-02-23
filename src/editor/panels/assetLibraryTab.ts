@@ -37,7 +37,6 @@ const STYLES = `
     align-items: center;
   }
 
-  .asset-library__input,
   .asset-library__select {
     min-height: 44px;
     padding: 8px 10px;
@@ -457,14 +456,6 @@ const STYLES = `
 
   .asset-library__anim-search {
     width: 100%;
-    min-height: 44px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
-    font-size: 13px;
-    box-sizing: border-box;
     margin-bottom: 10px;
   }
 
@@ -479,11 +470,6 @@ const STYLES = `
     flex: 1;
     min-height: 36px;
     padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.8);
-    background: rgba(22, 30, 60, 0.9);
-    color: #f2f5ff;
-    font-size: 12px;
     min-width: 0;
   }
 
@@ -576,13 +562,6 @@ const STYLES = `
   .asset-library__anim-set-create-input {
     flex: 1;
     min-width: 100px;
-    min-height: 44px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
-    font-size: 13px;
   }
 
   .asset-library__anim-scrim {
@@ -866,7 +845,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   createRow.className = 'asset-library__row';
 
   const nameInput = document.createElement('input');
-  nameInput.className = 'asset-library__input';
+  nameInput.className = 'irs-input';
   nameInput.type = 'text';
   nameInput.placeholder = 'Group name (e.g., Trees)';
   nameInput.maxLength = 32;
@@ -1507,7 +1486,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       // ── Search / filter input ────────────────────────────────────────
       const searchInput = document.createElement('input');
       searchInput.type = 'text';
-      searchInput.className = 'asset-library__anim-search';
+      searchInput.className = 'irs-input asset-library__anim-search';
       searchInput.placeholder = 'Search animations…';
       searchInput.value = animFilter;
       searchInput.addEventListener('input', () => {
@@ -1624,7 +1603,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           const renameInput = document.createElement('input');
           renameInput.type = 'text';
-          renameInput.className = 'asset-library__anim-rename-input';
+          renameInput.className = 'irs-input asset-library__anim-rename-input';
           renameInput.value = animation.name;
           renameInput.maxLength = 64;
 
@@ -1911,7 +1890,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         const createInput = document.createElement('input');
         createInput.type = 'text';
-        createInput.className = 'asset-library__anim-set-create-input';
+        createInput.className = 'irs-input asset-library__anim-set-create-input';
         createInput.placeholder = 'Animation set name…';
         createInput.maxLength = 64;
 
@@ -1986,7 +1965,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
             const renameInput = document.createElement('input');
             renameInput.type = 'text';
-            renameInput.className = 'asset-library__anim-rename-input';
+            renameInput.className = 'irs-input asset-library__anim-rename-input';
             renameInput.value = animationSet.name;
             renameInput.maxLength = 64;
 
@@ -2387,7 +2366,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       sheet.appendChild(title);
 
       const input = document.createElement('input');
-      input.className = 'asset-library__input';
+      input.className = 'irs-input';
       input.type = 'text';
       input.value = activeAsset.name;
       input.maxLength = 64;

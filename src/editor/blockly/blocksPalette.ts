@@ -80,7 +80,7 @@ export function createBlocksPalette(
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
-  searchInput.className = 'blocks-palette__search-input';
+  searchInput.className = 'irs-input blocks-palette__search-input';
   searchInput.placeholder = 'Search blocks...';
 
   const searchClear = document.createElement('button');

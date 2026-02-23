@@ -19,25 +19,7 @@ export const BLOCKS_PALETTE_STYLES = `
 
   .blocks-palette__search-input {
     width: 100%;
-    height: 44px;
-    padding: 0 36px 0 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .blocks-palette__search-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  .blocks-palette__search-input:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    background: rgba(255, 255, 255, 0.08);
+    padding-right: 36px;
   }
 
   .blocks-palette__search-wrap {
