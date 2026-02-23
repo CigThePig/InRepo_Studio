@@ -6,6 +6,8 @@
  */
 
 import { uxFeedback } from '@/editor/uxFeedback';
+import type { EditorEventBus } from '@/editor/core';
+import { editorEventBus } from '@/editor/core';
 
 const LOG_PREFIX = '[TopBarV2]';
 const TOP_BAR_TAG = 'irs-top-bar';
@@ -16,17 +18,11 @@ export interface TopBarV2State {
 }
 
 export interface TopBarV2Controller {
-  /** Set the scene name display */
-  setSceneName(name: string): void;
-
   /** Set expanded state */
   setExpanded(expanded: boolean): void;
 
   /** Get current expanded state */
   isExpanded(): boolean;
-
-  /** Set undo/redo button enabled state */
-  setUndoRedoState(canUndo: boolean, canRedo: boolean): void;
 
   /** Get the scene selector container */
   getSceneSelectorContainer(): HTMLElement;
@@ -34,23 +30,9 @@ export interface TopBarV2Controller {
   /** Get the content container for layer panel */
   getLayerPanelContainer(): HTMLElement;
 
-  /** Register callback for undo */
-  onUndo(callback: () => void): void;
-
-  /** Register callback for redo */
-  onRedo(callback: () => void): void;
-
-  /** Register callback for settings */
-  onSettings(callback: () => void): void;
-
-  /** Register callback for playtest action */
-  onPlaytest(callback: () => void): void;
 
   /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
-
-  /** Register callback for save button click */
-  onSave(callback: () => void): void;
 
   /** Get the save button element (for uxFeedback callers in init.ts) */
   getSaveButtonEl(): HTMLElement;
@@ -178,6 +160,7 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     return ['expanded', 'scene-name'];
   }
 
+  private eventBus: EditorEventBus = editorEventBus;
   private readonly shadowRootRef: ShadowRoot;
   private panelEl: HTMLDivElement | null = null;
   private sceneTitleEl: HTMLSpanElement | null = null;
@@ -187,12 +170,8 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
   private sceneSelectorContainerEl: HTMLDivElement | null = null;
   private contentEl: HTMLDivElement | null = null;
 
-  private undoCallback: (() => void) | null = null;
-  private redoCallback: (() => void) | null = null;
-  private settingsCallback: (() => void) | null = null;
-  private playtestCallback: (() => void) | null = null;
+  private readonly unsubscribers: Array<() => void> = [];
   private expandToggleCallback: ((expanded: boolean) => void) | null = null;
-  private saveCallback: (() => void) | null = null;
 
   private isRendered = false;
 
@@ -209,15 +188,12 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     }
     this.applyExpandedState();
     this.applySceneName();
+    this.subscribeToState();
   }
 
   disconnectedCallback(): void {
-    this.undoCallback = null;
-    this.redoCallback = null;
-    this.settingsCallback = null;
-    this.playtestCallback = null;
+    this.unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
     this.expandToggleCallback = null;
-    this.saveCallback = null;
     console.log(`${LOG_PREFIX} Top bar disconnected`);
   }
 
@@ -237,10 +213,6 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     }
   }
 
-  setSceneName(name: string): void {
-    this.setAttribute('scene-name', name);
-  }
-
   setExpanded(expanded: boolean): void {
     if (expanded) {
       this.setAttribute('expanded', 'true');
@@ -253,7 +225,7 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     return this.getAttribute('expanded') === 'true';
   }
 
-  setUndoRedoState(canUndo: boolean, canRedo: boolean): void {
+  private setUndoRedoState(canUndo: boolean, canRedo: boolean): void {
     if (!this.undoButtonEl || !this.redoButtonEl) {
       return;
     }
@@ -278,28 +250,8 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     return this.contentEl;
   }
 
-  onUndo(callback: () => void): void {
-    this.undoCallback = callback;
-  }
-
-  onRedo(callback: () => void): void {
-    this.redoCallback = callback;
-  }
-
-  onSettings(callback: () => void): void {
-    this.settingsCallback = callback;
-  }
-
-  onPlaytest(callback: () => void): void {
-    this.playtestCallback = callback;
-  }
-
   onExpandToggle(callback: (expanded: boolean) => void): void {
     this.expandToggleCallback = callback;
-  }
-
-  onSave(callback: () => void): void {
-    this.saveCallback = callback;
   }
 
   getSaveButtonEl(): HTMLElement {
@@ -350,28 +302,28 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     this.undoButtonEl = this.createButton('↶', 'Undo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
     this.undoButtonEl.disabled = true;
     this.undoButtonEl.addEventListener('click', () => {
-      this.undoCallback?.();
+      this.eventBus.dispatch('UI_ACTION_UNDO_REQUESTED', undefined);
     });
 
     this.redoButtonEl = this.createButton('↷', 'Redo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
     this.redoButtonEl.disabled = true;
     this.redoButtonEl.addEventListener('click', () => {
-      this.redoCallback?.();
+      this.eventBus.dispatch('UI_ACTION_REDO_REQUESTED', undefined);
     });
 
     this.saveButtonEl = this.createButton('💾', 'Save', 'irs-btn irs-btn--secondary top-bar-v2__button');
     this.saveButtonEl.addEventListener('click', () => {
-      this.saveCallback?.();
+      this.eventBus.dispatch('UI_ACTION_SAVE_REQUESTED', undefined);
     });
 
     const settingsButton = this.createButton('⚙', 'Settings', 'irs-btn irs-btn--secondary top-bar-v2__button');
     settingsButton.addEventListener('click', () => {
-      this.settingsCallback?.();
+      this.eventBus.dispatch('UI_ACTION_SETTINGS_REQUESTED', undefined);
     });
 
     const playButton = this.createButton('▶', 'Playtest', 'irs-btn irs-btn--primary top-bar-v2__button');
     playButton.addEventListener('click', () => {
-      this.playtestCallback?.();
+      this.eventBus.dispatch('UI_ACTION_PLAYTEST_REQUESTED', undefined);
     });
 
     leftGroup.append(this.undoButtonEl, this.redoButtonEl, this.saveButtonEl);
@@ -422,6 +374,30 @@ class TopBarElement extends HTMLElement implements TopBarV2Controller {
     this.sceneTitleEl.textContent = this.getAttribute('scene-name') ?? '';
   }
 
+  attachEventBus(eventBus: EditorEventBus): void {
+    this.unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+    this.eventBus = eventBus;
+    this.subscribeToState();
+  }
+
+  private subscribeToState(): void {
+    if (this.unsubscribers.length > 0) {
+      return;
+    }
+
+    this.unsubscribers.push(
+      this.eventBus.on('STATE_SCENE_CHANGED', ({ sceneName }) => {
+        this.setAttribute('scene-name', sceneName);
+      })
+    );
+
+    this.unsubscribers.push(
+      this.eventBus.on('STATE_HISTORY_CHANGED', ({ canUndo, canRedo }) => {
+        this.setUndoRedoState(canUndo, canRedo);
+      })
+    );
+  }
+
   private createButton(text: string, label: string, className: string): HTMLButtonElement {
     const button = document.createElement('button');
     button.className = className;
@@ -436,12 +412,17 @@ if (!customElements.get(TOP_BAR_TAG)) {
   customElements.define(TOP_BAR_TAG, TopBarElement);
 }
 
-export function createTopBarV2(container: HTMLElement, initialState: TopBarV2State): TopBarV2Controller {
+export function createTopBarV2(
+  container: HTMLElement,
+  initialState: TopBarV2State,
+  eventBus: EditorEventBus = editorEventBus
+): TopBarV2Controller {
   const topBar = document.createElement(TOP_BAR_TAG) as TopBarElement;
   container.appendChild(topBar);
+  topBar.attachEventBus(eventBus);
 
   topBar.setExpanded(initialState.expanded);
-  topBar.setSceneName(initialState.sceneName);
+  eventBus.dispatch('STATE_SCENE_CHANGED', { sceneName: initialState.sceneName });
 
   return topBar;
 }

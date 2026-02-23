@@ -107,6 +107,7 @@ import { createEntityManager, type EntityManager } from '@/editor/entities/entit
 import { createPropSpriteManager, type PropSpriteManager } from '@/editor/props/propSpriteManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
 import { EDITOR_FLAGS, isFlagEnabled, setFlag } from '@/editor/core/featureFlags';
+import { editorEventBus } from '@/editor/core';
 import {
   getEditorMode,
   setEditorMode,
@@ -754,9 +755,7 @@ function updateEntitySelectionUI(): void {
 }
 
 function updateUndoRedoUI(canUndo: boolean, canRedo: boolean): void {
-  if (topPanelController && 'setUndoRedoState' in topPanelController) {
-    topPanelController.setUndoRedoState(canUndo, canRedo);
-  }
+  editorEventBus.dispatch('STATE_HISTORY_CHANGED', { canUndo, canRedo });
 }
 
 function setLayerPanelVisibility(visible: boolean): void {
@@ -1618,10 +1617,14 @@ async function initPanels(): Promise<void> {
     const topExpanded = useTopBarV2 ? true : editorState.panelStates.topExpanded;
 
     topPanelController = useTopBarV2
-      ? createTopBarV2(topPanelContainer, {
-          expanded: topExpanded,
-          sceneName: currentScene?.name ?? 'No Scene',
-        })
+      ? createTopBarV2(
+          topPanelContainer,
+          {
+            expanded: topExpanded,
+            sceneName: currentScene?.name ?? 'No Scene',
+          },
+          editorEventBus
+        )
       : createTopPanel(topPanelContainer, {
           expanded: topExpanded,
           sceneName: currentScene?.name ?? 'No Scene',
@@ -1652,32 +1655,26 @@ async function initPanels(): Promise<void> {
       });
     }
 
-    topPanelController.onPlaytest(() => {
-      startPlaytest().catch((error) => {
-        console.error(`${LOG_PREFIX} Failed to start playtest:`, error);
+    if (useTopBarV2) {
+      editorEventBus.on('UI_ACTION_PLAYTEST_REQUESTED', () => {
+        startPlaytest().catch((error) => {
+          console.error(`${LOG_PREFIX} Failed to start playtest:`, error);
+        });
       });
-    });
 
-    if ('onUndo' in topPanelController) {
-      topPanelController.onUndo(() => {
+      editorEventBus.on('UI_ACTION_UNDO_REQUESTED', () => {
         historyManager?.undo();
       });
-    }
 
-    if ('onRedo' in topPanelController) {
-      topPanelController.onRedo(() => {
+      editorEventBus.on('UI_ACTION_REDO_REQUESTED', () => {
         historyManager?.redo();
       });
-    }
 
-    if ('onSettings' in topPanelController) {
-      topPanelController.onSettings(() => {
+      editorEventBus.on('UI_ACTION_SETTINGS_REQUESTED', () => {
         openSettingsPlaceholder();
       });
-    }
 
-    if ('onSave' in topPanelController) {
-      topPanelController.onSave(() => {
+      editorEventBus.on('UI_ACTION_SAVE_REQUESTED', () => {
         // Cancel pending debounced saves and flush immediately.
         if (saveTimeout !== null) {
           window.clearTimeout(saveTimeout);
@@ -1700,6 +1697,12 @@ async function initPanels(): Promise<void> {
           }
         };
         doSave().catch(() => undefined);
+      });
+    } else {
+      (topPanelController as TopPanelController).onPlaytest(() => {
+        startPlaytest().catch((error) => {
+          console.error(`${LOG_PREFIX} Failed to start playtest:`, error);
+        });
       });
     }
 
@@ -2070,7 +2073,10 @@ async function initSceneManagement(): Promise<void> {
     getCurrentSceneId: () => currentScene?.id ?? null,
     onSceneChange: (scene) => {
       handleSceneChange(scene);
-      topPanelController?.setSceneName(scene.name);
+      editorEventBus.dispatch('STATE_SCENE_CHANGED', { sceneName: scene.name });
+      if (topPanelController && 'setActiveLayer' in topPanelController) {
+        topPanelController.setSceneName(scene.name);
+      }
       sceneSelector?.setSceneName(scene.name);
     },
     onSceneListChange: async () => {
@@ -2144,7 +2150,10 @@ function handleSceneSwitch(scene: Scene): void {
   updateEntitySelectionUI();
 
   // Update UI
-  topPanelController?.setSceneName(scene.name);
+  editorEventBus.dispatch('STATE_SCENE_CHANGED', { sceneName: scene.name });
+  if (topPanelController && 'setActiveLayer' in topPanelController) {
+    topPanelController.setSceneName(scene.name);
+  }
   sceneSelector?.setCurrentScene(scene.id);
   sceneSelector?.setSceneName(scene.name);
 

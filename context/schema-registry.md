@@ -125,6 +125,10 @@ Rules:
   - `TabRegistry.leftBerryTabs` — plugin registry for left berry tabs
     - Invariant: plugin IDs are unique; registry insertion order controls tab order
 
+- `/src/editor/core/eventBus.ts`
+  - `EditorEventMap` — canonical editor UI intent and state event contracts
+    - Invariant: event names remain stable; payload shapes stay backwards-compatible
+
 - `/src/editor/panels/rightBerryTabs.ts`
   - `RIGHT_BERRY_TABS` — right berry mode tab definitions
     - Invariant: order matches editor mode order

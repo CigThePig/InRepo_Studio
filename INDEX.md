@@ -612,6 +612,10 @@ Micro-format (copy/paste):
   - Role: Plugin contracts and tab registry for berry shell composition.
   - Lists of truth: TabRegistry.leftBerryTabs
 
+- `src/editor/core/eventBus.ts`
+  - Role: Strongly typed editor event bus for UI intents and state broadcasts.
+  - Lists of truth: EditorEventMap
+
 ### Scene Management (Track 17)
 - `src/editor/scenes/AGENTS.md`
   - Role: Scene management module rules.
