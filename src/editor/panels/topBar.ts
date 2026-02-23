@@ -3,6 +3,7 @@
  *
  * Global-only top bar for Undo/Redo/Settings/Play.
  * Provides slots for scene selector and optional layer panel content.
+ * Built using the Light DOM Factory Pattern for global CSS compatibility.
  */
 
 import { uxFeedback } from '@/editor/uxFeedback';
@@ -10,7 +11,6 @@ import type { EditorEventBus } from '@/editor/core';
 import { editorEventBus } from '@/editor/core';
 
 const LOG_PREFIX = '[TopBarV2]';
-const TOP_BAR_TAG = 'irs-top-bar';
 
 export interface TopBarV2State {
   expanded: boolean;
@@ -18,51 +18,27 @@ export interface TopBarV2State {
 }
 
 export interface TopBarV2Controller {
-  /** Set expanded state */
   setExpanded(expanded: boolean): void;
-
-  /** Get current expanded state */
   isExpanded(): boolean;
-
-  /** Get the scene selector container */
   getSceneSelectorContainer(): HTMLElement;
-
-  /** Get the content container for layer panel */
   getLayerPanelContainer(): HTMLElement;
-
-
-  /** Register callback for expand/collapse toggle */
   onExpandToggle(callback: (expanded: boolean) => void): void;
-
-  /** Get the save button element (for uxFeedback callers in init.ts) */
   getSaveButtonEl(): HTMLElement;
-
-  /** Mark the save button as dirty (unsaved changes exist) */
   markDirty(): void;
-
-  /** Mark the save button as cleanly saved (auto-save path, no toast) */
   markSaved(): void;
-
-  /** Show or hide the entire top bar (for Blockly Mode switching). */
   setVisible(visible: boolean): void;
-
-  /** Clean up resources */
   destroy(): void;
 }
 
+// Note: No @import needed! Global styles (.irs-btn, etc.) apply automatically in the Light DOM.
 const STYLES = `
-  @import url('/src/shared/common-styles.css');
-
-  :host {
-    display: block;
-  }
-
   .top-bar-v2 {
     display: flex;
     flex-direction: column;
     background: var(--irs-surface-panel);
     border-bottom: 1px solid var(--irs-border-light);
     overflow: hidden;
+    width: 100%;
   }
 
   .top-bar-v2__main {
@@ -145,6 +121,7 @@ const STYLES = `
     grid-template-rows: 0fr;
     opacity: 0;
     transform: translateY(calc(var(--irs-touch-target) * -0.25));
+    pointer-events: none;
   }
 
   .top-bar-v2__content:empty + .top-bar-v2__content-empty {
@@ -157,261 +134,12 @@ const STYLES = `
   }
 `;
 
-class TopBarElement extends HTMLElement implements TopBarV2Controller {
-  static get observedAttributes(): string[] {
-    return ['expanded', 'scene-name'];
-  }
-
-  private eventBus: EditorEventBus = editorEventBus;
-  private readonly shadowRootRef: ShadowRoot;
-  private panelEl: HTMLDivElement | null = null;
-  private sceneTitleEl: HTMLSpanElement | null = null;
-  private undoButtonEl: HTMLButtonElement | null = null;
-  private redoButtonEl: HTMLButtonElement | null = null;
-  private saveButtonEl: HTMLButtonElement | null = null;
-  private sceneSelectorContainerEl: HTMLDivElement | null = null;
-  private contentEl: HTMLDivElement | null = null;
-
-  private readonly unsubscribers: Array<() => void> = [];
-  private expandToggleCallback: ((expanded: boolean) => void) | null = null;
-
-  private isRendered = false;
-
-  constructor() {
-    super();
-    this.shadowRootRef = this.attachShadow({ mode: 'open' });
-  }
-
-  connectedCallback(): void {
-    if (!this.isRendered) {
-      this.render();
-      this.isRendered = true;
-      console.log(`${LOG_PREFIX} Top bar created`);
-    }
-    this.applyExpandedState();
-    this.applySceneName();
-    this.subscribeToState();
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
-    this.expandToggleCallback = null;
-    console.log(`${LOG_PREFIX} Top bar disconnected`);
-  }
-
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-    if (oldValue === newValue) {
-      return;
-    }
-
-    if (name === 'expanded') {
-      this.applyExpandedState();
-      this.expandToggleCallback?.(this.isExpanded());
-      return;
-    }
-
-    if (name === 'scene-name') {
-      this.applySceneName();
-    }
-  }
-
-  setExpanded(expanded: boolean): void {
-    if (expanded) {
-      this.setAttribute('expanded', 'true');
-      return;
-    }
-    this.removeAttribute('expanded');
-  }
-
-  isExpanded(): boolean {
-    return this.getAttribute('expanded') === 'true';
-  }
-
-  private setUndoRedoState(canUndo: boolean, canRedo: boolean): void {
-    if (!this.undoButtonEl || !this.redoButtonEl) {
-      return;
-    }
-
-    this.undoButtonEl.disabled = !canUndo;
-    this.redoButtonEl.disabled = !canRedo;
-    this.undoButtonEl.classList.toggle('top-bar-v2__button--disabled', !canUndo);
-    this.redoButtonEl.classList.toggle('top-bar-v2__button--disabled', !canRedo);
-  }
-
-  getSceneSelectorContainer(): HTMLElement {
-    if (!this.sceneSelectorContainerEl) {
-      throw new Error(`${LOG_PREFIX} Scene selector container unavailable`);
-    }
-    return this.sceneSelectorContainerEl;
-  }
-
-  getLayerPanelContainer(): HTMLElement {
-    if (!this.contentEl) {
-      throw new Error(`${LOG_PREFIX} Layer panel container unavailable`);
-    }
-    return this.contentEl;
-  }
-
-  onExpandToggle(callback: (expanded: boolean) => void): void {
-    this.expandToggleCallback = callback;
-  }
-
-  getSaveButtonEl(): HTMLElement {
-    if (!this.saveButtonEl) {
-      throw new Error(`${LOG_PREFIX} Save button unavailable`);
-    }
-    return this.saveButtonEl;
-  }
-
-  markDirty(): void {
-    if (!this.saveButtonEl) {
-      return;
-    }
-    uxFeedback.storage.markDirty(this.saveButtonEl);
-  }
-
-  markSaved(): void {
-    if (!this.saveButtonEl) {
-      return;
-    }
-    uxFeedback.storage.markSaved(this.saveButtonEl);
-  }
-
-  setVisible(visible: boolean): void {
-    this.style.display = visible ? '' : 'none';
-  }
-
-  destroy(): void {
-    this.remove();
-  }
-
-  private render(): void {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'top-bar-v2';
-
-    const styleEl = document.createElement('style');
-    styleEl.textContent = STYLES;
-
-    const mainRow = document.createElement('div');
-    mainRow.className = 'top-bar-v2__main';
-
-    const leftGroup = document.createElement('div');
-    leftGroup.className = 'top-bar-v2__group';
-
-    const rightGroup = document.createElement('div');
-    rightGroup.className = 'top-bar-v2__group';
-
-    this.undoButtonEl = this.createButton('↶', 'Undo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
-    this.undoButtonEl.disabled = true;
-    this.undoButtonEl.addEventListener('click', () => {
-      this.eventBus.dispatch('UI_ACTION_UNDO_REQUESTED', undefined);
-    });
-
-    this.redoButtonEl = this.createButton('↷', 'Redo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
-    this.redoButtonEl.disabled = true;
-    this.redoButtonEl.addEventListener('click', () => {
-      this.eventBus.dispatch('UI_ACTION_REDO_REQUESTED', undefined);
-    });
-
-    this.saveButtonEl = this.createButton('💾', 'Save', 'irs-btn irs-btn--secondary top-bar-v2__button');
-    this.saveButtonEl.addEventListener('click', () => {
-      this.eventBus.dispatch('UI_ACTION_SAVE_REQUESTED', undefined);
-    });
-
-    const settingsButton = this.createButton('⚙', 'Settings', 'irs-btn irs-btn--secondary top-bar-v2__button');
-    settingsButton.addEventListener('click', () => {
-      this.eventBus.dispatch('UI_ACTION_SETTINGS_REQUESTED', undefined);
-    });
-
-    const playButton = this.createButton('▶', 'Playtest', 'irs-btn irs-btn--primary top-bar-v2__button');
-    playButton.addEventListener('click', () => {
-      this.eventBus.dispatch('UI_ACTION_PLAYTEST_REQUESTED', undefined);
-    });
-
-    leftGroup.append(this.undoButtonEl, this.redoButtonEl, this.saveButtonEl);
-    rightGroup.append(settingsButton, playButton);
-    mainRow.append(leftGroup, rightGroup);
-
-    const secondaryRow = document.createElement('div');
-    secondaryRow.className = 'top-bar-v2__secondary';
-
-    this.sceneSelectorContainerEl = document.createElement('div');
-    this.sceneSelectorContainerEl.className = 'top-bar-v2__scene-selector';
-
-    this.sceneTitleEl = document.createElement('span');
-    this.sceneTitleEl.className = 'top-bar-v2__scene-title';
-
-    this.sceneSelectorContainerEl.appendChild(this.sceneTitleEl);
-    secondaryRow.appendChild(this.sceneSelectorContainerEl);
-
-    const contentWrap = document.createElement('div');
-    contentWrap.className = 'top-bar-v2__content-wrap';
-
-    this.contentEl = document.createElement('div');
-    this.contentEl.className = 'top-bar-v2__content';
-
-    const contentEmpty = document.createElement('div');
-    contentEmpty.className = 'top-bar-v2__content-empty';
-
-    contentWrap.append(this.contentEl, contentEmpty);
-
-    wrapper.append(mainRow, secondaryRow, contentWrap);
-
-    this.panelEl = wrapper;
-    this.shadowRootRef.append(styleEl, wrapper);
-  }
-
-  private applyExpandedState(): void {
-    if (!this.panelEl) {
-      return;
-    }
-    this.panelEl.classList.toggle('top-bar-v2--expanded', this.isExpanded());
-    this.panelEl.classList.toggle('top-bar-v2--collapsed', !this.isExpanded());
-  }
-
-  private applySceneName(): void {
-    if (!this.sceneTitleEl) {
-      return;
-    }
-    this.sceneTitleEl.textContent = this.getAttribute('scene-name') ?? '';
-  }
-
-  attachEventBus(eventBus: EditorEventBus): void {
-    this.unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
-    this.eventBus = eventBus;
-    this.subscribeToState();
-  }
-
-  private subscribeToState(): void {
-    if (this.unsubscribers.length > 0) {
-      return;
-    }
-
-    this.unsubscribers.push(
-      this.eventBus.on('STATE_SCENE_CHANGED', ({ sceneName }) => {
-        this.setAttribute('scene-name', sceneName);
-      })
-    );
-
-    this.unsubscribers.push(
-      this.eventBus.on('STATE_HISTORY_CHANGED', ({ canUndo, canRedo }) => {
-        this.setUndoRedoState(canUndo, canRedo);
-      })
-    );
-  }
-
-  private createButton(text: string, label: string, className: string): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.className = className;
-    button.type = 'button';
-    button.textContent = text;
-    button.setAttribute('aria-label', label);
-    return button;
-  }
-}
-
-if (!customElements.get(TOP_BAR_TAG)) {
-  customElements.define(TOP_BAR_TAG, TopBarElement);
+function ensureStyles(): void {
+  if (document.getElementById('top-bar-v2-styles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'top-bar-v2-styles';
+  styleEl.textContent = STYLES;
+  document.head.appendChild(styleEl);
 }
 
 export function createTopBarV2(
@@ -419,12 +147,176 @@ export function createTopBarV2(
   initialState: TopBarV2State,
   eventBus: EditorEventBus = editorEventBus
 ): TopBarV2Controller {
-  const topBar = document.createElement(TOP_BAR_TAG) as TopBarElement;
-  container.appendChild(topBar);
-  topBar.attachEventBus(eventBus);
+  ensureStyles();
 
-  topBar.setExpanded(initialState.expanded);
-  eventBus.dispatch('STATE_SCENE_CHANGED', { sceneName: initialState.sceneName });
+  let isExpanded = initialState.expanded;
+  let expandToggleCallback: ((expanded: boolean) => void) | null = null;
+  const unsubscribers: Array<() => void> = [];
 
-  return topBar;
+  // --- DOM Construction ---
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'top-bar-v2';
+
+  const mainRow = document.createElement('div');
+  mainRow.className = 'top-bar-v2__main';
+
+  const leftGroup = document.createElement('div');
+  leftGroup.className = 'top-bar-v2__group';
+
+  const rightGroup = document.createElement('div');
+  rightGroup.className = 'top-bar-v2__group';
+
+  function createButton(text: string, label: string, className: string): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.className = className;
+    button.type = 'button';
+    button.textContent = text;
+    button.setAttribute('aria-label', label);
+    return button;
+  }
+
+  const undoButtonEl = createButton('↶', 'Undo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
+  undoButtonEl.disabled = true;
+  undoButtonEl.addEventListener('click', () => {
+    uxFeedback.motion.pulse(undoButtonEl);
+    eventBus.dispatch('UI_ACTION_UNDO_REQUESTED', undefined);
+  });
+
+  const redoButtonEl = createButton('↷', 'Redo', 'irs-btn irs-btn--secondary top-bar-v2__button top-bar-v2__button--disabled');
+  redoButtonEl.disabled = true;
+  redoButtonEl.addEventListener('click', () => {
+    uxFeedback.motion.pulse(redoButtonEl);
+    eventBus.dispatch('UI_ACTION_REDO_REQUESTED', undefined);
+  });
+
+  const saveButtonEl = createButton('💾', 'Save', 'irs-btn irs-btn--secondary top-bar-v2__button');
+  saveButtonEl.addEventListener('click', () => {
+    uxFeedback.motion.pulse(saveButtonEl);
+    eventBus.dispatch('UI_ACTION_SAVE_REQUESTED', undefined);
+  });
+
+  const settingsButton = createButton('⚙', 'Settings', 'irs-btn irs-btn--secondary top-bar-v2__button');
+  settingsButton.addEventListener('click', () => {
+    uxFeedback.motion.pulse(settingsButton);
+    eventBus.dispatch('UI_ACTION_SETTINGS_REQUESTED', undefined);
+  });
+
+  const playButton = createButton('▶', 'Playtest', 'irs-btn irs-btn--primary top-bar-v2__button');
+  playButton.addEventListener('click', () => {
+    uxFeedback.motion.pulse(playButton);
+    eventBus.dispatch('UI_ACTION_PLAYTEST_REQUESTED', undefined);
+  });
+
+  leftGroup.append(undoButtonEl, redoButtonEl, saveButtonEl);
+  rightGroup.append(settingsButton, playButton);
+  mainRow.append(leftGroup, rightGroup);
+
+  const secondaryRow = document.createElement('div');
+  secondaryRow.className = 'top-bar-v2__secondary';
+
+  const sceneSelectorContainerEl = document.createElement('div');
+  sceneSelectorContainerEl.className = 'top-bar-v2__scene-selector';
+
+  const sceneTitleEl = document.createElement('span');
+  sceneTitleEl.className = 'top-bar-v2__scene-title';
+  sceneTitleEl.textContent = initialState.sceneName;
+
+  sceneSelectorContainerEl.appendChild(sceneTitleEl);
+  secondaryRow.appendChild(sceneSelectorContainerEl);
+
+  const contentWrap = document.createElement('div');
+  contentWrap.className = 'top-bar-v2__content-wrap';
+
+  const contentEl = document.createElement('div');
+  contentEl.className = 'top-bar-v2__content';
+
+  const contentEmpty = document.createElement('div');
+  contentEmpty.className = 'top-bar-v2__content-empty';
+
+  contentWrap.append(contentEl, contentEmpty);
+  wrapper.append(mainRow, secondaryRow, contentWrap);
+  container.appendChild(wrapper);
+
+  // --- Internal Helpers ---
+
+  function applyExpandedState() {
+    wrapper.classList.toggle('top-bar-v2--expanded', isExpanded);
+    wrapper.classList.toggle('top-bar-v2--collapsed', !isExpanded);
+  }
+
+  function setUndoRedoState(canUndo: boolean, canRedo: boolean) {
+    undoButtonEl.disabled = !canUndo;
+    redoButtonEl.disabled = !canRedo;
+    undoButtonEl.classList.toggle('top-bar-v2__button--disabled', !canUndo);
+    redoButtonEl.classList.toggle('top-bar-v2__button--disabled', !canRedo);
+  }
+
+  // --- Event Subscriptions ---
+
+  unsubscribers.push(
+    eventBus.on('STATE_SCENE_CHANGED', ({ sceneName }) => {
+      sceneTitleEl.textContent = sceneName;
+    })
+  );
+
+  unsubscribers.push(
+    eventBus.on('STATE_HISTORY_CHANGED', ({ canUndo, canRedo }) => {
+      setUndoRedoState(canUndo, canRedo);
+    })
+  );
+
+  // Initialization
+  applyExpandedState();
+  console.log(`${LOG_PREFIX} Top bar created`);
+
+  // --- Controller API ---
+
+  return {
+    setExpanded(expanded: boolean): void {
+      if (isExpanded === expanded) return;
+      isExpanded = expanded;
+      applyExpandedState();
+      expandToggleCallback?.(isExpanded);
+    },
+
+    isExpanded(): boolean {
+      return isExpanded;
+    },
+
+    getSceneSelectorContainer(): HTMLElement {
+      return sceneSelectorContainerEl;
+    },
+
+    getLayerPanelContainer(): HTMLElement {
+      return contentEl;
+    },
+
+    onExpandToggle(callback: (expanded: boolean) => void): void {
+      expandToggleCallback = callback;
+    },
+
+    getSaveButtonEl(): HTMLElement {
+      return saveButtonEl;
+    },
+
+    markDirty(): void {
+      uxFeedback.storage.markDirty(saveButtonEl);
+    },
+
+    markSaved(): void {
+      uxFeedback.storage.markSaved(saveButtonEl);
+    },
+
+    setVisible(visible: boolean): void {
+      wrapper.style.display = visible ? '' : 'none';
+    },
+
+    destroy(): void {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+      unsubscribers.length = 0;
+      wrapper.remove();
+      console.log(`${LOG_PREFIX} Top bar destroyed`);
+    },
+  };
 }
