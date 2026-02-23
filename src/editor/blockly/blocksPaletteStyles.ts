@@ -16,38 +16,9 @@ export const BLOCKS_PALETTE_STYLES = `
     background: var(--irs-surface-base);
     flex-shrink: 0;
   }
-
-  .blocks-palette__search-input {
-    width: 100%;
-    padding-right: 36px;
-  }
-
   .blocks-palette__search-wrap {
     position: relative;
   }
-
-  .blocks-palette__search-clear {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    color: var(--irs-text-muted);
-    font-size: 16px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .blocks-palette__search-clear--visible {
-    display: flex;
-  }
-
   .blocks-palette__list {
     flex: 1;
     overflow-y: auto;
@@ -71,6 +42,13 @@ export const BLOCKS_PALETTE_STYLES = `
 
   .blocks-palette__category {
     margin-bottom: 4px;
+  }
+
+
+  .blocks-palette__results-count {
+    padding: 2px 8px 10px;
+    color: var(--irs-text-secondary);
+    font-size: 12px;
   }
 
   .blocks-palette__cat-header {

@@ -18,6 +18,7 @@ import {
   isCategoryVisible,
 } from './paletteCategories';
 import { BLOCKS_PALETTE_STYLES } from './blocksPaletteStyles';
+import { createSearchInput } from '@/shared/ui/searchInput';
 
 const LOG_PREFIX = '[BlocksPalette]';
 
@@ -75,23 +76,21 @@ export function createBlocksPalette(
   const searchSection = document.createElement('div');
   searchSection.className = 'blocks-palette__search';
 
-  const searchWrap = document.createElement('div');
-  searchWrap.className = 'blocks-palette__search-wrap';
-
-  const searchInput = document.createElement('input');
-  searchInput.type = 'text';
-  searchInput.className = 'irs-input blocks-palette__search-input';
-  searchInput.placeholder = 'Search blocks...';
-
-  const searchClear = document.createElement('button');
-  searchClear.type = 'button';
-  searchClear.className = 'blocks-palette__search-clear';
-  searchClear.textContent = '\u00d7';
-  searchClear.setAttribute('aria-label', 'Clear search');
-
-  searchWrap.appendChild(searchInput);
-  searchWrap.appendChild(searchClear);
-  searchSection.appendChild(searchWrap);
+  const search = createSearchInput({
+    placeholder: 'Search blocks...',
+    ariaLabel: 'Search blocks',
+    className: 'blocks-palette__search-wrap',
+    onInput: (value) => {
+      searchQuery = value;
+      render();
+    },
+    onClear: () => {
+      searchQuery = '';
+      render();
+      search.input.focus();
+    },
+  });
+  searchSection.appendChild(search.root);
 
   // Block list
   const listContainer = document.createElement('div');
@@ -104,21 +103,6 @@ export function createBlocksPalette(
   // Gesture isolation for palette scroll
   listContainer.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
   listContainer.addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
-
-  // --- Search ---
-
-  searchInput.addEventListener('input', () => {
-    searchQuery = searchInput.value;
-    searchClear.classList.toggle('blocks-palette__search-clear--visible', searchQuery.length > 0);
-    render();
-  });
-
-  searchClear.addEventListener('click', () => {
-    searchQuery = '';
-    searchInput.value = '';
-    searchClear.classList.remove('blocks-palette__search-clear--visible');
-    render();
-  });
 
   // --- Rendering ---
 
@@ -266,10 +250,15 @@ export function createBlocksPalette(
     if (results.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'blocks-palette__empty-search';
-      empty.textContent = 'No blocks found';
+      empty.textContent = "No blocks found. Try searching for 'jump', 'move', or 'event'.";
       listContainer.appendChild(empty);
       return;
     }
+
+    const resultsCount = document.createElement('div');
+    resultsCount.className = 'blocks-palette__results-count';
+    resultsCount.textContent = `Found ${results.length} block${results.length === 1 ? '' : 's'}`;
+    listContainer.appendChild(resultsCount);
 
     // Group by category
     const grouped = new Map<string, BlockPackEntry[]>();
@@ -466,6 +455,7 @@ export function createBlocksPalette(
       render();
     },
     destroy() {
+      search.destroy();
       root.remove();
       console.log(`${LOG_PREFIX} Palette destroyed`);
     },

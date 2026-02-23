@@ -807,6 +807,10 @@ Micro-format (copy/paste):
   - Role: Shared utility classes for standard overlays, dialogs, buttons, and inputs using theme tokens.
   - Lists of truth: none
 
+- `src/shared/ui/searchInput.ts`
+  - Role: Shared DOM factory for berry-themed search inputs with icon/clear affordances and lifecycle cleanup.
+  - Lists of truth: none
+
 - `src/shared/atlasNaming.ts`
   - Role: Stable atlas category naming helpers (`atlas:<groupSlug>`) for editor/runtime/scene mapping.
   - Lists of truth: none
