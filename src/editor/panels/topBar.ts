@@ -132,6 +132,14 @@ const STYLES = `
     display: none;
     height: 0;
   }
+
+  .top-bar-v2__toggle-icon {
+    transition: transform 200ms ease-in-out;
+  }
+
+  .top-bar-v2--collapsed .top-bar-v2__toggle-icon {
+    transform: rotate(-90deg);
+  }
 `;
 
 function ensureStyles(): void {
@@ -224,6 +232,24 @@ export function createTopBarV2(
 
   sceneSelectorContainerEl.appendChild(sceneTitleEl);
   secondaryRow.appendChild(sceneSelectorContainerEl);
+
+  const toggleButton = document.createElement('button');
+  toggleButton.className = 'irs-btn irs-btn--secondary top-bar-v2__button';
+  toggleButton.type = 'button';
+  toggleButton.setAttribute('aria-label', 'Toggle layer panel');
+
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className = 'top-bar-v2__toggle-icon';
+  toggleIcon.textContent = '▼';
+
+  toggleButton.appendChild(toggleIcon);
+  toggleButton.addEventListener('click', () => {
+    isExpanded = !isExpanded;
+    applyExpandedState();
+    expandToggleCallback?.(isExpanded);
+  });
+
+  secondaryRow.appendChild(toggleButton);
 
   const contentWrap = document.createElement('div');
   contentWrap.className = 'top-bar-v2__content-wrap';
