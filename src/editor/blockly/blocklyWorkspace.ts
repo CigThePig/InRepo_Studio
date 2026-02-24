@@ -19,6 +19,13 @@ import type { BlockRegistry } from '@/runtime/blockly';
 
 const LOG_PREFIX = '[BlocklyWorkspace]';
 
+function resolveBlocklyGridColor(): string {
+  const resolved = getComputedStyle(document.documentElement)
+    .getPropertyValue('--irs-surface-base')
+    .trim();
+  return resolved || '#333333';
+}
+
 // --- Types ---
 
 export interface BlocklyWorkspaceController {
@@ -68,33 +75,35 @@ export interface BlocklyWorkspaceController {
 
 // --- Configuration ---
 
-const WORKSPACE_CONFIG: Blockly.BlocklyOptions = {
-  renderer: 'zelos',
-  toolbox: { kind: 'categoryToolbox', contents: [] } as unknown as Blockly.utils.toolbox.ToolboxDefinition,
-  zoom: {
-    controls: false,
-    wheel: true,
-    pinch: true,
-    startScale: 0.8,
-    maxScale: 2,
-    minScale: 0.3,
-    scaleSpeed: 1.1,
-  },
-  move: {
-    scrollbars: { horizontal: false, vertical: false },
-    drag: true,
-    wheel: true,
-  },
-  grid: {
-    spacing: 20,
-    length: 3,
-    colour: '#333',
-    snap: true,
-  },
-  trashcan: true,
-  sounds: false,
-  media: 'https://unpkg.com/blockly/media/',
-};
+function createWorkspaceConfig(): Blockly.BlocklyOptions {
+  return {
+    renderer: 'zelos',
+    toolbox: { kind: 'categoryToolbox', contents: [] } as unknown as Blockly.utils.toolbox.ToolboxDefinition,
+    zoom: {
+      controls: false,
+      wheel: true,
+      pinch: true,
+      startScale: 0.8,
+      maxScale: 2,
+      minScale: 0.3,
+      scaleSpeed: 1.1,
+    },
+    move: {
+      scrollbars: { horizontal: false, vertical: false },
+      drag: true,
+      wheel: true,
+    },
+    grid: {
+      spacing: 20,
+      length: 3,
+      colour: resolveBlocklyGridColor(),
+      snap: true,
+    },
+    trashcan: true,
+    sounds: false,
+    media: 'https://unpkg.com/blockly/media/',
+  };
+}
 
 // --- Factory ---
 
@@ -114,7 +123,7 @@ export function createBlocklyWorkspace(
 
   console.log(`${LOG_PREFIX} Injecting Blockly workspace with Zelos renderer`);
 
-  const workspace = Blockly.inject(container, WORKSPACE_CONFIG);
+  const workspace = Blockly.inject(container, createWorkspaceConfig());
 
   // Track change listeners for cleanup
   const changeDisposers: Array<() => void> = [];

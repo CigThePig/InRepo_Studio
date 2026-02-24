@@ -170,7 +170,7 @@ const STYLES = `
     width: 24px;
     height: 24px;
     background: var(--irs-surface-base);
-    border-radius: 2px;
+    border-radius: var(--irs-radius-xs);
   }
 
   .irs-tile-picker__tile-cell-error {

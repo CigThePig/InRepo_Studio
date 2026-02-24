@@ -108,7 +108,7 @@ const BERRY_STYLES = `
   .irs-berry__close {
     width: 44px;
     height: 44px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: none;
     background: var(--irs-color-blue-alpha-8);
     color: var(--irs-text-secondary);
@@ -157,7 +157,7 @@ const BERRY_STYLES = `
     gap: 8px;
     height: 44px;
     padding: 0 14px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: none;
     background: transparent;
     color: var(--irs-text-secondary);
@@ -212,7 +212,7 @@ const BERRY_STYLES = `
 
   .irs-berry__tab-content::-webkit-scrollbar-thumb {
     background: var(--irs-color-blue-alpha-16);
-    border-radius: 2px;
+    border-radius: var(--irs-radius-xs);
   }
 
   .irs-berry__tab-content--active {
@@ -226,7 +226,7 @@ const BERRY_STYLES = `
     line-height: 1.5;
     background: var(--irs-color-blue-alpha-4);
     border: 1px dashed var(--irs-color-blue-alpha-12);
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     padding: 16px;
   }
 
@@ -271,13 +271,13 @@ const BERRY_STYLES = `
 
   .irs-berry__handle--left .irs-berry__handle-tab {
     border-left: none;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 var(--irs-radius-md) var(--irs-radius-md) 0;
     box-shadow: 2px 0 8px var(--irs-border-light);
   }
 
   .irs-berry__handle--right .irs-berry__handle-tab {
     border-right: none;
-    border-radius: 10px 0 0 10px;
+    border-radius: var(--irs-radius-md) 0 0 var(--irs-radius-md);
     box-shadow: -2px 0 8px var(--irs-border-light);
   }
 

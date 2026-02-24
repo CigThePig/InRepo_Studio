@@ -41,10 +41,10 @@ function showError(message: string): void {
   if (loadingEl) {
     loadingEl.innerHTML = `
       <div style="text-align: center; padding: 20px;">
-        <div style="color: #ff6b6b; margin-bottom: 10px;">Error</div>
-        <div style="color: #888;">${message}</div>
+        <div style="color: var(--irs-accent-danger); margin-bottom: 10px;">Error</div>
+        <div style="color: var(--irs-text-muted);">${message}</div>
         <button
-          style="margin-top: 20px; padding: 10px 20px; background: #4a4a6a; border: none; color: white; border-radius: 4px; cursor: pointer;"
+          style="margin-top: 20px; padding: 10px 20px; background: var(--irs-border-heavy); border: none; color: var(--irs-text-primary); border-radius: var(--irs-radius-sm); cursor: pointer;"
           onclick="window.location.reload()"
         >
           Retry
