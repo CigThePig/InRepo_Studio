@@ -16,16 +16,16 @@ The previous audit covered the 12 panel files that existed at that time. Since t
 | File | Theme | Naming | Buttons | Inputs | UX Feedback | Touch |
 |---|---|---|---|---|---|---|
 | `panels/tilePicker.ts` | ❌ | ❌ | ❌ | — | ⚠️ | — |
-| `panels/animStateMachine.ts` | ❌ | ❌ | ❌ | ❌ | ⚠️ | — |
+| `panels/animStateMachine.ts` | ✅ | ✅ | ✅ | ✅ | ⚠️ | — |
 | `panels/utilitiesTab.ts` | ❌ | ❌ | ❌ | — | ❌ | — |
-| `panels/spriteSlicerTab.ts` | ❌ | ❌ | ❌ | — | ⚠️ | ❌ |
+| `panels/spriteSlicerTab.ts` | ✅ | ✅ | ✅ | — | ⚠️ | ✅ |
 | `presets/presetsTab.ts` | ❌ | ❌ | — | — | ⚠️ | — |
 | `presets/categoryDetail.ts` | ❌ | ❌ | — | — | ⚠️ | — |
 | `presets/knobEditor.ts` | ❌ | ❌ | — | — | — | — |
 | `presets/blocklyHooksTab.ts` | ❌ | ❌ | — | — | — | — |
 | `scenes/sceneSelector.ts` | ❌ | ❌ | ❌ | — | ❌ | — |
 | `deploy/conflictResolver.ts` | ❌ | ❌ | — | — | ❌ | — |
-| `editor/init.ts` (inline CSS) | ❌ | — | — | — | — | — |
+| `editor/init.ts` (inline CSS) | ✅ | — | — | — | — | — |
 
 **Files previously migrated that have remaining sub-issues:**
 
@@ -71,7 +71,7 @@ All colors in the STYLES block are raw hex/rgba values. The component uses `tile
 
 ---
 
-### Issue #20 — `animStateMachine.ts` Uses Raw Values, Wrong Namespace, Non-`irs-btn` Buttons, and Non-`irs-input` Inputs
+### Issue #20 — `animStateMachine.ts` Uses Raw Values, Wrong Namespace, Non-`irs-btn` Buttons, and Non-`irs-input` Inputs ✅ COMPLETED
 
 **Severity: Critical**  
 **File:** `src/editor/panels/animStateMachine.ts`
@@ -138,7 +138,7 @@ All raw colors — same pattern as other unmigrated files. `utilities-tab__butto
 
 ---
 
-### Issue #22 — `spriteSlicerTab.ts` Uses Raw Values, Wrong Namespace, and Has Touch Target Violation
+### Issue #22 — `spriteSlicerTab.ts` Uses Raw Values, Wrong Namespace, and Has Touch Target Violation ✅ COMPLETED
 
 **Severity: Critical**  
 **File:** `src/editor/panels/spriteSlicerTab.ts`
@@ -213,7 +213,7 @@ All four presets-subsystem files were built as a standalone island. None use `va
 
 ---
 
-### Issue #26 — `init.ts` Inline CSS Blocks Are Fully Unthemed
+### Issue #26 — `init.ts` Inline CSS Blocks Are Fully Unthemed ✅ COMPLETED
 
 **Severity: Major**  
 **File:** `src/editor/init.ts`

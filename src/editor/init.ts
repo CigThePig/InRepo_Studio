@@ -94,6 +94,7 @@ import {
 import {
   createSceneManager,
   createSceneSelector,
+  createScenePopover,
   showCreateSceneDialog,
   showRenameDialog,
   showResizeDialog,
@@ -103,6 +104,7 @@ import {
   type SceneSelector,
   type SceneAction,
 } from '@/editor/scenes';
+import { createSettingsNotice, showSettingsPlaceholderDialog } from '@/editor/panels/settingsPanel';
 import { createEntityManager, type EntityManager } from '@/editor/entities/entityManager';
 import { createPropSpriteManager, type PropSpriteManager } from '@/editor/props/propSpriteManager';
 import { createEntitySelection, type EntitySelection } from '@/editor/entities/entitySelection';
@@ -175,9 +177,13 @@ let presetConfigStoreRef: {
   enableCategory(categoryId: PresetCategoryId, presetId: string): void;
 } | null = null;
 
+const CURSOR_ERASE_FILL = 'rgba(255, 80, 80, 0.25)';
+const CURSOR_ERASE_BORDER = 'rgba(255, 120, 120, 0.9)';
+const CURSOR_DEFAULT_BORDER = 'rgba(255, 255, 255, 0.9)';
+
 const ERASE_HOVER_STYLE = {
-  fill: 'rgba(255, 80, 80, 0.25)',
-  border: 'rgba(255, 120, 120, 0.9)',
+  fill: CURSOR_ERASE_FILL,
+  border: CURSOR_ERASE_BORDER,
 };
 
 function resolveRepoConfig(): { owner: string; repo: string } | null {
@@ -220,7 +226,7 @@ function updateHoverPreview(tool: EditorState['currentTool']): void {
     renderer.setHoverBrushSize(1);
     renderer.setHoverStyle();
     canvasController?.setBrushCursorSize(1);
-    canvasController?.setBrushCursorColor('rgba(255, 255, 255, 0.9)');
+    canvasController?.setBrushCursorColor(CURSOR_DEFAULT_BORDER);
   }
 }
 
@@ -625,92 +631,25 @@ function syncSelectedAssetSelection(
   applySelectedTile(selection, options);
 }
 
-let localAssetNoticeEl: HTMLElement | null = null;
-let localAssetNoticeTimeout: number | null = null;
-let atlasMismatchNoticeEl: HTMLElement | null = null;
-let atlasMismatchNoticeTimeout: number | null = null;
+let localAssetNotice: ((message: string) => void) | null = null;
+let atlasMismatchNotice: ((message: string) => void) | null = null;
 
 function showLocalAssetNotice(asset: AssetEntry): void {
-  // Show a temporary toast explaining why the asset can't be painted
   const container = document.getElementById('canvas-container');
   if (!container) return;
-
-  if (localAssetNoticeEl) {
-    localAssetNoticeEl.remove();
-    if (localAssetNoticeTimeout !== null) {
-      window.clearTimeout(localAssetNoticeTimeout);
-    }
+  if (!localAssetNotice) {
+    localAssetNotice = createSettingsNotice(container, 280);
   }
-
-  const notice = document.createElement('div');
-  notice.style.cssText = `
-    position: absolute;
-    left: 50%;
-    bottom: 60px;
-    transform: translateX(-50%);
-    background: rgba(20, 24, 48, 0.95);
-    color: #ffddaa;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid rgba(255, 185, 80, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    z-index: 30;
-    max-width: 280px;
-    text-align: center;
-    line-height: 1.4;
-  `;
-  notice.textContent = `"${asset.name}" is a local asset. Upload it to the repo to use it for painting.`;
-  container.appendChild(notice);
-  localAssetNoticeEl = notice;
-
-  localAssetNoticeTimeout = window.setTimeout(() => {
-    notice.remove();
-    localAssetNoticeEl = null;
-    localAssetNoticeTimeout = null;
-  }, 4000);
+  localAssetNotice(`"${asset.name}" is a local asset. Upload it to the repo to use it for painting.`);
 }
 
 function showAtlasMismatchNotice(message: string): void {
   const container = document.getElementById('canvas-container');
   if (!container) return;
-
-  if (atlasMismatchNoticeEl) {
-    atlasMismatchNoticeEl.remove();
-    if (atlasMismatchNoticeTimeout !== null) {
-      window.clearTimeout(atlasMismatchNoticeTimeout);
-    }
+  if (!atlasMismatchNotice) {
+    atlasMismatchNotice = createSettingsNotice(container, 320);
   }
-
-  const notice = document.createElement('div');
-  notice.style.cssText = `
-    position: absolute;
-    left: 50%;
-    bottom: 60px;
-    transform: translateX(-50%);
-    background: rgba(20, 24, 48, 0.95);
-    color: #ffddaa;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid rgba(255, 185, 80, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    z-index: 30;
-    max-width: 320px;
-    text-align: center;
-    line-height: 1.4;
-  `;
-  notice.textContent = message;
-  container.appendChild(notice);
-  atlasMismatchNoticeEl = notice;
-
-  atlasMismatchNoticeTimeout = window.setTimeout(() => {
-    notice.remove();
-    atlasMismatchNoticeEl = null;
-    atlasMismatchNoticeTimeout = null;
-  }, 4000);
+  atlasMismatchNotice(message);
 }
 
 function updateEntitySelectionUI(): void {
@@ -765,12 +704,12 @@ function setLayerPanelVisibility(visible: boolean): void {
   element.setAttribute('aria-hidden', String(!visible));
 }
 
-function openSettingsPlaceholder(): void {
+async function openSettingsPlaceholder(): Promise<void> {
   const isHidden = isFlagEnabled(EDITOR_FLAGS.HIDE_LAYER_PANEL);
   const prompt = isHidden
     ? 'Show Layer Panel? (Advanced)'
     : 'Hide Layer Panel? (Advanced)';
-  const confirm = window.confirm(`Settings (Preview)\n\n${prompt}`);
+  const confirm = await showSettingsPlaceholderDialog(prompt);
   if (!confirm) {
     return;
   }
@@ -1274,37 +1213,7 @@ async function initCanvas(tileSize: number): Promise<void> {
     return;
   }
 
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: absolute;
-    left: 50%;
-    bottom: 16px;
-    transform: translateX(-50%);
-    background: rgba(20, 24, 48, 0.95);
-    color: #e6ecff;
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid #30407a;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    display: none;
-    z-index: 9;
-  `;
-  container.appendChild(toast);
-
-  let toastTimeout: number | null = null;
-  function showToast(message: string): void {
-    toast.textContent = message;
-    toast.style.display = 'block';
-    if (toastTimeout !== null) {
-      window.clearTimeout(toastTimeout);
-    }
-    toastTimeout = window.setTimeout(() => {
-      toast.style.display = 'none';
-      toastTimeout = null;
-    }, 2200);
-  }
+  const showToast = createScenePopover(container);
 
   // Get initial selected category
   const initialCategory = editorState?.selectedTile?.category ??
@@ -1671,7 +1580,7 @@ async function initPanels(): Promise<void> {
       });
 
       editorEventBus.on('UI_ACTION_SETTINGS_REQUESTED', () => {
-        openSettingsPlaceholder();
+        void openSettingsPlaceholder();
       });
 
       editorEventBus.on('UI_ACTION_SAVE_REQUESTED', () => {

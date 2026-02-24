@@ -7,64 +7,64 @@ import type { SmSimulator } from './smSimulator';
 import { uxFeedback } from '@/editor/uxFeedback';
 
 const STYLES = `
-  .asm-editor {
+  .irs-anim-state-machine {
     display: flex;
     flex-direction: column;
     height: 100%;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
     font-family: inherit;
   }
 
-  .asm-editor__toolbar {
+  .irs-anim-state-machine__toolbar {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(20, 30, 60, 0.95);
-    border-bottom: 1px solid #253461;
+    background: var(--irs-surface-dark);
+    border-bottom: 1px solid var(--irs-border-heavy);
     flex-shrink: 0;
   }
 
-  .asm-editor__toolbar-button {
-    min-height: 36px;
+  .irs-anim-state-machine__toolbar-button {
+    min-height: var(--irs-touch-target);
     padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(33, 46, 89, 0.85);
-    color: #f2f5ff;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-dark-alpha);
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .asm-editor__toolbar-button:active {
-    background: rgba(52, 70, 128, 0.9);
+  .irs-anim-state-machine__toolbar-button:active {
+    background: var(--irs-accent-primary-active);
   }
 
-  .asm-editor__toolbar-button--primary {
-    background: rgba(74, 158, 255, 0.2);
-    border-color: rgba(74, 158, 255, 0.4);
+  .irs-anim-state-machine__toolbar-button--primary {
+    background: var(--irs-color-blue-alpha-22);
+    border-color: var(--irs-color-blue-border);
   }
 
-  .asm-editor__toolbar-title {
+  .irs-anim-state-machine__toolbar-title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .asm-editor__canvas-wrap {
+  .irs-anim-state-machine__canvas-wrap {
     flex: 1;
     position: relative;
     overflow: hidden;
-    background: rgba(12, 18, 40, 0.95);
+    background: var(--irs-surface-base);
   }
 
-  .asm-editor__canvas {
+  .irs-anim-state-machine__canvas {
     position: absolute;
     top: 0;
     left: 0;
@@ -73,10 +73,10 @@ const STYLES = `
     touch-action: none;
   }
 
-  .asm-editor__inspector {
+  .irs-anim-state-machine__inspector {
     padding: 12px;
-    background: rgba(20, 30, 60, 0.95);
-    border-top: 1px solid #253461;
+    background: var(--irs-surface-dark);
+    border-top: 1px solid var(--irs-border-heavy);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -85,144 +85,144 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  .asm-editor__inspector-title {
+  .irs-anim-state-machine__inspector-title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
-  .asm-editor__field {
+  .irs-anim-state-machine__field {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
 
-  .asm-editor__field-label {
+  .irs-anim-state-machine__field-label {
     font-size: 11px;
     font-weight: 600;
-    color: #9fb2e3;
+    color: var(--irs-text-secondary);
   }
 
-  .asm-editor__field-input,
-  .asm-editor__field-select {
-    min-height: 36px;
-    border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+  .irs-anim-state-machine__field-input,
+  .irs-anim-state-machine__field-select {
+    min-height: var(--irs-touch-target);
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     padding: 6px 10px;
     font-size: 12px;
   }
 
-  .asm-editor__field-select {
+  .irs-anim-state-machine__field-select {
     cursor: pointer;
   }
 
-  .asm-editor__field-checkbox {
+  .irs-anim-state-machine__field-checkbox {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
-  .asm-editor__list {
+  .irs-anim-state-machine__list {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 12px;
-    background: rgba(20, 30, 60, 0.95);
-    border-top: 1px solid #253461;
+    background: var(--irs-surface-dark);
+    border-top: 1px solid var(--irs-border-heavy);
     max-height: 50vh;
     overflow-y: auto;
     flex-shrink: 0;
   }
 
-  .asm-editor__list-item {
+  .irs-anim-state-machine__list-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(30, 42, 80, 0.85);
-    border-radius: 10px;
+    background: var(--irs-surface-dark-alpha);
+    border-radius: var(--irs-radius-md);
     cursor: pointer;
     border: 2px solid transparent;
   }
 
-  .asm-editor__list-item--selected {
-    border-color: #4a9eff;
+  .irs-anim-state-machine__list-item--selected {
+    border-color: var(--irs-color-blue);
   }
 
-  .asm-editor__list-item-name {
+  .irs-anim-state-machine__list-item-name {
     font-size: 13px;
     font-weight: 600;
   }
 
-  .asm-editor__list-item-info {
+  .irs-anim-state-machine__list-item-info {
     font-size: 11px;
-    color: #9fb2e3;
+    color: var(--irs-text-secondary);
   }
 
-  .asm-editor__empty {
+  .irs-anim-state-machine__empty {
     font-size: 12px;
-    color: #8c94c9;
+    color: var(--irs-text-muted);
     padding: 16px 12px;
     text-align: center;
   }
 
-  .asm-editor__toolbar-button--active {
-    background: rgba(74, 255, 142, 0.18);
-    border-color: rgba(74, 255, 142, 0.55);
-    color: #4aff8e;
+  .irs-anim-state-machine__toolbar-button--active {
+    background: var(--irs-color-green-alpha-15);
+    border-color: var(--irs-color-green-alpha-53);
+    color: var(--irs-accent-success);
   }
 
-  .asm-editor__toolbar-button--danger {
-    background: rgba(255, 80, 80, 0.12);
-    border-color: rgba(255, 80, 80, 0.4);
-    color: #ff9fb3;
+  .irs-anim-state-machine__toolbar-button--danger {
+    background: var(--irs-color-red-alpha-15);
+    border-color: var(--irs-color-red-alpha-53);
+    color: var(--irs-accent-danger);
   }
 
-  .asm-editor__sim-panel {
+  .irs-anim-state-machine__sim-panel {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(10, 22, 50, 0.97);
-    border-top: 2px solid #4aff8e44;
+    background: var(--irs-surface-dark);
+    border-top: 2px solid var(--irs-color-green-glow);
   }
 
-  .asm-editor__sim-label {
+  .irs-anim-state-machine__sim-label {
     font-size: 11px;
     font-weight: 700;
-    color: #4aff8e;
+    color: var(--irs-accent-success);
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
-  .asm-editor__sim-state {
+  .irs-anim-state-machine__sim-state {
     font-size: 12px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     padding: 6px 10px;
-    background: rgba(74, 255, 142, 0.08);
-    border-radius: 8px;
-    border: 1px solid #4aff8e44;
+    background: var(--irs-surface-elevated);
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-color-green-glow);
   }
 
-  .asm-editor__sim-events {
+  .irs-anim-state-machine__sim-events {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
   }
 
-  .asm-editor__sim-event-btn {
-    min-height: 36px;
+  .irs-anim-state-machine__sim-event-btn {
+    min-height: var(--irs-touch-target);
     padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(74, 158, 255, 0.5);
-    background: rgba(74, 158, 255, 0.12);
-    color: #a8c8ff;
+    border-radius: var(--irs-radius-pill);
+    border: 1px solid var(--irs-color-blue-border);
+    background: var(--irs-color-blue-alpha-12);
+    color: var(--irs-text-secondary);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -230,38 +230,38 @@ const STYLES = `
     white-space: nowrap;
   }
 
-  .asm-editor__sim-event-btn:active {
-    background: rgba(74, 158, 255, 0.3);
+  .irs-anim-state-machine__sim-event-btn:active {
+    background: var(--irs-color-blue-alpha-35);
   }
 
-  .asm-editor__sim-anim-row {
+  .irs-anim-state-machine__sim-anim-row {
     display: flex;
     align-items: center;
     gap: 10px;
   }
 
-  .asm-editor__sim-anim-canvas {
+  .irs-anim-state-machine__sim-anim-canvas {
     width: 56px;
     height: 56px;
-    border-radius: 8px;
-    border: 1px solid #3e5494;
-    background: #0e1830;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-base);
     flex-shrink: 0;
   }
 
-  .asm-editor__sim-anim-info {
+  .irs-anim-state-machine__sim-anim-info {
     font-size: 11px;
-    color: #9fb2e3;
+    color: var(--irs-text-secondary);
     line-height: 1.5;
   }
 
-  .asm-editor__sim-reset-btn {
-    min-height: 36px;
+  .irs-anim-state-machine__sim-reset-btn {
+    min-height: var(--irs-touch-target);
     padding: 6px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 159, 179, 0.4);
-    background: rgba(255, 80, 80, 0.08);
-    color: #ff9fb3;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-color-red-alpha-53);
+    background: var(--irs-color-red-alpha-15);
+    color: var(--irs-accent-danger);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -269,7 +269,7 @@ const STYLES = `
     align-self: flex-start;
   }
 
-  .asm-editor__undo-row {
+  .irs-anim-state-machine__undo-row {
     display: flex;
     gap: 4px;
     margin-left: auto;
@@ -374,61 +374,61 @@ export function createAnimStateMachineEditor(
   document.head.appendChild(styleEl);
 
   const root = document.createElement('div');
-  root.className = 'asm-editor';
+  root.className = 'irs-anim-state-machine';
 
   // Toolbar
   const toolbar = document.createElement('div');
-  toolbar.className = 'asm-editor__toolbar';
+  toolbar.className = 'irs-anim-state-machine__toolbar';
 
   const backButton = document.createElement('button');
   backButton.type = 'button';
-  backButton.className = 'asm-editor__toolbar-button';
+  backButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   backButton.textContent = '\u2190 Back';
   backButton.addEventListener('click', () => config.onBack?.());
 
   const titleEl = document.createElement('span');
-  titleEl.className = 'asm-editor__toolbar-title';
+  titleEl.className = 'irs-anim-state-machine__toolbar-title';
   titleEl.textContent = 'State Machine Editor';
 
   const addStateButton = document.createElement('button');
   addStateButton.type = 'button';
-  addStateButton.className = 'asm-editor__toolbar-button';
+  addStateButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   addStateButton.textContent = '+ State';
   addStateButton.addEventListener('click', () => addNewState());
 
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
-  saveButton.className = 'asm-editor__toolbar-button asm-editor__toolbar-button--primary';
+  saveButton.className = 'irs-btn irs-btn--primary irs-anim-state-machine__toolbar-button irs-anim-state-machine__toolbar-button--primary';
   saveButton.textContent = 'Save';
   saveButton.addEventListener('click', () => saveMachine());
 
   const fitButton = document.createElement('button');
   fitButton.type = 'button';
-  fitButton.className = 'asm-editor__toolbar-button';
+  fitButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   fitButton.textContent = 'Fit';
   fitButton.title = 'Zoom to fit all nodes';
   fitButton.addEventListener('click', () => zoomToFit());
 
   const layoutButton = document.createElement('button');
   layoutButton.type = 'button';
-  layoutButton.className = 'asm-editor__toolbar-button';
+  layoutButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   layoutButton.textContent = 'Layout';
   layoutButton.title = 'Auto-layout nodes';
   layoutButton.addEventListener('click', () => autoLayout());
 
   const undoRow = document.createElement('div');
-  undoRow.className = 'asm-editor__undo-row';
+  undoRow.className = 'irs-anim-state-machine__undo-row';
 
   const undoButton = document.createElement('button');
   undoButton.type = 'button';
-  undoButton.className = 'asm-editor__toolbar-button';
+  undoButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   undoButton.textContent = '↩';
   undoButton.title = 'Undo (Ctrl+Z)';
   undoButton.addEventListener('click', () => undo());
 
   const redoButton = document.createElement('button');
   redoButton.type = 'button';
-  redoButton.className = 'asm-editor__toolbar-button';
+  redoButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   redoButton.textContent = '↪';
   redoButton.title = 'Redo (Ctrl+Y)';
   redoButton.addEventListener('click', () => redo());
@@ -438,7 +438,7 @@ export function createAnimStateMachineEditor(
 
   const simulateButton = document.createElement('button');
   simulateButton.type = 'button';
-  simulateButton.className = 'asm-editor__toolbar-button';
+  simulateButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
   simulateButton.textContent = '▶ Simulate';
   simulateButton.title = 'Toggle simulation mode';
   simulateButton.addEventListener('click', () => toggleSimulate());
@@ -454,10 +454,10 @@ export function createAnimStateMachineEditor(
 
   // Canvas area
   const canvasWrap = document.createElement('div');
-  canvasWrap.className = 'asm-editor__canvas-wrap';
+  canvasWrap.className = 'irs-anim-state-machine__canvas-wrap';
 
   const canvas = document.createElement('canvas');
-  canvas.className = 'asm-editor__canvas';
+  canvas.className = 'irs-anim-state-machine__canvas';
   canvasWrap.appendChild(canvas);
 
   // Overlay for empty-state invitation (shown when machine has 0 states)
@@ -469,7 +469,7 @@ export function createAnimStateMachineEditor(
 
   // Inspector panel (shown when state/transition selected)
   const inspector = document.createElement('div');
-  inspector.className = 'asm-editor__inspector';
+  inspector.className = 'irs-anim-state-machine__inspector';
   inspector.style.display = 'none';
 
   root.appendChild(toolbar);
@@ -1360,16 +1360,16 @@ export function createAnimStateMachineEditor(
     if (simPanel) simPanel.remove();
 
     simPanel = document.createElement('div');
-    simPanel.className = 'asm-editor__sim-panel';
+    simPanel.className = 'irs-anim-state-machine__sim-panel';
 
     const labelRow = document.createElement('div');
     labelRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
     const label = document.createElement('div');
-    label.className = 'asm-editor__sim-label';
+    label.className = 'irs-anim-state-machine__sim-label';
     label.textContent = 'Simulation';
     const stopBtn = document.createElement('button');
     stopBtn.type = 'button';
-    stopBtn.className = 'irs-btn irs-btn--danger asm-editor__sim-reset-btn';
+    stopBtn.className = 'irs-btn irs-btn--danger irs-anim-state-machine__sim-reset-btn';
     stopBtn.textContent = '■ Stop';
     stopBtn.addEventListener('click', () => {
       uxFeedback.motion.pulse(stopBtn);
@@ -1377,11 +1377,11 @@ export function createAnimStateMachineEditor(
     });
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
-    resetBtn.className = 'irs-btn irs-btn--secondary asm-editor__sim-reset-btn';
+    resetBtn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__sim-reset-btn';
     resetBtn.textContent = '↺ Reset';
-    resetBtn.style.borderColor = 'rgba(74, 158, 255, 0.4)';
-    resetBtn.style.color = '#a8c8ff';
-    resetBtn.style.background = 'rgba(74, 158, 255, 0.08)';
+    resetBtn.style.borderColor = 'var(--irs-color-blue-border)';
+    resetBtn.style.color = 'var(--irs-text-secondary)';
+    resetBtn.style.background = 'var(--irs-color-blue-alpha-8)';
     resetBtn.addEventListener('click', () => {
       uxFeedback.motion.pulse(resetBtn);
       simulator?.reset();
@@ -1410,7 +1410,7 @@ export function createAnimStateMachineEditor(
     const currentId = simulator.getCurrentStateId();
     const currentState = editorState.machine.states.find((s) => s.id === currentId);
     const stateEl = document.createElement('div');
-    stateEl.className = 'asm-editor__sim-state';
+    stateEl.className = 'irs-anim-state-machine__sim-state';
     stateEl.textContent = currentState ? `Active: ${currentState.name}` : 'Active: (none)';
     simPanel.appendChild(stateEl);
 
@@ -1421,10 +1421,10 @@ export function createAnimStateMachineEditor(
       if (anim && simClock) {
         simClock.register(anim.id, anim);
         const animRow = document.createElement('div');
-        animRow.className = 'asm-editor__sim-anim-row';
+        animRow.className = 'irs-anim-state-machine__sim-anim-row';
 
         const simCanvas = document.createElement('canvas');
-        simCanvas.className = 'asm-editor__sim-anim-canvas';
+        simCanvas.className = 'irs-anim-state-machine__sim-anim-canvas';
         const dpr = window.devicePixelRatio || 1;
         simCanvas.width = 56 * dpr;
         simCanvas.height = 56 * dpr;
@@ -1432,7 +1432,7 @@ export function createAnimStateMachineEditor(
         drawSimAnimFrame(simCanvas, anim.id);
 
         const animInfo = document.createElement('div');
-        animInfo.className = 'asm-editor__sim-anim-info';
+        animInfo.className = 'irs-anim-state-machine__sim-anim-info';
         animInfo.innerHTML = `<strong>${anim.name}</strong><br>${anim.frames.length} frames · ${anim.fps} fps`;
         animRow.appendChild(animInfo);
 
@@ -1444,17 +1444,17 @@ export function createAnimStateMachineEditor(
     const eventNames = simulator.getUniqueEventNames();
     if (eventNames.length > 0) {
       const eventsLabel = document.createElement('div');
-      eventsLabel.className = 'asm-editor__sim-label';
+      eventsLabel.className = 'irs-anim-state-machine__sim-label';
       eventsLabel.textContent = 'Send Event';
       eventsLabel.style.marginTop = '4px';
       simPanel.appendChild(eventsLabel);
 
       const eventsRow = document.createElement('div');
-      eventsRow.className = 'asm-editor__sim-events';
+      eventsRow.className = 'irs-anim-state-machine__sim-events';
       for (const name of eventNames) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'irs-btn irs-btn--secondary asm-editor__sim-event-btn';
+        btn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__sim-event-btn';
         btn.textContent = name;
         btn.addEventListener('click', () => {
           uxFeedback.motion.pulse(btn);
@@ -1525,7 +1525,7 @@ export function createAnimStateMachineEditor(
 
       // Redraw sim canvas if it exists
       if (simPanel && currentId && anim) {
-        const simCanvas = simPanel.querySelector('.asm-editor__sim-anim-canvas') as HTMLCanvasElement | null;
+        const simCanvas = simPanel.querySelector('.irs-anim-state-machine__sim-anim-canvas') as HTMLCanvasElement | null;
         if (simCanvas) drawSimAnimFrame(simCanvas, anim.id);
       }
     }
@@ -1545,7 +1545,7 @@ export function createAnimStateMachineEditor(
     simLastTime = 0;
     simImageCache.clear();
 
-    simulateButton.className = 'asm-editor__toolbar-button asm-editor__toolbar-button--active';
+    simulateButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button irs-anim-state-machine__toolbar-button--active';
     simulateButton.textContent = '■ Simulating';
 
     buildSimPanel();
@@ -1565,7 +1565,7 @@ export function createAnimStateMachineEditor(
     simPanel?.remove();
     simPanel = null;
 
-    simulateButton.className = 'asm-editor__toolbar-button';
+    simulateButton.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
     simulateButton.textContent = '▶ Simulate';
 
     render();
@@ -1697,7 +1697,7 @@ export function createAnimStateMachineEditor(
     if (!state) return;
 
     const title = document.createElement('div');
-    title.className = 'asm-editor__inspector-title';
+    title.className = 'irs-anim-state-machine__inspector-title';
     title.textContent = 'State Properties';
     inspector.appendChild(title);
 
@@ -1732,7 +1732,7 @@ export function createAnimStateMachineEditor(
     if (!isInitial) {
       const setInitialBtn = document.createElement('button');
       setInitialBtn.type = 'button';
-      setInitialBtn.className = 'asm-editor__toolbar-button';
+      setInitialBtn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
       setInitialBtn.textContent = 'Set as Initial State';
       setInitialBtn.addEventListener('click', () => {
         if (editorState.machine) {
@@ -1747,7 +1747,7 @@ export function createAnimStateMachineEditor(
     // Create transition button
     const createTransBtn = document.createElement('button');
     createTransBtn.type = 'button';
-    createTransBtn.className = 'asm-editor__toolbar-button';
+    createTransBtn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
     createTransBtn.textContent = 'Drag to Create Transition';
     createTransBtn.addEventListener('click', () => {
       uxFeedback.motion.pulse(createTransBtn);
@@ -1758,9 +1758,9 @@ export function createAnimStateMachineEditor(
     // Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.className = 'asm-editor__toolbar-button';
+    deleteBtn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
     deleteBtn.textContent = 'Delete State';
-    deleteBtn.style.color = '#ff9fb3';
+    deleteBtn.style.color = 'var(--irs-accent-danger)';
     deleteBtn.addEventListener('click', () => {
       uxFeedback.motion.pulse(deleteBtn);
       removeSelectedState();
@@ -1777,7 +1777,7 @@ export function createAnimStateMachineEditor(
     if (!transition) return;
 
     const title = document.createElement('div');
-    title.className = 'asm-editor__inspector-title';
+    title.className = 'irs-anim-state-machine__inspector-title';
     title.textContent = 'Transition Properties';
     inspector.appendChild(title);
 
@@ -1788,9 +1788,9 @@ export function createAnimStateMachineEditor(
     const toLabel = editorState.machine.states.find((s) => s.id === transition.toStateId)?.name ?? transition.toStateId;
 
     const routeField = document.createElement('div');
-    routeField.className = 'asm-editor__field';
+    routeField.className = 'irs-anim-state-machine__field';
     const routeLabelEl = document.createElement('div');
-    routeLabelEl.className = 'asm-editor__field-label';
+    routeLabelEl.className = 'irs-anim-state-machine__field-label';
     routeLabelEl.textContent = `${fromLabel} \u2192 ${toLabel}`;
     routeField.appendChild(routeLabelEl);
     inspector.appendChild(routeField);
@@ -1931,9 +1931,9 @@ export function createAnimStateMachineEditor(
     // Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.className = 'asm-editor__toolbar-button';
+    deleteBtn.className = 'irs-btn irs-btn--secondary irs-anim-state-machine__toolbar-button';
     deleteBtn.textContent = 'Delete Transition';
-    deleteBtn.style.color = '#ff9fb3';
+    deleteBtn.style.color = 'var(--irs-accent-danger)';
     deleteBtn.addEventListener('click', () => {
       uxFeedback.motion.pulse(deleteBtn);
       removeSelectedTransition();
@@ -1949,14 +1949,14 @@ export function createAnimStateMachineEditor(
     onChange: (value: string) => void
   ): HTMLElement {
     const field = document.createElement('div');
-    field.className = 'asm-editor__field';
+    field.className = 'irs-anim-state-machine__field';
 
     const labelEl = document.createElement('label');
-    labelEl.className = 'asm-editor__field-label';
+    labelEl.className = 'irs-anim-state-machine__field-label';
     labelEl.textContent = label;
 
     const input = document.createElement('input');
-    input.className = 'irs-input asm-editor__field-input';
+    input.className = 'irs-input irs-anim-state-machine__field-input';
     input.type = 'text';
     input.value = value;
     input.addEventListener('change', () => onChange(input.value));
@@ -1973,14 +1973,14 @@ export function createAnimStateMachineEditor(
     onChange: (value: string) => void
   ): HTMLElement {
     const field = document.createElement('div');
-    field.className = 'asm-editor__field';
+    field.className = 'irs-anim-state-machine__field';
 
     const labelEl = document.createElement('label');
-    labelEl.className = 'asm-editor__field-label';
+    labelEl.className = 'irs-anim-state-machine__field-label';
     labelEl.textContent = label;
 
     const select = document.createElement('select');
-    select.className = 'asm-editor__field-select';
+    select.className = 'irs-anim-state-machine__field-select';
 
     for (const opt of options) {
       const option = document.createElement('option');
@@ -2002,10 +2002,10 @@ export function createAnimStateMachineEditor(
     onChange: (value: boolean) => void
   ): HTMLElement {
     const field = document.createElement('div');
-    field.className = 'asm-editor__field';
+    field.className = 'irs-anim-state-machine__field';
 
     const wrapper = document.createElement('label');
-    wrapper.className = 'asm-editor__field-checkbox';
+    wrapper.className = 'irs-anim-state-machine__field-checkbox';
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
