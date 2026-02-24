@@ -1,7 +1,44 @@
 # InRepo Studio — UX Polish Rules Audit
-**Date:** 2025-02-24  
+**Date:** 2026-02-24 (refreshed)  
 **Rules reference:** `context/ux-polish-rules.md`  
 **Result: ❌ VIOLATIONS FOUND — features cannot be marked complete**
+
+---
+
+## Audit refresh status (2026-02-24)
+
+### Completed in this pass ✅
+
+- [x] Re-validated all previously flagged scene action feedback gaps in `src/editor/init.ts` (`rename`, `duplicate`, `resize`, `delete`) — still missing completion feedback.
+- [x] Re-validated key hardcoded color/radius violations in runtime/editor/boot files listed below — violations still present.
+- [x] Updated this audit document date/state to reflect current repository status.
+
+### Still needs implementation work ❌
+
+- [ ] Replace hardcoded color values in inline/component CSS with `--irs-*` tokens (Category A).
+- [ ] Replace hardcoded `border-radius` pixel values with `--irs-radius-*` tokens (Category A3).
+- [ ] Replace hardcoded `44px` touch-target values with `var(--irs-touch-target)` (Category B).
+- [ ] Migrate non-compliant buttons to `.irs-btn` base classes (Category C1).
+- [ ] Migrate deploy panel input to include `.irs-input` and remove duplicated custom input skinning (Category C2).
+- [ ] Add completion/safety UX feedback to scene operations (`rename`, `duplicate`, `resize`, `delete`) (Category D1–D4).
+
+### Progress tracker by category
+
+| Category | Scope | Status | Notes |
+|---|---|---|---|
+| A1/A2 | Hardcoded hex/rgb/rgba values | ⏳ Not started | Violations still present in boot/editor/runtime CSS strings. |
+| A3 | Hardcoded border-radius values | ⏳ Not started | Radius tokens exist in `theme.css` but are not yet adopted broadly. |
+| B | Touch-target sizing tokens | ⏳ Not started | Several `44px` literals still need migration to `var(--irs-touch-target)`. |
+| C1 | Button base class compliance (`.irs-btn`) | ⏳ Not started | Custom button classes still bypass shared button primitives in multiple panels. |
+| C2 | Input base class compliance (`.irs-input`) | ⏳ Not started | Deploy panel input still lacks `.irs-input`. |
+| D1–D4 | Scene action completion feedback | ⏳ Not started | `rename`, `duplicate`, `resize`, `delete` still need success/reassurance feedback. |
+
+### Recommended implementation order
+
+1. **Fix Category D first** (scene action feedback) to remove silent-success UX paths quickly.
+2. **Fix Category C next** (button/input primitives) to standardize control behavior globally.
+3. **Fix Category A/B in grouped sweeps** by module (boot/runtime/editor) to reduce regressions.
+4. Re-run this audit and flip each tracker row from ⏳ to ✅ only after code+manual verification.
 
 ---
 
