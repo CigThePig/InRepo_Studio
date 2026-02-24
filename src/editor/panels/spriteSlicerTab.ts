@@ -46,161 +46,161 @@ interface InteractionState {
 }
 
 const STYLES = `
-  .sprite-slicer {
+  .irs-sprite-slicer {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    color: #e6ecff;
+    color: var(--irs-text-primary);
   }
 
-  .sprite-slicer__section {
-    background: rgba(20, 30, 60, 0.85);
-    border: 1px solid #253461;
-    border-radius: 14px;
+  .irs-sprite-slicer__section {
+    background: var(--irs-surface-dark-alpha);
+    border: 1px solid var(--irs-border-heavy);
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
   }
 
-  .sprite-slicer__title {
+  .irs-sprite-slicer__title {
     font-size: 13px;
     font-weight: 700;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     margin-bottom: 8px;
   }
 
-  .sprite-slicer__button {
+  .irs-sprite-slicer__button {
     min-height: 44px;
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
-    background: #1b2a52;
-    color: #dbe4ff;
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .sprite-slicer__button:active {
-    background: #26386a;
+  .irs-sprite-slicer__button:active {
+    background: var(--irs-accent-primary-active);
   }
 
-  .sprite-slicer__button--primary {
-    background: #2f3b66;
-    color: #ffffff;
+  .irs-sprite-slicer__button--primary {
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
-  .sprite-slicer__button--primary:active {
-    background: #3a4a80;
+  .irs-sprite-slicer__button--primary:active {
+    background: var(--irs-accent-primary-active);
   }
 
-  .sprite-slicer__button--active {
-    background: #3a4a80;
-    border-color: #6ba5ff;
+  .irs-sprite-slicer__button--active {
+    background: var(--irs-accent-primary-active);
+    border-color: var(--irs-color-blue-border);
   }
 
-  .sprite-slicer__row {
+  .irs-sprite-slicer__row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
   }
 
-  .sprite-slicer__select,
-  .sprite-slicer__input {
+  .irs-sprite-slicer__select,
+  .irs-sprite-slicer__input {
     min-height: 44px;
     padding: 6px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #f2f5ff;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     font-size: 13px;
   }
 
-  .sprite-slicer__hint {
+  .irs-sprite-slicer__hint {
     font-size: 12px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
   }
 
-  .sprite-slicer__preview {
+  .irs-sprite-slicer__preview {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .sprite-slicer__canvas {
+  .irs-sprite-slicer__canvas {
     width: 100%;
-    border-radius: 12px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: #0d142a;
+    border-radius: var(--irs-radius-lg);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-base);
     touch-action: none;
   }
 
-  .sprite-slicer__meta {
+  .irs-sprite-slicer__meta {
     font-size: 12px;
-    color: #a8b4e6;
+    color: var(--irs-text-secondary);
   }
 
-  .sprite-slicer__slice-grid {
+  .irs-sprite-slicer__slice-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     gap: 8px;
   }
 
-  .sprite-slicer__slice {
+  .irs-sprite-slicer__slice {
     width: 100%;
     aspect-ratio: 1;
-    border-radius: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
+    border-radius: var(--irs-radius-md);
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-panel);
     object-fit: cover;
   }
 
-  .sprite-slicer__mode-toggle {
+  .irs-sprite-slicer__mode-toggle {
     display: flex;
     gap: 0;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     overflow: hidden;
-    border: 1px solid rgba(83, 101, 164, 0.6);
+    border: 1px solid var(--irs-border-medium);
   }
 
-  .sprite-slicer__mode-option {
+  .irs-sprite-slicer__mode-option {
     flex: 1;
     min-height: var(--irs-touch-target);
     padding: 6px 10px;
     border: none;
-    background: rgba(22, 30, 60, 0.85);
-    color: #9aa7d6;
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-secondary);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
 
-  .sprite-slicer__mode-option--active {
-    background: #2f3b66;
-    color: #ffffff;
+  .irs-sprite-slicer__mode-option--active {
+    background: var(--irs-color-blue-alpha-22);
+    color: var(--irs-text-primary);
   }
 
-  .sprite-slicer__mode-option:not(:last-child) {
-    border-right: 1px solid rgba(83, 101, 164, 0.6);
+  .irs-sprite-slicer__mode-option:not(:last-child) {
+    border-right: 1px solid var(--irs-border-medium);
   }
 
-  .sprite-slicer__regions {
+  .irs-sprite-slicer__regions {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .sprite-slicer__region-item {
+  .irs-sprite-slicer__region-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
   }
 
-  .sprite-slicer__region-main {
+  .irs-sprite-slicer__region-main {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -208,11 +208,11 @@ const STYLES = `
     gap: 8px;
   }
 
-  .sprite-slicer__region-name {
+  .irs-sprite-slicer__region-name {
     min-height: 44px;
     border: none;
     background: transparent;
-    color: #dbe4ff;
+    color: var(--irs-text-primary);
     font-size: 12px;
     font-weight: 600;
     text-align: left;
@@ -220,95 +220,95 @@ const STYLES = `
     cursor: pointer;
   }
 
-  .sprite-slicer__region-name-input {
+  .irs-sprite-slicer__region-name-input {
     min-height: 44px;
     max-width: 180px;
     padding: 4px 8px;
     border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.8);
-    background: rgba(22, 30, 60, 0.95);
-    color: #f2f5ff;
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-dark);
+    color: var(--irs-text-primary);
     font-size: 12px;
   }
 
-  .sprite-slicer__region-size {
-    color: #9aa7d6;
+  .irs-sprite-slicer__region-size {
+    color: var(--irs-text-secondary);
     font-size: 11px;
     white-space: nowrap;
   }
 
-  .sprite-slicer__region-remove {
-    min-height: 30px;
+  .irs-sprite-slicer__region-remove {
+    min-height: var(--irs-touch-target);
     padding: 4px 8px;
     border-radius: 8px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    background: rgba(22, 30, 60, 0.85);
-    color: #e6ecff;
+    border: 1px solid var(--irs-border-medium);
+    background: var(--irs-surface-panel);
+    color: var(--irs-text-primary);
     cursor: pointer;
   }
 
-  .sprite-slicer__region-item--active {
-    border-radius: 10px;
+  .irs-sprite-slicer__region-item--active {
+    border-radius: var(--irs-radius-md);
     padding: 4px 6px;
-    background: rgba(70, 109, 206, 0.2);
-    border: 1px solid rgba(107, 165, 255, 0.55);
+    background: var(--irs-color-blue-alpha-22);
+    border: 1px solid var(--irs-color-blue-border);
   }
 
-  .sprite-slicer__selection-controls {
+  .irs-sprite-slicer__selection-controls {
     display: none;
     flex-direction: column;
     gap: 8px;
     padding: 10px;
-    border: 1px solid rgba(83, 101, 164, 0.6);
-    border-radius: 12px;
-    background: rgba(16, 24, 47, 0.9);
+    border: 1px solid var(--irs-border-medium);
+    border-radius: var(--irs-radius-lg);
+    background: var(--irs-surface-dark);
   }
 
-  .sprite-slicer__selection-controls--visible {
+  .irs-sprite-slicer__selection-controls--visible {
     display: flex;
   }
 
-  .sprite-slicer__selection-grid {
+  .irs-sprite-slicer__selection-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .sprite-slicer__selection-label {
+  .irs-sprite-slicer__selection-label {
     font-size: 11px;
-    color: #9aa7d6;
+    color: var(--irs-text-secondary);
     margin-bottom: 4px;
   }
 
-  .sprite-slicer__dpad {
+  .irs-sprite-slicer__dpad {
     display: grid;
     grid-template-columns: repeat(3, minmax(44px, 1fr));
     gap: 6px;
     max-width: 190px;
   }
 
-  .sprite-slicer__dpad button:nth-child(1) {
+  .irs-sprite-slicer__dpad button:nth-child(1) {
     grid-column: 2;
   }
 
-  .sprite-slicer__dpad button:nth-child(2) {
+  .irs-sprite-slicer__dpad button:nth-child(2) {
     grid-column: 1;
   }
 
-  .sprite-slicer__dpad button:nth-child(3) {
+  .irs-sprite-slicer__dpad button:nth-child(3) {
     grid-column: 3;
   }
 
-  .sprite-slicer__dpad button:nth-child(4) {
+  .irs-sprite-slicer__dpad button:nth-child(4) {
     grid-column: 2;
   }
 
-  .sprite-slicer__selection-actions {
+  .irs-sprite-slicer__selection-actions {
     display: flex;
     gap: 8px;
   }
 
-  .sprite-slicer__selection-actions .sprite-slicer__button {
+  .irs-sprite-slicer__selection-actions .irs-sprite-slicer__button {
     flex: 1;
   }
 `;
@@ -371,9 +371,9 @@ interface SpriteSlicerState {
 }
 
 function ensureStyles(): void {
-  if (document.getElementById('sprite-slicer-tab-styles')) return;
+  if (document.getElementById('irs-sprite-slicer-tab-styles')) return;
   const styleEl = document.createElement('style');
-  styleEl.id = 'sprite-slicer-tab-styles';
+  styleEl.id = 'irs-sprite-slicer-tab-styles';
   styleEl.textContent = STYLES;
   document.head.appendChild(styleEl);
 }
@@ -426,21 +426,21 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   };
 
   const root = document.createElement('div');
-  root.className = 'sprite-slicer';
+  root.className = 'irs-sprite-slicer';
 
   const importSection = document.createElement('section');
-  importSection.className = 'sprite-slicer__section';
+  importSection.className = 'irs-sprite-slicer__section';
 
   const importTitle = document.createElement('div');
-  importTitle.className = 'sprite-slicer__title';
+  importTitle.className = 'irs-sprite-slicer__title';
   importTitle.textContent = 'Import Sprite Sheet';
 
   const importRow = document.createElement('div');
-  importRow.className = 'sprite-slicer__row';
+  importRow.className = 'irs-sprite-slicer__row';
 
   const importButton = document.createElement('button');
   importButton.type = 'button';
-  importButton.className = 'sprite-slicer__button';
+  importButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   importButton.textContent = 'Import Image';
 
   const fileInput = document.createElement('input');
@@ -451,7 +451,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   importButton.addEventListener('click', () => fileInput.click());
 
   const importHint = document.createElement('div');
-  importHint.className = 'sprite-slicer__hint';
+  importHint.className = 'irs-sprite-slicer__hint';
   importHint.textContent = 'PNG or GIF sprite sheets work best.';
 
   importRow.appendChild(importButton);
@@ -460,44 +460,44 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   importSection.appendChild(importRow);
 
   const modeSection = document.createElement('section');
-  modeSection.className = 'sprite-slicer__section';
+  modeSection.className = 'irs-sprite-slicer__section';
 
   const modeTitle = document.createElement('div');
-  modeTitle.className = 'sprite-slicer__title';
+  modeTitle.className = 'irs-sprite-slicer__title';
   modeTitle.textContent = 'Import Mode';
 
   const modeToggle = document.createElement('div');
-  modeToggle.className = 'sprite-slicer__mode-toggle';
+  modeToggle.className = 'irs-sprite-slicer__mode-toggle';
 
   const atlasOption = document.createElement('button');
   atlasOption.type = 'button';
-  atlasOption.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  atlasOption.className = 'irs-sprite-slicer__mode-option irs-sprite-slicer__mode-option--active';
   atlasOption.textContent = 'Keep sheet + register slices';
 
   const separateOption = document.createElement('button');
   separateOption.type = 'button';
-  separateOption.className = 'sprite-slicer__mode-option';
+  separateOption.className = 'irs-sprite-slicer__mode-option';
   separateOption.textContent = 'Export as separate images';
 
   modeToggle.appendChild(atlasOption);
   modeToggle.appendChild(separateOption);
 
   const modeHint = document.createElement('div');
-  modeHint.className = 'sprite-slicer__hint';
+  modeHint.className = 'irs-sprite-slicer__hint';
   modeHint.textContent = 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.';
 
   const sliceSection = document.createElement('section');
-  sliceSection.className = 'sprite-slicer__section';
+  sliceSection.className = 'irs-sprite-slicer__section';
 
   const sliceTitle = document.createElement('div');
-  sliceTitle.className = 'sprite-slicer__title';
+  sliceTitle.className = 'irs-sprite-slicer__title';
   sliceTitle.textContent = 'Slice Settings';
 
   const sliceRow = document.createElement('div');
-  sliceRow.className = 'sprite-slicer__row';
+  sliceRow.className = 'irs-sprite-slicer__row';
 
   const sizeSelect = document.createElement('select');
-  sizeSelect.className = 'sprite-slicer__select';
+  sizeSelect.className = 'irs-input irs-sprite-slicer__select';
   sizeSelect.innerHTML = `
     <option value="16">16 × 16</option>
     <option value="32">32 × 32</option>
@@ -508,41 +508,41 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   widthInput.type = 'number';
   widthInput.min = '1';
   widthInput.value = '16';
-  widthInput.className = 'sprite-slicer__input';
+  widthInput.className = 'irs-input irs-sprite-slicer__input';
   widthInput.style.display = 'none';
 
   const heightInput = document.createElement('input');
   heightInput.type = 'number';
   heightInput.min = '1';
   heightInput.value = '16';
-  heightInput.className = 'sprite-slicer__input';
+  heightInput.className = 'irs-input irs-sprite-slicer__input';
   heightInput.style.display = 'none';
 
   const sizeHint = document.createElement('div');
-  sizeHint.className = 'sprite-slicer__hint';
+  sizeHint.className = 'irs-sprite-slicer__hint';
   sizeHint.textContent = 'Choose tile size to match your grid.';
 
   const skipEmptyWrap = document.createElement('label');
-  skipEmptyWrap.className = 'sprite-slicer__row';
+  skipEmptyWrap.className = 'irs-sprite-slicer__row';
   const skipEmptyInput = document.createElement('input');
   skipEmptyInput.type = 'checkbox';
   skipEmptyInput.checked = true;
   const skipEmptyText = document.createElement('span');
-  skipEmptyText.className = 'sprite-slicer__hint';
+  skipEmptyText.className = 'irs-sprite-slicer__hint';
   skipEmptyText.textContent = 'Skip empty tiles';
   skipEmptyWrap.appendChild(skipEmptyInput);
   skipEmptyWrap.appendChild(skipEmptyText);
 
   const groupRow = document.createElement('div');
-  groupRow.className = 'sprite-slicer__row';
+  groupRow.className = 'irs-sprite-slicer__row';
 
   const groupInput = document.createElement('input');
   groupInput.type = 'text';
-  groupInput.className = 'sprite-slicer__input';
+  groupInput.className = 'irs-input irs-sprite-slicer__input';
   groupInput.placeholder = 'Group name (e.g., Trees)';
 
   const groupSelect = document.createElement('select');
-  groupSelect.className = 'sprite-slicer__select';
+  groupSelect.className = 'irs-input irs-sprite-slicer__select';
   groupSelect.innerHTML = `
     <option value="tilesets">Tilesets</option>
     <option value="props">Props</option>
@@ -550,7 +550,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   `;
 
   const groupHint = document.createElement('div');
-  groupHint.className = 'sprite-slicer__hint';
+  groupHint.className = 'irs-sprite-slicer__hint';
   groupHint.textContent = 'Choose where these slices should appear in palettes.';
 
   groupRow.appendChild(groupInput);
@@ -568,53 +568,53 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   sliceSection.appendChild(groupHint);
 
   const previewSection = document.createElement('section');
-  previewSection.className = 'sprite-slicer__section';
+  previewSection.className = 'irs-sprite-slicer__section';
 
   const previewTitle = document.createElement('div');
-  previewTitle.className = 'sprite-slicer__title';
+  previewTitle.className = 'irs-sprite-slicer__title';
   previewTitle.textContent = 'Preview';
 
   const preview = document.createElement('div');
-  preview.className = 'sprite-slicer__preview';
+  preview.className = 'irs-sprite-slicer__preview';
 
   const previewControls = document.createElement('div');
-  previewControls.className = 'sprite-slicer__row';
+  previewControls.className = 'irs-sprite-slicer__row';
   const regionSelectButton = document.createElement('button');
   regionSelectButton.type = 'button';
-  regionSelectButton.className = 'sprite-slicer__button';
+  regionSelectButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   regionSelectButton.textContent = 'Region Select';
   const regionHint = document.createElement('div');
-  regionHint.className = 'sprite-slicer__hint';
+  regionHint.className = 'irs-sprite-slicer__hint';
   regionHint.textContent = 'Drag on the preview to create a larger sprite region aligned to the grid.';
   previewControls.appendChild(regionSelectButton);
   previewControls.appendChild(regionHint);
 
   const previewCanvas = document.createElement('canvas');
-  previewCanvas.className = 'sprite-slicer__canvas';
+  previewCanvas.className = 'irs-sprite-slicer__canvas';
 
   const previewMeta = document.createElement('div');
-  previewMeta.className = 'sprite-slicer__meta';
+  previewMeta.className = 'irs-sprite-slicer__meta';
   previewMeta.textContent = 'Import an image to preview slices.';
 
   const selectionControls = document.createElement('div');
-  selectionControls.className = 'sprite-slicer__selection-controls';
+  selectionControls.className = 'irs-sprite-slicer__selection-controls';
 
   const selectionTop = document.createElement('div');
-  selectionTop.className = 'sprite-slicer__selection-grid';
+  selectionTop.className = 'irs-sprite-slicer__selection-grid';
 
   const modeGroup = document.createElement('div');
   const modeLabel = document.createElement('div');
-  modeLabel.className = 'sprite-slicer__selection-label';
+  modeLabel.className = 'irs-sprite-slicer__selection-label';
   modeLabel.textContent = 'Mode';
   const modeToggleControls = document.createElement('div');
-  modeToggleControls.className = 'sprite-slicer__mode-toggle';
+  modeToggleControls.className = 'irs-sprite-slicer__mode-toggle';
   const moveModeButton = document.createElement('button');
   moveModeButton.type = 'button';
-  moveModeButton.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  moveModeButton.className = 'irs-sprite-slicer__mode-option irs-sprite-slicer__mode-option--active';
   moveModeButton.textContent = 'Move';
   const resizeModeButton = document.createElement('button');
   resizeModeButton.type = 'button';
-  resizeModeButton.className = 'sprite-slicer__mode-option';
+  resizeModeButton.className = 'irs-sprite-slicer__mode-option';
   resizeModeButton.textContent = 'Resize';
   modeToggleControls.appendChild(moveModeButton);
   modeToggleControls.appendChild(resizeModeButton);
@@ -623,17 +623,17 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   const stepGroup = document.createElement('div');
   const stepLabel = document.createElement('div');
-  stepLabel.className = 'sprite-slicer__selection-label';
+  stepLabel.className = 'irs-sprite-slicer__selection-label';
   stepLabel.textContent = 'Step';
   const stepToggleControls = document.createElement('div');
-  stepToggleControls.className = 'sprite-slicer__mode-toggle';
+  stepToggleControls.className = 'irs-sprite-slicer__mode-toggle';
   const stepOneButton = document.createElement('button');
   stepOneButton.type = 'button';
-  stepOneButton.className = 'sprite-slicer__mode-option sprite-slicer__mode-option--active';
+  stepOneButton.className = 'irs-sprite-slicer__mode-option irs-sprite-slicer__mode-option--active';
   stepOneButton.textContent = '1 tile';
   const stepFourButton = document.createElement('button');
   stepFourButton.type = 'button';
-  stepFourButton.className = 'sprite-slicer__mode-option';
+  stepFourButton.className = 'irs-sprite-slicer__mode-option';
   stepFourButton.textContent = '4 tiles';
   stepToggleControls.appendChild(stepOneButton);
   stepToggleControls.appendChild(stepFourButton);
@@ -644,22 +644,22 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   selectionTop.appendChild(stepGroup);
 
   const dpad = document.createElement('div');
-  dpad.className = 'sprite-slicer__dpad';
+  dpad.className = 'irs-sprite-slicer__dpad';
   const upButton = document.createElement('button');
   upButton.type = 'button';
-  upButton.className = 'sprite-slicer__button';
+  upButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   upButton.textContent = '▲';
   const leftButton = document.createElement('button');
   leftButton.type = 'button';
-  leftButton.className = 'sprite-slicer__button';
+  leftButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   leftButton.textContent = '◀';
   const rightButton = document.createElement('button');
   rightButton.type = 'button';
-  rightButton.className = 'sprite-slicer__button';
+  rightButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   rightButton.textContent = '▶';
   const downButton = document.createElement('button');
   downButton.type = 'button';
-  downButton.className = 'sprite-slicer__button';
+  downButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   downButton.textContent = '▼';
   dpad.appendChild(upButton);
   dpad.appendChild(leftButton);
@@ -667,14 +667,14 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   dpad.appendChild(downButton);
 
   const selectionActions = document.createElement('div');
-  selectionActions.className = 'sprite-slicer__selection-actions';
+  selectionActions.className = 'irs-sprite-slicer__selection-actions';
   const doneSelectionButton = document.createElement('button');
   doneSelectionButton.type = 'button';
-  doneSelectionButton.className = 'sprite-slicer__button';
+  doneSelectionButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   doneSelectionButton.textContent = 'Done';
   const cancelSelectionButton = document.createElement('button');
   cancelSelectionButton.type = 'button';
-  cancelSelectionButton.className = 'sprite-slicer__button';
+  cancelSelectionButton.className = 'irs-btn irs-btn--secondary irs-sprite-slicer__button';
   cancelSelectionButton.textContent = 'Cancel';
   selectionActions.appendChild(doneSelectionButton);
   selectionActions.appendChild(cancelSelectionButton);
@@ -684,7 +684,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   selectionControls.appendChild(selectionActions);
 
   const regionsList = document.createElement('div');
-  regionsList.className = 'sprite-slicer__regions';
+  regionsList.className = 'irs-sprite-slicer__regions';
 
   preview.appendChild(previewControls);
   preview.appendChild(previewCanvas);
@@ -694,12 +694,12 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   const confirmButton = document.createElement('button');
   confirmButton.type = 'button';
-  confirmButton.className = 'sprite-slicer__button sprite-slicer__button--primary';
+  confirmButton.className = 'irs-btn irs-btn--primary irs-sprite-slicer__button irs-sprite-slicer__button--primary';
   confirmButton.textContent = 'Confirm Atlas Import';
   confirmButton.disabled = true;
 
   const sliceGrid = document.createElement('div');
-  sliceGrid.className = 'sprite-slicer__slice-grid';
+  sliceGrid.className = 'irs-sprite-slicer__slice-grid';
 
   previewSection.appendChild(previewTitle);
   previewSection.appendChild(preview);
@@ -791,11 +791,11 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   function updateSelectionControls(): void {
     const hasActive = Boolean(getRegionById(state.activeRegionId));
-    selectionControls.classList.toggle('sprite-slicer__selection-controls--visible', hasActive);
-    moveModeButton.classList.toggle('sprite-slicer__mode-option--active', state.activeMode === 'move');
-    resizeModeButton.classList.toggle('sprite-slicer__mode-option--active', state.activeMode === 'resize');
-    stepOneButton.classList.toggle('sprite-slicer__mode-option--active', state.activeStep === 1);
-    stepFourButton.classList.toggle('sprite-slicer__mode-option--active', state.activeStep === 4);
+    selectionControls.classList.toggle('irs-sprite-slicer__selection-controls--visible', hasActive);
+    moveModeButton.classList.toggle('irs-sprite-slicer__mode-option--active', state.activeMode === 'move');
+    resizeModeButton.classList.toggle('irs-sprite-slicer__mode-option--active', state.activeMode === 'resize');
+    stepOneButton.classList.toggle('irs-sprite-slicer__mode-option--active', state.activeStep === 1);
+    stepFourButton.classList.toggle('irs-sprite-slicer__mode-option--active', state.activeStep === 4);
     doneSelectionButton.disabled = !hasActive;
     cancelSelectionButton.disabled = !hasActive;
     upButton.disabled = !hasActive;
@@ -828,7 +828,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     regionsList.innerHTML = '';
     if (state.customRegions.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'sprite-slicer__hint';
+      empty.className = 'irs-sprite-slicer__hint';
       empty.textContent = 'No custom regions yet.';
       regionsList.appendChild(empty);
       return;
@@ -836,24 +836,24 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
     state.customRegions.forEach((region) => {
       const item = document.createElement('div');
-      item.className = 'sprite-slicer__region-item';
-      item.classList.toggle('sprite-slicer__region-item--active', region.id === state.activeRegionId);
+      item.className = 'irs-sprite-slicer__region-item';
+      item.classList.toggle('irs-sprite-slicer__region-item--active', region.id === state.activeRegionId);
       const widthTiles = Math.floor(region.rect.w / state.sliceWidth);
       const heightTiles = Math.floor(region.rect.h / state.sliceHeight);
 
       const main = document.createElement('div');
-      main.className = 'sprite-slicer__region-main';
+      main.className = 'irs-sprite-slicer__region-main';
 
       const nameButton = document.createElement('button');
       nameButton.type = 'button';
-      nameButton.className = 'sprite-slicer__region-name';
+      nameButton.className = 'irs-sprite-slicer__region-name';
       nameButton.textContent = region.name;
       nameButton.title = 'Tap to rename';
 
       const startRename = (): void => {
         const input = document.createElement('input');
         input.type = 'text';
-        input.className = 'sprite-slicer__region-name-input';
+        input.className = 'irs-input irs-sprite-slicer__region-name-input';
         input.value = region.name;
         main.replaceChild(input, nameButton);
         input.focus();
@@ -908,7 +908,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
       });
 
       const size = document.createElement('span');
-      size.className = 'sprite-slicer__region-size';
+      size.className = 'irs-sprite-slicer__region-size';
       size.textContent = `(${widthTiles}x${heightTiles})`;
 
       main.appendChild(nameButton);
@@ -916,7 +916,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
       const remove = document.createElement('button');
       remove.type = 'button';
-      remove.className = 'sprite-slicer__region-remove';
+      remove.className = 'irs-sprite-slicer__region-remove';
       remove.textContent = 'Remove';
       remove.addEventListener('click', () => {
         state.customRegions = state.customRegions.filter((entry) => entry.id !== region.id);
@@ -1246,14 +1246,14 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
     state.slices = slices;
     slices.slice(0, 24).forEach((slice) => {
       const img = document.createElement('img');
-      img.className = 'sprite-slicer__slice';
+      img.className = 'irs-sprite-slicer__slice';
       img.src = slice.dataUrl;
       img.alt = 'Slice preview';
       sliceGrid.appendChild(img);
     });
     if (slices.length > 24) {
       const more = document.createElement('div');
-      more.className = 'sprite-slicer__hint';
+      more.className = 'irs-sprite-slicer__hint';
       more.textContent = `+${slices.length - 24} more slices`;
       sliceGrid.appendChild(more);
     }
@@ -1269,8 +1269,8 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
   }
 
   function updateModeToggle(): void {
-    atlasOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'atlas');
-    separateOption.classList.toggle('sprite-slicer__mode-option--active', state.sliceMode === 'separate');
+    atlasOption.classList.toggle('irs-sprite-slicer__mode-option--active', state.sliceMode === 'atlas');
+    separateOption.classList.toggle('irs-sprite-slicer__mode-option--active', state.sliceMode === 'separate');
     modeHint.textContent =
       state.sliceMode === 'atlas'
         ? 'Atlas mode keeps the spritesheet intact and registers slice regions as assets.'
@@ -1537,7 +1537,7 @@ export function createSpriteSlicerTab(config: SpriteSlicerTabConfig): { destroy:
 
   regionSelectButton.addEventListener('click', () => {
     state.selectionMode = state.selectionMode === 'region' ? 'tile' : 'region';
-    regionSelectButton.classList.toggle('sprite-slicer__button--active', state.selectionMode === 'region');
+    regionSelectButton.classList.toggle('irs-sprite-slicer__button--active', state.selectionMode === 'region');
     if (state.selectionMode !== 'region') {
       state.pendingRegion = null;
       endInteraction();

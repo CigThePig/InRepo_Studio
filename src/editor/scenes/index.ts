@@ -30,3 +30,5 @@ export {
   type SceneSelectorConfig,
   type SceneAction,
 } from './sceneSelector';
+
+export { createScenePopover } from './scenePopover';

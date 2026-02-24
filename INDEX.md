@@ -543,6 +543,10 @@ Micro-format (copy/paste):
   - Role: Visual Animation State Machine editor UI in the left berry animation tab.
   - Lists of truth: none
 
+- `src/editor/panels/settingsPanel.ts`
+  - Role: Settings preview dialog + warning notice helpers shared by editor init flows.
+  - Lists of truth: none
+
 - `src/editor/panels/smSimulator.ts`
   - Role: Pure TypeScript SM simulator for the SM editor "Simulate" mode (no Phaser, no DOM side effects).
   - Lists of truth: none
@@ -636,6 +640,10 @@ Micro-format (copy/paste):
 - `src/editor/scenes/sceneSelector.ts`
   - Role: Scene dropdown selector UI in top panel.
   - Lists of truth: SceneAction
+
+- `src/editor/scenes/scenePopover.ts`
+  - Role: Reusable in-canvas scene popover toast component for short status messages.
+  - Lists of truth: none
 
 - `src/editor/props/propSpriteManager.ts`
   - Role: CRUD + conversion manager for sprite-sized prop objects in scenes.
