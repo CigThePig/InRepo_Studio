@@ -20,7 +20,7 @@ const STYLES = `
   .entities-tab__section {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
     color: var(--irs-text-primary);
   }
@@ -45,9 +45,9 @@ const STYLES = `
   }
 
   .entities-tab__palette-button {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -78,9 +78,9 @@ const STYLES = `
 
   .entities-tab__place-button {
     min-width: 64px;
-    height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 0 12px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: none;
     background: var(--irs-color-blue-alpha-12);
     color: var(--irs-text-primary);
@@ -137,8 +137,8 @@ const STYLES = `
 
   .entities-tab__input,
   .entities-tab__toggle {
-    min-height: 44px;
-    border-radius: 10px;
+    min-height: var(--irs-touch-target);
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
@@ -190,8 +190,8 @@ const STYLES = `
   }
 
   .entities-tab__action-button {
-    min-height: 44px;
-    border-radius: 10px;
+    min-height: var(--irs-touch-target);
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -222,7 +222,7 @@ const STYLES = `
   .entities-tab__anim-preview {
     width: 56px;
     height: 56px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-input);
     display: block;
@@ -236,8 +236,8 @@ const STYLES = `
 
   .entities-tab__anim-dropdown {
     position: relative;
-    min-height: 44px;
-    border-radius: 10px;
+    min-height: var(--irs-touch-target);
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
@@ -266,7 +266,7 @@ const STYLES = `
   .entities-tab__anim-dropdown-thumb {
     width: 32px;
     height: 32px;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-xs);
     object-fit: cover;
     background: var(--irs-surface-input);
     flex-shrink: 0;
@@ -275,7 +275,7 @@ const STYLES = `
   .entities-tab__anim-dropdown-thumb-placeholder {
     width: 32px;
     height: 32px;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-xs);
     background: var(--irs-color-blue-alpha-16);
     flex-shrink: 0;
     display: flex;
@@ -307,7 +307,7 @@ const STYLES = `
     z-index: 1000;
     background: var(--irs-surface-dark);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     max-height: 240px;
     overflow-y: auto;
     box-shadow: 0 8px 32px var(--irs-surface-dark-alpha);
@@ -318,7 +318,7 @@ const STYLES = `
     align-items: center;
     gap: 8px;
     padding: 6px 10px;
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     cursor: pointer;
     border-bottom: 1px solid var(--irs-border-light);
     box-sizing: border-box;
@@ -343,7 +343,7 @@ const STYLES = `
     pointer-events: none;
     background: var(--irs-surface-dark);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     padding: 4px;
     box-shadow: 0 4px 16px var(--irs-surface-dark-alpha);
     display: none;
@@ -351,7 +351,7 @@ const STYLES = `
 
   .entities-tab__hover-preview-canvas {
     display: block;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-xs);
   }
 `;
 
@@ -904,7 +904,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'entities-tab__palette-button';
+      button.className = 'irs-btn irs-btn--secondary entities-tab__palette-button';
       button.textContent = entityType.displayName ?? entityType.name;
       button.classList.toggle('entities-tab__palette-button--active', entityType.name === selectedType);
 
@@ -920,7 +920,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
       const placeButton = document.createElement('button');
       placeButton.type = 'button';
-      placeButton.className = 'entities-tab__place-button';
+      placeButton.className = 'irs-btn irs-btn--secondary entities-tab__place-button';
       placeButton.textContent = 'Place';
       placeButton.addEventListener('click', () => {
         uxFeedback.motion.pulse(placeButton);
@@ -1055,7 +1055,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
     const applyTypeButton = document.createElement('button');
     applyTypeButton.type = 'button';
-    applyTypeButton.className = 'entities-tab__action-button';
+    applyTypeButton.className = 'irs-btn irs-btn--secondary entities-tab__action-button';
     applyTypeButton.textContent = 'Apply Type';
 
     typeActionRow.appendChild(applyTypeButton);
@@ -1177,7 +1177,7 @@ export function createEntitiesTab(config: EntitiesTabConfig): EntitiesTabControl
 
     const editAnimationButton = document.createElement('button');
     editAnimationButton.type = 'button';
-    editAnimationButton.className = 'entities-tab__action-button';
+    editAnimationButton.className = 'irs-btn irs-btn--secondary entities-tab__action-button';
     editAnimationButton.textContent = '▶ Edit Anim';
     editAnimationButton.disabled = !resolvedAnimId;
 

@@ -175,7 +175,7 @@ function ensureStyles(): void {
       min-width: 220px;
       max-width: 320px;
       padding: 11px 14px;
-      border-radius: 12px;
+      border-radius: var(--irs-radius-lg);
       border: 1px solid var(--irs-color-blue-border);
       background-color: var(--irs-surface-dark);
       -webkit-backdrop-filter: blur(12px);
@@ -218,7 +218,7 @@ function ensureStyles(): void {
       align-items: center;
       gap: 12px;
       padding: 10px 14px;
-      border-radius: 12px;
+      border-radius: var(--irs-radius-lg);
       border: 1px solid var(--irs-color-blue-border);
       background-color: var(--irs-surface-dark-alpha);
       -webkit-backdrop-filter: blur(12px);
@@ -243,7 +243,7 @@ function ensureStyles(): void {
       min-width: 56px;
       min-height: 44px;
       padding: 0 12px;
-      border-radius: 8px;
+      border-radius: var(--irs-radius-sm);
       border: 1px solid var(--irs-color-blue-alpha-45);
       background: var(--irs-color-blue-alpha-22);
       color: var(--irs-text-primary);
@@ -285,7 +285,7 @@ function ensureStyles(): void {
     .irs-empty-state__action {
       min-height: 38px;
       padding: 0 16px;
-      border-radius: 10px;
+      border-radius: var(--irs-radius-md);
       border: 1px solid var(--irs-color-blue-alpha-45);
       background: var(--irs-color-blue-alpha-12);
       color: var(--irs-color-blue);

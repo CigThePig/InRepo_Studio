@@ -177,9 +177,16 @@ let presetConfigStoreRef: {
   enableCategory(categoryId: PresetCategoryId, presetId: string): void;
 } | null = null;
 
-const CURSOR_ERASE_FILL = 'rgba(255, 80, 80, 0.25)';
-const CURSOR_ERASE_BORDER = 'rgba(255, 120, 120, 0.9)';
-const CURSOR_DEFAULT_BORDER = 'rgba(255, 255, 255, 0.9)';
+function resolveThemeColor(variableName: string, fallback: string): string {
+  const resolved = getComputedStyle(document.documentElement)
+    .getPropertyValue(variableName)
+    .trim();
+  return resolved || fallback;
+}
+
+const CURSOR_ERASE_FILL = resolveThemeColor('--irs-color-red-alpha-15', 'rgba(255, 107, 107, 0.15)');
+const CURSOR_ERASE_BORDER = resolveThemeColor('--irs-accent-danger', '#ff6b6b');
+const CURSOR_DEFAULT_BORDER = resolveThemeColor('--irs-text-primary', '#ffffff');
 
 const ERASE_HOVER_STYLE = {
   fill: CURSOR_ERASE_FILL,
@@ -2102,6 +2109,7 @@ async function handleSceneAction(action: SceneAction, sceneId: string): Promise<
       const result = await showRenameDialog(scene.name, scenes, sceneId);
       if (result.confirmed && result.value) {
         await sceneManager.renameScene(sceneId, result.value.name);
+        uxFeedback.toast.success(`Renamed scene to "${result.value.name}".`);
       }
       break;
     }
@@ -2112,6 +2120,7 @@ async function handleSceneAction(action: SceneAction, sceneId: string): Promise<
         const duplicate = await sceneManager.duplicateScene(sceneId, result.value.name);
         // Switch to the duplicated scene
         await sceneManager.switchToScene(duplicate.id);
+        uxFeedback.toast.success(`Created scene "${result.value.name}".`);
       }
       break;
     }
@@ -2123,6 +2132,7 @@ async function handleSceneAction(action: SceneAction, sceneId: string): Promise<
       const result = await showResizeDialog(loadedScene.width, loadedScene.height);
       if (result.confirmed && result.value) {
         await sceneManager.resizeScene(sceneId, result.value.width, result.value.height);
+        uxFeedback.toast.success(`Resized "${scene.name}" to ${result.value.width}×${result.value.height}.`);
       }
       break;
     }
@@ -2131,6 +2141,7 @@ async function handleSceneAction(action: SceneAction, sceneId: string): Promise<
       const confirmed = await showDeleteConfirmation(scene.name);
       if (confirmed) {
         await sceneManager.deleteScene(sceneId);
+        uxFeedback.toast.success(`Deleted scene "${scene.name}".`);
       }
       break;
     }
@@ -2177,11 +2188,11 @@ function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
 
   const banner = document.createElement('div');
   banner.style.cssText = `
-    background: rgba(255, 185, 80, 0.12);
-    border: 1px solid rgba(255, 185, 80, 0.35);
-    color: #ffddaa;
+    background: var(--irs-color-yellow-alpha-20);
+    border: 1px solid var(--irs-color-yellow-border);
+    color: var(--irs-accent-warning);
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     margin: 10px 12px;
   `;
 
@@ -2190,7 +2201,7 @@ function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
   title.style.cssText = 'font-weight: 700; margin-bottom: 6px;';
 
   const desc = document.createElement('div');
-  desc.style.cssText = 'font-size: 12px; color: #d6d0c2; line-height: 1.35;';
+  desc.style.cssText = 'font-size: 12px; color: var(--irs-text-muted); line-height: 1.35;';
   desc.textContent =
     'The repository version differs from your local hot storage. You can refresh from the repo (cold) or export a local backup first.';
 
@@ -2201,10 +2212,10 @@ function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
   btnPrimary.textContent = 'Refresh from Repo';
   btnPrimary.style.cssText = `
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 185, 80, 0.45);
-    background: rgba(255, 185, 80, 0.2);
-    color: #ffddaa;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-color-yellow-border);
+    background: var(--irs-color-yellow-alpha-20);
+    color: var(--irs-accent-warning);
     font-weight: 700;
     cursor: pointer;
   `;
@@ -2213,10 +2224,10 @@ function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
   btnSecondary.textContent = 'Export Local Backup';
   btnSecondary.style.cssText = `
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(160, 200, 255, 0.45);
-    background: rgba(160, 200, 255, 0.12);
-    color: #cfe6ff;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-color-blue-alpha-45);
+    background: var(--irs-color-blue-alpha-12);
+    color: var(--irs-text-secondary);
     font-weight: 700;
     cursor: pointer;
   `;
@@ -2225,16 +2236,16 @@ function buildUpdateBanner(info: UpdateCheckResult | null): HTMLElement | null {
   btnDismiss.textContent = 'Dismiss';
   btnDismiss.style.cssText = `
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-border-light);
     background: transparent;
-    color: #c9c9c9;
+    color: var(--irs-text-muted);
     font-weight: 700;
     cursor: pointer;
   `;
 
   const status = document.createElement('div');
-  status.style.cssText = 'font-size: 12px; color: #aab0d4; margin-top: 8px;';
+  status.style.cssText = 'font-size: 12px; color: var(--irs-text-secondary); margin-top: 8px;';
   status.textContent = '';
 
   async function exportBackup(): Promise<void> {
@@ -2300,11 +2311,11 @@ function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
 
   const banner = document.createElement('div');
   banner.style.cssText = `
-    background: rgba(255, 80, 80, 0.10);
-    border: 1px solid rgba(255, 80, 80, 0.35);
-    color: #ffd0d0;
+    background: var(--irs-color-red-alpha-15);
+    border: 1px solid var(--irs-color-red-alpha-53);
+    color: var(--irs-accent-danger);
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     margin: 10px 12px;
   `;
 
@@ -2313,7 +2324,7 @@ function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
   title.style.cssText = 'font-weight: 700; margin-bottom: 6px;';
 
   const desc = document.createElement('div');
-  desc.style.cssText = 'font-size: 12px; color: #e7c7c7; line-height: 1.35;';
+  desc.style.cssText = 'font-size: 12px; color: var(--irs-text-muted); line-height: 1.35;';
   desc.textContent = `Hot storage is using about ${info.percentUsed.toFixed(1)}% of the available quota. Consider exporting a backup or clearing old data.`;
 
   const actions = document.createElement('div');
@@ -2323,10 +2334,10 @@ function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
   btnOpen.textContent = 'Open Data Tools';
   btnOpen.style.cssText = `
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 80, 80, 0.45);
-    background: rgba(255, 80, 80, 0.14);
-    color: #ffd0d0;
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-color-red-alpha-53);
+    background: var(--irs-color-red-alpha-15);
+    color: var(--irs-accent-danger);
     font-weight: 700;
     cursor: pointer;
   `;
@@ -2335,10 +2346,10 @@ function buildQuotaBanner(info: StorageQuotaInfo | null): HTMLElement | null {
   btnDismiss.textContent = 'Dismiss';
   btnDismiss.style.cssText = `
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--irs-radius-sm);
+    border: 1px solid var(--irs-border-light);
     background: transparent;
-    color: #c9c9c9;
+    color: var(--irs-text-muted);
     font-weight: 700;
     cursor: pointer;
   `;
@@ -2375,7 +2386,7 @@ function renderEditorUI(): void {
       height: 100%;
       display: flex;
       flex-direction: column;
-      background: #1a1a2e;
+      background: var(--irs-surface-modal);
       overflow: hidden;
     ">
       <!-- Top Panel Container -->
@@ -2389,7 +2400,7 @@ function renderEditorUI(): void {
         flex: 1;
         position: relative;
         overflow: hidden;
-        background: #0a0a1a;
+        background: var(--irs-surface-base);
       "></div>
 
       <!-- Bottom Panel Container -->

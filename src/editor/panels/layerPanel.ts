@@ -114,7 +114,7 @@ const STYLES = `
     gap: 4px;
     min-height: 44px;
     padding: 4px 6px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     background: transparent;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -150,7 +150,7 @@ const STYLES = `
     width: 24px;
     height: 18px;
     padding: 0;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-sm);
     border: none;
     background: transparent;
     color: var(--irs-text-muted);
@@ -219,7 +219,7 @@ const STYLES = `
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     font-size: 15px;

@@ -125,7 +125,7 @@ const STYLES = `
     min-height: 44px;
     min-width: 44px;
     padding: 6px 10px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: none;
     background: var(--irs-color-blue);
     color: var(--irs-color-text);
@@ -178,7 +178,7 @@ const STYLES = `
     padding: 8px 12px;
     min-height: 44px;
     min-width: 44px;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
     border: 2px solid transparent;
     background: var(--irs-color-blueAlpha12);
     color: var(--irs-color-text-muted);

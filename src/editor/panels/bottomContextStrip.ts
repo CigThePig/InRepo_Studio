@@ -68,7 +68,7 @@ const STYLES = `
     min-height: var(--irs-touch-target);
     height: var(--irs-touch-target);
     padding: 0 14px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: none;
     background: var(--irs-border-light);
     color: var(--irs-text-primary);

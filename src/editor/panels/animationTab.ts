@@ -26,7 +26,7 @@ const STYLES = `
   .animation-tab__preview {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 18px;
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -37,7 +37,7 @@ const STYLES = `
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     background: var(--irs-surface-base);
     border: 1px solid var(--irs-border-heavy);
     overflow: hidden;
@@ -63,7 +63,7 @@ const STYLES = `
   .animation-tab__chip {
     min-height: 32px;
     padding: 6px 10px;
-    border-radius: 999px;
+    border-radius: var(--irs-radius-pill);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
@@ -93,7 +93,7 @@ const STYLES = `
   }
 
   .animation-tab__source-cta {
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     padding: 10px 12px;
@@ -117,7 +117,7 @@ const STYLES = `
   .animation-tab__frames {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 18px;
+    border-radius: var(--irs-radius-xl);
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -142,7 +142,7 @@ const STYLES = `
     flex: 0 0 auto;
     width: 56px;
     height: 56px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
     background: var(--irs-surface-modal);
     display: flex;
@@ -154,7 +154,7 @@ const STYLES = `
   .animation-tab__frame img {
     width: 100%;
     height: 100%;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     object-fit: cover;
   }
 
@@ -175,7 +175,7 @@ const STYLES = `
     color: var(--irs-text-primary);
     background: var(--irs-surface-base);
     padding: 2px 4px;
-    border-radius: 6px;
+    border-radius: var(--irs-radius-sm);
   }
 
   .animation-tab__frame-delete {
@@ -184,7 +184,7 @@ const STYLES = `
     right: -4px;
     width: 20px;
     height: 20px;
-    border-radius: 999px;
+    border-radius: var(--irs-radius-pill);
     border: 1px solid var(--irs-color-red-alpha-53);
     background: var(--irs-color-red-alpha-53);
     color: var(--irs-text-primary);
@@ -214,7 +214,7 @@ const STYLES = `
   .animation-tab__context {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 18px;
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -229,9 +229,9 @@ const STYLES = `
   }
 
   .animation-tab__button {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -286,7 +286,7 @@ const STYLES = `
   .animation-tab__sheet-panel {
     width: min(420px, 92vw);
     background: var(--irs-surface-base);
-    border-radius: 20px 20px 0 0;
+    border-radius: var(--irs-radius-xl) var(--irs-radius-xl) 0 0;
     border: 1px solid var(--irs-border-heavy);
     padding: 16px;
     display: flex;
@@ -309,9 +309,9 @@ const STYLES = `
   }
 
   .animation-tab__input {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
@@ -348,7 +348,7 @@ const STYLES = `
     gap: 10px;
     align-items: center;
     padding: 8px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-modal);
     cursor: pointer;
@@ -357,7 +357,7 @@ const STYLES = `
   .animation-tab__asset-card img {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     object-fit: cover;
   }
 
@@ -376,7 +376,7 @@ const STYLES = `
     position: absolute;
     width: 16px;
     height: 16px;
-    border-radius: 999px;
+    border-radius: var(--irs-radius-pill);
     border: 2px solid var(--irs-color-blue);
     transform: translate(-50%, -50%);
     pointer-events: none;
@@ -404,7 +404,7 @@ const STYLES = `
   .animation-tab__thumbnail {
     width: 96px;
     height: 96px;
-    border-radius: 12px;
+    border-radius: var(--irs-radius-lg);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-base);
     object-fit: contain;
@@ -429,7 +429,7 @@ const STYLES = `
     -webkit-appearance: none;
     appearance: none;
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--irs-radius-xs);
     background: var(--irs-color-blue-alpha-35);
     outline: none;
     cursor: pointer;
@@ -471,7 +471,7 @@ const STYLES = `
     color: var(--irs-text-secondary);
     background: var(--irs-surface-base);
     padding: 1px 3px;
-    border-radius: 4px;
+    border-radius: var(--irs-radius-xs);
     cursor: pointer;
     line-height: 1.2;
     z-index: 3;
@@ -491,7 +491,7 @@ const STYLES = `
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-color-blue);
     color: var(--irs-text-primary);
-    border-radius: 4px;
+    border-radius: var(--irs-radius-xs);
     padding: 1px 3px;
     z-index: 10;
     outline: none;
@@ -507,7 +507,7 @@ const STYLES = `
   .animation-tab__select-btn {
     min-height: 32px;
     padding: 4px 10px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: transparent;
     color: var(--irs-text-secondary);
@@ -534,7 +534,7 @@ const STYLES = `
   .animation-tab__batch-btn {
     min-height: 36px;
     padding: 6px 12px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-heavy);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);
@@ -564,7 +564,7 @@ const STYLES = `
   .animation-tab__batch-duration-input {
     min-height: 36px;
     padding: 4px 8px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-color-blue);
     background: var(--irs-surface-modal);
     color: var(--irs-text-primary);
@@ -592,7 +592,7 @@ const STYLES = `
     -webkit-appearance: none;
     appearance: none;
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--irs-radius-xs);
     background: var(--irs-color-blue-alpha-35);
     outline: none;
     cursor: pointer;
@@ -877,7 +877,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const sourceCtaSlice = document.createElement('button');
   sourceCtaSlice.type = 'button';
-  sourceCtaSlice.className = 'animation-tab__button animation-tab__button--primary';
+  sourceCtaSlice.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
   sourceCtaSlice.textContent = 'Slice Frames';
   sourceCtaSlice.addEventListener('click', () => openSliceSettings());
 
@@ -923,14 +923,14 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const pivotSnapToggle = document.createElement('button');
   pivotSnapToggle.type = 'button';
-  pivotSnapToggle.className = 'animation-tab__button animation-tab__button--ghost';
+  pivotSnapToggle.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
   pivotSnapToggle.textContent = 'Snap 0.05: Off';
 
   const nudgeStep = 0.01;
 
   const nudgeLeftBtn = document.createElement('button');
   nudgeLeftBtn.type = 'button';
-  nudgeLeftBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeLeftBtn.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
   nudgeLeftBtn.textContent = '← X';
   nudgeLeftBtn.style.minHeight = '36px';
   nudgeLeftBtn.style.padding = '4px 8px';
@@ -938,7 +938,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const nudgeRightBtn = document.createElement('button');
   nudgeRightBtn.type = 'button';
-  nudgeRightBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeRightBtn.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
   nudgeRightBtn.textContent = 'X →';
   nudgeRightBtn.style.minHeight = '36px';
   nudgeRightBtn.style.padding = '4px 8px';
@@ -946,7 +946,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const nudgeUpBtn = document.createElement('button');
   nudgeUpBtn.type = 'button';
-  nudgeUpBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeUpBtn.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
   nudgeUpBtn.textContent = '↑ Y';
   nudgeUpBtn.style.minHeight = '36px';
   nudgeUpBtn.style.padding = '4px 8px';
@@ -954,7 +954,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
   const nudgeDownBtn = document.createElement('button');
   nudgeDownBtn.type = 'button';
-  nudgeDownBtn.className = 'animation-tab__button animation-tab__button--ghost';
+  nudgeDownBtn.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
   nudgeDownBtn.textContent = 'Y ↓';
   nudgeDownBtn.style.minHeight = '36px';
   nudgeDownBtn.style.padding = '4px 8px';
@@ -1147,7 +1147,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
-    cancelButton.className = 'animation-tab__button animation-tab__button--ghost';
+    cancelButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     cancelButton.textContent = 'Cancel';
     cancelButton.addEventListener('click', closeSheet);
 
@@ -1156,7 +1156,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     if (options.onConfirm) {
       const confirmButton = document.createElement('button');
       confirmButton.type = 'button';
-      confirmButton.className = 'animation-tab__button animation-tab__button--primary';
+      confirmButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       confirmButton.textContent = options.confirmLabel ?? 'Save';
       confirmButton.addEventListener('click', () => {
         options.onConfirm?.();
@@ -1602,12 +1602,12 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const prevButton = document.createElement('button');
     prevButton.type = 'button';
-    prevButton.className = 'animation-tab__button animation-tab__button--ghost';
+    prevButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     prevButton.textContent = 'Prev';
 
     const nextButton = document.createElement('button');
     nextButton.type = 'button';
-    nextButton.className = 'animation-tab__button animation-tab__button--ghost';
+    nextButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     nextButton.textContent = 'Next';
 
     const indexField = document.createElement('div');
@@ -1786,7 +1786,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     if (hasGrid) {
       const gridButton = document.createElement('button');
       gridButton.type = 'button';
-      gridButton.className = 'animation-tab__button animation-tab__button--primary';
+      gridButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       gridButton.textContent = 'From Grid';
       gridButton.addEventListener('click', () => {
         closeSheet();
@@ -1797,7 +1797,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const filesButton = document.createElement('button');
     filesButton.type = 'button';
-    filesButton.className = 'animation-tab__button animation-tab__button--primary';
+    filesButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
     filesButton.textContent = 'From Files';
     filesButton.addEventListener('click', () => {
       closeSheet();
@@ -1807,7 +1807,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const existingButton = document.createElement('button');
     existingButton.type = 'button';
-    existingButton.className = 'animation-tab__button';
+    existingButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
     existingButton.textContent = 'From Existing Asset';
     existingButton.addEventListener('click', () => {
       closeSheet();
@@ -1930,7 +1930,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const loopToggle = document.createElement('button');
     loopToggle.type = 'button';
-    loopToggle.className = 'animation-tab__button animation-tab__button--ghost';
+    loopToggle.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     loopToggle.textContent = getSheetLoopLabel(loopValue);
 
     loopToggle.addEventListener('click', () => {
@@ -2489,25 +2489,25 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
       const importButton = document.createElement('button');
       importButton.type = 'button';
-      importButton.className = 'animation-tab__button animation-tab__button--primary';
+      importButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       importButton.textContent = 'Import Spritesheet';
       importButton.addEventListener('click', () => fileInput.click());
 
       const addFilesButton = document.createElement('button');
       addFilesButton.type = 'button';
-      addFilesButton.className = 'animation-tab__button animation-tab__button--primary';
+      addFilesButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       addFilesButton.textContent = 'Add Files as Frames';
       addFilesButton.addEventListener('click', () => frameFilesInput.click());
 
       const existingButton = document.createElement('button');
       existingButton.type = 'button';
-      existingButton.className = 'animation-tab__button';
+      existingButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
       existingButton.textContent = 'Use Existing Asset';
       existingButton.addEventListener('click', openAssetPicker);
 
       const entityButton = document.createElement('button');
       entityButton.type = 'button';
-      entityButton.className = 'animation-tab__button';
+      entityButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
       entityButton.textContent = 'Edit Selected Entity';
 
       const selectedEntity = getSelectedEntity();
@@ -2549,25 +2549,25 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
       const sliceButton = document.createElement('button');
       sliceButton.type = 'button';
-      sliceButton.className = 'animation-tab__button animation-tab__button--primary';
+      sliceButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       sliceButton.textContent = 'Slice Frames';
       sliceButton.addEventListener('click', () => openSliceSettings());
 
       const addFilesButton = document.createElement('button');
       addFilesButton.type = 'button';
-      addFilesButton.className = 'animation-tab__button animation-tab__button--primary';
+      addFilesButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
       addFilesButton.textContent = 'Add Files as Frames';
       addFilesButton.addEventListener('click', () => frameFilesInput.click());
 
       const atlasButton = document.createElement('button');
       atlasButton.type = 'button';
-      atlasButton.className = 'animation-tab__button';
+      atlasButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
       atlasButton.textContent = 'Import Atlas JSON';
       atlasButton.addEventListener('click', () => atlasJsonInput.click());
 
       const sourceButton = document.createElement('button');
       sourceButton.type = 'button';
-      sourceButton.className = 'animation-tab__button';
+      sourceButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
       sourceButton.textContent = 'Change Source';
       sourceButton.addEventListener('click', openAssetPicker);
 
@@ -2586,13 +2586,13 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const saveButton = document.createElement('button');
     saveButton.type = 'button';
-    saveButton.className = 'animation-tab__button animation-tab__button--primary';
+    saveButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--primary';
     saveButton.textContent = state.animationId ? 'Update Animation' : 'Save Animation';
     saveButton.addEventListener('click', openSaveSheet);
 
     const attachButton = document.createElement('button');
     attachButton.type = 'button';
-    attachButton.className = 'animation-tab__button';
+    attachButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
     attachButton.textContent = 'Attach to Selected Entity';
     const canAttach = Boolean(getSelectedEntity()) && Boolean(state.animationId);
     attachButton.disabled = !canAttach;
@@ -2603,25 +2603,25 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
 
     const sliceButton = document.createElement('button');
     sliceButton.type = 'button';
-    sliceButton.className = 'animation-tab__button animation-tab__button--ghost';
+    sliceButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     sliceButton.textContent = 'Reslice';
     sliceButton.addEventListener('click', () => openSliceSettings());
 
     const clearButton = document.createElement('button');
     clearButton.type = 'button';
-    clearButton.className = 'animation-tab__button animation-tab__button--ghost';
+    clearButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     clearButton.textContent = 'Clear Frames';
     clearButton.addEventListener('click', clearAllFrames);
 
     const atlasButton = document.createElement('button');
     atlasButton.type = 'button';
-    atlasButton.className = 'animation-tab__button';
+    atlasButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
     atlasButton.textContent = 'Import Atlas JSON';
     atlasButton.addEventListener('click', () => atlasJsonInput.click());
 
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
-    resetButton.className = 'animation-tab__button animation-tab__button--ghost';
+    resetButton.className = 'irs-btn irs-btn--secondary animation-tab__button animation-tab__button--ghost';
     resetButton.textContent = 'Reset All';
     resetButton.addEventListener('click', resetAnimation);
 
@@ -2631,7 +2631,7 @@ export function createAnimationTab(config: AnimationTabConfig): AnimationTabCont
     if (onBackToList) {
       const backButton = document.createElement('button');
       backButton.type = 'button';
-      backButton.className = 'animation-tab__button';
+      backButton.className = 'irs-btn irs-btn--secondary animation-tab__button';
       backButton.textContent = '← Back to List';
       backButton.addEventListener('click', () => onBackToList());
       row.appendChild(backButton);

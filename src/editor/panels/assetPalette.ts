@@ -14,7 +14,7 @@ const STYLES = `
   .irs-asset-palette__section {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     padding: 12px;
   }
 
@@ -47,7 +47,7 @@ const STYLES = `
   }
 
   .irs-asset-palette__card {
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: 2px solid transparent;
     background: var(--irs-surface-modal);
     padding: 6px;
@@ -67,7 +67,7 @@ const STYLES = `
   .irs-asset-palette__card img,
   .irs-asset-palette__card canvas {
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     object-fit: cover;
   }
 

@@ -20,9 +20,9 @@ const STYLES = `
     left: 16px;
     bottom: 16px;
     padding: 6px 10px;
-    background: rgba(15, 52, 96, 0.85);
-    color: #fff;
-    border-radius: 6px;
+    background: var(--irs-surface-dark-alpha);
+    color: var(--irs-text-primary);
+    border-radius: var(--irs-radius-sm);
     font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -36,10 +36,10 @@ const STYLES = `
     min-width: 44px;
     min-height: 44px;
     padding: 6px 12px;
-    border-radius: 10px;
-    background: rgba(42, 42, 78, 0.9);
-    color: #fff;
-    border: 1px solid rgba(74, 158, 255, 0.7);
+    border-radius: var(--irs-radius-md);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-primary);
+    border: 1px solid var(--irs-border-medium);
     font-weight: 600;
     font-size: 12px;
     cursor: pointer;
@@ -48,7 +48,7 @@ const STYLES = `
   }
 
   .playtest-overlay__exit:active {
-    background: rgba(58, 58, 110, 0.9);
+    background: var(--irs-border-heavy);
   }
 
   .playtest-overlay__joystick {
@@ -58,8 +58,8 @@ const STYLES = `
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 2px solid rgba(74, 158, 255, 0.65);
-    background: rgba(15, 30, 60, 0.35);
+    border: 2px solid var(--irs-border-medium);
+    background: var(--irs-color-blue-alpha-22);
     pointer-events: auto;
     touch-action: none;
   }
@@ -71,9 +71,9 @@ const STYLES = `
     border-radius: 50%;
     left: 34px;
     top: 34px;
-    background: rgba(74, 158, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    background: var(--irs-color-blue);
+    border: 1px solid var(--irs-border-light);
+    box-shadow: var(--irs-shadow-panel);
     pointer-events: none;
   }
 

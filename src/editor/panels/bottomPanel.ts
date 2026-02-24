@@ -87,16 +87,16 @@ const STYLES = `
     align-items: center;
     gap: 12px;
     padding: 4px;
-    border-radius: 14px;
+    border-radius: var(--irs-radius-xl);
     background: var(--irs-color-blue-alpha-12);
     align-self: flex-start;
   }
 
   .irs-bottom-panel__tool-button {
-    height: 44px;
-    min-width: 44px;
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
     padding: 0 12px;
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     border: none;
     background: var(--irs-color-blue-alpha-12);
     color: var(--irs-text-primary);
@@ -199,7 +199,7 @@ export function createBottomPanel(
 
   const placeButton = document.createElement('button');
   placeButton.type = 'button';
-  placeButton.className = 'irs-bottom-panel__tool-button';
+  placeButton.className = 'irs-btn irs-btn--secondary irs-bottom-panel__tool-button';
   placeButton.setAttribute('aria-label', 'Place');
   placeButton.setAttribute('title', 'Place');
   placeButton.innerHTML = `
@@ -217,7 +217,7 @@ export function createBottomPanel(
 
   const interactButton = document.createElement('button');
   interactButton.type = 'button';
-  interactButton.className = 'irs-bottom-panel__tool-button';
+  interactButton.className = 'irs-btn irs-btn--secondary irs-bottom-panel__tool-button';
   interactButton.setAttribute('aria-label', 'Interact');
   interactButton.setAttribute('title', 'Interact');
   interactButton.innerHTML = `
@@ -232,7 +232,7 @@ export function createBottomPanel(
 
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
-  removeButton.className = 'irs-bottom-panel__tool-button';
+  removeButton.className = 'irs-btn irs-btn--secondary irs-bottom-panel__tool-button';
   removeButton.setAttribute('aria-label', 'Remove');
   removeButton.setAttribute('title', 'Remove');
   removeButton.innerHTML = `

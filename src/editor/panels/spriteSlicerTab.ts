@@ -68,7 +68,7 @@ const STYLES = `
   }
 
   .irs-sprite-slicer__button {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 8px 12px;
     border-radius: var(--irs-radius-lg);
     border: 2px solid transparent;
@@ -107,7 +107,7 @@ const STYLES = `
 
   .irs-sprite-slicer__select,
   .irs-sprite-slicer__input {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     padding: 6px 10px;
     border-radius: var(--irs-radius-md);
     border: 1px solid var(--irs-border-medium);
@@ -209,7 +209,7 @@ const STYLES = `
   }
 
   .irs-sprite-slicer__region-name {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     border: none;
     background: transparent;
     color: var(--irs-text-primary);
@@ -221,10 +221,10 @@ const STYLES = `
   }
 
   .irs-sprite-slicer__region-name-input {
-    min-height: 44px;
+    min-height: var(--irs-touch-target);
     max-width: 180px;
     padding: 4px 8px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: 1px solid var(--irs-border-medium);
     background: var(--irs-surface-dark);
     color: var(--irs-text-primary);
@@ -240,7 +240,7 @@ const STYLES = `
   .irs-sprite-slicer__region-remove {
     min-height: var(--irs-touch-target);
     padding: 4px 8px;
-    border-radius: 8px;
+    border-radius: var(--irs-radius-sm);
     border: 1px solid var(--irs-border-medium);
     background: var(--irs-surface-panel);
     color: var(--irs-text-primary);

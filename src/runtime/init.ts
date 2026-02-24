@@ -22,6 +22,14 @@ export interface RuntimeConfig {
 
 let activeGame: Phaser.Game | null = null;
 
+
+function resolveRuntimeBackgroundColor(): string {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue('--irs-surface-base')
+    .trim();
+  return value || '#0a0a1a';
+}
+
 function prepareGameContainer(): HTMLElement {
   const app = document.getElementById('app');
   if (!app) {
@@ -47,15 +55,15 @@ function showRuntimeError(message: string): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0a0a1a;
-      color: #fff;
+      background: var(--irs-surface-base);
+      color: var(--irs-text-primary);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       text-align: center;
       padding: 24px;
     ">
       <div>
         <h2 style="margin-bottom: 12px;">Runtime Error</h2>
-        <p style="color: #b0b0d0;">${message}</p>
+        <p style="color: var(--irs-text-secondary);">${message}</p>
       </div>
     </div>
   `;
@@ -168,7 +176,7 @@ export async function initRuntime(config: RuntimeConfig = {}): Promise<void> {
     parent: container,
     width: window.innerWidth,
     height: window.innerHeight,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: resolveRuntimeBackgroundColor(),
     pixelArt: true,
     antialias: false,
     antialiasGL: false,

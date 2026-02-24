@@ -40,7 +40,7 @@ const STYLES = `
   .irs-deploy-panel__status-card {
     background: var(--irs-surface-panel);
     border: 1px solid var(--irs-border-heavy);
-    border-radius: 10px;
+    border-radius: var(--irs-radius-md);
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -79,13 +79,6 @@ const STYLES = `
 
   .irs-deploy-panel__input {
     width: 100%;
-    min-height: 44px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--irs-border-heavy);
-    background: var(--irs-surface-input);
-    color: var(--irs-text-primary);
-    font-size: 13px;
   }
 
   .irs-deploy-panel__form-row {
@@ -212,11 +205,11 @@ export function createDeployPanel(config: DeployPanelConfig): DeployPanelControl
         <div class="irs-deploy-panel__status-title">Repository</div>
         <div class="irs-deploy-panel__form-row">
           <label>Owner</label>
-          <input class="irs-deploy-panel__input" name="owner" placeholder="octocat" value="${resolvedRepo?.owner ?? ''}" />
+          <input class="irs-input irs-deploy-panel__input" name="owner" placeholder="octocat" value="${resolvedRepo?.owner ?? ''}" />
         </div>
         <div class="irs-deploy-panel__form-row">
           <label>Repository</label>
-          <input class="irs-deploy-panel__input" name="repo" placeholder="my-game" value="${resolvedRepo?.repo ?? ''}" />
+          <input class="irs-input irs-deploy-panel__input" name="repo" placeholder="my-game" value="${resolvedRepo?.repo ?? ''}" />
         </div>
         <div class="irs-deploy-panel__inline" data-repo-actions>
           <button class="irs-btn irs-btn--secondary irs-deploy-panel__secondary-btn" data-save-repo type="button">Save repo</button>
