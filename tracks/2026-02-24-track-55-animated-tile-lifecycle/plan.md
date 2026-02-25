@@ -4,13 +4,12 @@
 
 ### Tasks
 - [ ] Add `isAnimatedTile?: boolean` and `animationId?: string` to `AssetEntry`
-- [ ] Add `animRef?: string` to tilemap cell type
+- [ ] Explicitly keep `TileLayer` as `number[][]` (no tile cell schema expansion for animation refs)
 - [ ] Add `setAssetAnimated(id, animationId)` and `clearAssetAnimated(id)` to `AssetRegistry`
 - [ ] Update `context/schema-registry.md`
 
 ### Files touched
 - `src/editor/assets/assetRegistry.ts`
-- `src/types/` (tilemap cell)
 - `context/schema-registry.md`
 
 ### Verification
@@ -46,8 +45,8 @@
 ## Phase 3 — Paint + Renderer Playback
 
 ### Tasks
-- [ ] `paint.ts`: when painting `isAnimatedTile` asset, write `animRef: animationId` to cell
-- [ ] `renderer.ts`: when drawing cell with `animRef`, get current frame from `animationClock`; fallback to static tile if unknown
+- [ ] `paint.ts`: when painting `isAnimatedTile` asset, keep standard numeric GID writes (same persistence path as static tiles)
+- [ ] `renderer.ts`: resolve each painted GID with `resolveTileGid`, lookup matching `AssetEntry`, and when `isAnimatedTile` + `animationId` are present render `animationClock` current frame; fallback to static tile otherwise
 - [ ] Confirm `animationClock.ts` supports multiple concurrent animation IDs
 
 ### Files touched
@@ -55,7 +54,7 @@
 - `src/editor/canvas/renderer.ts`
 
 ### Verification
-- [ ] Paint an animated tile: cell shows animation playing in editor
+- [ ] Paint an animated tile: persisted `TileLayer` cell remains numeric GID and animation plays in editor
 - [ ] Animation loops correctly in the renderer
 - [ ] Static tiles unaffected (no regression)
 - [ ] `npm run build` succeeds
