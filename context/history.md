@@ -694,3 +694,21 @@ Purpose:
 - **Follow-up**:
   - Phase 7 planning (TBD).
   - Automated tests for UX feedback wiring tracked in `context/planned-tests.md`.
+
+### Track 47 — Multi-tile Prop Zoom Anchor Fix
+- **Dates**: 2026-02-25
+- **Status**: Completed
+- **Summary**: Fixed prop sprites shifting position when viewport zoom or pan changes. The root cause was a wrong screen-coordinate formula in `drawPropSprite` (`(x - panX) * zoom` instead of the correct `x * zoom + panX`) plus missing tile-grid snapping that caused sub-pixel drift for multi-tile sprites.
+- **Shipped**:
+  - `src/editor/canvas/renderer.ts` — `drawPropSprite`: corrected screen-position formula to `snappedX * zoom + panX` (matching `worldToScreen` / `grid.ts` convention); added `Math.round(x / tileSize) * tileSize` grid snap applied to both atlas-slice and tileCache branches.
+  - `src/editor/canvas/renderer.ts` — selection highlight rect: same corrected formula + grid snap so the bounding box tracks the sprite at all zoom/pan values.
+  - `src/editor/canvas/renderer.ts` — `resolveSpriteSize`: added comment confirming returned dimensions are world-pixel (unzoomed) units.
+- **Verification**:
+  - `tsc --noEmit` passes (no new errors).
+  - `npm run build` succeeds.
+  - Formula verified against `grid.ts` line 89 (`worldX * zoom + panX`) and `viewport.ts` `worldToScreen`.
+- **Learned**:
+  - The formula `(x - panX) * zoom` agreed with the correct `x * zoom + panX` only at the default state (panX=0). The bug was latent and became visible under pan + zoom because `panX` is a screen-space offset, not a world-space one.
+  - Grid snapping at draw time (not storage time) keeps stored coordinates accurate while eliminating visual drift.
+- **Follow-up**:
+  - None.

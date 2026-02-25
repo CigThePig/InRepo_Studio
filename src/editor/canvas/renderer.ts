@@ -220,6 +220,8 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   }
 
 
+  // Returns sprite dimensions in world-pixel (unzoomed) units.
+  // Callers must multiply by viewport.zoom to obtain screen-pixel size.
   function resolveSpriteSize(sprite: SpriteRef, tileSize: number): { width: number; height: number } {
     const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
     if (atlasSlice) return { width: atlasSlice.rect.w, height: atlasSlice.rect.h };
@@ -229,8 +231,12 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
   }
 
   function drawPropSprite(ctx: CanvasRenderingContext2D, viewport: ViewportState, tileSize: number, sprite: SpriteRef, x: number, y: number, alpha = 1): void {
-    const worldX = (x - viewport.panX) * viewport.zoom;
-    const worldY = (y - viewport.panY) * viewport.zoom;
+    // Snap to tile grid in world units to prevent sub-pixel drift on multi-tile sprites.
+    // screenX = worldX * zoom + panX (matches worldToScreen / grid.ts convention).
+    const snappedX = Math.round(x / tileSize) * tileSize;
+    const snappedY = Math.round(y / tileSize) * tileSize;
+    const screenX = snappedX * viewport.zoom + viewport.panX;
+    const screenY = snappedY * viewport.zoom + viewport.panY;
     const atlasSlice = atlasCache.getAtlasSlice(sprite.category, sprite.index);
     const prev = ctx.globalAlpha;
     ctx.globalAlpha = prev * alpha;
@@ -241,8 +247,8 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
         atlasSlice.rect.y,
         atlasSlice.rect.w,
         atlasSlice.rect.h,
-        worldX,
-        worldY,
+        screenX,
+        screenY,
         atlasSlice.rect.w * viewport.zoom,
         atlasSlice.rect.h * viewport.zoom,
       );
@@ -253,7 +259,7 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
     if (img) {
       const width = img.naturalWidth || tileSize;
       const height = img.naturalHeight || tileSize;
-      ctx.drawImage(img, worldX, worldY, width * viewport.zoom, height * viewport.zoom);
+      ctx.drawImage(img, screenX, screenY, width * viewport.zoom, height * viewport.zoom);
     }
     ctx.globalAlpha = prev;
   }
@@ -816,8 +822,10 @@ export function createTilemapRenderer(config: TilemapRendererConfig): TilemapRen
           drawPropSprite(ctx, viewport, tileSize, propSprite.sprite, propSprite.x, propSprite.y);
           if (selectedPropSpriteIds.includes(propSprite.id)) {
             const size = resolveSpriteSize(propSprite.sprite, tileSize);
-            const posX = (propSprite.x - viewport.panX) * viewport.zoom;
-            const posY = (propSprite.y - viewport.panY) * viewport.zoom;
+            const snappedX = Math.round(propSprite.x / tileSize) * tileSize;
+            const snappedY = Math.round(propSprite.y / tileSize) * tileSize;
+            const posX = snappedX * viewport.zoom + viewport.panX;
+            const posY = snappedY * viewport.zoom + viewport.panY;
             ctx.strokeStyle = SELECTION_MOVE_BORDER;
             ctx.lineWidth = 2;
             ctx.strokeRect(posX, posY, size.width * viewport.zoom, size.height * viewport.zoom);
