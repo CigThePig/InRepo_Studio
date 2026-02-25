@@ -10,24 +10,27 @@ isAnimatedTile?: boolean;
 animationId?: string;      // References an AnimationAsset.id
 ```
 
-**Tilemap cell** (wherever `TileCell` or equivalent is defined in `src/types/`):
+**Tilemap persistence (`TileLayer`)** (`src/types/scene.ts`):
 ```ts
-animRef?: string;   // AnimationAsset.id — present only for animated tiles
+export type TileLayer = number[][];
 ```
+
+No tilemap cell schema changes in this track. Animated tile playback is derived at render time from the painted GID + asset metadata.
 
 ### Paint tool animated tile path
 
 In `paint.ts`, when the user paints with an `isAnimatedTile` asset:
-1. Look up `asset.animationId`
-2. Write `animRef: animationId` to the tilemap cell (in addition to the tile index for the static poster frame)
-3. The static tile index is used as a fallback if the animation hasn't loaded
+1. Resolve and write the same numeric GID path used for static tiles
+2. Do not write non-numeric data into `TileLayer`
+3. The painted base tile remains the fallback when animation metadata is missing/unavailable
 
 ### Renderer animated tile playback
 
-In `renderer.ts`, when drawing a cell with `animRef`:
-1. Look up the current frame from `animationClock.getCurrentFrame(animRef)`
-2. Draw the frame from the atlas/tileCache instead of the static tile
-3. If `animRef` is unknown or clock not started, draw the static tile (graceful fallback)
+In `renderer.ts`, for each numeric cell GID:
+1. Resolve GID → `{ category, index }` via `resolveTileGid`
+2. Query `AssetRegistry` for the matching tile `AssetEntry`
+3. If the entry has `isAnimatedTile === true` and `animationId`, fetch `animationClock.getCurrentFrame(animationId)`
+4. Draw the animation frame when available; otherwise draw the base tile for graceful fallback
 
 `AnimationClock` (`src/editor/canvas/animationClock.ts`) already exists. Confirm it supports multiple concurrent animation ids.
 
@@ -54,9 +57,8 @@ The Tiles subtab (Track 50) renders two sections when any animated tiles exist:
 
 #### Modified files
 - `src/editor/assets/assetRegistry.ts` — `isAnimatedTile`, `animationId` fields; `setAssetAnimated` method
-- `src/types/` — `animRef` on tilemap cell type
-- `src/editor/tools/paint.ts` — write `animRef` for animated tiles
-- `src/editor/canvas/renderer.ts` — read `animRef`, look up current frame from clock
+- `src/editor/tools/paint.ts` — preserve GID-only tile writes for animated tile assets
+- `src/editor/canvas/renderer.ts` — resolve GID, look up asset metadata, and play animation frame via `animationId` when available
 - `src/editor/panels/tilePicker.ts` — filter out `isAnimatedTile` from static list
 - `src/editor/panels/assetPalette.ts` — same filter
 - `src/editor/panels/assetLibraryTab.ts` — animated tiles section in Tiles subtab
@@ -70,14 +72,16 @@ The Tiles subtab (Track 50) renders two sections when any animated tiles exist:
 
 ### Tasks
 - [ ] Add `isAnimatedTile?: boolean` and `animationId?: string` to `AssetEntry`
-- [ ] Add `animRef?: string` to tilemap cell type
 - [ ] Add `setAssetAnimated(id, animationId)` and `clearAssetAnimated(id)` to `AssetRegistry`
+- [ ] Explicitly document in track notes: `TileLayer` remains `number[][]` (no `src/types` schema changes)
 - [ ] Update `context/schema-registry.md`
 
 ### Files touched
 - `src/editor/assets/assetRegistry.ts`
-- `src/types/` (tilemap cell)
 - `context/schema-registry.md`
+- `tracks/2026-02-24-track-55-animated-tile-lifecycle/spec.md`
+- `tracks/2026-02-24-track-55-animated-tile-lifecycle/blueprint.md`
+- `tracks/2026-02-24-track-55-animated-tile-lifecycle/plan.md`
 
 ### Verification
 - [ ] `tsc --noEmit` passes
@@ -112,8 +116,8 @@ The Tiles subtab (Track 50) renders two sections when any animated tiles exist:
 ## Phase 3 — Paint + Renderer Playback
 
 ### Tasks
-- [ ] `paint.ts`: when painting `isAnimatedTile` asset, write `animRef: animationId` to cell
-- [ ] `renderer.ts`: when drawing cell with `animRef`, get current frame from `animationClock`; fallback to static tile if unknown
+- [ ] `paint.ts`: when painting `isAnimatedTile` asset, keep standard numeric GID writes (same path as static tiles)
+- [ ] `renderer.ts`: resolve painted GID via `resolveTileGid`, look up matching `AssetEntry`, and if animated fetch frame from `animationClock` by `animationId`; fallback to static tile when lookup/frame is missing
 - [ ] Confirm `animationClock.ts` supports multiple concurrent animation IDs
 
 ### Files touched
