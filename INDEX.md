@@ -735,7 +735,7 @@ Micro-format (copy/paste):
 
 - `src/editor/assets/assetRegistry.ts`
   - Role: In-editor asset registry with grouped assets and selection state.
-  - Lists of truth: AssetRegistryState, AssetEntry, AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode, AnimationSetAsset, Facing4
+  - Lists of truth: AssetRegistryState, AssetEntry (incl. isSource flag), AssetEntrySource, AnimationAsset, AnimationFrameRef, AnimationLoopMode, AnimationSetAsset, Facing4
 
 - `src/editor/assets/assetRegistry.test.ts`
   - Role: Unit tests for asset registry rename/reorder behavior.

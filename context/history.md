@@ -713,6 +713,27 @@ Purpose:
 - **Follow-up**:
   - None.
 
+### Track 49 — Asset Source Classification + "Can't Paint" Silence
+- **Dates**: 2026-02-27
+- **Status**: Completed
+- **Summary**: Introduced `isSource` flag on `AssetEntry` and `'sources'` in `AssetGroupType` to classify full spritesheets as non-paintable. Eliminated the persistent "Can't paint atlas tile yet…" notice that fired on every refresh when a source spritesheet was selected.
+- **Shipped**:
+  - `src/editor/assets/assetGroup.ts` — added `'sources'` to `AssetGroupType`, `ASSET_GROUP_PATHS.sources`, and a default sources group in `DEFAULT_ASSET_GROUPS`.
+  - `src/editor/assets/assetRegistry.ts` — added `isSource?: boolean` to `AssetEntry` and `AssetEntryInput`; updated `addAssets` to pass the flag through; added `applySourceHeuristic` called from `normalizeGroups` to retroactively classify existing tile entries without `sourceAssetId`; updated `moveAsset` type map and `uploadGroup` to handle 'sources' type.
+  - `src/editor/assets/spriteAtlasRehydrate.ts` — set `isSource: true` on parent spritesheet entries at creation time.
+  - `src/editor/init.ts` — added early return guard in `syncSelectedAssetSelection` for source assets, preventing the atlas mismatch notice from firing.
+  - `src/editor/panels/assetPalette.ts` — filter out `isSource` assets from paint/placement palette.
+  - `src/editor/panels/assetLibraryTab.ts` — added `renderSources` function rendering a read-only "Sources" section in the asset library; updated `renderGroups` to exclude source assets from the paintable groups view; updated `GROUP_TYPE_LABELS` to include 'sources'.
+  - `context/schema-registry.md` — documented `isSource` field and updated `AssetGroupType` values.
+- **Verification**:
+  - `tsc --noEmit` produces no new errors from this track's changes (only pre-existing external module errors unrelated to this track).
+  - Build failure baseline confirmed unchanged (pre-existing phaser/idb/blockly install errors).
+- **Learned**:
+  - `AssetUploadGroupType` in `deploy/assetUpload.ts` is a separate type from `AssetGroupType`; adding a new value to `AssetGroupType` requires an early guard in `uploadGroup` and a type cast to avoid cross-module type errors without touching the deploy module.
+  - The conservative source heuristic (`!sourceAssetId && type === 'tile'`) correctly classifies spritesheet parents and does not affect slices (which always have `sourceAssetId` set).
+- **Follow-up**:
+  - Track 50: Asset Library Subtabs UI redesign (Tiles / Props / Entities / Animations / Sources), reclassification popup, moving assets between groups.
+
 ### Track 48 — Berry Panel Mutual Exclusion
 - **Dates**: 2026-02-27
 - **Status**: Completed

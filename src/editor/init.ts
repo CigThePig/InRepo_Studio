@@ -624,6 +624,9 @@ function syncSelectedAssetSelection(
     return;
   }
 
+  // Source spritesheets are never paintable — skip the atlas mismatch notice entirely.
+  if (asset.isSource) return;
+
   const atlasMismatchReason = getAtlasTileSizeMismatchReason(selection);
   if (atlasMismatchReason) {
     if (editorState.domain === 'ground') {

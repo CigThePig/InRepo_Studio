@@ -222,7 +222,12 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
 
   function refresh(): void {
     const state = assetRegistry.getState();
-    const groups = assetRegistry.getGroupsByType(groupType);
+    const rawGroups = assetRegistry.getGroupsByType(groupType);
+    // Exclude source spritesheets from paint/placement contexts
+    const groups = rawGroups.map((group) => ({
+      ...group,
+      assets: group.assets.filter((asset) => !asset.isSource),
+    }));
     renderGroups(groups, state.selectedAssetId);
   }
 

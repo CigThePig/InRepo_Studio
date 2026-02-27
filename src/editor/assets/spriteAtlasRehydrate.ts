@@ -110,6 +110,7 @@ export function rehydrateSpriteAtlasesIntoAssetRegistry(options: {
           dataUrl: parsed.normalizedPath,
           width: 0,
           height: 0,
+          isSource: true,
         }],
       });
       parent = created[0] ?? null;
