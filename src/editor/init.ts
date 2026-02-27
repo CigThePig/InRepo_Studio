@@ -1967,6 +1967,23 @@ async function initPanels(): Promise<void> {
     }
   }
 
+  // Mutual exclusion: on phone-width viewports (≤ 600px), opening one berry closes the other.
+  if (leftBerryController && rightBerryController) {
+    const PHONE_MAX_WIDTH = 600;
+    const left = leftBerryController;
+    const right = rightBerryController;
+    left.onOpenChange((isOpen) => {
+      if (isOpen && window.innerWidth <= PHONE_MAX_WIDTH) {
+        right.close();
+      }
+    });
+    right.onOpenChange((isOpen) => {
+      if (isOpen && window.innerWidth <= PHONE_MAX_WIDTH) {
+        left.close();
+      }
+    });
+  }
+
   if (editorState) {
     applyDomain(editorState.domain ?? 'ground', false);
     bottomPanelController?.setCurrentIntent(editorState.intent);

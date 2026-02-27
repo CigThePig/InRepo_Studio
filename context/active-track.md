@@ -1,6 +1,6 @@
-Active track: Track 47 — Multi-tile Prop Zoom Anchor Fix — COMPLETE
+Active track: Track 48 — Berry Panel Mutual Exclusion — COMPLETE
 
-Current phase: Track 47 — complete
+Current phase: Track 48 — complete
 Next task: Phase 7 planning (TBD)
 
 Note: Track 41 (Left Berry Presets UI + Blockly Hooks) is complete.
