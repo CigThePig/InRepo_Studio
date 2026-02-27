@@ -712,3 +712,19 @@ Purpose:
   - Grid snapping at draw time (not storage time) keeps stored coordinates accurate while eliminating visual drift.
 - **Follow-up**:
   - None.
+
+### Track 48 — Berry Panel Mutual Exclusion
+- **Dates**: 2026-02-27
+- **Status**: Completed
+- **Summary**: Made the left and right berry panels mutually exclusive on phone-width viewports (≤ 600px). Opening one berry now closes the other before its opening animation begins, eliminating overlapping panels on small screens.
+- **Shipped**:
+  - `src/editor/panels/rightBerry.ts` — changed `openChangeCallback` from a single nullable variable to an array (`openChangeCallbacks`), making `onOpenChange` additive (push) to match the existing `leftBerry.ts` pattern.
+  - `src/editor/init.ts` — added mutual-exclusion wiring block after both berry controllers are instantiated: left-opens-on-phone closes right; right-opens-on-phone closes left. Width checked at open time (`window.innerWidth <= 600`) to handle orientation changes correctly.
+- **Verification**:
+  - `tsc --noEmit` produces no new errors (only pre-existing external module errors unrelated to this track).
+  - Pre-existing build error state confirmed unchanged by git stash comparison.
+- **Learned**:
+  - `rightBerry.ts` originally used a single-assignment `openChangeCallback` (overwrite semantics) while `leftBerry.ts` used an array (push semantics). Making `rightBerry` consistent with `leftBerry` was necessary before safely adding a second listener.
+  - Capturing the controllers in local `const` variables (`left`, `right`) inside the wiring block avoids TypeScript closure-narrowing issues with module-level `let` variables.
+- **Follow-up**:
+  - None.

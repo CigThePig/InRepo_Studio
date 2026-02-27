@@ -45,14 +45,14 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
     initialOpen: isOpen,
     onOpenChange: (open) => {
       isOpen = open;
-      openChangeCallback?.(open);
+      openChangeCallbacks.forEach((cb) => cb(open));
     },
   });
   const tabBar = shell.tabBar;
   const content = shell.content;
 
   let tabChangeCallback: ((tab: EditorMode) => void) | null = null;
-  let openChangeCallback: ((open: boolean) => void) | null = null;
+  const openChangeCallbacks: Array<(open: boolean) => void> = [];
 
   const tabButtons = new Map<EditorMode, HTMLButtonElement>();
   const tabContents = new Map<EditorMode, HTMLElement>();
@@ -179,7 +179,7 @@ export function createRightBerry(container: HTMLElement, config: RightBerryConfi
       tabChangeCallback = callback;
     },
     onOpenChange(callback) {
-      openChangeCallback = callback;
+      openChangeCallbacks.push(callback);
     },
     setTabSet(newTabs) {
       // Clear any previous generic tabs
