@@ -1,7 +1,7 @@
-Active track: Track 48 — Berry Panel Mutual Exclusion — COMPLETE
+Active track: Track 49 — Asset Source Classification + "Can't Paint" Silence — COMPLETE
 
-Current phase: Track 48 — complete
-Next task: Phase 7 planning (TBD)
+Current phase: Track 49 — complete
+Next task: Track 50 (Asset Library Subtabs UI Redesign — planned)
 
 Note: Track 41 (Left Berry Presets UI + Blockly Hooks) is complete.
 Files delivered include: src/editor/presets/presetsTab.ts, categoryDetail.ts, knobEditor.ts,

@@ -19,7 +19,7 @@ import type { AssetEntry } from './assetRegistry';
 import { slugifyGroupName } from './groupSlugify';
 import { TILESETS_DIR, PROPS_DIR, ENTITIES_DIR } from '@/shared/paths';
 
-export type AssetGroupType = 'tilesets' | 'props' | 'entities';
+export type AssetGroupType = 'tilesets' | 'props' | 'entities' | 'sources';
 
 export interface AssetGroup {
   type: AssetGroupType;
@@ -32,6 +32,7 @@ export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {
   tilesets: TILESETS_DIR,
   props: PROPS_DIR,
   entities: ENTITIES_DIR,
+  sources: TILESETS_DIR,
 };
 
 export const DEFAULT_ASSET_GROUPS: AssetGroup[] = [
@@ -49,6 +50,12 @@ export const DEFAULT_ASSET_GROUPS: AssetGroup[] = [
   },
   {
     type: 'entities',
+    name: 'Ungrouped',
+    slug: 'ungrouped',
+    assets: [],
+  },
+  {
+    type: 'sources',
     name: 'Ungrouped',
     slug: 'ungrouped',
     assets: [],

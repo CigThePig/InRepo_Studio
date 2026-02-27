@@ -5,7 +5,7 @@
  *
  * Defines:
  * - AssetRegistryState — persisted asset registry state (type: schema)
- * - AssetEntry — asset metadata stored in groups (type: schema)
+ * - AssetEntry — asset metadata stored in groups (type: schema); includes isSource flag
  * - AnimationAsset — animation metadata stored in registry (type: schema)
  * - AnimationFrameRef — frame references for animation assets (type: schema)
  * - AnimationLoopMode — supported loop modes for animations (type: lookup)
@@ -86,6 +86,8 @@ export interface AssetEntry {
   sourceAssetId?: string;
   /** Region within the parent spritesheet (used when sourceAssetId is set) */
   rect?: { x: number; y: number; w: number; h: number };
+  /** True for full spritesheets / raw imports that are not directly paintable */
+  isSource?: boolean;
 }
 
 export interface AssetRegistryState {
@@ -107,6 +109,8 @@ export interface AssetEntryInput {
   sourceAssetId?: string;
   /** Region within the parent spritesheet (used when sourceAssetId is set) */
   rect?: { x: number; y: number; w: number; h: number };
+  /** True for full spritesheets / raw imports that are not directly paintable */
+  isSource?: boolean;
 }
 
 export interface AnimationAssetInput {
@@ -278,6 +282,13 @@ function cloneAnimStateMachine(sm: AnimStateMachineAsset): AnimStateMachineAsset
   };
 }
 
+function applySourceHeuristic(asset: AssetEntry): AssetEntry {
+  if (asset.isSource != null) return asset; // already classified
+  if (asset.sourceAssetId != null) return asset; // slices are never sources
+  if (asset.type !== 'tile') return asset; // only tile-type can be a source spritesheet
+  return { ...asset, isSource: true };
+}
+
 function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
   return groups.map((group) => {
     const normalizedName = normalizeGroupName(group.name);
@@ -285,14 +296,17 @@ function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
       type: group.type,
       name: normalizedName,
       slug: group.slug ? createGroupSlug(group.slug) : createGroupSlug(normalizedName),
-      assets: (group.assets ?? []).map((asset) => ({
-        ...asset,
-        dataUrl:
-          asset.source === 'repo'
-            ? normalizeRepoAssetPath(asset.dataUrl)
-            : asset.dataUrl,
-        source: asset.source ?? 'local',
-      })),
+      assets: (group.assets ?? []).map((asset) => {
+        const normalized: AssetEntry = {
+          ...asset,
+          dataUrl:
+            asset.source === 'repo'
+              ? normalizeRepoAssetPath(asset.dataUrl)
+              : asset.dataUrl,
+          source: asset.source ?? 'local',
+        };
+        return applySourceHeuristic(normalized);
+      }),
     };
   });
 }
@@ -598,6 +612,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       tilesets: 'tile',
       props: 'sprite',
       entities: 'entity',
+      sources: 'tile',
     };
     const movedAsset: AssetEntry = {
       ...asset,
@@ -675,6 +690,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
       source: asset.source ?? 'local',
       sourceAssetId: asset.sourceAssetId,
       rect: asset.rect ? { ...asset.rect } : undefined,
+      isSource: asset.isSource,
     }));
 
     const updatedGroup: AssetGroup = {
@@ -1107,9 +1123,11 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
   }
 
   function buildUploadError(group: AssetGroup, message: string): AssetUploadResult {
+    // 'sources' groups are rejected before reaching here; cast is safe.
+    const uploadType = group.type as import('@/deploy/assetUpload').AssetUploadGroupType;
     return {
       group: {
-        type: group.type,
+        type: uploadType,
         slug: group.slug,
         name: group.name,
       },
@@ -1123,10 +1141,22 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     groupSlug: string;
     onProgress?: (progress: AssetUploadProgress) => void;
   }): Promise<AssetUploadResult> {
+    // Sources are repo-managed spritesheets; they are not uploaded via the asset registry.
+    if (options.groupType === 'sources') {
+      return {
+        group: { type: 'tilesets', slug: options.groupSlug, name: options.groupSlug },
+        results: [],
+        error: 'Source spritesheet groups are managed as repo assets and cannot be uploaded directly.',
+      };
+    }
+
+    // After the 'sources' guard above, groupType can safely be cast to AssetUploadGroupType.
+    const uploadGroupType = options.groupType as import('@/deploy/assetUpload').AssetUploadGroupType;
+
     if (!uploadHandler) {
       return {
         group: {
-          type: options.groupType,
+          type: uploadGroupType,
           slug: options.groupSlug,
           name: options.groupSlug,
         },
@@ -1141,7 +1171,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     if (!group) {
       return {
         group: {
-          type: options.groupType,
+          type: uploadGroupType,
           slug: options.groupSlug,
           name: options.groupSlug,
         },
@@ -1157,7 +1187,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
 
     const result = await uploadHandler({
       group: {
-        type: group.type,
+        type: uploadGroupType,
         slug: group.slug,
         name: group.name,
       },

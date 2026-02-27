@@ -515,6 +515,7 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
   tilesets: 'Tilesets',
   props: 'Props',
   entities: 'Entities',
+  sources: 'Sources',
 };
 
 function ensureStyles(): void {
@@ -1127,6 +1128,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     librarySection.querySelectorAll('.irs-asset-library__group').forEach((node) => node.remove());
     librarySection.querySelectorAll('.irs-asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
 
+    // Exclude source assets from the main groups; they appear in the Sources section below.
+    const paintableGroups = groups.map((group) => ({
+      ...group,
+      assets: group.assets.filter((asset) => !asset.isSource),
+    }));
+
     if (groups.length === 0) {
       const emptyContainer = document.createElement('div');
       uxFeedback.emptyState.render(emptyContainer, {
@@ -1138,15 +1145,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       return;
     }
 
-    const groupsByType = groups.reduce<Record<AssetGroupType, AssetGroup[]>>(
+    const groupsByType = paintableGroups.reduce<Record<AssetGroupType, AssetGroup[]>>(
       (acc, group) => {
-        acc[group.type].push(group);
+        if (group.type !== 'sources') {
+          acc[group.type].push(group);
+        }
         return acc;
       },
-      { tilesets: [], props: [], entities: [] }
+      { tilesets: [], props: [], entities: [], sources: [] }
     );
 
-    (Object.keys(GROUP_TYPE_LABELS) as AssetGroupType[]).forEach((type) => {
+    ((['tilesets', 'props', 'entities'] as AssetGroupType[])).forEach((type) => {
       const typeGroups = groupsByType[type];
       if (typeGroups.length === 0) return;
 
@@ -1999,6 +2008,86 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }
   }
 
+  function renderSources(): void {
+    librarySection.querySelectorAll('.irs-asset-library__sources-section').forEach((node) => node.remove());
+
+    const allGroups = assetRegistry.getGroups();
+    const sourceAssets = allGroups
+      .flatMap((group) => group.assets)
+      .filter((asset) => asset.isSource);
+
+    const section = document.createElement('div');
+    section.className = 'irs-asset-library__anim-section irs-asset-library__sources-section';
+
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'irs-asset-library__anim-section-header';
+
+    const titleBtn = document.createElement('button');
+    titleBtn.type = 'button';
+    titleBtn.className = 'irs-asset-library__group-toggle';
+    titleBtn.innerHTML = `
+      <span>Sources</span>
+      <span class="irs-asset-library__group-count">${sourceAssets.length} spritesheet${sourceAssets.length !== 1 ? 's' : ''}</span>
+    `;
+
+    const note = document.createElement('div');
+    note.className = 'irs-asset-library__sheet-note';
+    note.style.marginTop = '4px';
+    note.style.marginBottom = '8px';
+    note.textContent = 'Read-only. Source spritesheets — slice them to create paintable tiles.';
+
+    let sourcesVisible = true;
+
+    titleBtn.addEventListener('click', () => {
+      sourcesVisible = !sourcesVisible;
+      grid.style.display = sourcesVisible ? '' : 'none';
+      note.style.display = sourcesVisible ? '' : 'none';
+    });
+
+    sectionHeader.appendChild(titleBtn);
+    section.appendChild(sectionHeader);
+    section.appendChild(note);
+
+    const grid = document.createElement('div');
+    grid.className = 'irs-asset-library__animations';
+
+    if (sourceAssets.length === 0) {
+      const emptyContainer = document.createElement('div');
+      uxFeedback.emptyState.render(emptyContainer, {
+        message: 'No sources yet.',
+        actionLabel: 'Import Spritesheet',
+        onAction: () => nameInput.focus(),
+      });
+      section.appendChild(emptyContainer);
+    } else {
+      for (const asset of sourceAssets) {
+        const card = document.createElement('div');
+        card.className = 'irs-asset-library__animation-card';
+
+        const img = document.createElement('img');
+        img.src = resolveAssetUrl(asset.dataUrl);
+        img.alt = asset.name;
+        img.style.imageRendering = 'pixelated';
+        card.appendChild(img);
+
+        const name = document.createElement('div');
+        name.className = 'irs-asset-library__asset-name';
+        name.textContent = asset.name;
+        card.appendChild(name);
+
+        const meta = document.createElement('div');
+        meta.className = 'irs-asset-library__animation-meta';
+        meta.textContent = asset.source === 'repo' ? 'Repo' : 'Local';
+        card.appendChild(meta);
+
+        grid.appendChild(card);
+      }
+      section.appendChild(grid);
+    }
+
+    librarySection.appendChild(section);
+  }
+
   function renderAnimSheet(): void {
     animScrim.innerHTML = '';
     directionPreviewCanvasMap.clear();
@@ -2354,6 +2443,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   function refresh(): void {
     const state = assetRegistry.getState();
     renderGroups(state.groups, state.selectedAssetId);
+    renderSources();
     renderAnimations();
     renderSheet();
     renderAnimSheet();

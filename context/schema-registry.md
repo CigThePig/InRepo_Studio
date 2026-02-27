@@ -162,7 +162,8 @@ Rules:
     - Keys: groups[], selectedAssetId, animations[], animationSets[]
     - Apply mode: live
   - `AssetEntry` — asset metadata stored in groups
-    - Keys: id, name, type, source, dataUrl, width, height, createdAt
+    - Keys: id, name, type, source, dataUrl, width, height, createdAt, sourceAssetId?, rect?, isSource?
+    - `isSource`: true for full spritesheets / raw imports; auto-classified at load; excludes asset from paint/palette contexts
   - `AssetEntrySource` — asset origin
     - Values: local, repo
   - `AnimationAsset` — animation metadata stored in registry
@@ -176,11 +177,11 @@ Rules:
 
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets
-    - Values: tilesets, props, entities
+    - Values: tilesets, props, entities, sources
   - `DEFAULT_ASSET_GROUPS` — baseline asset groups per type
     - Apply mode: live
   - `ASSET_GROUP_PATHS` — canonical repo asset roots
-    - Keys: tilesets, props, entities
+    - Keys: tilesets, props, entities, sources
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states
