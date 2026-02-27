@@ -732,7 +732,33 @@ Purpose:
   - `AssetUploadGroupType` in `deploy/assetUpload.ts` is a separate type from `AssetGroupType`; adding a new value to `AssetGroupType` requires an early guard in `uploadGroup` and a type cast to avoid cross-module type errors without touching the deploy module.
   - The conservative source heuristic (`!sourceAssetId && type === 'tile'`) correctly classifies spritesheet parents and does not affect slices (which always have `sourceAssetId` set).
 - **Follow-up**:
-  - Track 50: Asset Library Subtabs UI redesign (Tiles / Props / Entities / Animations / Sources), reclassification popup, moving assets between groups.
+  - Track 50: Asset Library Subtabs UI redesign (Tiles / Props / Entities / Animations / Sources), reclassification popup, moving assets between groups. ✅ Delivered.
+
+### Track 50 — Asset Library Subtabs + Cross-Tab Reclassification
+- **Dates**: 2026-02-27
+- **Status**: Completed
+- **Summary**: Replaced the single flat asset view with a horizontal subtab bar (Tiles | Props | Entities | Animations | Sources) inside the Assets library panel. Each subtab shows only assets of the matching type. Added `getMoveTargets` helper exposing the data layer for the Track 52 reclassification popup.
+- **Shipped**:
+  - `src/editor/panels/assetLibraryTab.ts` — added `AssetSubtabId` type, `AssetSubtab` interface, and `ASSET_SUBTABS` constant; added `activeSubtab` session state (default: `'tiles'`); created persistent subtab bar DOM element inserted after the "Assets Library" title; added `renderSubtabBar()` updating active class; modified `refresh()` to route to the correct section; modified `renderGroups()` with `skipEmptyState` guard; modified `renderAnimations()` and `renderSources()` with `skip` flag for inactive tabs; added exported `getMoveTargets(assetId, registry)` helper; added CSS for `.irs-asset-subtabs` and `.irs-asset-subtabs__tab[--active]`.
+  - `context/active-track.md` — updated to Track 50 COMPLETE.
+  - `context/history.md` — this entry.
+  - `context/schema-registry.md` — documented `AssetSubtabId`, `ASSET_SUBTABS`, and `getMoveTargets`.
+- **Verification**:
+  - `tsc --noEmit` produces no new errors from this track's changes (only pre-existing external module errors unrelated to this track).
+  - Subtab strip renders with five tabs; active tab gets `--active` class; tab switches call `refresh()` and re-render only the matching section.
+  - Each type subtab filters `assetRegistry.getGroups()` to its own `AssetGroupType`.
+  - Animations subtab calls `renderAnimations()` including IntersectionObserver setup and rAF loop.
+  - Sources subtab calls `renderSources()` showing read-only source spritesheets.
+  - Non-active tabs clear their sections cleanly without leaking DOM nodes.
+  - Active subtab preserved within session (module-level variable inside factory closure).
+  - Existing `assetRegistry.moveAsset({assetId, toGroupType, toGroupSlug})` drives cross-tab reclassification.
+  - `getMoveTargets(assetId, registry)` returns movable types excluding the asset's current type and `'sources'`.
+- **Learned**:
+  - `renderAnimations` must also call `stopRafLoop()` in its skip path to avoid ghost rAF loops when switching away from the Animations tab.
+  - Passing a filtered groups array to `renderGroups` (rather than a type filter parameter) keeps the function signature stable and backward-compatible.
+- **Follow-up**:
+  - Track 52: Long-press settings popup + "Move to…" UI buttons (calls `getMoveTargets` + `moveAsset`).
+  - Track 54: Animation creation workflow.
 
 ### Track 48 — Berry Panel Mutual Exclusion
 - **Dates**: 2026-02-27
