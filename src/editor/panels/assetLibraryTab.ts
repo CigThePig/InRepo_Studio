@@ -495,7 +495,55 @@ const STYLES = `
     padding: 8px 0;
     grid-column: 1 / -1;
   }
+
+  .irs-asset-subtabs {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--irs-border-heavy);
+    margin-bottom: 12px;
+  }
+  .irs-asset-subtabs::-webkit-scrollbar {
+    display: none;
+  }
+  .irs-asset-subtabs__tab {
+    flex-shrink: 0;
+    min-height: var(--irs-touch-target);
+    padding: 0 14px;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--irs-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .irs-asset-subtabs__tab--active {
+    background: var(--irs-color-blue-alpha-22);
+    border-color: var(--irs-accent-primary);
+    color: var(--irs-text-primary);
+    font-weight: 700;
+  }
 `;
+
+type AssetSubtabId = 'tiles' | 'props' | 'entities' | 'animations' | 'sources';
+
+interface AssetSubtab {
+  id: AssetSubtabId;
+  label: string;
+  groupType?: AssetGroupType;
+}
+
+const ASSET_SUBTABS: AssetSubtab[] = [
+  { id: 'tiles',       label: 'Tiles',      groupType: 'tilesets'  },
+  { id: 'props',       label: 'Props',      groupType: 'props'     },
+  { id: 'entities',    label: 'Entities',   groupType: 'entities'  },
+  { id: 'animations',  label: 'Animations'                         },
+  { id: 'sources',     label: 'Sources',    groupType: 'sources'   },
+];
 
 export interface AssetLibraryTabConfig {
   container: HTMLElement;
@@ -517,6 +565,18 @@ const GROUP_TYPE_LABELS: Record<AssetGroupType, string> = {
   entities: 'Entities',
   sources: 'Sources',
 };
+
+/**
+ * Returns the group types an asset can be reclassified into (excludes its current type
+ * and excludes 'sources' since sources are not manually reclassified).
+ */
+export function getMoveTargets(assetId: string, registry: AssetRegistry): AssetGroupType[] {
+  const state = registry.getState();
+  const currentGroup = state.groups.find((g) => g.assets.some((a) => a.id === assetId));
+  if (!currentGroup) return [];
+  const movableTypes: AssetGroupType[] = ['tilesets', 'props', 'entities'];
+  return movableTypes.filter((t) => t !== currentGroup.type);
+}
 
 function ensureStyles(): void {
   if (document.getElementById('irs-asset-library-tab-styles')) return;
@@ -584,6 +644,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   let sheetAssetId: string | null = null;
   let sheetView: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu';
   let moveToType: AssetGroupType = 'tilesets';
+  let activeSubtab: AssetSubtabId = 'tiles';
 
   type DragState = {
     groupType: AssetGroupType;
@@ -747,7 +808,24 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   libraryTitle.className = 'irs-asset-library__title';
   libraryTitle.textContent = 'Assets Library';
 
+  // Subtab bar — persistent element, active class updated by renderSubtabBar()
+  const subtabBar = document.createElement('div');
+  subtabBar.className = 'irs-asset-subtabs';
+  ASSET_SUBTABS.forEach((tab) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'irs-asset-subtabs__tab';
+    btn.textContent = tab.label;
+    btn.dataset.subtab = tab.id;
+    btn.addEventListener('click', () => {
+      activeSubtab = tab.id;
+      refresh();
+    });
+    subtabBar.appendChild(btn);
+  });
+
   librarySection.appendChild(libraryTitle);
+  librarySection.appendChild(subtabBar);
   root.appendChild(librarySection);
 
   const sheetScrim = document.createElement('div');
@@ -1124,7 +1202,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return card;
   }
 
-  function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {
+  function renderGroups(
+    groups: AssetGroup[],
+    selectedAssetId: string | null,
+    skipEmptyState?: boolean
+  ): void {
     librarySection.querySelectorAll('.irs-asset-library__group').forEach((node) => node.remove());
     librarySection.querySelectorAll('.irs-asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
 
@@ -1135,13 +1217,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }));
 
     if (groups.length === 0) {
-      const emptyContainer = document.createElement('div');
-      uxFeedback.emptyState.render(emptyContainer, {
-        message: 'No assets yet.',
-        actionLabel: 'Import Asset',
-        onAction: () => nameInput.focus(),
-      });
-      librarySection.appendChild(emptyContainer);
+      if (!skipEmptyState) {
+        const emptyContainer = document.createElement('div');
+        uxFeedback.emptyState.render(emptyContainer, {
+          message: 'No assets yet.',
+          actionLabel: 'Import Asset',
+          onAction: () => nameInput.focus(),
+        });
+        librarySection.appendChild(emptyContainer);
+      }
       return;
     }
 
@@ -1315,14 +1399,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     });
   }
 
-  function renderAnimations(): void {
+  function renderAnimations(skip?: boolean): void {
     // Clean up old canvases / observers before rebuilding
     animIntersectionObserver?.disconnect();
     animationCanvases.clear();
     animationClock.destroy();
+    stopRafLoop();
 
     librarySection.querySelectorAll('.irs-asset-library__anim-section')
       .forEach((node) => node.remove());
+
+    if (skip) return;
 
     const animations = assetRegistry.getAnimations();
     const animationSets = assetRegistry.getAnimationSets();
@@ -2008,8 +2095,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }
   }
 
-  function renderSources(): void {
+  function renderSources(skip?: boolean): void {
     librarySection.querySelectorAll('.irs-asset-library__sources-section').forEach((node) => node.remove());
+
+    if (skip) return;
 
     const allGroups = assetRegistry.getGroups();
     const sourceAssets = allGroups
@@ -2440,11 +2529,42 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     sheetScrim.appendChild(sheet);
   }
 
+  function renderSubtabBar(): void {
+    subtabBar.querySelectorAll<HTMLElement>('.irs-asset-subtabs__tab').forEach((btn) => {
+      btn.classList.toggle('irs-asset-subtabs__tab--active', btn.dataset.subtab === activeSubtab);
+    });
+  }
+
   function refresh(): void {
     const state = assetRegistry.getState();
-    renderGroups(state.groups, state.selectedAssetId);
-    renderSources();
-    renderAnimations();
+    renderSubtabBar();
+
+    if (activeSubtab === 'tiles') {
+      const groups = state.groups.filter((g) => g.type === 'tilesets');
+      renderGroups(groups, state.selectedAssetId);
+      renderAnimations(true);
+      renderSources(true);
+    } else if (activeSubtab === 'props') {
+      const groups = state.groups.filter((g) => g.type === 'props');
+      renderGroups(groups, state.selectedAssetId);
+      renderAnimations(true);
+      renderSources(true);
+    } else if (activeSubtab === 'entities') {
+      const groups = state.groups.filter((g) => g.type === 'entities');
+      renderGroups(groups, state.selectedAssetId);
+      renderAnimations(true);
+      renderSources(true);
+    } else if (activeSubtab === 'animations') {
+      renderGroups([], state.selectedAssetId, true);
+      renderAnimations();
+      renderSources(true);
+    } else {
+      // sources
+      renderGroups([], state.selectedAssetId, true);
+      renderAnimations(true);
+      renderSources();
+    }
+
     renderSheet();
     renderAnimSheet();
   }

@@ -183,6 +183,17 @@ Rules:
   - `ASSET_GROUP_PATHS` — canonical repo asset roots
     - Keys: tilesets, props, entities, sources
 
+- `/src/editor/panels/assetLibraryTab.ts`
+  - `AssetSubtabId` — asset library subtab identifiers
+    - Values: tiles, props, entities, animations, sources
+    - Invariant: order matches ASSET_SUBTABS rendering order
+  - `ASSET_SUBTABS` — subtab definitions for the asset library strip
+    - Keys: id, label, groupType (absent for animations)
+    - Invariant: five tabs in fixed order; groupType maps subtab to AssetGroupType
+  - `getMoveTargets(assetId, registry)` — helper returning reclassifiable types
+    - Returns AssetGroupType[] excluding asset's current type and 'sources'
+    - Used by Track 52 long-press popup to build "Move to…" action list
+
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states
     - Values: idle, selecting, selected, moving, pasting
