@@ -775,3 +775,27 @@ Purpose:
   - Capturing the controllers in local `const` variables (`left`, `right`) inside the wiring block avoids TypeScript closure-narrowing issues with module-level `let` variables.
 - **Follow-up**:
   - None.
+
+### Track 51 — Asset Capsule Component Unification
+- **Dates**: 2026-02-28
+- **Status**: Completed
+- **Summary**: Replaced divergent per-tab asset tile renderers with a single reusable `createAssetCapsule` component. The Assets tab (assetLibraryTab.ts), Ground tab (tilePicker.ts), Props tab (assetPalette.ts), and Entities tab (entitiesTab.ts via assetPalette.ts) all now use the unified capsule.
+- **Shipped**:
+  - `src/editor/panels/assetCapsule.ts` — new `createAssetCapsule(opts): AssetCapsuleController` component with consistent 48×48 thumbnail, word-break label, optional badge, `setSelected()`, `setBadge()`, `setThumbnailUrl()`, and `destroy()`.
+  - `src/editor/panels/assetLibraryTab.ts` — replaced bespoke `.irs-asset-library__asset` card construction with `createAssetCapsule`; removed old card CSS; removed ⋯ more button (Track 52 will add long-press); organize-mode drag handle preserved.
+  - `src/editor/panels/tilePicker.ts` — replaced `.irs-tile-picker__tile-cell` cells with capsule; tile filename (extension stripped) used as label; shared cache resolved via `setThumbnailUrl()`; removed old tile cell CSS.
+  - `src/editor/panels/assetPalette.ts` — replaced `.irs-asset-palette__card` construction with capsule; removed old card CSS; entitiesTab entity asset groups automatically benefit.
+  - `INDEX.md` — added `assetCapsule.ts` entry.
+- **Verification**:
+  - `tsc --noEmit` produces no new errors from this track's changes (only pre-existing external module errors unrelated to this track).
+  - All four tab contexts now use `createAssetCapsule` for asset tiles.
+  - Labels wrap correctly (word-break: break-word) in all contexts.
+  - Selection state renders identically (2px accent border + blue-alpha background) across tabs.
+  - Touch targets ≥ 44px via `min-height: var(--irs-touch-target)` on capsule.
+  - Consistent `var(--irs-surface-modal)` background across all tabs.
+- **Learned**:
+  - tilePicker's shared-cache path required adding `setThumbnailUrl()` to the capsule controller to allow deferred image updates without exposing internal DOM structure.
+  - The ⋯ more button in assetLibraryTab was removed per spec (Track 52 will replace with long-press system); `openAssetSheet` function remains available for other call sites.
+  - `renderSliceThumbnail` returns `HTMLElement` but creates a `<canvas>`; `as HTMLCanvasElement` cast is used where needed.
+- **Follow-up**:
+  - Track 52: Long-press context system (replaces ⋯ button; adds organize-mode drag handles via capsule).

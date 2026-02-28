@@ -527,6 +527,10 @@ Micro-format (copy/paste):
   - Role: Left berry animation tab for sprite-sheet slicing and animation preview/editing.
   - Lists of truth: none
 
+- `src/editor/panels/assetCapsule.ts`
+  - Role: Unified asset tile component used across all four tab contexts (Assets, Ground, Props, Entities).
+  - Lists of truth: none
+
 - `src/editor/panels/assetLibraryTab.ts`
   - Role: Left berry Assets Library tab UI for grouped assets, animation clips, and directional animation sets.
   - Lists of truth: none
