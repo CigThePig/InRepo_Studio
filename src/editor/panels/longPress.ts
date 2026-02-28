@@ -2,8 +2,13 @@
  * Long-press gesture utility for asset capsules.
  *
  * Detects hold (400ms), drag (>8px after hold), and short tap on a DOM element.
- * Does NOT call setPointerCapture on pointerdown — callers are responsible for
- * capture once drag is confirmed, to avoid blocking scroll.
+ *
+ * Pointer capture strategy:
+ *   - setPointerCapture is NOT called on pointerdown, so the browser can still
+ *     scroll if the user moves before the 400ms threshold.
+ *   - setPointerCapture IS called as soon as the 400ms hold is confirmed.  This
+ *     prevents the browser from firing pointercancel due to scroll detection,
+ *     which would otherwise kill the gesture before the user can start dragging.
  */
 
 const LONG_PRESS_MS = 400;
@@ -60,6 +65,16 @@ export function attachLongPress(el: HTMLElement, opts: LongPressOpts): () => voi
     timerId = window.setTimeout(() => {
       timerId = null;
       didLongPress = true;
+      // Capture the pointer the moment the hold is confirmed.  Without this,
+      // the browser may fire pointercancel (scroll takeover) the instant the
+      // user moves after the 400ms hold, killing the gesture before onDragStart
+      // ever runs.  Capturing here prevents that race condition on mobile.
+      try {
+        el.setPointerCapture(activePointerId);
+      } catch (_) {
+        // Pointer already released (race); the gesture will cleanly resolve
+        // via the pending pointerup that's about to arrive.
+      }
       opts.onSelectionLit();
     }, LONG_PRESS_MS);
   };

@@ -1331,7 +1331,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         capsule.setLit(true);
       },
       onDragStart: (event) => {
-        // Movement confirmed after long-press: begin drag
+        // Movement confirmed after long-press: begin drag.
+        // Pointer capture was already set at the 400ms mark inside longPress.ts;
+        // calling setPointerCapture again is harmless and ensures captureEl
+        // receives all future events even if the element is mutated.
         capsule.setLit(false);
         card.setPointerCapture(event.pointerId);
 
