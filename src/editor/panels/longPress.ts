@@ -20,6 +20,14 @@ export interface LongPressOpts {
   onTap: (e: PointerEvent) => void;
   /** Called on pointercancel or when gesture is otherwise aborted. */
   onCancel?: () => void;
+  /**
+   * When false, movement after long-press will not escalate into drag-start.
+   * This is useful for long-press-to-open-menu surfaces where drift should still
+   * resolve to popup on release.
+   *
+   * Default: true.
+   */
+  allowDragAfterLongPress?: boolean;
 }
 
 /**
@@ -32,6 +40,7 @@ export function attachLongPress(el: HTMLElement, opts: LongPressOpts): () => voi
   let startY = 0;
   let didLongPress = false;
   let activePointerId = -1;
+  const allowDragAfterLongPress = opts.allowDragAfterLongPress ?? true;
 
   const onPointerDown = (e: PointerEvent): void => {
     // Only track one pointer at a time; ignore if already tracking
@@ -56,11 +65,14 @@ export function attachLongPress(el: HTMLElement, opts: LongPressOpts): () => voi
         clearTimeout(timerId);
         timerId = null;
       }
-      if (didLongPress) {
+      if (didLongPress && allowDragAfterLongPress) {
         // Long-press drag: transfer tracking to caller
         didLongPress = false;
         activePointerId = -1;
         opts.onDragStart(e);
+      } else if (didLongPress) {
+        // Long-press was confirmed and this surface does not support drag.
+        // Keep gesture active so pointerup resolves to popup-open.
       } else {
         // Moved too far before long-press fired — cancel gesture entirely
         if (timerId !== null) {

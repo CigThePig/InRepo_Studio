@@ -1293,7 +1293,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             },
             onDismiss: () => {
               activePopup = null;
-              clearSelection();
+              refresh();
             },
           });
           selectedAssetIds.add(asset.id);
@@ -1301,7 +1301,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         },
         onTap: () => {
           capsule.setLit(false);
-          // In organize mode taps don't select/paint
+          if (selectedAssetIds.size > 0) {
+            if (selectedAssetIds.has(asset.id)) {
+              selectedAssetIds.delete(asset.id);
+            } else {
+              selectedAssetIds.add(asset.id);
+            }
+            if (selectedAssetIds.size === 0) {
+              clearSelection();
+            }
+            refresh();
+          }
         },
         onCancel: () => {
           capsule.setLit(false);
@@ -1333,7 +1343,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             },
             onDismiss: () => {
               activePopup = null;
-              clearSelection();
+              refresh();
             },
           });
           selectedAssetIds.add(asset.id);
@@ -1363,6 +1373,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         onCancel: () => {
           capsule.setLit(false);
         },
+        allowDragAfterLongPress: false,
       });
     }
 
