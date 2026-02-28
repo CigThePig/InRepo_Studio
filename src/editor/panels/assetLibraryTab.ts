@@ -10,6 +10,9 @@ import { uxFeedback } from '@/editor/uxFeedback';
 import { createEmptyState } from './leftBerry';
 import { editorEventBus } from '@/editor/core';
 import { createAssetCapsule } from './assetCapsule';
+import { attachLongPress } from './longPress';
+import { createAssetSettingsPopup } from './assetSettingsPopup';
+import type { AssetSettingsPopupController } from './assetSettingsPopup';
 
 const STYLES = `
   .irs-asset-library {
@@ -150,26 +153,7 @@ const STYLES = `
     user-select: none;
   }
 
-  .irs-asset-library__drag-handle {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: var(--irs-touch-target);
-    height: var(--irs-touch-target);
-    border-radius: var(--irs-radius-lg);
-    border: 1px solid var(--irs-border-blue-alpha);
-    background: var(--irs-surface-panel);
-    color: var(--irs-text-primary);
-    font-size: 18px;
-    font-weight: 700;
-    display: grid;
-    place-items: center;
-    touch-action: none;
-    user-select: none;
-    cursor: grab;
-  }
-
-  .irs-asset-library__ghost {
+.irs-asset-library__ghost {
     position: fixed;
     width: 84px;
     pointer-events: none;
@@ -597,10 +581,22 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   let moveToType: AssetGroupType = 'tilesets';
   let activeSubtab: AssetSubtabId = 'tiles';
 
+  // Multi-select state: assets selected via long-press gesture
+  const selectedAssetIds = new Set<string>();
+  let activePopup: AssetSettingsPopupController | null = null;
+
+  function clearSelection(): void {
+    selectedAssetIds.clear();
+    activePopup?.destroy();
+    activePopup = null;
+  }
+
   type DragState = {
     groupType: AssetGroupType;
     groupSlug: string;
     assetId: string;
+    /** Additional asset ids dragged together in multi-select mode */
+    extraAssetIds: string[];
     fromIndex: number;
     pointerId: number;
     captureEl: HTMLElement;
@@ -770,6 +766,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     btn.dataset.subtab = tab.id;
     btn.addEventListener('click', () => {
       activeSubtab = tab.id;
+      clearSelection();
       refresh();
     });
     subtabBar.appendChild(btn);
@@ -842,9 +839,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     fromIndex: number;
     assetId: string;
     captureEl: HTMLElement;
+    extraAssetIds?: string[];
   }): void {
     if (dragState) return;
-    const { event, card, grid, group, fromIndex, assetId, captureEl } = options;
+    const { event, card, grid, group, fromIndex, assetId, captureEl, extraAssetIds = [] } = options;
     const rect = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('irs-asset-library__ghost');
@@ -865,6 +863,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       groupType: group.type,
       groupSlug: group.slug,
       assetId,
+      extraAssetIds,
       fromIndex,
       pointerId: event.pointerId,
       captureEl,
@@ -956,23 +955,58 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       next.targetGroupSlug !== next.groupSlug;
 
     if (crossGroup) {
-      // Cross-group move
+      // Cross-group move (primary asset only; multi-select cross-group not supported in v1)
       assetRegistry.moveAsset({
         assetId: next.assetId,
         toGroupType: next.targetGroupType,
         toGroupSlug: next.targetGroupSlug,
         toIndex: next.toIndex,
       });
+      clearSelection();
       refresh();
     } else {
       const didReorder = next.toIndex !== next.fromIndex;
       if (didReorder) {
-        assetRegistry.reorderAsset({
-          groupType: next.groupType,
-          groupSlug: next.groupSlug,
-          fromIndex: next.fromIndex,
-          toIndex: next.toIndex,
-        });
+        // Reorder all selected assets together, maintaining relative order
+        const allIds = [next.assetId, ...next.extraAssetIds];
+        if (allIds.length > 1) {
+          // For multi-asset: reorder primary, then move extras adjacent to it
+          assetRegistry.reorderAsset({
+            groupType: next.groupType,
+            groupSlug: next.groupSlug,
+            fromIndex: next.fromIndex,
+            toIndex: next.toIndex,
+          });
+          // Re-insert extras after primary (in original relative order)
+          const state = assetRegistry.getState();
+          const grp = state.groups.find(
+            (g) => g.type === next.groupType && g.slug === next.groupSlug
+          );
+          if (grp) {
+            const primaryNewIndex = grp.assets.findIndex((a) => a.id === next.assetId);
+            let insertAfter = primaryNewIndex + 1;
+            for (const extraId of next.extraAssetIds) {
+              const extraIndex = grp.assets.findIndex((a) => a.id === extraId);
+              if (extraIndex !== -1 && extraIndex !== insertAfter) {
+                assetRegistry.reorderAsset({
+                  groupType: next.groupType,
+                  groupSlug: next.groupSlug,
+                  fromIndex: extraIndex,
+                  toIndex: insertAfter,
+                });
+              }
+              insertAfter += 1;
+            }
+          }
+        } else {
+          assetRegistry.reorderAsset({
+            groupType: next.groupType,
+            groupSlug: next.groupSlug,
+            fromIndex: next.fromIndex,
+            toIndex: next.toIndex,
+          });
+        }
+        clearSelection();
         refresh();
       }
     }
@@ -1052,53 +1086,41 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       : undefined;
     const thumbnailUrl = thumbnailCanvas ? undefined : resolveAssetUrl(asset.dataUrl);
 
+    const isMultiSelected = selectedAssetIds.has(asset.id);
+
     const capsule = createAssetCapsule({
       assetId: asset.id,
       name: asset.name,
       thumbnailUrl,
       thumbnailCanvas,
-      selected: asset.id === selectedAssetId,
+      selected: asset.id === selectedAssetId || isMultiSelected,
       badge: badgeText,
-      onClick: (id) => {
-        if (organizeGroupKey !== null) return;
-        uxFeedback.selection.mark(capsule.el);
-        assetRegistry.setSelectedAsset(id);
-        editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
-      },
     });
 
     const card = capsule.el;
 
     if (organizeMode) {
       card.classList.add('irs-asset-library__asset--organizing');
-      const dragHandle = document.createElement('div');
-      dragHandle.className = 'irs-asset-library__drag-handle';
-      dragHandle.textContent = '≡';
-      dragHandle.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        dragHandle.setPointerCapture(event.pointerId);
-        beginDrag({
-          event,
-          card,
-          grid: card.parentElement as HTMLElement,
-          group,
-          fromIndex: assetIndex,
-          assetId: asset.id,
-          captureEl: dragHandle,
-        });
-      });
-      card.appendChild(dragHandle);
 
-      let longPressTimer: number | null = null;
-      let originX = 0;
-      let originY = 0;
-      card.addEventListener('pointerdown', (event) => {
-        if (event.target === dragHandle) return;
-        originX = event.clientX;
-        originY = event.clientY;
-        longPressTimer = window.setTimeout(() => {
+      // Full-tile long-press to drag (no separate drag handle icon)
+      attachLongPress(card, {
+        onSelectionLit: () => {
+          capsule.setLit(true);
+        },
+        onDragStart: (event) => {
+          capsule.setLit(false);
           card.setPointerCapture(event.pointerId);
+
+          // Multi-asset drag: build ordered list of selected ids if any
+          const dragIds = selectedAssetIds.size > 1 && selectedAssetIds.has(asset.id)
+            ? Array.from(selectedAssetIds)
+            : [asset.id];
+
+          // For multi-drag ghost: show count badge
+          if (dragIds.length > 1) {
+            capsule.setBadge(`×${dragIds.length}`);
+          }
+
           beginDrag({
             event,
             card,
@@ -1107,26 +1129,101 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             fromIndex: assetIndex,
             assetId: asset.id,
             captureEl: card,
+            extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== asset.id) : [],
           });
-          longPressTimer = null;
-        }, 300);
+        },
+        onPopupOpen: (event) => {
+          capsule.setLit(false);
+          const anchorRect = card.getBoundingClientRect();
+          activePopup?.destroy();
+          activePopup = createAssetSettingsPopup({
+            assetId: asset.id,
+            assetGroupType: group.type,
+            anchorRect,
+            onRename: (id) => openAssetSheet(id, 'rename'),
+            onDelete: (id) => openAssetSheet(id, 'delete-confirm'),
+            onMoveTo: (id, targetType) => {
+              moveToType = targetType;
+              openAssetSheet(id, 'move-to');
+            },
+            onDismiss: () => {
+              activePopup = null;
+              clearSelection();
+            },
+          });
+          selectedAssetIds.add(asset.id);
+          void event;
+        },
+        onTap: () => {
+          capsule.setLit(false);
+          // In organize mode taps don't select/paint
+        },
+        onCancel: () => {
+          capsule.setLit(false);
+        },
       });
-      card.addEventListener('pointermove', (event) => {
-        if (longPressTimer === null) return;
-        const moved = Math.hypot(event.clientX - originX, event.clientY - originY);
-        if (moved > 8) {
-          window.clearTimeout(longPressTimer);
-          longPressTimer = null;
-        }
+    } else {
+      // Normal mode: long-press → popup; short tap → select/paint or multi-select toggle
+      attachLongPress(card, {
+        onSelectionLit: () => {
+          capsule.setLit(true);
+        },
+        onDragStart: () => {
+          // Drag not supported outside organize mode; cancel lit
+          capsule.setLit(false);
+        },
+        onPopupOpen: (event) => {
+          capsule.setLit(false);
+          const anchorRect = card.getBoundingClientRect();
+          activePopup?.destroy();
+          activePopup = createAssetSettingsPopup({
+            assetId: asset.id,
+            assetGroupType: group.type,
+            anchorRect,
+            onRename: (id) => openAssetSheet(id, 'rename'),
+            onDelete: (id) => openAssetSheet(id, 'delete-confirm'),
+            onMoveTo: (id, targetType) => {
+              moveToType = targetType;
+              openAssetSheet(id, 'move-to');
+            },
+            onDismiss: () => {
+              activePopup = null;
+              clearSelection();
+            },
+          });
+          selectedAssetIds.add(asset.id);
+          void event;
+        },
+        onTap: () => {
+          capsule.setLit(false);
+          if (selectedAssetIds.size > 0) {
+            // Selection mode: toggle this asset in the selection set
+            if (selectedAssetIds.has(asset.id)) {
+              selectedAssetIds.delete(asset.id);
+              capsule.setSelected(false);
+            } else {
+              selectedAssetIds.add(asset.id);
+              capsule.setSelected(true);
+            }
+            if (selectedAssetIds.size === 0) {
+              clearSelection();
+            }
+            return;
+          }
+          // Normal tap: select/paint
+          uxFeedback.selection.mark(card);
+          assetRegistry.setSelectedAsset(asset.id);
+          editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
+        },
+        onCancel: () => {
+          capsule.setLit(false);
+        },
       });
-      const clearLongPress = () => {
-        if (longPressTimer !== null) {
-          window.clearTimeout(longPressTimer);
-          longPressTimer = null;
-        }
-      };
-      card.addEventListener('pointerup', clearLongPress);
-      card.addEventListener('pointercancel', clearLongPress);
+    }
+
+    // Show multi-select count badge on selected capsules when >1 selected
+    if (isMultiSelected && selectedAssetIds.size > 1) {
+      capsule.setBadge(`Selected ×${selectedAssetIds.size}`);
     }
 
     return card;
@@ -2536,6 +2633,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       animationClock.destroy();
       animationCanvases.clear();
       sourceImageCache.clear();
+      activePopup?.destroy();
+      activePopup = null;
       sheetScrim.remove();
       animScrim.remove();
       container.removeChild(root);

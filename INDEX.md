@@ -531,6 +531,14 @@ Micro-format (copy/paste):
   - Role: Unified asset tile component used across all four tab contexts (Assets, Ground, Props, Entities).
   - Lists of truth: none
 
+- `src/editor/panels/longPress.ts`
+  - Role: Long-press gesture utility (400ms hold → selection-lit; drag after hold; popup on release; tap pass-through).
+  - Lists of truth: LongPressOpts
+
+- `src/editor/panels/assetSettingsPopup.ts`
+  - Role: Fixed-position context-menu popup for asset actions (Rename, Delete, Move to…), positioned adjacent to anchor capsule.
+  - Lists of truth: AssetSettingsPopupOptions
+
 - `src/editor/panels/assetLibraryTab.ts`
   - Role: Left berry Assets Library tab UI for grouped assets, animation clips, and directional animation sets.
   - Lists of truth: none

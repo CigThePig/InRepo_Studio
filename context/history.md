@@ -799,3 +799,29 @@ Purpose:
   - `renderSliceThumbnail` returns `HTMLElement` but creates a `<canvas>`; `as HTMLCanvasElement` cast is used where needed.
 - **Follow-up**:
   - Track 52: Long-press context system (replaces ⋯ button; adds organize-mode drag handles via capsule).
+
+### Track 52 — Touch Interaction Overhaul: Long-Press, Multi-Select, Organize Mode
+- **Dates**: 2026-02-28
+- **Status**: Completed
+- **Summary**: Replaced the persistent drag handle icon in organize mode with a gesture-driven long-press system across all asset capsules. Long-press opens a settings popup; long-press + drag reorders; multi-select via selection mode.
+- **Shipped**:
+  - `src/editor/panels/longPress.ts` (NEW) — `attachLongPress(el, opts)` utility: 400ms hold detection, 8px drag-cancel threshold, `onSelectionLit` / `onDragStart` / `onPopupOpen` / `onTap` / `onCancel` callbacks. Scrolling preserved by not capturing on pointerdown.
+  - `src/editor/panels/assetSettingsPopup.ts` (NEW) — `createAssetSettingsPopup(opts)`: fixed-position context menu with Rename, Move-to (context-filtered by type), Delete. Positioned above/below anchor based on viewport. Dismisses on outside tap or Escape.
+  - `src/editor/panels/assetCapsule.ts` — added `setLit(lit: boolean)` to `AssetCapsuleController` and implementation; added `.irs-asset-capsule--lit` CSS class (green glow, distinct from selected state).
+  - `src/editor/panels/assetLibraryTab.ts` — removed `dragHandle` div and its CSS; removed old card-body long-press-to-drag block; replaced with `attachLongPress` in both organize and normal modes; added `selectedAssetIds: Set<string>` multi-select state; `clearSelection()` helper; multi-asset drag with badge; popup wired to existing `openAssetSheet` rename/delete/move-to flows.
+  - `INDEX.md` — added entries for `longPress.ts` and `assetSettingsPopup.ts`.
+- **Verification**:
+  - `tsc --noEmit` produces no new errors from this track's changes (only pre-existing external module errors).
+  - `npm run build` succeeds.
+  - No `⋯` button on any asset capsule in any tab.
+  - Drag handle icon (≡) removed from organize mode; full tile is drag target.
+  - Long-press (400ms) lights up capsule; popup appears on release.
+  - Short tap selects/paints in normal mode; in selection mode, taps toggle multi-select.
+  - Touch targets ≥ 44px throughout.
+- **Learned**:
+  - Scroll preservation requires NOT calling `setPointerCapture` on pointerdown — only after the 400ms hold fires or drag is confirmed.
+  - Setting `activePointerId = -1` after drag starts cleanly prevents the `longPress` listener from interfering with `beginDrag`'s own pointer listeners.
+  - The existing `openAssetSheet` flow (rename/delete/move-to) is reused from the popup rather than duplicated, keeping the implementation minimal.
+- **Follow-up**:
+  - `duplicateAsset` method does not exist in assetRegistry; Duplicate was omitted from the popup. Add it when the backend supports it.
+  - Multi-asset cross-group drag is not supported in v1 (primary asset only for cross-group moves).
