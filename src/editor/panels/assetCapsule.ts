@@ -30,6 +30,12 @@ const STYLES = `
     background: var(--irs-color-blue-alpha-22);
   }
 
+  .irs-asset-capsule--lit {
+    border-color: var(--irs-accent-success);
+    background: rgba(83, 220, 120, 0.12);
+    box-shadow: 0 0 0 2px rgba(83, 220, 120, 0.25) inset;
+  }
+
   .irs-asset-capsule__thumb {
     width: 48px;
     height: 48px;
@@ -88,6 +94,8 @@ export interface AssetCapsuleOptions {
 export interface AssetCapsuleController {
   el: HTMLElement;
   setSelected(selected: boolean): void;
+  /** Apply or remove the "selection-ready" lit highlight (distinct from selected state). */
+  setLit(lit: boolean): void;
   setBadge(text: string | null): void;
   /** Replace the thumbnail image src (only applies to img-based thumbnails). */
   setThumbnailUrl(url: string): void;
@@ -148,6 +156,9 @@ export function createAssetCapsule(opts: AssetCapsuleOptions): AssetCapsuleContr
     el,
     setSelected(s: boolean) {
       el.classList.toggle('irs-asset-capsule--selected', s);
+    },
+    setLit(lit: boolean) {
+      el.classList.toggle('irs-asset-capsule--lit', lit);
     },
     setBadge(text: string | null) {
       if (text === null) {
