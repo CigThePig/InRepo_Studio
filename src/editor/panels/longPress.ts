@@ -8,6 +8,13 @@
 
 const LONG_PRESS_MS = 400;
 const DRAG_THRESHOLD_PX = 8;
+/**
+ * If the pointer moves more than this many pixels vertically before the
+ * long-press timer fires, the gesture is cancelled so native scroll can
+ * proceed uninterrupted.  Intentionally lower than DRAG_THRESHOLD_PX so
+ * that scroll intent is detected earlier than generic movement.
+ */
+const SCROLL_CANCEL_PX = 6;
 
 export interface LongPressOpts {
   /** Called when the 400ms hold threshold is reached (pointer still down). */
@@ -59,7 +66,22 @@ export function attachLongPress(el: HTMLElement, opts: LongPressOpts): () => voi
 
   const onPointerMove = (e: PointerEvent): void => {
     if (e.pointerId !== activePointerId) return;
-    const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const moved = Math.hypot(dx, dy);
+
+    // Before the long-press fires: cancel on significant vertical movement so
+    // that native scroll can proceed unimpeded.
+    if (!didLongPress && Math.abs(dy) > SCROLL_CANCEL_PX) {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      activePointerId = -1;
+      opts.onCancel?.();
+      return;
+    }
+
     if (moved > DRAG_THRESHOLD_PX) {
       if (timerId !== null) {
         clearTimeout(timerId);
@@ -75,10 +97,6 @@ export function attachLongPress(el: HTMLElement, opts: LongPressOpts): () => voi
         // Keep gesture active so pointerup resolves to popup-open.
       } else {
         // Moved too far before long-press fired — cancel gesture entirely
-        if (timerId !== null) {
-          clearTimeout(timerId);
-          timerId = null;
-        }
         activePointerId = -1;
         opts.onCancel?.();
       }

@@ -11,8 +11,6 @@ import { createEmptyState } from './leftBerry';
 import { editorEventBus } from '@/editor/core';
 import { createAssetCapsule } from './assetCapsule';
 import { attachLongPress } from './longPress';
-import { createAssetSettingsPopup } from './assetSettingsPopup';
-import type { AssetSettingsPopupController } from './assetSettingsPopup';
 
 const STYLES = `
   .irs-asset-library {
@@ -573,6 +571,21 @@ const STYLES = `
     flex: 1;
     min-width: 100px;
   }
+
+  .irs-asset-library__selection-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .irs-asset-library__selection-count {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--irs-text-primary);
+  }
 `;
 
 type AssetSubtabId = 'tiles' | 'props' | 'entities' | 'animations' | 'sources';
@@ -682,7 +695,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   ensureStyles();
 
   const expandedGroups = new Set<string>();
-  let organizeGroupKey: string | null = null;
+  // Legacy organize mode removed — drag is now always available (selection-first model).
   const uploadStatus = new Map<
     string,
     { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
@@ -692,9 +705,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   let moveToType: AssetGroupType = 'tilesets';
   let activeSubtab: AssetSubtabId = 'tiles';
 
-  // Multi-select state: assets selected via long-press gesture
+  // Multi-select state: assets selected via long-press gesture (selection-first model)
   const selectedAssetIds = new Set<string>();
-  let activePopup: AssetSettingsPopupController | null = null;
 
   // Group management state
   type GroupEditMode = 'rename' | 'set-grid';
@@ -703,8 +715,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function clearSelection(): void {
     selectedAssetIds.clear();
-    activePopup?.destroy();
-    activePopup = null;
   }
 
   type DragState = {
@@ -914,6 +924,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   librarySection.appendChild(libraryTitle);
   librarySection.appendChild(subtabRow);
+
+  // Selection bar — always present; shown when selectedAssetIds.size > 0
+  const selectionBar = document.createElement('div');
+  selectionBar.className = 'irs-asset-library__selection-bar';
+  selectionBar.style.display = 'none';
+  librarySection.appendChild(selectionBar);
+
   root.appendChild(librarySection);
 
   const sheetScrim = document.createElement('div');
@@ -923,6 +940,16 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     refresh();
   });
   root.appendChild(sheetScrim);
+
+  // Tap outside any asset capsule clears the selection (within the panel).
+  root.addEventListener('pointerdown', (e) => {
+    if (selectedAssetIds.size === 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.irs-asset-capsule')) return;
+    if (target.closest('.irs-asset-library__selection-bar')) return;
+    clearSelection();
+    refresh();
+  });
 
   // Separate scrim for animation direction assignment bottom sheet
   const animScrim = document.createElement('div');
@@ -943,6 +970,57 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     sheetAssetId = assetId;
     sheetView = view;
     refresh();
+  }
+
+  /**
+   * Opens the settings sheet for the current selection.
+   * If one asset is selected, all actions (including Rename) are available.
+   * If multiple are selected, only batch-capable actions (Move, Delete) are shown.
+   */
+  function openSelectionSheet(): void {
+    if (selectedAssetIds.size === 0) return;
+    const firstId = [...selectedAssetIds][0];
+    sheetAssetId = firstId;
+    sheetView = 'menu';
+    refresh();
+  }
+
+  /**
+   * Updates the selection bar visibility and content.
+   * Shows count + "Settings" + "Clear" when any assets are selected.
+   */
+  function renderSelectionBar(): void {
+    if (selectedAssetIds.size === 0) {
+      selectionBar.style.display = 'none';
+      return;
+    }
+    selectionBar.style.display = '';
+    selectionBar.innerHTML = '';
+
+    const countEl = document.createElement('span');
+    countEl.className = 'irs-asset-library__selection-count';
+    countEl.textContent = `${selectedAssetIds.size} selected`;
+
+    const settingsBtn = document.createElement('button');
+    settingsBtn.type = 'button';
+    settingsBtn.className = 'irs-btn irs-btn--secondary';
+    settingsBtn.textContent = 'Settings';
+    settingsBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // don't trigger clear-on-outside
+    settingsBtn.addEventListener('click', () => openSelectionSheet());
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'irs-btn irs-btn--secondary';
+    clearBtn.textContent = 'Clear';
+    clearBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    clearBtn.addEventListener('click', () => {
+      clearSelection();
+      refresh();
+    });
+
+    selectionBar.appendChild(countEl);
+    selectionBar.appendChild(settingsBtn);
+    selectionBar.appendChild(clearBtn);
   }
 
   function findClosestIndex(cards: HTMLElement[], pointerX: number, pointerY: number): number {
@@ -1157,7 +1235,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     finishDrag(event);
   }
 
-  function renderAssets(group: AssetGroup, selectedAssetId: string | null, organizeMode: boolean): HTMLElement {
+  function renderAssets(group: AssetGroup, selectedAssetId: string | null): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'irs-asset-library__assets';
     wrapper.setAttribute('data-group-key', makeGroupKey(group.type, group.slug));
@@ -1181,7 +1259,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         asset,
         assetIndex: index,
         selectedAssetId,
-        organizeMode,
       }));
     });
     return wrapper;
@@ -1217,9 +1294,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     asset: AssetEntry;
     assetIndex: number;
     selectedAssetId: string | null;
-    organizeMode: boolean;
   }): HTMLElement {
-    const { group, asset, assetIndex, selectedAssetId, organizeMode } = options;
+    const { group, asset, assetIndex, selectedAssetId } = options;
 
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
@@ -1244,143 +1320,76 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     const card = capsule.el;
 
-    if (organizeMode) {
-      card.classList.add('irs-asset-library__asset--organizing');
+    // Selection-first, drag-native model (no Organize mode required):
+    //   Long-press (400ms) → select this asset (lit feedback, then selected on release)
+    //   Tap when selection is active → toggle this asset in/out of selection
+    //   Tap when no selection → normal paint/select via registry
+    //   Drag (after long-press + movement) → reorder; multi-select drags entire batch
+    attachLongPress(card, {
+      onSelectionLit: () => {
+        // 400ms threshold reached — show lit (green) feedback; pointer still down
+        capsule.setLit(true);
+      },
+      onDragStart: (event) => {
+        // Movement confirmed after long-press: begin drag
+        capsule.setLit(false);
+        card.setPointerCapture(event.pointerId);
 
-      // Full-tile long-press to drag (no separate drag handle icon)
-      attachLongPress(card, {
-        onSelectionLit: () => {
-          capsule.setLit(true);
-        },
-        onDragStart: (event) => {
-          capsule.setLit(false);
-          card.setPointerCapture(event.pointerId);
+        // If this asset is part of a multi-selection, drag all selected assets
+        const dragIds = selectedAssetIds.size > 1 && selectedAssetIds.has(asset.id)
+          ? Array.from(selectedAssetIds)
+          : [asset.id];
 
-          // Multi-asset drag: build ordered list of selected ids if any
-          const dragIds = selectedAssetIds.size > 1 && selectedAssetIds.has(asset.id)
-            ? Array.from(selectedAssetIds)
-            : [asset.id];
+        if (dragIds.length > 1) {
+          capsule.setBadge(`×${dragIds.length}`);
+        }
 
-          // For multi-drag ghost: show count badge
-          if (dragIds.length > 1) {
-            capsule.setBadge(`×${dragIds.length}`);
+        beginDrag({
+          event,
+          card,
+          grid: card.parentElement as HTMLElement,
+          group,
+          fromIndex: assetIndex,
+          assetId: asset.id,
+          captureEl: card,
+          extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== asset.id) : [],
+        });
+      },
+      onPopupOpen: () => {
+        // Long-press released without drag: SELECT this asset (do NOT open a popup)
+        capsule.setLit(false);
+        selectedAssetIds.add(asset.id);
+        capsule.setSelected(true);
+        refresh(); // show selection bar with Settings affordance
+      },
+      onTap: () => {
+        capsule.setLit(false);
+        if (selectedAssetIds.size > 0) {
+          // Selection is active: tap toggles this asset in/out of the selection set
+          if (selectedAssetIds.has(asset.id)) {
+            selectedAssetIds.delete(asset.id);
+            capsule.setSelected(false);
+          } else {
+            selectedAssetIds.add(asset.id);
+            capsule.setSelected(true);
           }
-
-          beginDrag({
-            event,
-            card,
-            grid: card.parentElement as HTMLElement,
-            group,
-            fromIndex: assetIndex,
-            assetId: asset.id,
-            captureEl: card,
-            extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== asset.id) : [],
-          });
-        },
-        onPopupOpen: (event) => {
-          capsule.setLit(false);
-          const anchorRect = card.getBoundingClientRect();
-          activePopup?.destroy();
-          activePopup = createAssetSettingsPopup({
-            assetId: asset.id,
-            assetGroupType: group.type,
-            anchorRect,
-            onRename: (id) => openAssetSheet(id, 'rename'),
-            onDelete: (id) => openAssetSheet(id, 'delete-confirm'),
-            onMoveTo: (id, targetType) => {
-              moveToType = targetType;
-              openAssetSheet(id, 'move-to');
-            },
-            onDismiss: () => {
-              activePopup = null;
-              refresh();
-            },
-          });
-          selectedAssetIds.add(asset.id);
-          void event;
-        },
-        onTap: () => {
-          capsule.setLit(false);
-          if (selectedAssetIds.size > 0) {
-            if (selectedAssetIds.has(asset.id)) {
-              selectedAssetIds.delete(asset.id);
-            } else {
-              selectedAssetIds.add(asset.id);
-            }
-            if (selectedAssetIds.size === 0) {
-              clearSelection();
-            }
-            refresh();
+          if (selectedAssetIds.size === 0) {
+            clearSelection();
           }
-        },
-        onCancel: () => {
-          capsule.setLit(false);
-        },
-      });
-    } else {
-      // Normal mode: long-press → popup; short tap → select/paint or multi-select toggle
-      attachLongPress(card, {
-        onSelectionLit: () => {
-          capsule.setLit(true);
-        },
-        onDragStart: () => {
-          // Drag not supported outside organize mode; cancel lit
-          capsule.setLit(false);
-        },
-        onPopupOpen: (event) => {
-          capsule.setLit(false);
-          const anchorRect = card.getBoundingClientRect();
-          activePopup?.destroy();
-          activePopup = createAssetSettingsPopup({
-            assetId: asset.id,
-            assetGroupType: group.type,
-            anchorRect,
-            onRename: (id) => openAssetSheet(id, 'rename'),
-            onDelete: (id) => openAssetSheet(id, 'delete-confirm'),
-            onMoveTo: (id, targetType) => {
-              moveToType = targetType;
-              openAssetSheet(id, 'move-to');
-            },
-            onDismiss: () => {
-              activePopup = null;
-              refresh();
-            },
-          });
-          selectedAssetIds.add(asset.id);
-          void event;
-        },
-        onTap: () => {
-          capsule.setLit(false);
-          if (selectedAssetIds.size > 0) {
-            // Selection mode: toggle this asset in the selection set
-            if (selectedAssetIds.has(asset.id)) {
-              selectedAssetIds.delete(asset.id);
-              capsule.setSelected(false);
-            } else {
-              selectedAssetIds.add(asset.id);
-              capsule.setSelected(true);
-            }
-            if (selectedAssetIds.size === 0) {
-              clearSelection();
-            }
-            return;
-          }
-          // Normal tap: select/paint
-          uxFeedback.selection.mark(card);
-          assetRegistry.setSelectedAsset(asset.id);
-          editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
-        },
-        onCancel: () => {
-          capsule.setLit(false);
-        },
-        allowDragAfterLongPress: false,
-      });
-    }
-
-    // Show multi-select count badge on selected capsules when >1 selected
-    if (isMultiSelected && selectedAssetIds.size > 1) {
-      capsule.setBadge(`Selected ×${selectedAssetIds.size}`);
-    }
+          refresh();
+          return;
+        }
+        // Normal tap (no selection): select/paint via registry
+        uxFeedback.selection.mark(card);
+        assetRegistry.setSelectedAsset(asset.id);
+        editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
+      },
+      onCancel: () => {
+        capsule.setLit(false);
+      },
+      // Drag is always allowed after long-press (no organize mode gate)
+      allowDragAfterLongPress: true,
+    });
 
     return card;
   }
@@ -1601,22 +1610,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           <span class="irs-asset-library__group-count">${group.assets.length}</span>
         `;
 
-        const organizeEnabled = organizeGroupKey === key;
-        if (organizeEnabled) {
-          expandedGroups.add(key);
-        }
-
-        const organizeToggle = document.createElement('button');
-        organizeToggle.type = 'button';
-        organizeToggle.className = 'irs-btn irs-btn--secondary';
-        organizeToggle.textContent = organizeEnabled ? 'Done' : 'Organize';
-        organizeToggle.addEventListener('click', (event) => {
-          event.stopPropagation();
-          organizeGroupKey = organizeEnabled ? null : key;
-          if (!organizeEnabled) expandedGroups.add(key);
-          refresh();
-        });
-
         // "⋯" group menu button
         const groupMenuBtn = document.createElement('button');
         groupMenuBtn.type = 'button';
@@ -1629,7 +1622,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           openGroupMenu(group, groupMenuBtn);
         });
 
-        const assetsContainer = renderAssets(group, selectedAssetId, organizeEnabled);
+        const assetsContainer = renderAssets(group, selectedAssetId);
         assetsContainer.classList.toggle('irs-asset-library__assets--open', isOpen);
 
         toggle.addEventListener('click', () => {
@@ -1739,13 +1732,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
           actions.appendChild(status);
           actions.appendChild(uploadButton);
-          actions.prepend(organizeToggle);
           actions.appendChild(groupMenuBtn);
           header.appendChild(actions);
         } else {
           const actions = document.createElement('div');
           actions.className = 'irs-asset-library__group-actions';
-          actions.appendChild(organizeToggle);
           actions.appendChild(groupMenuBtn);
           header.appendChild(actions);
         }
@@ -2822,39 +2813,48 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       return;
     }
 
+    // Determine the full set of assets this sheet operates on.
+    // If sheetAssetId is part of the current selection, use all selected assets (batch mode).
+    // Otherwise, operate only on sheetAssetId (single-asset mode from non-selection path).
+    const batchIds = selectedAssetIds.has(sheetAssetId)
+      ? [...selectedAssetIds]
+      : [sheetAssetId];
+    const isBatch = batchIds.length > 1;
+
     sheetScrim.classList.add('irs-overlay--visible');
     const sheet = document.createElement('div');
     sheet.className = 'irs-dialog irs-asset-library__sheet';
     sheet.addEventListener('click', (event) => event.stopPropagation());
 
     if (sheetView === 'menu') {
-      const actions: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
-        { label: 'Rename', onClick: () => openAssetSheet(activeAsset.id, 'rename') },
-        {
-          label: 'Move to\u2026',
-          onClick: () => {
-            moveToType = activeGroup.type;
-            openAssetSheet(activeAsset.id, 'move-to');
-          },
+      const actions: Array<{ label: string; onClick: () => void; danger?: boolean }> = [];
+
+      // Rename is only available for a single-asset selection
+      if (!isBatch) {
+        actions.push({ label: 'Rename', onClick: () => openAssetSheet(activeAsset.id, 'rename') });
+      }
+
+      actions.push({
+        label: isBatch ? `Move ${batchIds.length} assets\u2026` : 'Move to\u2026',
+        onClick: () => {
+          moveToType = activeGroup.type;
+          openAssetSheet(activeAsset.id, 'move-to');
         },
-        { label: 'Delete', onClick: () => openAssetSheet(activeAsset.id, 'delete-confirm'), danger: true },
-        {
-          label: 'Organize Group',
-          onClick: () => {
-            organizeGroupKey = groupKey(activeGroup);
-            expandedGroups.add(organizeGroupKey);
-            sheetAssetId = null;
-            refresh();
-          },
+      });
+
+      actions.push({
+        label: isBatch ? `Delete (${batchIds.length})` : 'Delete',
+        onClick: () => openAssetSheet(activeAsset.id, 'delete-confirm'),
+        danger: true,
+      });
+
+      actions.push({
+        label: 'Cancel',
+        onClick: () => {
+          sheetAssetId = null;
+          refresh();
         },
-        {
-          label: 'Cancel',
-          onClick: () => {
-            sheetAssetId = null;
-            refresh();
-          },
-        },
-      ];
+      });
 
       actions.forEach((action) => {
         const button = document.createElement('button');
@@ -2867,6 +2867,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     }
 
     if (sheetView === 'rename') {
+      // Rename always operates on a single asset (sheetAssetId)
       const title = document.createElement('div');
       title.className = 'irs-asset-library__sheet-title';
       title.textContent = 'Rename Asset';
@@ -2886,6 +2887,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       saveButton.addEventListener('click', () => {
         assetRegistry.renameAsset(activeAsset.id, input.value);
         sheetAssetId = null;
+        clearSelection();
         refresh();
       });
       sheet.appendChild(saveButton);
@@ -2902,23 +2904,33 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     if (sheetView === 'delete-confirm') {
       const title = document.createElement('div');
       title.className = 'irs-asset-library__sheet-title';
-      title.textContent = 'Delete this asset?';
+      title.textContent = isBatch ? `Delete ${batchIds.length} assets?` : 'Delete this asset?';
       sheet.appendChild(title);
 
-      const note = document.createElement('div');
-      note.className = 'irs-asset-library__sheet-note';
-      note.textContent = activeAsset.name;
-      sheet.appendChild(note);
+      if (!isBatch) {
+        const note = document.createElement('div');
+        note.className = 'irs-asset-library__sheet-note';
+        note.textContent = activeAsset.name;
+        sheet.appendChild(note);
+      }
 
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'irs-btn irs-btn--danger';
-      deleteButton.textContent = 'Delete';
+      deleteButton.textContent = isBatch ? `Delete ${batchIds.length} assets` : 'Delete';
       deleteButton.addEventListener('click', () => {
         uxFeedback.motion.pulse(deleteButton);
-        assetRegistry.removeAsset(activeAsset.id);
+        // Delete all assets in the batch in deterministic order
+        for (const id of batchIds) {
+          assetRegistry.removeAsset(id);
+        }
+        clearSelection();
         sheetAssetId = null;
-        uxFeedback.undo.show('Asset removed.', () => {}, { destructive: true });
+        uxFeedback.undo.show(
+          isBatch ? `${batchIds.length} assets removed.` : 'Asset removed.',
+          () => {},
+          { destructive: true }
+        );
         refresh();
       });
       sheet.appendChild(deleteButton);
@@ -2934,7 +2946,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     if (sheetView === 'move-to') {
       const title = document.createElement('div');
       title.className = 'irs-asset-library__sheet-title';
-      title.textContent = 'Move to\u2026';
+      title.textContent = isBatch ? `Move ${batchIds.length} assets\u2026` : 'Move to\u2026';
       sheet.appendChild(title);
 
       // Category type selector row
@@ -2966,16 +2978,21 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         btn.type = 'button';
         btn.className = 'irs-btn irs-btn--secondary irs-asset-library__move-group-btn';
         const key = groupKey(grp);
-        const isCurrent = key === currentKey;
+        // For batch, "current" means ALL assets are already in this group (uncommon; just allow it)
+        const isCurrent = !isBatch && key === currentKey;
         btn.classList.toggle('irs-asset-library__move-group-btn--current', isCurrent);
         btn.textContent = `${grp.name}${isCurrent ? ' (current)' : ''}`;
         if (!isCurrent) {
           btn.addEventListener('click', () => {
-            assetRegistry.moveAsset({
-              assetId: activeAsset.id,
-              toGroupType: grp.type,
-              toGroupSlug: grp.slug,
-            });
+            // Move all batch assets to the target group in order
+            for (const id of batchIds) {
+              assetRegistry.moveAsset({
+                assetId: id,
+                toGroupType: grp.type,
+                toGroupSlug: grp.slug,
+              });
+            }
+            clearSelection();
             sheetAssetId = null;
             refresh();
           });
@@ -3035,6 +3052,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       renderSources();
     }
 
+    renderSelectionBar();
     renderSheet();
     renderAnimSheet();
   }
@@ -3076,8 +3094,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       animationClock.destroy();
       animationCanvases.clear();
       sourceImageCache.clear();
-      activePopup?.destroy();
-      activePopup = null;
       sheetScrim.remove();
       animScrim.remove();
       container.removeChild(root);
