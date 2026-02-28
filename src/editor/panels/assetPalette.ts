@@ -165,6 +165,10 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
 
       const grid = document.createElement('div');
       grid.className = 'irs-asset-palette__grid';
+      if (group.gridHint?.cols) {
+        grid.style.setProperty('--irs-group-cols', String(group.gridHint.cols));
+        grid.style.gridTemplateColumns = `repeat(${group.gridHint.cols}, minmax(0, 1fr))`;
+      }
 
       if (group.assets.length === 0) {
         const empty = document.createElement('div');

@@ -16,6 +16,10 @@ export interface EditorEventMap {
   STATE_HISTORY_CHANGED: { canUndo: boolean; canRedo: boolean };
   STATE_MODE_CHANGED: { mode: EditorModeState };
   UI_CONTEXT_CHANGED: { context: 'canvas' | 'library' };
+  /** Emitted by the paint tool when the active paint asset changes. */
+  'paint:active-tile-changed': { assetId: string | null };
+  /** Emitted by the tile strip when the user taps a tile in the bottom bar strip. */
+  'paint:select-tile': { assetId: string };
 }
 
 type EditorEventKey = keyof EditorEventMap;

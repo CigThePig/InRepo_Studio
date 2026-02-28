@@ -56,6 +56,9 @@ export interface BottomPanelController {
   /** Get the context strip container */
   getContextStripContainer(): HTMLElement;
 
+  /** Aux strip slot — mounted above the intent row, for tile strip etc. */
+  getAuxStripSlot(): HTMLElement;
+
   /** Clean up resources */
   destroy(): void;
 }
@@ -258,6 +261,11 @@ export function createBottomPanel(
   contextRow.appendChild(toolGroup);
   contextRow.appendChild(contextStripContainer);
 
+  // Aux strip slot — mounted above contextRow for auxiliary UI (e.g., tile strip)
+  const auxStripSlot = document.createElement('div');
+  auxStripSlot.className = 'irs-bottom-panel__aux-strip';
+
+  panel.appendChild(auxStripSlot);
   panel.appendChild(contextRow);
   container.appendChild(panel);
 
@@ -320,6 +328,10 @@ export function createBottomPanel(
 
     getContextStripContainer() {
       return contextStripContainer;
+    },
+
+    getAuxStripSlot() {
+      return auxStripSlot;
     },
 
     destroy() {

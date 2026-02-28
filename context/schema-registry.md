@@ -178,10 +178,18 @@ Rules:
 - `/src/editor/assets/assetGroup.ts`
   - `AssetGroupType` — asset grouping buckets
     - Values: tilesets, props, entities, sources
+  - `AssetGroup` — per-group metadata (Track 53 additions)
+    - Added: `gridHint?: { cols: number }` — optional fixed-column grid override
+    - Invariant: `ungrouped` slug is the fallback; never deleted by `deleteGroup()`
   - `DEFAULT_ASSET_GROUPS` — baseline asset groups per type
     - Apply mode: live
   - `ASSET_GROUP_PATHS` — canonical repo asset roots
     - Keys: tilesets, props, entities, sources
+
+- `/src/editor/assets/assetRegistry.ts` (Track 53 additions)
+  - `renameGroup(type, slug, newName)` — renames a group (trims whitespace, no-op if empty)
+  - `setGroupGridHint(type, slug, gridHint)` — sets or clears the gridHint on a group
+  - `deleteGroup(type, slug)` — moves all assets to the `ungrouped` group before removing; no-op on `ungrouped` slug
 
 - `/src/editor/panels/assetLibraryTab.ts`
   - `AssetSubtabId` — asset library subtab identifiers
@@ -193,6 +201,19 @@ Rules:
   - `getMoveTargets(assetId, registry)` — helper returning reclassifiable types
     - Returns AssetGroupType[] excluding asset's current type and 'sources'
     - Used by Track 52 long-press popup to build "Move to…" action list
+  - Group header (Track 53): ▼/▶ collapse indicator + "⋯" popup menu (Rename, Set grid width, Delete)
+  - "+" subtab button creates a new group in the active subtab's type (inline form)
+
+- `/src/editor/panels/tileStrip.ts` (Track 53 — new)
+  - `createTileStrip(opts)` — bottom-bar tile strip component
+    - Shows assets from the group containing the currently selected asset
+    - Subscribes to `assetRegistry.onChange` and `paint:active-tile-changed`
+    - Tile tap → `assetRegistry.setSelectedAsset(id)` + `paint:select-tile` event
+    - Visibility controlled via `setVisible(bool)`
+
+- `/src/editor/core/eventBus.ts` (Track 53 additions)
+  - `paint:active-tile-changed` — emitted when the selected paint asset changes (`{ assetId: string | null }`)
+  - `paint:select-tile` — emitted by tile strip on tap; consumed by init.ts to sync `editorState.selectedTile` (`{ assetId: string }`)
 
 - `/src/editor/tools/selectTypes.ts`
   - `SelectToolMode` — selection tool sub-states

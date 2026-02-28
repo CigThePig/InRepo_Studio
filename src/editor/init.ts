@@ -53,6 +53,7 @@ import {
   createLayerPanel,
   type LayerPanelController,
 } from '@/editor/panels';
+import { createTileStrip, type TileStripController } from '@/editor/panels/tileStrip';
 import {
   createAssetRegistry,
   rehydrateSpriteAtlasesIntoAssetRegistry,
@@ -165,6 +166,7 @@ let entitiesTab: EntitiesTabController | null = null;
 let entityMoveController: SelectEntityController | null = null;
 let entityMoveActive = false;
 let assetRegistry: AssetRegistry | null = null;
+let tileStripController: TileStripController | null = null;
 
 // Blockly cockpit controller — assigned during init, used to enter/exit Blockly Mode.
 // Exported via getBlocklyCockpit() for other modules to trigger mode entry.
@@ -381,6 +383,7 @@ function applyIntent(intent: EditorIntent, updateUI = false): void {
 
   const nextTool = resolveToolForIntent(intent, editorState.domain);
   applyToolChange(nextTool, true);
+  updateTileStripVisibility();
 }
 
 function applyDomain(domain: EditorDomain, updateUI = false): void {
@@ -418,6 +421,16 @@ function applyDomain(domain: EditorDomain, updateUI = false): void {
   const nextTool = resolveToolForIntent(editorState.intent, domain);
   applyToolChange(nextTool, true);
   updateBottomPanelToolContext();
+  updateTileStripVisibility();
+}
+
+function updateTileStripVisibility(): void {
+  if (!tileStripController || !editorState) return;
+  const mode = editorState.domain;
+  const intent = editorState.intent;
+  // Show tile strip when painting tiles (ground or props layer, place intent)
+  const isPaintMode = (mode === 'ground' || mode === 'props') && intent === 'place';
+  tileStripController.setVisible(isPaintMode);
 }
 
 function updateBottomContextStrip(): void {
@@ -949,9 +962,17 @@ export async function initEditor(): Promise<void> {
         setIntent: shouldPlace ? 'place' : undefined,
         closeRightBerry: shouldPlace,
       });
+      editorEventBus.dispatch('paint:active-tile-changed', { assetId: nextState.selectedAssetId });
     }
     canvasController?.getRenderer().setAssetRegistry(assetRegistry);
     canvasController?.invalidateScene();
+  });
+
+  // Wire tile strip selection to the paint tile state
+  editorEventBus.on('paint:select-tile', ({ assetId }) => {
+    if (!assetRegistry) return;
+    assetRegistry.setSelectedAsset(assetId);
+    syncSelectedAssetSelection(assetId, { setIntent: 'place' });
   });
 
   historyManager = createHistoryManager({
@@ -1798,6 +1819,16 @@ async function initPanels(): Promise<void> {
     });
 
     updateBottomPanelToolContext();
+
+    // Tile strip — shows tiles from active group when in paint mode
+    if (assetRegistry) {
+      tileStripController = createTileStrip({
+        container: bottomPanelController.getAuxStripSlot(),
+        assetRegistry,
+      });
+      // Visibility is updated in applyDomain() via updateTileStripVisibility()
+      updateTileStripVisibility();
+    }
 
     updateUndoRedoUI(
       historyManager?.canUndo() ?? false,

@@ -462,6 +462,117 @@ const STYLES = `
     color: var(--irs-text-primary);
     font-weight: 700;
   }
+
+  .irs-asset-library__group-menu-btn {
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
+    padding: 0 8px;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--irs-text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .irs-asset-library__group-menu-btn:active {
+    background: var(--irs-accent-primary-active);
+  }
+
+  .irs-asset-library__group-rename-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px 0 4px;
+    flex-wrap: wrap;
+  }
+
+  .irs-asset-library__group-rename-input {
+    flex: 1;
+    min-height: 36px;
+    padding: 4px 8px;
+    min-width: 100px;
+  }
+
+  .irs-asset-library__group-grid-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px 0 4px;
+    flex-wrap: wrap;
+  }
+
+  .irs-asset-library__group-grid-label {
+    font-size: 12px;
+    color: var(--irs-text-secondary);
+  }
+
+  .irs-asset-library__group-grid-input {
+    width: 64px;
+    min-height: 36px;
+    padding: 4px 8px;
+  }
+
+  .irs-asset-library__subtab-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--irs-border-heavy);
+    margin-bottom: 12px;
+  }
+
+  .irs-asset-library__subtabs-scroll {
+    flex: 1;
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .irs-asset-library__subtabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .irs-asset-library__subtab-create-btn {
+    flex-shrink: 0;
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
+    padding: 0 10px;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--irs-text-secondary);
+    font-size: 20px;
+    font-weight: 400;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .irs-asset-library__subtab-create-btn:active {
+    background: var(--irs-accent-primary-active);
+    color: var(--irs-text-primary);
+  }
+
+  .irs-asset-library__inline-group-create {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 0 8px;
+    flex-wrap: wrap;
+  }
+
+  .irs-asset-library__inline-group-create-input {
+    flex: 1;
+    min-width: 100px;
+  }
 `;
 
 type AssetSubtabId = 'tiles' | 'props' | 'entities' | 'animations' | 'sources';
@@ -584,6 +695,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   // Multi-select state: assets selected via long-press gesture
   const selectedAssetIds = new Set<string>();
   let activePopup: AssetSettingsPopupController | null = null;
+
+  // Group management state
+  type GroupEditMode = 'rename' | 'set-grid';
+  let groupEditState: { type: AssetGroupType; slug: string; mode: GroupEditMode } | null = null;
+  let inlineGroupCreateOpen = false;
 
   function clearSelection(): void {
     selectedAssetIds.clear();
@@ -755,9 +871,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   libraryTitle.className = 'irs-asset-library__title';
   libraryTitle.textContent = 'Assets Library';
 
-  // Subtab bar — persistent element, active class updated by renderSubtabBar()
+  // Subtab row: scrollable tab bar + "+" create-group button
+  const subtabRow = document.createElement('div');
+  subtabRow.className = 'irs-asset-library__subtab-row';
+
+  // Scrollable tab strip
   const subtabBar = document.createElement('div');
-  subtabBar.className = 'irs-asset-subtabs';
+  subtabBar.className = 'irs-asset-library__subtabs-scroll';
   ASSET_SUBTABS.forEach((tab) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -766,14 +886,34 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     btn.dataset.subtab = tab.id;
     btn.addEventListener('click', () => {
       activeSubtab = tab.id;
+      inlineGroupCreateOpen = false;
+      groupEditState = null;
       clearSelection();
       refresh();
     });
     subtabBar.appendChild(btn);
   });
 
+  // "+" button: only shown/active for tiles/props/entities tabs
+  const subtabCreateBtn = document.createElement('button');
+  subtabCreateBtn.type = 'button';
+  subtabCreateBtn.className = 'irs-asset-library__subtab-create-btn';
+  subtabCreateBtn.setAttribute('aria-label', 'New group');
+  subtabCreateBtn.setAttribute('title', 'New group');
+  subtabCreateBtn.textContent = '+';
+  subtabCreateBtn.addEventListener('click', () => {
+    if (['tiles', 'props', 'entities'].includes(activeSubtab)) {
+      inlineGroupCreateOpen = !inlineGroupCreateOpen;
+      groupEditState = null;
+      refresh();
+    }
+  });
+
+  subtabRow.appendChild(subtabBar);
+  subtabRow.appendChild(subtabCreateBtn);
+
   librarySection.appendChild(libraryTitle);
-  librarySection.appendChild(subtabBar);
+  librarySection.appendChild(subtabRow);
   root.appendChild(librarySection);
 
   const sheetScrim = document.createElement('div');
@@ -1021,6 +1161,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     const wrapper = document.createElement('div');
     wrapper.className = 'irs-asset-library__assets';
     wrapper.setAttribute('data-group-key', makeGroupKey(group.type, group.slug));
+    // Apply gridHint CSS variable for fixed-column grid
+    if (group.gridHint?.cols) {
+      wrapper.style.setProperty('--irs-group-cols', String(group.gridHint.cols));
+      wrapper.style.gridTemplateColumns = `repeat(${group.gridHint.cols}, minmax(0, 1fr))`;
+    }
 
     if (group.assets.length === 0) {
       const empty = document.createElement('div');
@@ -1229,6 +1374,103 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return card;
   }
 
+  function openGroupMenu(group: AssetGroup, anchorEl: HTMLElement): void {
+    // Remove any existing group popup
+    document.getElementById('irs-group-menu-popup')?.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'irs-group-menu-popup';
+    popup.className = 'irs-asset-settings-popup'; // reuse existing popup styles
+
+    let destroyed = false;
+    function dismiss(): void {
+      if (destroyed) return;
+      destroyed = true;
+      popup.remove();
+      document.removeEventListener('pointerdown', onOutside, true);
+      document.removeEventListener('keydown', onKey, true);
+    }
+
+    function addMenuBtn(label: string, onClick: () => void, danger = false): void {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'irs-asset-settings-popup__btn' + (danger ? ' irs-asset-settings-popup__btn--danger' : '');
+      btn.textContent = label;
+      btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btn.addEventListener('click', () => { dismiss(); onClick(); });
+      popup.appendChild(btn);
+    }
+
+    function addMenuDivider(): void {
+      const div = document.createElement('div');
+      div.className = 'irs-asset-settings-popup__divider';
+      popup.appendChild(div);
+    }
+
+    addMenuBtn('Rename', () => {
+      groupEditState = { type: group.type, slug: group.slug, mode: 'rename' };
+      expandedGroups.add(groupKey(group));
+      refresh();
+    });
+
+    addMenuBtn('Set grid width', () => {
+      groupEditState = { type: group.type, slug: group.slug, mode: 'set-grid' };
+      expandedGroups.add(groupKey(group));
+      refresh();
+    });
+
+    if (group.slug !== 'ungrouped') {
+      addMenuDivider();
+      addMenuBtn('Delete', () => {
+        const count = group.assets.length;
+        assetRegistry.deleteGroup(group.type, group.slug);
+        uxFeedback.undo.show(
+          count > 0
+            ? `"${group.name}" deleted — ${count} asset${count !== 1 ? 's' : ''} moved to Ungrouped.`
+            : `Group "${group.name}" deleted.`,
+          () => {},
+          { destructive: count > 0 }
+        );
+      }, true);
+    }
+
+    document.body.appendChild(popup);
+
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const popupRect = popup.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MARGIN = 8;
+
+    const spaceBelow = vh - anchorRect.bottom;
+    const spaceAbove = anchorRect.top;
+    let top: number;
+    if (spaceBelow >= popupRect.height + MARGIN || spaceBelow >= spaceAbove) {
+      top = anchorRect.bottom + MARGIN;
+    } else {
+      top = anchorRect.top - popupRect.height - MARGIN;
+    }
+    let left = anchorRect.left;
+    left = Math.max(MARGIN, Math.min(left, vw - popupRect.width - MARGIN));
+    top = Math.max(MARGIN, Math.min(top, vh - popupRect.height - MARGIN));
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
+
+    const onOutside = (e: PointerEvent): void => {
+      if (!popup.contains(e.target as Node)) dismiss();
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.stopPropagation(); dismiss(); }
+    };
+
+    queueMicrotask(() => {
+      if (!destroyed) {
+        document.addEventListener('pointerdown', onOutside, true);
+        document.addEventListener('keydown', onKey, true);
+      }
+    });
+  }
+
   function renderGroups(
     groups: AssetGroup[],
     selectedAssetId: string | null,
@@ -1236,6 +1478,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   ): void {
     librarySection.querySelectorAll('.irs-asset-library__group').forEach((node) => node.remove());
     librarySection.querySelectorAll('.irs-asset-library__empty, .irs-empty-state').forEach((node) => node.remove());
+    librarySection.querySelectorAll('.irs-asset-library__inline-group-create').forEach((node) => node.remove());
 
     // Exclude source assets from the main groups; they appear in the Sources section below.
     const paintableGroups = groups.map((group) => ({
@@ -1243,13 +1486,68 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       assets: group.assets.filter((asset) => !asset.isSource),
     }));
 
+    // Render inline group create form when "+" was clicked
+    if (inlineGroupCreateOpen && !skipEmptyState) {
+      const activeTab = ASSET_SUBTABS.find((t) => t.id === activeSubtab);
+      const createType: AssetGroupType = (activeTab?.groupType ?? 'tilesets') as AssetGroupType;
+
+      const inlineCreateRow = document.createElement('div');
+      inlineCreateRow.className = 'irs-asset-library__inline-group-create';
+
+      const inlineInput = document.createElement('input');
+      inlineInput.type = 'text';
+      inlineInput.className = 'irs-input irs-asset-library__inline-group-create-input';
+      inlineInput.placeholder = 'Group name…';
+      inlineInput.maxLength = 32;
+
+      const commitCreate = (): void => {
+        const trimmed = inlineInput.value.trim();
+        if (trimmed) {
+          const newGroup = assetRegistry.createGroup(createType, trimmed);
+          expandedGroups.add(groupKey(newGroup));
+          uxFeedback.toast.success(`Group "${newGroup.name}" created.`);
+        }
+        inlineGroupCreateOpen = false;
+        refresh();
+      };
+      const cancelCreate = (): void => {
+        inlineGroupCreateOpen = false;
+        refresh();
+      };
+
+      inlineInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commitCreate(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelCreate(); }
+      });
+
+      const createBtn = document.createElement('button');
+      createBtn.type = 'button';
+      createBtn.className = 'irs-btn irs-btn--primary';
+      createBtn.textContent = 'Create';
+      createBtn.addEventListener('mousedown', (e) => e.preventDefault());
+      createBtn.addEventListener('click', () => { uxFeedback.motion.pulse(createBtn); commitCreate(); });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'irs-btn irs-btn--secondary';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+      cancelBtn.addEventListener('click', cancelCreate);
+
+      inlineCreateRow.appendChild(inlineInput);
+      inlineCreateRow.appendChild(createBtn);
+      inlineCreateRow.appendChild(cancelBtn);
+      librarySection.appendChild(inlineCreateRow);
+      queueMicrotask(() => inlineInput.focus());
+    }
+
     if (groups.length === 0) {
       if (!skipEmptyState) {
         const emptyContainer = document.createElement('div');
         uxFeedback.emptyState.render(emptyContainer, {
           message: 'No assets yet.',
-          actionLabel: 'Import Asset',
-          onAction: () => nameInput.focus(),
+          actionLabel: 'New Group',
+          onAction: () => { inlineGroupCreateOpen = true; refresh(); },
         });
         librarySection.appendChild(emptyContainer);
       }
@@ -1287,8 +1585,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         }
 
         toggle.innerHTML = `
-          <span>${GROUP_TYPE_LABELS[group.type]} · ${group.name}</span>
-          <span class="irs-asset-library__group-count">${group.assets.length} assets</span>
+          <span style="flex-shrink:0;font-size:10px;color:var(--irs-text-secondary)">${isOpen ? '▼' : '▶'}</span>
+          <span>${group.name}</span>
+          <span class="irs-asset-library__group-count">${group.assets.length}</span>
         `;
 
         const organizeEnabled = organizeGroupKey === key;
@@ -1307,6 +1606,18 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           refresh();
         });
 
+        // "⋯" group menu button
+        const groupMenuBtn = document.createElement('button');
+        groupMenuBtn.type = 'button';
+        groupMenuBtn.className = 'irs-asset-library__group-menu-btn';
+        groupMenuBtn.setAttribute('aria-label', 'Group options');
+        groupMenuBtn.setAttribute('title', 'Group options');
+        groupMenuBtn.textContent = '⋯';
+        groupMenuBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openGroupMenu(group, groupMenuBtn);
+        });
+
         const assetsContainer = renderAssets(group, selectedAssetId, organizeEnabled);
         assetsContainer.classList.toggle('irs-asset-library__assets--open', isOpen);
 
@@ -1316,8 +1627,15 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             expandedGroups.add(key);
           } else {
             expandedGroups.delete(key);
+            // Close any edit for this group when collapsing
+            if (groupEditState?.type === group.type && groupEditState?.slug === group.slug) {
+              groupEditState = null;
+            }
           }
           assetsContainer.classList.toggle('irs-asset-library__assets--open', open);
+          // Update indicator without full refresh
+          const indicator = toggle.querySelector('span:first-child');
+          if (indicator) indicator.textContent = open ? '▼' : '▶';
         });
 
         header.appendChild(toggle);
@@ -1411,15 +1729,125 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           actions.appendChild(status);
           actions.appendChild(uploadButton);
           actions.prepend(organizeToggle);
+          actions.appendChild(groupMenuBtn);
           header.appendChild(actions);
         } else {
           const actions = document.createElement('div');
           actions.className = 'irs-asset-library__group-actions';
           actions.appendChild(organizeToggle);
+          actions.appendChild(groupMenuBtn);
           header.appendChild(actions);
         }
 
         groupWrapper.appendChild(header);
+
+        // Inline edit form (rename / set-grid) shown below group header
+        const isEditing = groupEditState?.type === group.type && groupEditState?.slug === group.slug;
+        if (isEditing && groupEditState) {
+          const editForm = document.createElement('div');
+          if (groupEditState.mode === 'rename') {
+            editForm.className = 'irs-asset-library__group-rename-row';
+
+            const renameInput = document.createElement('input');
+            renameInput.type = 'text';
+            renameInput.className = 'irs-input irs-asset-library__group-rename-input';
+            renameInput.value = group.name;
+            renameInput.maxLength = 32;
+
+            const commitRename = (): void => {
+              const trimmed = renameInput.value.trim();
+              if (trimmed && trimmed !== group.name) {
+                assetRegistry.renameGroup(group.type, group.slug, trimmed);
+              }
+              groupEditState = null;
+              refresh();
+            };
+            const cancelEdit = (): void => { groupEditState = null; refresh(); };
+
+            renameInput.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+              if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+            });
+            renameInput.addEventListener('blur', commitRename);
+
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'irs-btn irs-btn--primary';
+            okBtn.textContent = '✓';
+            okBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitRename(); });
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'irs-btn irs-btn--secondary';
+            cancelBtn.textContent = '✕';
+            cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelEdit(); });
+
+            editForm.appendChild(renameInput);
+            editForm.appendChild(okBtn);
+            editForm.appendChild(cancelBtn);
+            queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
+
+          } else if (groupEditState.mode === 'set-grid') {
+            editForm.className = 'irs-asset-library__group-grid-row';
+
+            const label = document.createElement('span');
+            label.className = 'irs-asset-library__group-grid-label';
+            label.textContent = 'Columns:';
+
+            const gridInput = document.createElement('input');
+            gridInput.type = 'number';
+            gridInput.className = 'irs-input irs-asset-library__group-grid-input';
+            gridInput.min = '1';
+            gridInput.max = '12';
+            gridInput.step = '1';
+            gridInput.value = String(group.gridHint?.cols ?? '');
+            gridInput.placeholder = 'Auto';
+
+            const commitGrid = (): void => {
+              const val = parseInt(gridInput.value, 10);
+              if (!isNaN(val) && val >= 1 && val <= 12) {
+                assetRegistry.setGroupGridHint(group.type, group.slug, { cols: val });
+              } else if (gridInput.value.trim() === '') {
+                assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
+              }
+              groupEditState = null;
+              refresh();
+            };
+            const cancelEdit = (): void => { groupEditState = null; refresh(); };
+
+            gridInput.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitGrid(); }
+              if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+            });
+
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.className = 'irs-btn irs-btn--primary';
+            applyBtn.textContent = 'Apply';
+            applyBtn.addEventListener('click', commitGrid);
+
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'irs-btn irs-btn--secondary';
+            clearBtn.textContent = 'Auto';
+            clearBtn.addEventListener('click', () => {
+              assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
+              groupEditState = null;
+              refresh();
+            });
+
+            editForm.appendChild(label);
+            editForm.appendChild(gridInput);
+            editForm.appendChild(applyBtn);
+            editForm.appendChild(clearBtn);
+            queueMicrotask(() => { gridInput.focus(); gridInput.select(); });
+          }
+
+          groupWrapper.appendChild(editForm);
+        }
+
         groupWrapper.appendChild(assetsContainer);
         librarySection.appendChild(groupWrapper);
       });
@@ -2560,6 +2988,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     subtabBar.querySelectorAll<HTMLElement>('.irs-asset-subtabs__tab').forEach((btn) => {
       btn.classList.toggle('irs-asset-subtabs__tab--active', btn.dataset.subtab === activeSubtab);
     });
+    // Show "+" button only on groupable tabs
+    const isGroupableTab = ['tiles', 'props', 'entities'].includes(activeSubtab);
+    subtabCreateBtn.style.display = isGroupableTab ? '' : 'none';
+    subtabCreateBtn.setAttribute('aria-pressed', inlineGroupCreateOpen ? 'true' : 'false');
   }
 
   function refresh(): void {

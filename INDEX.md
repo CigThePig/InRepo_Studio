@@ -544,7 +544,11 @@ Micro-format (copy/paste):
   - Lists of truth: none
 
 - `src/editor/panels/assetPalette.ts`
-  - Role: Asset palette UI for right berry modes.
+  - Role: Asset palette UI for right berry modes; renders groups in registry order with gridHint column layout.
+  - Lists of truth: none
+
+- `src/editor/panels/tileStrip.ts` (Track 53)
+  - Role: Bottom-bar horizontal scroll tile strip; shows tiles from the active asset's group in paint mode; emits `paint:select-tile` on tap.
   - Lists of truth: none
 
 - `src/editor/panels/utilitiesTab.ts`
