@@ -1056,11 +1056,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     group: AssetGroup;
     fromIndex: number;
     assetId: string;
-    captureEl: HTMLElement;
     extraAssetIds?: string[];
   }): void {
     if (dragState) return;
-    const { event, card, grid, group, fromIndex, assetId, captureEl, extraAssetIds = [] } = options;
+    const { event, card, grid, group, fromIndex, assetId, extraAssetIds = [] } = options;
     const rect = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('irs-asset-library__ghost');
@@ -1075,6 +1074,20 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     placeholder.style.width = `${rect.width}px`;
     placeholder.style.height = `${rect.height}px`;
     grid.insertBefore(placeholder, card);
+
+    // Use documentElement as the capture target instead of the card.
+    // An element with display:none cannot hold pointer capture — the browser
+    // would immediately release it and fire lostpointercapture, killing the
+    // drag before it visually begins.  The ghost element has pointer-events:none
+    // so it can't hold capture either.  documentElement is always visible and
+    // reliably holds capture for the full gesture.
+    const dragCaptureEl = document.documentElement;
+    try {
+      dragCaptureEl.setPointerCapture(event.pointerId);
+    } catch (_) {
+      // Pointer already released; finishDrag will handle cleanup.
+    }
+
     card.style.display = 'none';
 
     dragState = {
@@ -1084,7 +1097,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       extraAssetIds,
       fromIndex,
       pointerId: event.pointerId,
-      captureEl,
+      captureEl: dragCaptureEl,
       card,
       grid,
       ghost,
@@ -1098,10 +1111,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       targetGrid: grid,
     };
 
-    captureEl.addEventListener('pointermove', handleDragMove);
-    captureEl.addEventListener('pointerup', finishDrag);
-    captureEl.addEventListener('pointercancel', finishDrag);
-    captureEl.addEventListener('lostpointercapture', finishDragOnCaptureLoss);
+    dragCaptureEl.addEventListener('pointermove', handleDragMove);
+    dragCaptureEl.addEventListener('pointerup', finishDrag);
+    dragCaptureEl.addEventListener('pointercancel', finishDrag);
+    dragCaptureEl.addEventListener('lostpointercapture', finishDragOnCaptureLoss);
   }
 
   function handleDragMove(event: PointerEvent): void {
@@ -1332,11 +1345,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       },
       onDragStart: (event) => {
         // Movement confirmed after long-press: begin drag.
-        // Pointer capture was already set at the 400ms mark inside longPress.ts;
-        // calling setPointerCapture again is harmless and ensures captureEl
-        // receives all future events even if the element is mutated.
+        // Pointer capture will be transferred to the ghost element inside
+        // beginDrag() — the card itself cannot hold capture because it gets
+        // hidden with display:none during the drag.
         capsule.setLit(false);
-        card.setPointerCapture(event.pointerId);
 
         // If this asset is part of a multi-selection, drag all selected assets
         const dragIds = selectedAssetIds.size > 1 && selectedAssetIds.has(asset.id)
@@ -1354,7 +1366,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
           group,
           fromIndex: assetIndex,
           assetId: asset.id,
-          captureEl: card,
           extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== asset.id) : [],
         });
       },
