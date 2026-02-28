@@ -1,5 +1,6 @@
 import type { AssetRegistry, AssetGroupType, AssetEntry, AssetGroup } from '@/editor/assets';
 import { resolveAssetUrl } from '@/shared/paths';
+import { createAssetCapsule } from './assetCapsule';
 
 const STYLE_ID = 'irs-asset-palette-styles';
 
@@ -44,36 +45,6 @@ const STYLES = `
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
     gap: 8px;
-  }
-
-  .irs-asset-palette__card {
-    border-radius: var(--irs-radius-md);
-    border: 2px solid transparent;
-    background: var(--irs-surface-modal);
-    padding: 6px;
-    color: var(--irs-text-primary);
-    font-size: 11px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    cursor: pointer;
-  }
-
-  .irs-asset-palette__card--selected {
-    border-color: var(--irs-accent-primary);
-    background: var(--irs-color-blue-alpha-22);
-  }
-
-  .irs-asset-palette__card img,
-  .irs-asset-palette__card canvas {
-    width: 100%;
-    border-radius: var(--irs-radius-sm);
-    object-fit: cover;
-  }
-
-  .irs-asset-palette__meta {
-    font-size: 10px;
-    color: var(--irs-text-secondary);
   }
 
   .irs-asset-palette__empty {
@@ -147,36 +118,28 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
   }
 
   function renderAssetCard(asset: AssetEntry, selectedAssetId: string | null): HTMLElement {
-    const card = document.createElement('div');
-    card.className = 'irs-asset-palette__card';
-    card.classList.toggle('irs-asset-palette__card--selected', asset.id === selectedAssetId);
+    const thumbnailCanvas = (asset.sourceAssetId && asset.rect)
+      ? renderSliceThumbnail(asset) as HTMLCanvasElement
+      : undefined;
+    const thumbnailUrl = thumbnailCanvas ? undefined : resolveAssetUrl(asset.dataUrl);
 
-    if (asset.sourceAssetId && asset.rect) {
-      card.appendChild(renderSliceThumbnail(asset));
-    } else {
-      const img = document.createElement('img');
-      img.src = resolveAssetUrl(asset.dataUrl);
-      img.alt = asset.name;
-      card.appendChild(img);
-    }
-
-    const name = document.createElement('div');
-    name.textContent = asset.name;
-
-    const meta = document.createElement('div');
-    meta.className = 'irs-asset-palette__meta';
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
-    meta.textContent = `${sizeLabel} · ${sourceLabel}`;
+    const badgeText = `${sizeLabel} · ${sourceLabel}`;
 
-    card.appendChild(name);
-    card.appendChild(meta);
-
-    card.addEventListener('click', () => {
-      assetRegistry.setSelectedAsset(asset.id);
+    const capsule = createAssetCapsule({
+      assetId: asset.id,
+      name: asset.name,
+      thumbnailUrl,
+      thumbnailCanvas,
+      selected: asset.id === selectedAssetId,
+      badge: badgeText,
+      onClick: (id) => {
+        assetRegistry.setSelectedAsset(id);
+      },
     });
 
-    return card;
+    return capsule.el;
   }
 
   function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {

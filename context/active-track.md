@@ -1,7 +1,7 @@
-Active track: Track 50 — Asset Library Subtabs + Cross-Tab Reclassification — COMPLETE
+Active track: Track 51 — Asset Capsule Component Unification — COMPLETE
 
-Current phase: Track 50 — complete
-Next task: Track 51 (see track-index.md)
+Current phase: Track 51 — complete
+Next task: Track 52 (see track-index.md)
 
 Note: Track 41 (Left Berry Presets UI + Blockly Hooks) is complete.
 Files delivered include: src/editor/presets/presetsTab.ts, categoryDetail.ts, knobEditor.ts,

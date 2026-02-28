@@ -9,6 +9,7 @@ import type { TileCategory } from '@/types';
 import type { TileImageCache } from '@/editor/canvas/tileCache';
 import { resolveAssetUrl } from '@/shared/paths';
 import { uxFeedback } from '@/editor/uxFeedback';
+import { createAssetCapsule, type AssetCapsuleController } from './assetCapsule';
 
 const LOG_PREFIX = '[TilePicker]';
 
@@ -126,51 +127,13 @@ const STYLES = `
 
   .irs-tile-picker__tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
     padding: 8px 0;
     overflow-y: auto;
     flex: 1;
     min-height: 0;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .irs-tile-picker__tile-cell {
-    aspect-ratio: 1;
-    min-width: 48px;
-    min-height: 48px;
-    border: 2px solid transparent;
-    border-radius: var(--irs-radius-sm);
-    background: var(--irs-surface-modal);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .irs-tile-picker__tile-cell:active {
-    background: var(--irs-surface-panel);
-  }
-
-  .irs-tile-picker__tile-cell--selected {
-    border-color: var(--irs-accent-primary);
-    background: var(--irs-surface-panel);
-  }
-
-  .irs-tile-picker__tile-cell-img {
-    max-width: 32px;
-    max-height: 32px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-  }
-
-  .irs-tile-picker__tile-cell-placeholder {
-    width: 24px;
-    height: 24px;
-    background: var(--irs-surface-base);
-    border-radius: var(--irs-radius-xs);
   }
 
   .irs-tile-picker__tile-cell-error {
@@ -303,51 +266,40 @@ export function createTilePicker(
 
   // --- Tile Grid Rendering ---
 
-  const tileCells = new Map<number, HTMLElement>();
+  const capsuleMap = new Map<number, AssetCapsuleController>();
 
   // When using the shared tile cache, keep track of visible cells that are still waiting on images.
   const pendingCells = new Map<number, { filename: string }>();
 
   function renderCellImage(
-    cell: HTMLElement,
+    capsule: AssetCapsuleController,
     categoryName: string,
     categoryPath: string,
     index: number,
     filename: string
   ): void {
-    cell.innerHTML = '';
-    const imgEl = document.createElement('img');
-    imgEl.className = 'irs-tile-picker__tile-cell-img';
-    imgEl.alt = filename;
-
     if (sharedTileCache) {
       const cachedImg = sharedTileCache.getTileImage(categoryName, index);
       if (!cachedImg) {
-        // Not ready yet; keep placeholder.
-        const placeholder = document.createElement('div');
-        placeholder.className = 'irs-tile-picker__tile-cell-placeholder';
-        cell.appendChild(placeholder);
+        // Not ready yet; mark as pending.
         pendingCells.set(index, { filename });
         return;
       }
-      imgEl.src = cachedImg.src;
-      cell.appendChild(imgEl);
+      capsule.setThumbnailUrl(cachedImg.src);
       return;
     }
 
     const url = resolveAssetUrl(`${categoryPath}/${filename}`);
     loadImage(url)
       .then((img) => {
-        imgEl.src = img.src;
-        cell.appendChild(imgEl);
+        capsule.setThumbnailUrl(img.src);
       })
       .catch(() => {
-        cell.innerHTML = '';
         const errorEl = document.createElement('span');
         errorEl.className = 'irs-tile-picker__tile-cell-error';
         errorEl.textContent = '?';
         errorEl.title = `Failed to load: ${filename}`;
-        cell.appendChild(errorEl);
+        capsule.el.querySelector('.irs-asset-capsule__thumb')?.appendChild(errorEl);
         console.warn(`${LOG_PREFIX} Failed to load tile: ${url}`);
       });
   }
@@ -358,20 +310,15 @@ export function createTilePicker(
     if (!category) return;
 
     // Only update cells that are currently visible for the active category.
-    for (const [index, meta] of pendingCells) {
-      const cell = tileCells.get(index);
-      if (!cell) {
+    for (const [index] of pendingCells) {
+      const capsule = capsuleMap.get(index);
+      if (!capsule) {
         pendingCells.delete(index);
         continue;
       }
       const img = sharedTileCache.getTileImage(category.name, index);
       if (img) {
-        cell.innerHTML = '';
-        const imgEl = document.createElement('img');
-        imgEl.className = 'irs-tile-picker__tile-cell-img';
-        imgEl.src = img.src;
-        imgEl.alt = meta.filename;
-        cell.appendChild(imgEl);
+        capsule.setThumbnailUrl(img.src);
         pendingCells.delete(index);
       }
     }
@@ -388,7 +335,7 @@ export function createTilePicker(
   function renderTileGrid(): void {
     uxFeedback.selection.clear();
     tileGrid.innerHTML = '';
-    tileCells.clear();
+    capsuleMap.clear();
     pendingCells.clear();
 
     const category = categories.find(c => c.name === state.selectedCategory);
@@ -411,38 +358,41 @@ export function createTilePicker(
     }
 
     category.files.forEach((filename, index) => {
-      const cell = document.createElement('div');
-      cell.className = `irs-tile-picker__tile-cell ${state.selectedTileIndex === index ? 'irs-tile-picker__tile-cell--selected' : ''}`;
-      cell.setAttribute('data-index', String(index));
+      // Strip extension for display label
+      const label = filename.replace(/\.[^.]+$/, '');
 
-      // Render tile image (shared cache preferred; falls back to direct image loading)
-      renderCellImage(cell, category.name, category.path, index, filename);
+      const capsule = createAssetCapsule({
+        assetId: `${category.name}:${index}`,
+        name: label,
+        selected: state.selectedTileIndex === index,
+        onClick: () => {
+          if (state.selectedTileIndex === index) return;
 
-      // Click handler
-      cell.addEventListener('click', () => {
-        if (state.selectedTileIndex === index) return;
+          // Update state
+          state.selectedTileIndex = index;
 
-        // Update state
-        state.selectedTileIndex = index;
+          // Update UI
+          capsuleMap.forEach((c, i) => {
+            c.setSelected(i === index);
+          });
+          uxFeedback.selection.mark(capsule.el);
 
-        // Update UI
-        tileCells.forEach((c, i) => {
-          c.classList.toggle('irs-tile-picker__tile-cell--selected', i === index);
-        });
-        uxFeedback.selection.mark(cell);
-
-        // Notify
-        const selection: TileSelection = {
-          category: state.selectedCategory,
-          index,
-          path: `${category.path}/${filename}`,
-        };
-        tileSelectCallback?.(selection);
-        console.log(`${LOG_PREFIX} Tile selected: ${category.name}[${index}]`);
+          // Notify
+          const selection: TileSelection = {
+            category: state.selectedCategory,
+            index,
+            path: `${category.path}/${filename}`,
+          };
+          tileSelectCallback?.(selection);
+          console.log(`${LOG_PREFIX} Tile selected: ${category.name}[${index}]`);
+        },
       });
 
-      tileCells.set(index, cell);
-      tileGrid.appendChild(cell);
+      // Render tile image (shared cache preferred; falls back to direct image loading)
+      renderCellImage(capsule, category.name, category.path, index, filename);
+
+      capsuleMap.set(index, capsule);
+      tileGrid.appendChild(capsule.el);
     });
 
     // If some images were already loaded in the shared cache, resolve them immediately.
@@ -486,13 +436,13 @@ export function createTilePicker(
       const category = categories.find(c => c.name === state.selectedCategory);
       if (!category || index < 0 || index >= category.files.length) {
         state.selectedTileIndex = -1;
-        tileCells.forEach(c => c.classList.remove('irs-tile-picker__tile-cell--selected'));
+        capsuleMap.forEach(c => c.setSelected(false));
         return;
       }
 
       state.selectedTileIndex = index;
-      tileCells.forEach((c, i) => {
-        c.classList.toggle('irs-tile-picker__tile-cell--selected', i === index);
+      capsuleMap.forEach((c, i) => {
+        c.setSelected(i === index);
       });
     },
 

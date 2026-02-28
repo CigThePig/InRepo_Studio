@@ -9,6 +9,7 @@ import { createAnimationClock } from '@/editor/canvas/animationClock';
 import { uxFeedback } from '@/editor/uxFeedback';
 import { createEmptyState } from './leftBerry';
 import { editorEventBus } from '@/editor/core';
+import { createAssetCapsule } from './assetCapsule';
 
 const STYLES = `
   .irs-asset-library {
@@ -131,34 +132,6 @@ const STYLES = `
     display: grid;
   }
 
-  .irs-asset-library__asset {
-    position: relative;
-    border-radius: var(--irs-radius-lg);
-    border: 2px solid transparent;
-    background: var(--irs-surface-panel);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    color: var(--irs-text-primary);
-    font-size: 11px;
-    cursor: pointer;
-    min-height: 132px;
-    min-width: 0;
-  }
-
-  .irs-asset-library__asset--selected {
-    border-color: var(--irs-accent-primary);
-    background: var(--irs-accent-primary);
-  }
-
-  .irs-asset-library__asset img,
-  .irs-asset-library__asset canvas {
-    width: 100%;
-    border-radius: var(--irs-radius-sm);
-    object-fit: cover;
-  }
-
   .irs-asset-library__asset-name {
     font-size: 11px;
     color: var(--irs-text-primary);
@@ -168,28 +141,6 @@ const STYLES = `
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     word-break: break-word;
-  }
-
-  .irs-asset-library__asset-meta {
-    font-size: 10px;
-    color: var(--irs-text-secondary);
-  }
-
-  .irs-asset-library__asset-more {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--irs-radius-pill);
-    border: 1px solid var(--irs-border-heavy);
-    background: var(--irs-surface-panel);
-    color: var(--irs-text-primary);
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .irs-asset-library__asset--organizing {
@@ -963,7 +914,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       }
     }
 
-    const cardNodes = Array.from(active.targetGrid.querySelectorAll<HTMLElement>('.irs-asset-library__asset')).filter(
+    const cardNodes = Array.from(active.targetGrid.querySelectorAll<HTMLElement>('.irs-asset-capsule')).filter(
       (node) => node !== active.card
     );
     const targetIndex = findClosestIndex(cardNodes, event.clientX, event.clientY);
@@ -1052,7 +1003,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         assetIndex: index,
         selectedAssetId,
         organizeMode,
-        openAssetSheet,
       }));
     });
     return wrapper;
@@ -1089,35 +1039,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetIndex: number;
     selectedAssetId: string | null;
     organizeMode: boolean;
-    openAssetSheet: (assetId: string, view?: 'menu' | 'rename' | 'delete-confirm' | 'move-to') => void;
   }): HTMLElement {
-    const { group, asset, assetIndex, selectedAssetId, organizeMode, openAssetSheet } = options;
-    const card = document.createElement('div');
-    card.className = 'irs-asset-library__asset';
-    card.classList.toggle('irs-asset-library__asset--selected', asset.id === selectedAssetId);
+    const { group, asset, assetIndex, selectedAssetId, organizeMode } = options;
 
-    if (asset.sourceAssetId && asset.rect) {
-      card.appendChild(renderSliceThumbnail(asset));
-    } else {
-      const img = document.createElement('img');
-      img.src = resolveAssetUrl(asset.dataUrl);
-      img.alt = asset.name;
-      card.appendChild(img);
-    }
-
-    const name = document.createElement('div');
-    name.className = 'irs-asset-library__asset-name';
-    name.textContent = asset.name;
-    card.appendChild(name);
-
-    const meta = document.createElement('div');
-    meta.className = 'irs-asset-library__asset-meta';
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
     const sliceLabel = asset.sourceAssetId ? ' · Slice' : '';
-    meta.textContent = `${sizeLabel} · ${sourceLabel}${sliceLabel}`;
+    const badgeText = `${sizeLabel} · ${sourceLabel}${sliceLabel}`;
 
-    card.appendChild(meta);
+    const thumbnailCanvas = (asset.sourceAssetId && asset.rect)
+      ? renderSliceThumbnail(asset) as HTMLCanvasElement
+      : undefined;
+    const thumbnailUrl = thumbnailCanvas ? undefined : resolveAssetUrl(asset.dataUrl);
+
+    const capsule = createAssetCapsule({
+      assetId: asset.id,
+      name: asset.name,
+      thumbnailUrl,
+      thumbnailCanvas,
+      selected: asset.id === selectedAssetId,
+      badge: badgeText,
+      onClick: (id) => {
+        if (organizeGroupKey !== null) return;
+        uxFeedback.selection.mark(capsule.el);
+        assetRegistry.setSelectedAsset(id);
+        editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
+      },
+    });
+
+    const card = capsule.el;
 
     if (organizeMode) {
       card.classList.add('irs-asset-library__asset--organizing');
@@ -1177,27 +1127,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       };
       card.addEventListener('pointerup', clearLongPress);
       card.addEventListener('pointercancel', clearLongPress);
-    } else if (organizeGroupKey === null) {
-      const moreButton = document.createElement('button');
-      moreButton.type = 'button';
-      moreButton.className = 'irs-asset-library__asset-more';
-      moreButton.textContent = '⋯';
-      moreButton.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      moreButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        openAssetSheet(asset.id);
-      });
-      card.appendChild(moreButton);
     }
-
-    card.addEventListener('click', () => {
-      if (organizeGroupKey !== null) return;
-      uxFeedback.selection.mark(card);
-      assetRegistry.setSelectedAsset(asset.id);
-      editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
-    });
 
     return card;
   }
