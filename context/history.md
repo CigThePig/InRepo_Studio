@@ -825,3 +825,32 @@ Purpose:
 - **Follow-up**:
   - `duplicateAsset` method does not exist in assetRegistry; Duplicate was omitted from the popup. Add it when the backend supports it.
   - Multi-asset cross-group drag is not supported in v1 (primary asset only for cross-group moves).
+
+### Track 53 — Asset Grouping: Painting Palette
+- **Dates**: 2026-02-28
+- **Status**: Completed
+- **Summary**: Surfaced group CRUD UI in the asset library, wired the palette to render groups in registry order, and added a bottom-bar tile strip for switching paint tiles without leaving paint mode.
+- **Shipped**:
+  - `src/editor/assets/assetGroup.ts` — added `gridHint?: { cols: number }` to `AssetGroup`; cloneGroup and normalizeGroups now preserve gridHint.
+  - `src/editor/assets/assetRegistry.ts` — added `renameGroup()`, `setGroupGridHint()` to interface + impl; updated `deleteGroup()` to move orphaned assets to `ungrouped` before removing; cloneGroup preserves gridHint.
+  - `src/editor/panels/assetLibraryTab.ts` — group headers: ▼/▶ collapse indicator, "⋯" menu button (Rename / Set grid width / Delete via inline popup reusing `irs-asset-settings-popup` styles); "+" subtab button opens inline group-create form; renderAssets applies `grid-template-columns` from `gridHint.cols`; `openGroupMenu()` helper; empty-state CTA changed to "New Group".
+  - `src/editor/panels/assetPalette.ts` — applies `gridHint.cols` as `grid-template-columns` on the group grid element (already rendered groups in registry order).
+  - `src/editor/panels/tileStrip.ts` (NEW) — `createTileStrip(opts)`: bottom-bar horizontal scroll strip; shows assets from the selected asset's group; subscribes to registry changes + `paint:active-tile-changed`; tile tap calls `assetRegistry.setSelectedAsset` + dispatches `paint:select-tile`.
+  - `src/editor/panels/bottomPanel.ts` — added `auxStripSlot` div above contextRow; added `getAuxStripSlot()` to `BottomPanelController` interface + impl.
+  - `src/editor/core/eventBus.ts` — added `paint:active-tile-changed` and `paint:select-tile` to `EditorEventMap`.
+  - `src/editor/init.ts` — imports tileStrip; creates `tileStripController` in bottomPanel block; `updateTileStripVisibility()` called on domain/intent change; `paint:select-tile` listener syncs `editorState.selectedTile`; `paint:active-tile-changed` emitted on asset selection change.
+- **Verification**:
+  - `tsc --noEmit` introduces no new errors from track 53 changes (pre-existing external module errors unchanged).
+  - Group "⋯" menu: Rename renames group name inline; Set grid width applies column count; Delete moves assets to Ungrouped.
+  - "+" button appears only on tiles/props/entities tabs; creates group inline.
+  - Palette renders groups in registry order with group name labels.
+  - Tile strip appears in bottom bar when in ground/props paint mode (place intent); hidden otherwise.
+  - Tile tap in strip switches active paint tile without leaving paint mode.
+- **Learned**:
+  - `deleteGroup` previously dropped assets silently; moving to `ungrouped` is safer UX.
+  - The palette group order was already correct from Track 52; only gridHint rendering was needed.
+  - `resolveAssetUrl` is in `@/shared/paths`, not `@/editor/assets/assetRegistry`.
+- **Follow-up**:
+  - Drag-to-reorder groups within the library (currently registry order only).
+  - Group collapse state is not persisted (resets on refresh).
+  - The tile strip could also show up in collision/triggers modes in a future track.

@@ -26,6 +26,8 @@ export interface AssetGroup {
   name: string;
   slug: string;
   assets: AssetEntry[];
+  /** Optional fixed-column grid override. Default is auto-fill. */
+  gridHint?: { cols: number };
 }
 
 export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {

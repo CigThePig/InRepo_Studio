@@ -155,6 +155,8 @@ export interface AssetRegistry {
    */
   ensureGroup(type: AssetGroupType, slug: string, name?: string): AssetGroup;
   deleteGroup(type: AssetGroupType, slug: string): void;
+  renameGroup(type: AssetGroupType, slug: string, newName: string): void;
+  setGroupGridHint(type: AssetGroupType, slug: string, gridHint: { cols: number } | undefined): void;
   addAssets(options: {
     groupType: AssetGroupType;
     groupName: string;
@@ -245,6 +247,7 @@ function cloneGroup(group: AssetGroup): AssetGroup {
       ...asset,
       rect: asset.rect ? { ...asset.rect } : undefined,
     })),
+    gridHint: group.gridHint ? { ...group.gridHint } : undefined,
   };
 }
 
@@ -307,6 +310,7 @@ function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
         };
         return applySourceHeuristic(normalized);
       }),
+      gridHint: group.gridHint ? { ...group.gridHint } : undefined,
     };
   });
 }
@@ -645,22 +649,54 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
   }
 
   function deleteGroup(type: AssetGroupType, slug: string): void {
-    const filtered = state.groups.filter(
-      (group) => !(group.type === type && group.slug === slug)
-    );
-    updateGroups(filtered);
-    if (state.selectedAssetId) {
-      const stillExists = filtered.some((group) =>
-        group.assets.some((asset) => asset.id === state.selectedAssetId)
-      );
-      if (!stillExists) {
-        emit({
-          ...state,
-          groups: filtered,
-          selectedAssetId: null,
-        });
+    if (slug === 'ungrouped') return; // ungrouped is the fallback; never delete it
+
+    const targetGroup = state.groups.find((g) => g.type === type && g.slug === slug);
+    if (!targetGroup) return;
+
+    // Move assets to the ungrouped group for this type
+    const orphanedAssets = targetGroup.assets;
+    let nextGroups = state.groups.map((group) => {
+      if (group.type === type && group.slug === slug) return null; // will be filtered
+      if (group.type === type && group.slug === 'ungrouped' && orphanedAssets.length > 0) {
+        return { ...group, assets: [...group.assets, ...orphanedAssets] };
       }
+      return group;
+    }).filter((g): g is AssetGroup => g !== null);
+
+    // If ungrouped didn't exist yet, create it with the orphaned assets
+    const ungroupedExists = nextGroups.some((g) => g.type === type && g.slug === 'ungrouped');
+    if (!ungroupedExists && orphanedAssets.length > 0) {
+      nextGroups = [
+        ...nextGroups,
+        { type, name: 'Ungrouped', slug: 'ungrouped', assets: orphanedAssets },
+      ];
     }
+
+    const nextSelectedAssetId = state.selectedAssetId
+      && !nextGroups.some((g) => g.assets.some((a) => a.id === state.selectedAssetId))
+      ? null
+      : state.selectedAssetId;
+
+    emit({ ...state, groups: nextGroups, selectedAssetId: nextSelectedAssetId });
+  }
+
+  function renameGroup(type: AssetGroupType, slug: string, newName: string): void {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const nextGroups = state.groups.map((group) => {
+      if (group.type !== type || group.slug !== slug) return group;
+      return { ...group, name: trimmed };
+    });
+    updateGroups(nextGroups);
+  }
+
+  function setGroupGridHint(type: AssetGroupType, slug: string, gridHint: { cols: number } | undefined): void {
+    const nextGroups = state.groups.map((group) => {
+      if (group.type !== type || group.slug !== slug) return group;
+      return { ...group, gridHint: gridHint ? { ...gridHint } : undefined };
+    });
+    updateGroups(nextGroups);
   }
 
   function addAssets(options: {
@@ -1256,6 +1292,8 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     createGroup,
     ensureGroup,
     deleteGroup,
+    renameGroup,
+    setGroupGridHint,
     addAssets,
     renameAsset,
     reorderAsset,
