@@ -170,6 +170,21 @@ export interface AssetRegistry {
     toIndex: number;
   }): void;
   /**
+   * Reorder an asset within its group using stable asset IDs instead of
+   * array indices.  The moved asset is placed immediately before `beforeId`,
+   * or appended to the end of the group when `beforeId` is null.
+   *
+   * Prefer this over `reorderAsset` when the UI renders a filtered subset of
+   * the group (e.g. paintable assets only), because DOM-derived indices for the
+   * filtered list do not align with indices in the full `group.assets` array.
+   */
+  reorderAssetById(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    movedId: string;
+    beforeId: string | null;
+  }): void;
+  /**
    * Move an asset from its current group to a different group (possibly a
    * different category type). Creates the destination group if it doesn't exist.
    */
@@ -1070,6 +1085,48 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     updateGroups(nextGroups);
   }
 
+  function reorderAssetById(options: {
+    groupType: AssetGroupType;
+    groupSlug: string;
+    movedId: string;
+    beforeId: string | null;
+  }): void {
+    const { groupType, groupSlug, movedId, beforeId } = options;
+    const groupIndex = findGroupIndex(groupType, groupSlug);
+    if (groupIndex < 0) return;
+
+    const assets = state.groups[groupIndex].assets;
+    const movedIdx = assets.findIndex((a) => a.id === movedId);
+    if (movedIdx < 0) return;
+
+    // Remove the moved asset from its current position, then re-insert it
+    // before `beforeId` (or at the end when beforeId is null).  Operating
+    // directly on filtered asset arrays (rather than translating paintable-list
+    // indices into full-array indices) avoids corruption when isSource entries
+    // occupy slots in the underlying array that are invisible in the rendered UI.
+    const moved = assets[movedIdx];
+    const others = assets.filter((a) => a.id !== movedId);
+    let newAssets: AssetEntry[];
+    if (beforeId === null) {
+      newAssets = [...others, moved];
+    } else {
+      const beforeIdx = others.findIndex((a) => a.id === beforeId);
+      if (beforeIdx < 0) {
+        newAssets = [...others, moved]; // beforeId not found; append to end
+      } else {
+        newAssets = [...others.slice(0, beforeIdx), moved, ...others.slice(beforeIdx)];
+      }
+    }
+
+    if (newAssets.length !== assets.length) return; // sanity guard
+
+    const nextGroups = state.groups.map((group, index) => {
+      if (index !== groupIndex) return group;
+      return { ...group, assets: newAssets };
+    });
+    updateGroups(nextGroups);
+  }
+
   function removeAsset(assetId: string): void {
     const nextGroups = state.groups.map((group) => ({
       ...group,
@@ -1297,6 +1354,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     addAssets,
     renameAsset,
     reorderAsset,
+    reorderAssetById,
     moveAsset,
     removeAsset,
     getAsset,

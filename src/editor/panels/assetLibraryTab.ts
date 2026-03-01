@@ -14,6 +14,10 @@ import type { AssetCapsuleController } from './assetCapsule';
 import { createVirtualScroller } from './virtualScroller';
 import { createSortableScroller } from './sortableScroller';
 
+// Set to true to log which pointer event ends a drag gesture (useful when
+// diagnosing instant-cancel / "flash" regressions on mobile).
+const DEBUG_DND = false;
+
 const STYLES = `
   .irs-asset-library {
     display: flex;
@@ -759,6 +763,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     targetGroupType: AssetGroupType;
     targetGroupSlug: string;
     targetGrid: HTMLElement;
+    /** Prior inline style values saved before hiding the card; restored in finishDrag. */
+    prevPosition: string;
+    prevOpacity: string;
+    prevPointerEvents: string;
   };
   let dragState: DragState | null = null;
 
@@ -1106,11 +1114,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     grid.insertBefore(placeholder, card);
 
     // Use documentElement as the capture target instead of the card.
-    // An element with display:none cannot hold pointer capture — the browser
-    // would immediately release it and fire lostpointercapture, killing the
-    // drag before it visually begins.  The ghost element has pointer-events:none
-    // so it can't hold capture either.  documentElement is always visible and
-    // reliably holds capture for the full gesture.
+    // The ghost element has pointer-events:none so it can't hold capture.
+    // documentElement is always visible and reliably holds capture for the
+    // full gesture.
     const dragCaptureEl = document.documentElement;
     try {
       dragCaptureEl.setPointerCapture(event.pointerId);
@@ -1118,7 +1124,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       // Pointer already released; finishDrag will handle cleanup.
     }
 
-    card.style.display = 'none';
+    // Hide the original card without using display:none.
+    // display:none removes the element from the render tree; on some mobile
+    // browsers this destabilises the pointer stream even after capture has
+    // been transferred to documentElement, causing an immediate lostpointercapture
+    // and a "flash then cancel" symptom.
+    // position:absolute takes the card out of the grid's flow (so the placeholder
+    // fills the slot visually) while still keeping it in the render tree.
+    const prevPosition = card.style.position;
+    const prevOpacity = card.style.opacity;
+    const prevPointerEvents = card.style.pointerEvents;
+    card.style.position = 'absolute';
+    card.style.opacity = '0';
+    card.style.pointerEvents = 'none';
 
     dragState = {
       groupType: group.type,
@@ -1139,6 +1157,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       targetGroupType: group.type,
       targetGroupSlug: group.slug,
       targetGrid: grid,
+      prevPosition,
+      prevOpacity,
+      prevPointerEvents,
     };
 
     dragCaptureEl.addEventListener('pointermove', handleDragMove);
@@ -1202,6 +1223,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function finishDrag(event: PointerEvent): void {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
+    if (DEBUG_DND) console.log(`[DND] end via ${event.type}`);
     const next = dragState;
     dragState = null;
     next.captureEl.removeEventListener('pointermove', handleDragMove);
@@ -1211,7 +1233,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     next.ghost.remove();
     next.placeholder.remove();
-    next.card.style.display = '';
+    // Restore the card's prior inline style values (position/opacity/pointerEvents
+    // were overridden in beginDrag to keep the element in the render tree while
+    // hiding it from view; '' restores the cascade for properties that had no
+    // prior inline value).
+    next.card.style.position = next.prevPosition;
+    next.card.style.opacity = next.prevOpacity;
+    next.card.style.pointerEvents = next.prevPointerEvents;
 
     const crossGroup =
       next.targetGroupType !== next.groupType ||
@@ -1230,15 +1258,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     } else {
       const didReorder = next.toIndex !== next.fromIndex;
       if (didReorder) {
+        // Resolve the "insert before" target using stable asset IDs rather than
+        // array indices.  The DOM capsule list is filtered to paintable assets
+        // only (isSource entries are hidden), so DOM-derived indices do not
+        // correspond 1-to-1 with indices in the registry's group.assets array.
+        // Using the asset id of the card currently at next.toIndex (the card
+        // that the placeholder sits before at drop time) avoids that mismatch.
+        const cardNodes = Array.from(
+          next.targetGrid.querySelectorAll<HTMLElement>('.irs-asset-capsule')
+        ).filter((node) => node !== next.card);
+        const beforeEl = cardNodes[next.toIndex] ?? null;
+        const beforeId = beforeEl?.dataset.assetId ?? null;
+
         // Reorder all selected assets together, maintaining relative order
         const allIds = [next.assetId, ...next.extraAssetIds];
         if (allIds.length > 1) {
-          // For multi-asset: reorder primary, then move extras adjacent to it
-          assetRegistry.reorderAsset({
+          // For multi-asset: reorder primary by ID, then move extras adjacent
+          // to it using real indices from the (now-updated) registry state.
+          assetRegistry.reorderAssetById({
             groupType: next.groupType,
             groupSlug: next.groupSlug,
-            fromIndex: next.fromIndex,
-            toIndex: next.toIndex,
+            movedId: next.assetId,
+            beforeId,
           });
           // Re-insert extras after primary (in original relative order)
           const state = assetRegistry.getState();
@@ -1262,11 +1303,11 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             }
           }
         } else {
-          assetRegistry.reorderAsset({
+          assetRegistry.reorderAssetById({
             groupType: next.groupType,
             groupSlug: next.groupSlug,
-            fromIndex: next.fromIndex,
-            toIndex: next.toIndex,
+            movedId: next.assetId,
+            beforeId,
           });
         }
         clearSelection();
@@ -3113,8 +3154,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       const grid = itemEl.parentElement as HTMLElement;
       if (!assetId || !grid) return;
 
-      // Compute fromIndex from current DOM position (matches registry order
-      // since renderAssets always mirrors the registry state).
+      // Compute fromIndex from the current DOM position within the paintable
+      // capsule list.  This index is in "paintable space" (isSource assets are
+      // not rendered and therefore not present in the DOM), not in the raw
+      // registry index space.  It is stored in dragState solely for the
+      // no-op detection check (toIndex === fromIndex → skip reorder); the
+      // actual registry update uses reorderAssetById with stable IDs instead.
       const allCapsules = Array.from(
         grid.querySelectorAll<HTMLElement>('.irs-asset-capsule'),
       );
