@@ -13,10 +13,12 @@ import { createAssetCapsule } from './assetCapsule';
 import type { AssetCapsuleController } from './assetCapsule';
 import { createVirtualScroller } from './virtualScroller';
 import { createSortableScroller } from './sortableScroller';
+import { createGestureDebugOverlay } from '../debug/gestureDebugOverlay';
 
 // Set to true to log which pointer event ends a drag gesture (useful when
 // diagnosing instant-cancel / "flash" regressions on mobile).
 const DEBUG_DND = false;
+const ENABLE_GESTURE_OVERLAY_IN_DEV = false;
 
 const STYLES = `
   .irs-asset-library {
@@ -715,6 +717,32 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   ensureStyles();
 
+  const gestureDebug = createGestureDebugOverlay();
+  const debugEnabled =
+    (window as { __IRS_DEBUG_GESTURES?: boolean }).__IRS_DEBUG_GESTURES === true ||
+    (import.meta.env.DEV && ENABLE_GESTURE_OVERLAY_IN_DEV);
+  gestureDebug.setEnabled(debugEnabled);
+
+  let dragFinishReason = '';
+  let lastOverlayMoveTs = 0;
+
+  function logGesture(label: string, data?: Record<string, unknown>): void {
+    gestureDebug.log(label, data);
+  }
+
+  function setGestureState(patch: Record<string, unknown>): void {
+    gestureDebug.setState(patch);
+  }
+
+  function logGestureMoveThrottled(data: Record<string, unknown>): void {
+    const now = performance.now();
+    if (now - lastOverlayMoveTs < 80) return;
+    lastOverlayMoveTs = now;
+    logGesture('drag.pointermove', data);
+  }
+
+  setGestureState({ longPressMs: 260, scrollThresholdPx: 8, dragStartSlopPx: 6 });
+
   const expandedGroups = new Set<string>();
   // Legacy organize mode removed — drag is now always available (selection-first model).
   const uploadStatus = new Map<
@@ -767,6 +795,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     prevPosition: string;
     prevOpacity: string;
     prevPointerEvents: string;
+    onPointerMove: (event: PointerEvent) => void;
+    onPointerUp: (event: PointerEvent) => void;
+    onPointerCancel: (event: PointerEvent) => void;
+    onLostPointerCapture: (event: PointerEvent) => void;
   };
   let dragState: DragState | null = null;
 
@@ -1096,9 +1128,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetId: string;
     extraAssetIds?: string[];
   }): void {
-    if (dragState) return;
+    if (dragState) {
+      logGesture('beginDrag.skipped', { reason: 'dragState-active' });
+      return;
+    }
     const { event, card, grid, group, fromIndex, assetId, extraAssetIds = [] } = options;
     const rect = card.getBoundingClientRect();
+    logGesture('beginDrag.start', {
+      pointerId: event.pointerId,
+      assetId,
+      selectedCount: selectedAssetIds.size,
+      rectWidth: rect.width,
+      rectHeight: rect.height,
+      groupKey: grid.dataset.groupKey ?? '',
+      fromIndex,
+    });
+    setGestureState({
+      activePointerId: event.pointerId,
+      captureDocument: false,
+      captureViewport: viewportEl.hasPointerCapture(event.pointerId),
+      lastFinishReason: '',
+    });
+
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('irs-asset-library__ghost');
     ghost.style.width = `${rect.width}px`;
@@ -1113,15 +1164,34 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     placeholder.style.height = `${rect.height}px`;
     grid.insertBefore(placeholder, card);
 
+    const firstRowEl = grid.querySelector<HTMLElement>('.irs-asset-capsule');
+    const layoutProbeBefore = {
+      cardHeight: card.offsetHeight,
+      cardWidth: card.offsetWidth,
+      firstRowHeight: firstRowEl?.offsetHeight ?? 0,
+      placeholderHeight: placeholder.offsetHeight,
+    };
+    logGesture('layout-probe.before', layoutProbeBefore);
+
     // Use documentElement as the capture target instead of the card.
     // The ghost element has pointer-events:none so it can't hold capture.
     // documentElement is always visible and reliably holds capture for the
     // full gesture.
     const dragCaptureEl = document.documentElement;
+    logGesture('capture.document.before', {
+      pointerId: event.pointerId,
+      hasCapture: dragCaptureEl.hasPointerCapture(event.pointerId),
+    });
     try {
       dragCaptureEl.setPointerCapture(event.pointerId);
+      logGesture('capture.document.after', {
+        pointerId: event.pointerId,
+        hasCapture: dragCaptureEl.hasPointerCapture(event.pointerId),
+      });
+      setGestureState({ captureDocument: dragCaptureEl.hasPointerCapture(event.pointerId) });
     } catch (_) {
       // Pointer already released; finishDrag will handle cleanup.
+      logGesture('capture.document.error', { pointerId: event.pointerId });
     }
 
     // Hide the original card without using display:none.
@@ -1137,6 +1207,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     card.style.position = 'absolute';
     card.style.opacity = '0';
     card.style.pointerEvents = 'none';
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      handleDragMove(moveEvent);
+    };
+    const onPointerUp = (upEvent: PointerEvent) => {
+      dragFinishReason = 'pointerup';
+      logGesture('drag.pointerup', { pointerId: upEvent.pointerId });
+      try {
+        finishDrag(upEvent);
+      } catch (error) {
+        dragFinishReason = 'exception';
+        logGesture('finishDrag.exception', { pointerId: upEvent.pointerId, error: String(error) });
+        throw error;
+      }
+    };
+    const onPointerCancel = (cancelEvent: PointerEvent) => {
+      dragFinishReason = 'pointercancel';
+      logGesture('drag.pointercancel', { pointerId: cancelEvent.pointerId });
+      try {
+        finishDrag(cancelEvent);
+      } catch (error) {
+        dragFinishReason = 'exception';
+        logGesture('finishDrag.exception', { pointerId: cancelEvent.pointerId, error: String(error) });
+        throw error;
+      }
+    };
+    const onLostPointerCapture = (lostEvent: PointerEvent) => {
+      finishDragOnCaptureLoss(lostEvent);
+    };
 
     dragState = {
       groupType: group.type,
@@ -1160,12 +1259,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       prevPosition,
       prevOpacity,
       prevPointerEvents,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
+      onLostPointerCapture,
     };
 
-    dragCaptureEl.addEventListener('pointermove', handleDragMove);
-    dragCaptureEl.addEventListener('pointerup', finishDrag);
-    dragCaptureEl.addEventListener('pointercancel', finishDrag);
-    dragCaptureEl.addEventListener('lostpointercapture', finishDragOnCaptureLoss);
+    dragCaptureEl.addEventListener('pointermove', onPointerMove);
+    dragCaptureEl.addEventListener('pointerup', onPointerUp);
+    dragCaptureEl.addEventListener('pointercancel', onPointerCancel);
+    dragCaptureEl.addEventListener('lostpointercapture', onLostPointerCapture);
+
+    requestAnimationFrame(() => {
+      const after = {
+        cardHeight: card.offsetHeight,
+        cardWidth: card.offsetWidth,
+        firstRowHeight: firstRowEl?.offsetHeight ?? 0,
+        placeholderHeight: placeholder.offsetHeight,
+      };
+      const delta = {
+        cardHeight: after.cardHeight - layoutProbeBefore.cardHeight,
+        cardWidth: after.cardWidth - layoutProbeBefore.cardWidth,
+        firstRowHeight: after.firstRowHeight - layoutProbeBefore.firstRowHeight,
+        placeholderHeight: after.placeholderHeight - layoutProbeBefore.placeholderHeight,
+      };
+      logGesture('layout-probe.after-raf', { ...after, delta });
+      setGestureState({
+        layoutProbe: `cardΔh:${delta.cardHeight} rowΔh:${delta.firstRowHeight} phΔh:${delta.placeholderHeight}`,
+      });
+    });
   }
 
   function handleDragMove(event: PointerEvent): void {
@@ -1177,6 +1299,18 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     // Detect cross-group movement: find which group grid the pointer is over
     const elementUnderPointer = document.elementFromPoint(event.clientX, event.clientY);
     const gridUnderPointer = elementUnderPointer?.closest<HTMLElement>('[data-group-key]');
+    const groupKeyUnderPointer = gridUnderPointer?.dataset.groupKey ?? '';
+    logGestureMoveThrottled({
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      target: elementUnderPointer instanceof Element ? elementUnderPointer.tagName.toLowerCase() : 'none',
+      groupKey: groupKeyUnderPointer,
+    });
+    setGestureState({
+      elementFromPoint: elementUnderPointer instanceof Element ? elementUnderPointer : null,
+      closestGroupKey: groupKeyUnderPointer,
+    });
     if (gridUnderPointer && gridUnderPointer !== active.targetGrid) {
       const keyAttr = gridUnderPointer.getAttribute('data-group-key');
       if (keyAttr) {
@@ -1223,13 +1357,24 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   function finishDrag(event: PointerEvent): void {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
+    const finishReason = dragFinishReason || event.type;
+    logGesture('finishDrag.start', {
+      finishReason,
+      pointerId: event.pointerId,
+      eventType: event.type,
+    });
+    setGestureState({
+      lastFinishReason: finishReason,
+      captureDocument: document.documentElement.hasPointerCapture(event.pointerId),
+      captureViewport: viewportEl.hasPointerCapture(event.pointerId),
+    });
     if (DEBUG_DND) console.log(`[DND] end via ${event.type}`);
     const next = dragState;
     dragState = null;
-    next.captureEl.removeEventListener('pointermove', handleDragMove);
-    next.captureEl.removeEventListener('pointerup', finishDrag);
-    next.captureEl.removeEventListener('pointercancel', finishDrag);
-    next.captureEl.removeEventListener('lostpointercapture', finishDragOnCaptureLoss);
+    next.captureEl.removeEventListener('pointermove', next.onPointerMove);
+    next.captureEl.removeEventListener('pointerup', next.onPointerUp);
+    next.captureEl.removeEventListener('pointercancel', next.onPointerCancel);
+    next.captureEl.removeEventListener('lostpointercapture', next.onLostPointerCapture);
 
     next.ghost.remove();
     next.placeholder.remove();
@@ -1255,6 +1400,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       });
       clearSelection();
       refresh();
+      logGesture('finishDrag.commit', {
+        finishReason,
+        crossGroup: true,
+        didCommit: true,
+        fromGroup: `${next.groupType}:${next.groupSlug}`,
+        toGroup: `${next.targetGroupType}:${next.targetGroupSlug}`,
+        selectedCount: 1 + next.extraAssetIds.length,
+      });
     } else {
       const didReorder = next.toIndex !== next.fromIndex;
       if (didReorder) {
@@ -1313,11 +1466,31 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         clearSelection();
         refresh();
       }
+      logGesture('finishDrag.commit', {
+        finishReason,
+        crossGroup: false,
+        didCommit: didReorder,
+        fromIndex: next.fromIndex,
+        toIndex: next.toIndex,
+        selectedCount: 1 + next.extraAssetIds.length,
+      });
     }
+    dragFinishReason = '';
   }
 
   function finishDragOnCaptureLoss(event: Event): void {
     if (!(event instanceof PointerEvent)) return;
+    dragFinishReason = 'lostpointercapture';
+    logGesture('drag.lostpointercapture', {
+      pointerId: event.pointerId,
+      target: event.target instanceof HTMLElement ? event.target.tagName.toLowerCase() : 'unknown',
+    });
+    setGestureState({
+      lastLostCaptureTarget:
+        event.target instanceof HTMLElement ? event.target.tagName.toLowerCase() : 'unknown',
+      captureDocument: document.documentElement.hasPointerCapture(event.pointerId),
+      captureViewport: viewportEl.hasPointerCapture(event.pointerId),
+    });
     finishDrag(event);
   }
 
@@ -3137,22 +3310,59 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     viewportEl,
     scroller: virtualScroller,
     getItemEl: (target) => target.closest<HTMLElement>('.irs-asset-capsule'),
+    onStateChange: (state, info) => {
+      setGestureState({
+        sortableState: state,
+        activePointerId:
+          typeof info?.pointerId === 'number' ? info.pointerId : (dragState?.pointerId ?? -1),
+      });
+      logGesture('sortable.state', { state, ...info });
+    },
+    onDebugSample: (info) => {
+      if (typeof info.dx === 'number' || typeof info.dy === 'number' || typeof info.totalMoved === 'number') {
+        setGestureState({
+          dx: info.dx,
+          dy: info.dy,
+          maxMoved: info.totalMoved,
+          longPressMs: 260,
+          scrollThresholdPx: 8,
+          dragStartSlopPx: 6,
+        });
+      }
+      logGesture('sortable.sample', info);
+    },
 
-    onSelectionLit: (_event, itemEl) => {
+    onSelectionLit: (event, itemEl) => {
+      logGesture('selection.lit', {
+        assetId: itemEl.dataset.assetId ?? '',
+        pointerId: event.pointerId,
+      });
       capsuleMap.get(itemEl)?.setLit(true);
     },
 
     onDragStart: (event, itemEl) => {
+      logGesture('onDragStart.called', {
+        assetId: itemEl.dataset.assetId ?? '',
+        pointerId: event.pointerId,
+      });
       // Guard: if the DOM was rebuilt while the user was pressing (e.g. a
       // registry onChange fired), the old element may no longer be connected.
-      if (!itemEl.isConnected) return;
+      if (!itemEl.isConnected) {
+        logGesture('onDragStart.skipped', { reason: 'item-disconnected' });
+        return;
+      }
 
       capsuleMap.get(itemEl)?.setLit(false);
       virtualScroller.stopMomentum();
 
       const assetId = itemEl.dataset.assetId ?? '';
       const grid = itemEl.parentElement as HTMLElement;
-      if (!assetId || !grid) return;
+      if (!assetId || !grid) {
+        logGesture('onDragStart.skipped', {
+          reason: !assetId ? 'missing-asset-id' : 'missing-grid',
+        });
+        return;
+      }
 
       // Compute fromIndex from the current DOM position within the paintable
       // capsule list.  This index is in "paintable space" (isSource assets are
@@ -3164,19 +3374,28 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         grid.querySelectorAll<HTMLElement>('.irs-asset-capsule'),
       );
       const fromIndex = allCapsules.indexOf(itemEl);
-      if (fromIndex < 0) return;
+      if (fromIndex < 0) {
+        logGesture('onDragStart.skipped', { reason: 'fromIndex-not-found', assetId });
+        return;
+      }
 
       // Resolve group from the grid's data-group-key attribute.
       const groupKeyAttr = grid.dataset.groupKey ?? '';
       const colonIdx = groupKeyAttr.indexOf(':');
-      if (colonIdx < 0) return;
+      if (colonIdx < 0) {
+        logGesture('onDragStart.skipped', { reason: 'missing-group-key', groupKeyAttr });
+        return;
+      }
       const groupType = groupKeyAttr.slice(0, colonIdx) as AssetGroupType;
       const groupSlug = groupKeyAttr.slice(colonIdx + 1);
       const registryState = assetRegistry.getState();
       const group = registryState.groups.find(
         (g) => g.type === groupType && g.slug === groupSlug,
       );
-      if (!group) return;
+      if (!group) {
+        logGesture('onDragStart.skipped', { reason: 'group-not-found', groupType, groupSlug });
+        return;
+      }
 
       // If this asset is part of a multi-selection, drag all selected together.
       const dragIds =
@@ -3233,6 +3452,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     },
 
     onCancel: (itemEl) => {
+      logGesture('sortable.cancel', {
+        assetId: itemEl?.dataset.assetId ?? '',
+      });
       if (itemEl) capsuleMap.get(itemEl)?.setLit(false);
     },
   });
@@ -3255,6 +3477,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       sortableScrollerCtrl.destroy();
       virtualScroller.destroy();
       resizeObserver.disconnect();
+      gestureDebug.destroy();
       viewportEl.remove(); // removes contentEl → root as well
     },
   };

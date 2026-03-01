@@ -53,6 +53,10 @@ Micro-format (copy/paste):
   - Role: Validate filesystem contract for project/scenes/assets.
   - Lists of truth: none
 
+- `docs/debug/asset-dnd-debugging.md`
+  - Role: Investigation guide for mobile drag-and-drop gesture telemetry and overlay interpretation.
+  - Lists of truth: none
+
 ## Scoped agent rules (local AGENTS.md)
 - `src/boot/AGENTS.md`
   - Role: Boot routing rules for editor/game mode + GitHub Pages base path notes.
@@ -540,8 +544,20 @@ Micro-format (copy/paste):
   - Lists of truth: AssetSettingsPopupOptions
 
 - `src/editor/panels/assetLibraryTab.ts`
-  - Role: Left berry Assets Library tab UI for grouped assets, animation clips, and directional animation sets.
+  - Role: Left berry Assets Library tab UI for grouped assets, animation clips, directional animation sets, and drag-gesture telemetry hooks.
   - Lists of truth: none
+
+- `src/editor/panels/sortableScroller.ts`
+  - Role: Gesture arbiter for long-press selection, scroll intent, and drag intent with optional debug callbacks.
+  - Lists of truth: SortableScrollerConfig
+
+- `src/editor/panels/virtualScroller.ts`
+  - Role: Custom transform-based vertical scroll controller with pointer + momentum phases.
+  - Lists of truth: VirtualScrollerConfig
+
+- `src/editor/debug/gestureDebugOverlay.ts`
+  - Role: Standalone removable overlay for pointer/drag state telemetry and event ring buffer.
+  - Lists of truth: GestureDebugOverlayOptions
 
 - `src/editor/panels/assetPalette.ts`
   - Role: Asset palette UI for right berry modes; renders groups in registry order with gridHint column layout.
