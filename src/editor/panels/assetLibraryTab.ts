@@ -830,8 +830,12 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     /** Explicit dimensions pinned on the card before going absolute (prevents grid-height collapse). */
     prevWidth: string;
     prevHeight: string;
-    /** DOM elements for extra selected cards being carried; dimmed during drag. */
+    /** DOM elements for extra selected cards being carried; hidden during drag. */
     extraCardEls: HTMLElement[];
+    /** Saved inline styles for each extra card (restored on cancel / commit). */
+    extraCardSavedStyles: Array<{ position: string; opacity: string; pointerEvents: string; width: string; height: string }>;
+    /** Placeholder tiles for each extra carried asset (follow the primary placeholder). */
+    extraPlaceholders: HTMLElement[];
     onPointerMove: (event: PointerEvent) => void;
     onPointerUp: (event: PointerEvent) => void;
     onPointerCancel: (event: PointerEvent) => void;
@@ -1187,15 +1191,31 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       lastFinishReason: '',
     });
 
-    // Dim extra selected cards to show they are being "carried" along.
-    // Must happen before cloneNode so the ghost doesn't inherit the class.
+    // Hide extra selected cards and insert a placeholder in each one's exact
+    // DOM slot, just like we do for the primary card.  Using position:absolute
+    // removes them from flow so extra placeholders cleanly hold the space.
     const extraCardEls: HTMLElement[] = [];
+    const extraCardSavedStyles: Array<{
+      position: string; opacity: string; pointerEvents: string; width: string; height: string;
+    }> = [];
     for (const extraId of extraAssetIds) {
       const el = grid.querySelector<HTMLElement>(`[data-asset-id="${extraId}"]`);
-      if (el && el !== card) {
-        el.classList.add('irs-asset-capsule--drag-carried');
-        extraCardEls.push(el);
-      }
+      if (!el || el === card) continue;
+      const er = el.getBoundingClientRect();
+      // Save and hide exactly like the primary card.
+      extraCardSavedStyles.push({
+        position: el.style.position,
+        opacity: el.style.opacity,
+        pointerEvents: el.style.pointerEvents,
+        width: el.style.width,
+        height: el.style.height,
+      });
+      el.style.width = `${er.width}px`;
+      el.style.height = `${er.height}px`;
+      el.style.position = 'absolute';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      extraCardEls.push(el);
     }
 
     const ghost = card.cloneNode(true) as HTMLElement;
@@ -1212,6 +1232,21 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     placeholder.style.width = `${rect.width}px`;
     placeholder.style.height = `${rect.height}px`;
     grid.insertBefore(placeholder, card);
+
+    // Create one placeholder per extra carried asset, inserted immediately
+    // BEFORE each now-absolute extra card (mirrors what we did for the primary).
+    // These start at the cards' original positions and are relocated as a
+    // cluster behind the primary placeholder on every handleDragMove.
+    const extraPlaceholders: HTMLElement[] = [];
+    for (let i = 0; i < extraCardEls.length; i++) {
+      const ec = extraCardEls[i];
+      const ep = document.createElement('div');
+      ep.className = 'irs-asset-library__placeholder';
+      ep.style.width = ec.style.width;   // pinned above from er.width
+      ep.style.height = ec.style.height; // pinned above from er.height
+      grid.insertBefore(ep, ec);
+      extraPlaceholders.push(ep);
+    }
 
     const firstRowEl = grid.querySelector<HTMLElement>('.irs-asset-capsule');
     const layoutProbeBefore = {
@@ -1341,6 +1376,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       prevWidth,
       prevHeight,
       extraCardEls,
+      extraCardSavedStyles,
+      extraPlaceholders,
       onPointerMove,
       onPointerUp,
       onPointerCancel,
@@ -1424,6 +1461,13 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       } else {
         active.targetGrid.appendChild(active.placeholder);
       }
+      // Re-anchor extra placeholders immediately after the primary so the
+      // entire cluster moves together as a unit.
+      let anchor: HTMLElement = active.placeholder;
+      for (const ep of active.extraPlaceholders) {
+        anchor.after(ep);
+        anchor = ep;
+      }
     }
 
     // Autoscroll: drive the virtual scroller when the pointer is near the
@@ -1459,28 +1503,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     next.captureEl.removeEventListener('lostpointercapture', next.onLostPointerCapture);
 
     next.ghost.remove();
-    next.placeholder.remove();
-    // Restore the primary card's prior inline style values.
-    next.card.style.position = next.prevPosition;
-    next.card.style.opacity = next.prevOpacity;
-    next.card.style.pointerEvents = next.prevPointerEvents;
-    next.card.style.width = next.prevWidth;
-    next.card.style.height = next.prevHeight;
-    // Reset the count badge that was added to the primary card before cloning the ghost.
-    if (next.extraAssetIds.length > 0) {
-      capsuleMap.get(next.card)?.setBadge(null);
-    }
-    // Restore extra carried cards.
-    for (const el of next.extraCardEls) {
-      el.classList.remove('irs-asset-capsule--drag-carried');
-    }
+
+    // ── Helper: restore a single card's saved inline styles ──────────────────
+    const restoreCard = (
+      el: HTMLElement,
+      saved: { position: string; opacity: string; pointerEvents: string; width: string; height: string }
+    ): void => {
+      el.style.position = saved.position;
+      el.style.opacity = saved.opacity;
+      el.style.pointerEvents = saved.pointerEvents;
+      el.style.width = saved.width;
+      el.style.height = saved.height;
+    };
 
     const crossGroup =
       next.targetGroupType !== next.groupType ||
       next.targetGroupSlug !== next.groupSlug;
 
     if (crossGroup) {
-      // Cross-group move (primary asset only; multi-select cross-group not supported in v1)
+      // ── Cross-group move: fall back to full rebuild ───────────────────────
+      // (primary asset only; multi-select cross-group not yet supported)
+      next.placeholder.remove();
+      for (const ep of next.extraPlaceholders) ep.remove();
+      restoreCard(next.card, { position: next.prevPosition, opacity: next.prevOpacity,
+        pointerEvents: next.prevPointerEvents, width: next.prevWidth, height: next.prevHeight });
+      for (let i = 0; i < next.extraCardEls.length; i++) {
+        restoreCard(next.extraCardEls[i], next.extraCardSavedStyles[i]);
+      }
+      if (next.extraAssetIds.length > 0) capsuleMap.get(next.card)?.setBadge(null);
+
       assetRegistry.moveAsset({
         assetId: next.assetId,
         toGroupType: next.targetGroupType,
@@ -1500,76 +1551,107 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     } else {
       const didReorder = next.toIndex !== next.fromIndex;
       if (didReorder) {
-        // Resolve the "insert before" target using stable asset IDs rather than
-        // array indices.  The DOM capsule list is filtered to paintable assets
-        // only (isSource entries are hidden), so DOM-derived indices do not
-        // correspond 1-to-1 with indices in the registry's group.assets array.
-        // Using the asset id of the card currently at next.toIndex (the card
-        // that the placeholder sits before at drop time) avoids that mismatch.
-        const cardNodes = Array.from(
+        // ── DOM-SWAP COMMIT ───────────────────────────────────────────────────
+        // The placeholders are already at the correct drop positions in the DOM.
+        // We physically insert each real card element where its placeholder sits,
+        // then update the registry silently (suppressing onChange→refresh).
+        // This avoids destroying any <img> elements so thumbnails never flicker.
+
+        // 1. Swap primary placeholder → primary card
+        next.placeholder.replaceWith(next.card);
+        restoreCard(next.card, { position: next.prevPosition, opacity: next.prevOpacity,
+          pointerEvents: next.prevPointerEvents, width: next.prevWidth, height: next.prevHeight });
+        if (next.extraAssetIds.length > 0) capsuleMap.get(next.card)?.setBadge(null);
+
+        // 2. Swap each extra placeholder → its card, in order
+        for (let i = 0; i < next.extraPlaceholders.length; i++) {
+          const ep = next.extraPlaceholders[i];
+          const ec = next.extraCardEls[i];
+          ep.replaceWith(ec);
+          restoreCard(ec, next.extraCardSavedStyles[i]);
+        }
+
+        // 3. Update registry to match the new DOM order, suppressing refresh.
+        //    Read beforeId from the DOM *after* the swap (extra cards now in flow).
+        const allCapsules = Array.from(
           next.targetGrid.querySelectorAll<HTMLElement>('.irs-asset-capsule')
-        ).filter((node) => node !== next.card);
-        const beforeEl = cardNodes[next.toIndex] ?? null;
-        const beforeId = beforeEl?.dataset.assetId ?? null;
+        );
+        // Primary card is now in the grid; find what follows it.
+        const primaryDomIdx = allCapsules.indexOf(next.card);
+        const beforeId = allCapsules[primaryDomIdx + 1 + next.extraAssetIds.length]?.dataset.assetId ?? null;
 
-        if (next.extraAssetIds.length > 0) {
-          // ── Multi-asset reorder ───────────────────────────────────────────
-          // Sort extras by their current registry position so the cluster lands
-          // in the same relative order the user originally arranged them.
-          const preState = assetRegistry.getState();
-          const preGrp = preState.groups.find(
-            (g) => g.type === next.groupType && g.slug === next.groupSlug
-          );
-          const sortedExtras = preGrp
-            ? [...next.extraAssetIds].sort(
-                (a, b) =>
-                  preGrp.assets.findIndex((x) => x.id === a) -
-                  preGrp.assets.findIndex((x) => x.id === b)
-              )
-            : [...next.extraAssetIds];
-
-          // Move the primary asset to the drop position first.
-          assetRegistry.reorderAssetById({
-            groupType: next.groupType,
-            groupSlug: next.groupSlug,
-            movedId: next.assetId,
-            beforeId,
-          });
-
-          // Then move each extra to be immediately after the previously placed
-          // asset.  Re-fetch state after every call so indices stay accurate —
-          // each reorderAssetById mutates the array and invalidates old indices.
-          let anchorId = next.assetId;
-          for (const extraId of sortedExtras) {
-            const s = assetRegistry.getState();
-            const g = s.groups.find(
-              (gr) => gr.type === next.groupType && gr.slug === next.groupSlug
+        suppressRefreshOnChange = true;
+        try {
+          if (next.extraAssetIds.length > 0) {
+            const preState = assetRegistry.getState();
+            const preGrp = preState.groups.find(
+              (g) => g.type === next.groupType && g.slug === next.groupSlug
             );
-            if (!g) break;
-            const anchorIdx = g.assets.findIndex((a) => a.id === anchorId);
-            // Insert extra AFTER anchor (= BEFORE the item currently at anchorIdx+1).
-            const afterAnchorId = g.assets[anchorIdx + 1]?.id ?? null;
-            // Skip if extra is already right after the anchor.
-            if (afterAnchorId !== extraId) {
-              assetRegistry.reorderAssetById({
-                groupType: next.groupType,
-                groupSlug: next.groupSlug,
-                movedId: extraId,
-                beforeId: afterAnchorId,
-              });
+            const sortedExtras = preGrp
+              ? [...next.extraAssetIds].sort(
+                  (a, b) =>
+                    preGrp.assets.findIndex((x) => x.id === a) -
+                    preGrp.assets.findIndex((x) => x.id === b)
+                )
+              : [...next.extraAssetIds];
+
+            assetRegistry.reorderAssetById({
+              groupType: next.groupType,
+              groupSlug: next.groupSlug,
+              movedId: next.assetId,
+              beforeId,
+            });
+
+            let anchorId = next.assetId;
+            for (const extraId of sortedExtras) {
+              const s = assetRegistry.getState();
+              const g = s.groups.find(
+                (gr) => gr.type === next.groupType && gr.slug === next.groupSlug
+              );
+              if (!g) break;
+              const anchorIdx = g.assets.findIndex((a) => a.id === anchorId);
+              const afterAnchorId = g.assets[anchorIdx + 1]?.id ?? null;
+              if (afterAnchorId !== extraId) {
+                assetRegistry.reorderAssetById({
+                  groupType: next.groupType,
+                  groupSlug: next.groupSlug,
+                  movedId: extraId,
+                  beforeId: afterAnchorId,
+                });
+              }
+              anchorId = extraId;
             }
-            anchorId = extraId;
+          } else {
+            assetRegistry.reorderAssetById({
+              groupType: next.groupType,
+              groupSlug: next.groupSlug,
+              movedId: next.assetId,
+              beforeId,
+            });
           }
-        } else {
-          assetRegistry.reorderAssetById({
-            groupType: next.groupType,
-            groupSlug: next.groupSlug,
-            movedId: next.assetId,
-            beforeId,
-          });
+        } finally {
+          suppressRefreshOnChange = false;
+        }
+
+        // 4. Clear selection visually without a full rebuild.
+        //    Each selected capsule already has the selected style from before drag;
+        //    just deselect and clear the set.
+        for (const selId of selectedAssetIds) {
+          const selEl = next.targetGrid.querySelector<HTMLElement>(`[data-asset-id="${selId}"]`);
+          if (selEl) capsuleMap.get(selEl)?.setSelected(false);
         }
         clearSelection();
-        refresh();
+        // No refresh() — DOM is already correct and thumbnails are intact.
+      } else {
+        // No movement: just restore cards and clear placeholders cleanly.
+        next.placeholder.remove();
+        for (const ep of next.extraPlaceholders) ep.remove();
+        restoreCard(next.card, { position: next.prevPosition, opacity: next.prevOpacity,
+          pointerEvents: next.prevPointerEvents, width: next.prevWidth, height: next.prevHeight });
+        for (let i = 0; i < next.extraCardEls.length; i++) {
+          restoreCard(next.extraCardEls[i], next.extraCardSavedStyles[i]);
+        }
+        if (next.extraAssetIds.length > 0) capsuleMap.get(next.card)?.setBadge(null);
       }
       logGesture('finishDrag.commit', {
         finishReason,
@@ -3375,7 +3457,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   createButton.addEventListener('click', handleCreateGroup);
 
-  const unsubscribe = assetRegistry.onChange(() => refresh());
+  // When committing a multi-step reorder we suppress intermediate onChange
+  // calls so we don't get N full DOM rebuilds for N assets moved.
+  // finishDrag sets this true, does all registry mutations, sets it false,
+  // then calls refresh() exactly once.
+  let suppressRefreshOnChange = false;
+  const unsubscribe = assetRegistry.onChange(() => {
+    if (!suppressRefreshOnChange) refresh();
+  });
   const unsubscribeUiContext = editorEventBus.on('UI_CONTEXT_CHANGED', ({ context }) => {
     if (context !== 'canvas') {
       return;
