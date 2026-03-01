@@ -720,6 +720,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   const gestureDebug = createGestureDebugOverlay();
   const debugEnabled =
     (window as { __IRS_DEBUG_GESTURES?: boolean }).__IRS_DEBUG_GESTURES === true ||
+    localStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
+    sessionStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
     (import.meta.env.DEV && ENABLE_GESTURE_OVERLAY_IN_DEV);
   gestureDebug.setEnabled(debugEnabled);
 
