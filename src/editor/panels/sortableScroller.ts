@@ -79,6 +79,10 @@ export interface SortableScrollerConfig {
    * is cancelled.
    */
   onCancel?: (itemEl: HTMLElement | null) => void;
+  /** Optional debug hook for state transitions and lifecycle checkpoints. */
+  onStateChange?: (state: GestureState, info?: Record<string, unknown>) => void;
+  /** Optional debug hook for sampled pointer diagnostics (throttled internally). */
+  onDebugSample?: (info: Record<string, unknown>) => void;
 }
 
 export interface SortableScrollerController {
@@ -103,6 +107,24 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
   let startX = 0;
   let startY = 0;
   let timerId: number | null = null;
+  let lastDebugMoveTs = 0;
+
+  function emitState(stateLabel: GestureState, info?: Record<string, unknown>): void {
+    config.onStateChange?.(stateLabel, info);
+  }
+
+  function setState(nextState: GestureState, info?: Record<string, unknown>): void {
+    if (state === nextState) return;
+    state = nextState;
+    emitState(nextState, info);
+  }
+
+  function emitDebugSample(info: Record<string, unknown>): void {
+    const now = performance.now();
+    if (now - lastDebugMoveTs < 60) return;
+    lastDebugMoveTs = now;
+    config.onDebugSample?.(info);
+  }
 
   function clearTimer(): void {
     if (timerId !== null) {
@@ -113,7 +135,7 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
 
   function reset(): void {
     clearTimer();
-    state = 'idle';
+    setState('idle');
     activePointerId = -1;
     activeItemEl = null;
   }
@@ -130,6 +152,15 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
     startY = e.clientY;
     activePointerId = e.pointerId;
     activeItemEl = getItemEl(e.target as HTMLElement);
+    emitState(state, {
+      phase: 'pointerdown',
+      pointerId: e.pointerId,
+      targetTag: (e.target as HTMLElement | null)?.tagName ?? 'unknown',
+      targetClass: (e.target as HTMLElement | null)?.className ?? '',
+      itemFound: activeItemEl !== null,
+      startX,
+      startY,
+    });
 
     try {
       viewportEl.setPointerCapture(e.pointerId);
@@ -139,17 +170,22 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
 
     if (activeItemEl !== null) {
       // Pointer is on a sortable item: start long-press detection
-      state = 'pressing';
+      setState('pressing', { pointerId: e.pointerId, longPressMs });
       const itemEl = activeItemEl;
       timerId = window.setTimeout(() => {
         timerId = null;
         if (state !== 'pressing') return;
-        state = 'confirmed';
+        setState('confirmed', { pointerId: e.pointerId, reason: 'long-press-timer-fired' });
+        config.onDebugSample?.({
+          phase: 'long-press-fired',
+          pointerId: e.pointerId,
+          itemAssetId: itemEl.dataset.assetId ?? '',
+        });
         config.onSelectionLit?.(e, itemEl);
       }, longPressMs);
     } else {
       // Pointer is on empty space: start scrolling immediately
-      state = 'scrolling';
+      setState('scrolling', { pointerId: e.pointerId, reason: 'pointerdown-empty-space' });
       scroller.beginPointerScroll(e.pointerId, e.clientY);
     }
   };
@@ -159,12 +195,27 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
 
     const dy = e.clientY - startY;
     const totalMoved = Math.hypot(e.clientX - startX, dy);
+    emitDebugSample({
+      phase: 'pointermove',
+      pointerId: e.pointerId,
+      state,
+      dx: e.clientX - startX,
+      dy,
+      totalMoved,
+      scrollStartThresholdPx,
+      dragStartSlopPx,
+    });
 
     if (state === 'pressing') {
       // Cancel long-press and enter scroll if the finger has moved vertically
       if (Math.abs(dy) > scrollStartThresholdPx) {
         clearTimer();
-        state = 'scrolling';
+        setState('scrolling', {
+          pointerId: e.pointerId,
+          reason: 'scroll-threshold-crossed',
+          dy,
+          threshold: scrollStartThresholdPx,
+        });
         // Begin scroll from the current position (not the original startY) so
         // there is no discontinuous jump when the scroll threshold is crossed.
         scroller.beginPointerScroll(e.pointerId, e.clientY);
@@ -175,7 +226,12 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
     } else if (state === 'confirmed') {
       // Long-press fired; now detect drag intent
       if (totalMoved > dragStartSlopPx && activeItemEl !== null) {
-        state = 'dragging';
+        setState('dragging', {
+          pointerId: e.pointerId,
+          reason: 'drag-slop-crossed',
+          totalMoved,
+          dragStartSlopPx,
+        });
         // Caller's beginDrag() will re-capture on documentElement, which
         // fires lostpointercapture on viewportEl → reset() is called there.
         config.onDragStart?.(e, activeItemEl);
@@ -186,6 +242,7 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
 
   const onPointerUp = (e: PointerEvent): void => {
     if (e.pointerId !== activePointerId) return;
+    emitState(state, { phase: 'pointerup', pointerId: e.pointerId });
 
     if (state === 'scrolling') {
       scroller.endPointerScroll(e.pointerId);
@@ -201,6 +258,7 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
 
   const onPointerCancel = (e: PointerEvent): void => {
     if (e.pointerId !== activePointerId) return;
+    emitState(state, { phase: 'pointercancel', pointerId: e.pointerId });
     if (state === 'scrolling') {
       scroller.endPointerScroll(e.pointerId);
     }
@@ -216,6 +274,7 @@ export function createSortableScroller(config: SortableScrollerConfig): Sortable
    */
   const onLostPointerCapture = (e: PointerEvent): void => {
     if (e.pointerId !== activePointerId) return;
+    config.onDebugSample?.({ phase: 'lostpointercapture', pointerId: e.pointerId, state });
     // Only reset if we were in dragging (capture transferred to drag system).
     // In other states the loss is unexpected; reset anyway to avoid stuck state.
     reset();
