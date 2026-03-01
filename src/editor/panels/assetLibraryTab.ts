@@ -10,7 +10,11 @@ import { uxFeedback } from '@/editor/uxFeedback';
 import { createEmptyState } from './leftBerry';
 import { editorEventBus } from '@/editor/core';
 import { createAssetCapsule } from './assetCapsule';
-import { attachLongPress } from './longPress';
+import type { AssetCapsuleController } from './assetCapsule';
+import { createVirtualScroller } from './virtualScroller';
+import type { VirtualScrollerController } from './virtualScroller';
+import { createSortableScroller } from './sortableScroller';
+import type { SortableScrollerController } from './sortableScroller';
 
 const STYLES = `
   .irs-asset-library {
@@ -586,6 +590,21 @@ const STYLES = `
     font-weight: 600;
     color: var(--irs-text-primary);
   }
+
+  /* Virtual scroller viewport – replaces overflow-y:auto for the asset tab */
+  .irs-asset-viewport {
+    overflow: hidden;
+    touch-action: none;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Virtual scroller content – translated via transform, never overflow-scrolled */
+  .irs-asset-content {
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+  }
 `;
 
 type AssetSubtabId = 'tiles' | 'props' | 'entities' | 'animations' | 'sources';
@@ -707,6 +726,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   // Multi-select state: assets selected via long-press gesture (selection-first model)
   const selectedAssetIds = new Set<string>();
+
+  // Maps each capsule DOM element → its controller so gesture callbacks can
+  // update visual state (lit, selected) without a full re-render.
+  const capsuleMap = new WeakMap<HTMLElement, AssetCapsuleController>();
+
+  // Virtual scroller and sortable-scroller are initialised after DOM setup,
+  // just before the first refresh() call.  handleDragMove references them
+  // via these variables; user interaction can only happen after that point.
+  let viewportEl!: HTMLElement;
+  let virtualScroller!: VirtualScrollerController;
+  let sortableScrollerCtrl!: SortableScrollerController;
 
   // Group management state
   type GroupEditMode = 'rename' | 'set-grid';
@@ -960,7 +990,16 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   });
   root.appendChild(animScrim);
 
-  container.appendChild(root);
+  // Wrap the asset library in a gesture-owned viewport so we can replace
+  // native overflow-y:auto with a custom translateY scroller.  Only this
+  // tab is affected; other berry tabs keep their default scroll behaviour.
+  viewportEl = document.createElement('div');
+  viewportEl.className = 'irs-asset-viewport';
+  const contentEl = document.createElement('div');
+  contentEl.className = 'irs-asset-content';
+  viewportEl.appendChild(contentEl);
+  contentEl.appendChild(root);
+  container.appendChild(viewportEl);
 
   function groupKey(group: AssetGroup): string {
     return `${group.type}:${group.slug}`;
@@ -1159,12 +1198,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       }
     }
 
+    // Autoscroll: drive the virtual scroller when the pointer is near the
+    // top or bottom edge of the viewport during a drag.
     const edge = 72;
-    const bounds = container.getBoundingClientRect();
+    const bounds = viewportEl.getBoundingClientRect();
     if (event.clientY < bounds.top + edge) {
-      container.scrollTop -= 10;
+      virtualScroller.scrollBy(-10);
     } else if (event.clientY > bounds.bottom - edge) {
-      container.scrollTop += 10;
+      virtualScroller.scrollBy(10);
     }
   }
 
@@ -1308,7 +1349,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetIndex: number;
     selectedAssetId: string | null;
   }): HTMLElement {
-    const { group, asset, assetIndex, selectedAssetId } = options;
+    const { asset, selectedAssetId } = options;
 
     const sizeLabel = asset.width > 0 && asset.height > 0 ? `${asset.width}×${asset.height}` : 'Size unknown';
     const sourceLabel = asset.source === 'repo' ? 'Repo' : 'Local';
@@ -1333,77 +1374,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     const card = capsule.el;
 
-    // Selection-first, drag-native model (no Organize mode required):
-    //   Long-press (400ms) → select this asset (lit feedback, then selected on release)
-    //   Tap when selection is active → toggle this asset in/out of selection
-    //   Tap when no selection → normal paint/select via registry
-    //   Drag (after long-press + movement) → reorder; multi-select drags entire batch
-    attachLongPress(card, {
-      onSelectionLit: () => {
-        // 400ms threshold reached — show lit (green) feedback; pointer still down
-        capsule.setLit(true);
-      },
-      onDragStart: (event) => {
-        // Movement confirmed after long-press: begin drag.
-        // Pointer capture will be transferred to the ghost element inside
-        // beginDrag() — the card itself cannot hold capture because it gets
-        // hidden with display:none during the drag.
-        capsule.setLit(false);
+    // Tag the element so the viewport-level sortableScroller can identify it.
+    card.dataset.assetId = asset.id;
 
-        // If this asset is part of a multi-selection, drag all selected assets
-        const dragIds = selectedAssetIds.size > 1 && selectedAssetIds.has(asset.id)
-          ? Array.from(selectedAssetIds)
-          : [asset.id];
+    // Register in the capsule map so gesture callbacks can update visual state
+    // (lit highlight, selected border) without a full re-render.
+    capsuleMap.set(card, capsule);
 
-        if (dragIds.length > 1) {
-          capsule.setBadge(`×${dragIds.length}`);
-        }
-
-        beginDrag({
-          event,
-          card,
-          grid: card.parentElement as HTMLElement,
-          group,
-          fromIndex: assetIndex,
-          assetId: asset.id,
-          extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== asset.id) : [],
-        });
-      },
-      onPopupOpen: () => {
-        // Long-press released without drag: SELECT this asset (do NOT open a popup)
-        capsule.setLit(false);
-        selectedAssetIds.add(asset.id);
-        capsule.setSelected(true);
-        refresh(); // show selection bar with Settings affordance
-      },
-      onTap: () => {
-        capsule.setLit(false);
-        if (selectedAssetIds.size > 0) {
-          // Selection is active: tap toggles this asset in/out of the selection set
-          if (selectedAssetIds.has(asset.id)) {
-            selectedAssetIds.delete(asset.id);
-            capsule.setSelected(false);
-          } else {
-            selectedAssetIds.add(asset.id);
-            capsule.setSelected(true);
-          }
-          if (selectedAssetIds.size === 0) {
-            clearSelection();
-          }
-          refresh();
-          return;
-        }
-        // Normal tap (no selection): select/paint via registry
-        uxFeedback.selection.mark(card);
-        assetRegistry.setSelectedAsset(asset.id);
-        editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
-      },
-      onCancel: () => {
-        capsule.setLit(false);
-      },
-      // Drag is always allowed after long-press (no organize mode gate)
-      allowDragAfterLongPress: true,
-    });
+    // Gesture detection (long-press / scroll / drag) is owned by the
+    // sortableScroller attached to the viewport element.  Its callbacks are
+    // configured once (just before the first refresh) and look up per-asset
+    // state via card.dataset.assetId and capsuleMap.
 
     return card;
   }
@@ -3095,6 +3076,131 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     assetRegistry.setSelectedAsset(null);
   });
 
+  // ── Virtual scroller + sortable gesture arbiter ─────────────────────────
+  //
+  // These must be set up after the DOM is in place (viewportEl / contentEl
+  // already appended) but before the first refresh(), so that handleDragMove
+  // can call virtualScroller.scrollBy() and the sortableScroller can begin
+  // receiving pointer events on mount.
+
+  virtualScroller = createVirtualScroller({
+    viewportEl,
+    contentEl,
+    getContentSize: () => contentEl.scrollHeight,
+    getViewportSize: () => viewportEl.clientHeight,
+  });
+
+  // Clamp offset when the viewport or content resizes (e.g. new assets added,
+  // tab resized, subtab switched).
+  const resizeObserver = new ResizeObserver(() => {
+    const maxOff = Math.max(0, contentEl.scrollHeight - viewportEl.clientHeight);
+    if (virtualScroller.getOffset() > maxOff) {
+      virtualScroller.setOffset(maxOff);
+    }
+  });
+  resizeObserver.observe(viewportEl);
+  resizeObserver.observe(contentEl);
+
+  sortableScrollerCtrl = createSortableScroller({
+    viewportEl,
+    scroller: virtualScroller,
+    getItemEl: (target) => target.closest<HTMLElement>('.irs-asset-capsule'),
+
+    onSelectionLit: (_event, itemEl) => {
+      capsuleMap.get(itemEl)?.setLit(true);
+    },
+
+    onDragStart: (event, itemEl) => {
+      // Guard: if the DOM was rebuilt while the user was pressing (e.g. a
+      // registry onChange fired), the old element may no longer be connected.
+      if (!itemEl.isConnected) return;
+
+      capsuleMap.get(itemEl)?.setLit(false);
+      virtualScroller.stopMomentum();
+
+      const assetId = itemEl.dataset.assetId ?? '';
+      const grid = itemEl.parentElement as HTMLElement;
+      if (!assetId || !grid) return;
+
+      // Compute fromIndex from current DOM position (matches registry order
+      // since renderAssets always mirrors the registry state).
+      const allCapsules = Array.from(
+        grid.querySelectorAll<HTMLElement>('.irs-asset-capsule'),
+      );
+      const fromIndex = allCapsules.indexOf(itemEl);
+      if (fromIndex < 0) return;
+
+      // Resolve group from the grid's data-group-key attribute.
+      const groupKeyAttr = grid.dataset.groupKey ?? '';
+      const colonIdx = groupKeyAttr.indexOf(':');
+      if (colonIdx < 0) return;
+      const groupType = groupKeyAttr.slice(0, colonIdx) as AssetGroupType;
+      const groupSlug = groupKeyAttr.slice(colonIdx + 1);
+      const registryState = assetRegistry.getState();
+      const group = registryState.groups.find(
+        (g) => g.type === groupType && g.slug === groupSlug,
+      );
+      if (!group) return;
+
+      // If this asset is part of a multi-selection, drag all selected together.
+      const dragIds =
+        selectedAssetIds.size > 1 && selectedAssetIds.has(assetId)
+          ? Array.from(selectedAssetIds)
+          : [assetId];
+      if (dragIds.length > 1) {
+        capsuleMap.get(itemEl)?.setBadge(`×${dragIds.length}`);
+      }
+
+      beginDrag({
+        event,
+        card: itemEl,
+        grid,
+        group,
+        fromIndex,
+        assetId,
+        extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== assetId) : [],
+      });
+    },
+
+    onLongPressRelease: (_event, itemEl) => {
+      // Long-press released without drag: enter selection mode for this asset.
+      capsuleMap.get(itemEl)?.setLit(false);
+      const assetId = itemEl.dataset.assetId ?? '';
+      if (!assetId) return;
+      selectedAssetIds.add(assetId);
+      capsuleMap.get(itemEl)?.setSelected(true);
+      refresh();
+    },
+
+    onTap: (event, itemEl) => {
+      capsuleMap.get(itemEl)?.setLit(false);
+      const assetId = itemEl.dataset.assetId ?? '';
+      if (!assetId) return;
+      if (selectedAssetIds.size > 0) {
+        // Selection active: toggle this asset in/out of the set.
+        if (selectedAssetIds.has(assetId)) {
+          selectedAssetIds.delete(assetId);
+          capsuleMap.get(itemEl)?.setSelected(false);
+        } else {
+          selectedAssetIds.add(assetId);
+          capsuleMap.get(itemEl)?.setSelected(true);
+        }
+        if (selectedAssetIds.size === 0) clearSelection();
+        refresh();
+        return;
+      }
+      // Normal tap: select/paint via registry.
+      uxFeedback.selection.mark(itemEl);
+      assetRegistry.setSelectedAsset(assetId);
+      editorEventBus.dispatch('UI_CONTEXT_CHANGED', { context: 'library' });
+      void event; // suppress unused-param warning
+    },
+
+    onCancel: (itemEl) => {
+      if (itemEl) capsuleMap.get(itemEl)?.setLit(false);
+    },
+  });
+
   refresh();
 
   return {
@@ -3110,7 +3216,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       sourceImageCache.clear();
       sheetScrim.remove();
       animScrim.remove();
-      container.removeChild(root);
+      sortableScrollerCtrl.destroy();
+      virtualScroller.destroy();
+      resizeObserver.disconnect();
+      viewportEl.remove(); // removes contentEl → root as well
     },
   };
 }
