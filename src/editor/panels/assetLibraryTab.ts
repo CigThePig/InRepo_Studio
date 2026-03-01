@@ -18,7 +18,8 @@ import { createGestureDebugOverlay } from '../debug/gestureDebugOverlay';
 // Set to true to log which pointer event ends a drag gesture (useful when
 // diagnosing instant-cancel / "flash" regressions on mobile).
 const DEBUG_DND = true;
-const ENABLE_GESTURE_OVERLAY_IN_DEV = true;
+// ENABLE_GESTURE_OVERLAY_IN_DEV kept for reference; overlay is currently force-enabled.
+// const ENABLE_GESTURE_OVERLAY_IN_DEV = true;
 
 const STYLES = `
   .irs-asset-library {
@@ -718,12 +719,17 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   ensureStyles();
 
   const gestureDebug = createGestureDebugOverlay();
-  const debugEnabled =
-    (window as { __IRS_DEBUG_GESTURES?: boolean }).__IRS_DEBUG_GESTURES === true ||
-    localStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
-    sessionStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
-    (import.meta.env.DEV && ENABLE_GESTURE_OVERLAY_IN_DEV);
+  // DEBUG: always force-enable the gesture overlay so it boots unconditionally.
+  // To disable, change true → false below (or delete this line and restore the
+  // original flag-based check once the drag issue is resolved).
+  const debugEnabled = true;
   gestureDebug.setEnabled(debugEnabled);
+  // Original check (re-enable when done debugging):
+  // const debugEnabled =
+  //   (window as { __IRS_DEBUG_GESTURES?: boolean }).__IRS_DEBUG_GESTURES === true ||
+  //   localStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
+  //   sessionStorage.getItem('__IRS_DEBUG_GESTURES') === 'true' ||
+  //   (import.meta.env.DEV && ENABLE_GESTURE_OVERLAY_IN_DEV);
 
   let dragFinishReason = '';
   let lastOverlayMoveTs = 0;
