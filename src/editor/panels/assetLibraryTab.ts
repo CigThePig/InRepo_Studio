@@ -605,19 +605,28 @@ const STYLES = `
     min-width: 100px;
   }
 
-  .irs-asset-library__selection-bar {
+  .irs-asset-library__selection-capsule {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    background: var(--irs-surface-modal, #1a2240);
+    border: 1px solid var(--irs-accent-primary);
+    border-radius: 100px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,130,255,0.18);
+    padding: 6px 8px 6px 16px;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 0;
-    flex-wrap: wrap;
+    z-index: 60;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    pointer-events: auto;
+    transition: opacity 120ms ease, transform 120ms ease;
   }
 
-  .irs-asset-library__selection-count {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--irs-text-primary);
+  .irs-asset-library__selection-capsule[hidden] {
+    display: none !important;
   }
 
   /* Virtual scroller viewport – replaces overflow-y:auto for the asset tab */
@@ -697,7 +706,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   const {
     container,
     assetRegistry,
-    uploadEnabled = false,
     onOpenAnimation,
     getCurrentScene,
     entityManager,
@@ -776,11 +784,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   setGestureState({ longPressMs: 260, scrollThresholdPx: 8, dragStartSlopPx: 6 });
 
   const expandedGroups = new Set<string>();
-  // Legacy organize mode removed — drag is now always available (selection-first model).
-  const uploadStatus = new Map<
-    string,
-    { state: 'idle' | 'uploading' | 'success' | 'error'; message: string }
-  >();
   let sheetAssetId: string | null = null;
   let sheetView: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu';
   let moveToType: AssetGroupType = 'tilesets';
@@ -1006,34 +1009,19 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     subtabBar.appendChild(btn);
   });
 
-  // "+" button: only shown/active for tiles/props/entities tabs
-  const subtabCreateBtn = document.createElement('button');
-  subtabCreateBtn.type = 'button';
-  subtabCreateBtn.className = 'irs-asset-library__subtab-create-btn';
-  subtabCreateBtn.setAttribute('aria-label', 'New group');
-  subtabCreateBtn.setAttribute('title', 'New group');
-  subtabCreateBtn.textContent = '+';
-  subtabCreateBtn.addEventListener('click', () => {
-    if (['tiles', 'props', 'entities'].includes(activeSubtab)) {
-      inlineGroupCreateOpen = !inlineGroupCreateOpen;
-      groupEditState = null;
-      refresh();
-    }
-  });
-
   subtabRow.appendChild(subtabBar);
-  subtabRow.appendChild(subtabCreateBtn);
 
   librarySection.appendChild(libraryTitle);
   librarySection.appendChild(subtabRow);
 
-  // Selection bar — always present; shown when selectedAssetIds.size > 0
-  const selectionBar = document.createElement('div');
-  selectionBar.className = 'irs-asset-library__selection-bar';
-  selectionBar.style.display = 'none';
-  librarySection.appendChild(selectionBar);
-
   root.appendChild(librarySection);
+
+  // Selection capsule — a floating pill fixed at the bottom of the screen,
+  // visible whenever one or more assets are selected.
+  const selectionCapsule = document.createElement('div');
+  selectionCapsule.className = 'irs-asset-library__selection-capsule';
+  selectionCapsule.setAttribute('hidden', '');
+  document.body.appendChild(selectionCapsule);
 
   const sheetScrim = document.createElement('div');
   sheetScrim.className = 'irs-overlay irs-asset-library__sheet-scrim';
@@ -1043,12 +1031,31 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   });
   root.appendChild(sheetScrim);
 
-  // Tap outside any asset capsule clears the selection (within the panel).
+  // Tap outside any asset capsule clears the selection, but ONLY when the
+  // pointer didn't move (i.e. it was a real tap, not the start of a scroll).
+  // We track movement between pointerdown and pointerup to distinguish the two.
+  let _clearPending = false;
+  let _clearDownX = 0;
+  let _clearDownY = 0;
   root.addEventListener('pointerdown', (e) => {
     if (selectedAssetIds.size === 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('.irs-asset-capsule')) return;
-    if (target.closest('.irs-asset-library__selection-bar')) return;
+    if (selectionCapsule.contains(target)) return;
+    _clearPending = true;
+    _clearDownX = e.clientX;
+    _clearDownY = e.clientY;
+  });
+  root.addEventListener('pointermove', (e) => {
+    if (!_clearPending) return;
+    if (Math.abs(e.clientX - _clearDownX) > 8 || Math.abs(e.clientY - _clearDownY) > 8) {
+      _clearPending = false;
+    }
+  });
+  root.addEventListener('pointerup', (e) => {
+    if (!_clearPending) return;
+    _clearPending = false;
+    if (Math.abs(e.clientX - _clearDownX) > 8 || Math.abs(e.clientY - _clearDownY) > 8) return;
     clearSelection();
     refresh();
   });
@@ -1097,41 +1104,39 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   }
 
   /**
-   * Updates the selection bar visibility and content.
+   * Updates the selection capsule visibility and content.
    * Shows count + "Settings" + "Clear" when any assets are selected.
    */
   function renderSelectionBar(): void {
     if (selectedAssetIds.size === 0) {
-      selectionBar.style.display = 'none';
+      selectionCapsule.setAttribute('hidden', '');
       return;
     }
-    selectionBar.style.display = '';
-    selectionBar.innerHTML = '';
+    selectionCapsule.removeAttribute('hidden');
+    selectionCapsule.innerHTML = '';
 
     const countEl = document.createElement('span');
-    countEl.className = 'irs-asset-library__selection-count';
+    countEl.style.cssText = 'flex:1;font-size:13px;font-weight:600;color:var(--irs-text-primary);';
     countEl.textContent = `${selectedAssetIds.size} selected`;
 
     const settingsBtn = document.createElement('button');
     settingsBtn.type = 'button';
     settingsBtn.className = 'irs-btn irs-btn--secondary';
     settingsBtn.textContent = 'Settings';
-    settingsBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // don't trigger clear-on-outside
     settingsBtn.addEventListener('click', () => openSelectionSheet());
 
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.className = 'irs-btn irs-btn--secondary';
     clearBtn.textContent = 'Clear';
-    clearBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     clearBtn.addEventListener('click', () => {
       clearSelection();
       refresh();
     });
 
-    selectionBar.appendChild(countEl);
-    selectionBar.appendChild(settingsBtn);
-    selectionBar.appendChild(clearBtn);
+    selectionCapsule.appendChild(countEl);
+    selectionCapsule.appendChild(settingsBtn);
+    selectionCapsule.appendChild(clearBtn);
   }
 
   function findClosestIndex(cards: HTMLElement[], pointerX: number, pointerY: number): number {
@@ -2031,97 +2036,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
         header.appendChild(toggle);
 
-        if (uploadEnabled) {
-          const actions = document.createElement('div');
-          actions.className = 'irs-asset-library__group-actions';
-
-          const status = document.createElement('div');
-          status.className = 'irs-asset-library__upload-status';
-
-          const statusKey = groupKey(group);
-          const currentStatus = uploadStatus.get(statusKey);
-          if (currentStatus) {
-            status.textContent = currentStatus.message;
-            status.classList.toggle(
-              'irs-asset-library__upload-status--error',
-              currentStatus.state === 'error'
-            );
-            status.classList.toggle(
-              'irs-asset-library__upload-status--success',
-              currentStatus.state === 'success'
-            );
-          }
-
-          const uploadButton = document.createElement('button');
-          uploadButton.type = 'button';
-          uploadButton.className = 'irs-btn irs-btn--primary';
-          uploadButton.textContent = 'Upload';
-
-          const hasLocalAssets = group.assets.some((asset) => asset.source === 'local');
-          const isUploading = currentStatus?.state === 'uploading';
-          if (!hasLocalAssets) {
-            uploadButton.disabled = true;
-            status.textContent = status.textContent || 'No local assets';
-          }
-          if (isUploading) {
-            uploadButton.disabled = true;
-          }
-
-          uploadButton.addEventListener('click', async () => {
-            uploadStatus.set(statusKey, {
-              state: 'uploading',
-              message: 'Preparing upload...',
-            });
-            refresh();
-
-            try {
-              const result = await assetRegistry.uploadGroup({
-                groupType: group.type,
-                groupSlug: group.slug,
-                onProgress: (progress) => {
-                  uploadStatus.set(statusKey, {
-                    state: 'uploading',
-                    message: `Uploading ${progress.current}/${progress.total}…`,
-                  });
-                  refresh();
-                },
-              });
-
-              const successCount = result.results.filter((entry) => entry.success).length;
-              const failCount = result.results.filter((entry) => !entry.success).length;
-              const message = result.error
-                ? result.error
-                : failCount === 0
-                  ? `Uploaded ${successCount} files`
-                  : `Uploaded ${successCount}, ${failCount} failed`;
-
-              uploadStatus.set(statusKey, {
-                state: failCount === 0 && !result.error ? 'success' : 'error',
-                message,
-              });
-              if (failCount === 0 && !result.error) {
-                uxFeedback.motion.pulse(uploadButton);
-                uxFeedback.toast.success(`Uploaded ${successCount} files.`);
-              } else {
-                uxFeedback.toast.error(message);
-              }
-            } catch (error) {
-              const errMsg = error instanceof Error ? error.message : 'Upload failed.';
-              uploadStatus.set(statusKey, {
-                state: 'error',
-                message: errMsg,
-              });
-              uxFeedback.toast.error(errMsg);
-            }
-
-            refresh();
-          });
-
-          actions.appendChild(status);
-          actions.appendChild(uploadButton);
-          actions.appendChild(groupMenuBtn);
-          header.appendChild(actions);
-        } else {
+        {
           const actions = document.createElement('div');
           actions.className = 'irs-asset-library__group-actions';
           actions.appendChild(groupMenuBtn);
@@ -3403,10 +3318,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     subtabBar.querySelectorAll<HTMLElement>('.irs-asset-subtabs__tab').forEach((btn) => {
       btn.classList.toggle('irs-asset-subtabs__tab--active', btn.dataset.subtab === activeSubtab);
     });
-    // Show "+" button only on groupable tabs
-    const isGroupableTab = ['tiles', 'props', 'entities'].includes(activeSubtab);
-    subtabCreateBtn.style.display = isGroupableTab ? '' : 'none';
-    subtabCreateBtn.setAttribute('aria-pressed', inlineGroupCreateOpen ? 'true' : 'false');
   }
 
   function refresh(): void {
@@ -3678,6 +3589,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       sourceImageCache.clear();
       sheetScrim.remove();
       animScrim.remove();
+      selectionCapsule.remove();
       sortableScrollerCtrl.destroy();
       virtualScroller.destroy();
       resizeObserver.disconnect();

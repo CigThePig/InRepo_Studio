@@ -300,6 +300,19 @@ const BERRY_STYLES = `
     opacity: 0;
     pointer-events: none;
   }
+
+  /* On narrow screens the berry expands to full width — hide the opposite
+     berry's handle so it doesn't float over the open panel. */
+  @media (max-width: 520px) {
+    body.irs-left-berry-open .irs-berry__handle--right {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    body.irs-right-berry-open .irs-berry__handle--left {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  }
 `;
 
 function ensureStyles(): void {
@@ -375,6 +388,14 @@ export function createBerryShell(config: BerryShellConfig): BerryShell {
     if (open === nextOpen) return;
     open = nextOpen;
     shell.classList.toggle('irs-berry-shell--open', open);
+    // On narrow screens the berry expands to 100vw, covering the whole screen.
+    // Track which berries are open via body classes so the opposite handle can
+    // be hidden via CSS and won't peek over the open panel.
+    if (open) {
+      document.body.classList.add(`irs-${config.position}-berry-open`);
+    } else {
+      document.body.classList.remove(`irs-${config.position}-berry-open`);
+    }
     config.onOpenChange?.(open);
   }
 
@@ -442,6 +463,9 @@ export function createBerryShell(config: BerryShellConfig): BerryShell {
     content,
     setOpen,
     isOpen: () => open,
-    destroy: () => shell.remove(),
+    destroy: () => {
+      document.body.classList.remove(`irs-${config.position}-berry-open`);
+      shell.remove();
+    },
   };
 }
