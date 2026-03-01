@@ -12,9 +12,7 @@ import { editorEventBus } from '@/editor/core';
 import { createAssetCapsule } from './assetCapsule';
 import type { AssetCapsuleController } from './assetCapsule';
 import { createVirtualScroller } from './virtualScroller';
-import type { VirtualScrollerController } from './virtualScroller';
 import { createSortableScroller } from './sortableScroller';
-import type { SortableScrollerController } from './sortableScroller';
 
 const STYLES = `
   .irs-asset-library {
@@ -731,13 +729,6 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   // update visual state (lit, selected) without a full re-render.
   const capsuleMap = new WeakMap<HTMLElement, AssetCapsuleController>();
 
-  // Virtual scroller and sortable-scroller are initialised after DOM setup,
-  // just before the first refresh() call.  handleDragMove references them
-  // via these variables; user interaction can only happen after that point.
-  let viewportEl!: HTMLElement;
-  let virtualScroller!: VirtualScrollerController;
-  let sortableScrollerCtrl!: SortableScrollerController;
-
   // Group management state
   type GroupEditMode = 'rename' | 'set-grid';
   let groupEditState: { type: AssetGroupType; slug: string; mode: GroupEditMode } | null = null;
@@ -993,7 +984,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   // Wrap the asset library in a gesture-owned viewport so we can replace
   // native overflow-y:auto with a custom translateY scroller.  Only this
   // tab is affected; other berry tabs keep their default scroll behaviour.
-  viewportEl = document.createElement('div');
+  const viewportEl = document.createElement('div');
   viewportEl.className = 'irs-asset-viewport';
   const contentEl = document.createElement('div');
   contentEl.className = 'irs-asset-content';
@@ -3083,7 +3074,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   // can call virtualScroller.scrollBy() and the sortableScroller can begin
   // receiving pointer events on mount.
 
-  virtualScroller = createVirtualScroller({
+  const virtualScroller = createVirtualScroller({
     viewportEl,
     contentEl,
     getContentSize: () => contentEl.scrollHeight,
@@ -3101,7 +3092,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   resizeObserver.observe(viewportEl);
   resizeObserver.observe(contentEl);
 
-  sortableScrollerCtrl = createSortableScroller({
+  const sortableScrollerCtrl = createSortableScroller({
     viewportEl,
     scroller: virtualScroller,
     getItemEl: (target) => target.closest<HTMLElement>('.irs-asset-capsule'),
