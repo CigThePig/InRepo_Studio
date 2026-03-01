@@ -803,6 +803,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     prevPosition: string;
     prevOpacity: string;
     prevPointerEvents: string;
+    /** Explicit dimensions pinned on the card before going absolute (prevents grid-height collapse). */
+    prevWidth: string;
+    prevHeight: string;
     onPointerMove: (event: PointerEvent) => void;
     onPointerUp: (event: PointerEvent) => void;
     onPointerCancel: (event: PointerEvent) => void;
@@ -1181,37 +1184,67 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     };
     logGesture('layout-probe.before', layoutProbeBefore);
 
-    // Use documentElement as the capture target instead of the card.
-    // The ghost element has pointer-events:none so it can't hold capture.
-    // documentElement is always visible and reliably holds capture for the
-    // full gesture.
-    const dragCaptureEl = document.documentElement;
-    logGesture('capture.document.before', {
+    // FIX: Keep capture on viewportEl instead of transferring to documentElement.
+    //
+    // The previous approach called documentElement.setPointerCapture() to ensure
+    // pointer events were delivered even when the ghost was under the finger.
+    // On Android Chrome this causes an immediate lostpointercapture on documentElement
+    // (within 1-2 frames), which triggers finishDragOnCaptureLoss and kills the drag
+    // before the user has moved a pixel. This is a known Chrome mobile bug: capture
+    // transfers made during a pointermove handler are unreliable when the target is
+    // documentElement.
+    //
+    // viewportEl already holds capture from sortableScroller's pointerdown — all
+    // pointer events are already being delivered there. We just need to ensure capture
+    // is still held and attach our drag listeners to viewportEl directly.
+    const dragCaptureEl = viewportEl;
+    const hadCapture = viewportEl.hasPointerCapture(event.pointerId);
+    logGesture('capture.viewport.before', {
       pointerId: event.pointerId,
-      hasCapture: dragCaptureEl.hasPointerCapture(event.pointerId),
+      hadCapture,
     });
-    try {
-      dragCaptureEl.setPointerCapture(event.pointerId);
-      logGesture('capture.document.after', {
+    // Re-assert on viewportEl in case it was briefly released during the long-press
+    // confirmation phase. Never transfer to documentElement.
+    if (!hadCapture) {
+      try {
+        viewportEl.setPointerCapture(event.pointerId);
+        logGesture('capture.viewport.reacquired', {
+          pointerId: event.pointerId,
+          hasCapture: viewportEl.hasPointerCapture(event.pointerId),
+        });
+      } catch (_) {
+        logGesture('capture.viewport.error', { pointerId: event.pointerId });
+      }
+    } else {
+      logGesture('capture.viewport.held', {
         pointerId: event.pointerId,
-        hasCapture: dragCaptureEl.hasPointerCapture(event.pointerId),
+        hasCapture: true,
       });
-      setGestureState({ captureDocument: dragCaptureEl.hasPointerCapture(event.pointerId) });
-    } catch (_) {
-      // Pointer already released; finishDrag will handle cleanup.
-      logGesture('capture.document.error', { pointerId: event.pointerId });
     }
+    setGestureState({
+      captureDocument: false,
+      captureViewport: viewportEl.hasPointerCapture(event.pointerId),
+    });
 
     // Hide the original card without using display:none.
-    // display:none removes the element from the render tree; on some mobile
-    // browsers this destabilises the pointer stream even after capture has
-    // been transferred to documentElement, causing an immediate lostpointercapture
-    // and a "flash then cancel" symptom.
-    // position:absolute takes the card out of the grid's flow (so the placeholder
-    // fills the slot visually) while still keeping it in the render tree.
+    // display:none removes the element from the render tree, destabilising the
+    // pointer stream on mobile even with capture held.
+    // position:absolute takes the card out of flow (placeholder fills the slot)
+    // while keeping it in the render tree.
+    //
+    // FIX: Pin explicit width/height BEFORE going absolute.
+    // When the card is a grid item, the grid imposes a min-height through the
+    // auto-fill track sizing. Going absolute removes that constraint and the card
+    // collapses (seen in logs as cardΔh:-34). This layout reflow can destabilise
+    // the pointer stream on Android Chrome, contributing to spurious lostpointercapture.
+    // Pinning the pre-absolute dimensions prevents any reflow from occurring.
     const prevPosition = card.style.position;
     const prevOpacity = card.style.opacity;
     const prevPointerEvents = card.style.pointerEvents;
+    const prevWidth = card.style.width;
+    const prevHeight = card.style.height;
+    card.style.width = `${rect.width}px`;
+    card.style.height = `${rect.height}px`;
     card.style.position = 'absolute';
     card.style.opacity = '0';
     card.style.pointerEvents = 'none';
@@ -1267,6 +1300,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       prevPosition,
       prevOpacity,
       prevPointerEvents,
+      prevWidth,
+      prevHeight,
       onPointerMove,
       onPointerUp,
       onPointerCancel,
@@ -1386,13 +1421,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     next.ghost.remove();
     next.placeholder.remove();
-    // Restore the card's prior inline style values (position/opacity/pointerEvents
-    // were overridden in beginDrag to keep the element in the render tree while
-    // hiding it from view; '' restores the cascade for properties that had no
-    // prior inline value).
+    // Restore the card's prior inline style values (position/opacity/pointerEvents/
+    // width/height were overridden in beginDrag; '' restores the cascade for any
+    // property that had no prior inline value).
     next.card.style.position = next.prevPosition;
     next.card.style.opacity = next.prevOpacity;
     next.card.style.pointerEvents = next.prevPointerEvents;
+    next.card.style.width = next.prevWidth;
+    next.card.style.height = next.prevHeight;
 
     const crossGroup =
       next.targetGroupType !== next.groupType ||
