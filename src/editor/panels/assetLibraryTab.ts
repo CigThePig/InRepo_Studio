@@ -17,8 +17,8 @@ import { createGestureDebugOverlay } from '../debug/gestureDebugOverlay';
 
 // Set to true to log which pointer event ends a drag gesture (useful when
 // diagnosing instant-cancel / "flash" regressions on mobile).
-const DEBUG_DND = false;
-const ENABLE_GESTURE_OVERLAY_IN_DEV = false;
+const DEBUG_DND = true;
+const ENABLE_GESTURE_OVERLAY_IN_DEV = true;
 
 const STYLES = `
   .irs-asset-library {
