@@ -162,19 +162,43 @@ const STYLES = `
 
 .irs-asset-library__ghost {
     position: fixed;
-    width: 84px;
     pointer-events: none;
     z-index: 80;
-    opacity: 0.9;
-    transform: scale(1.03);
-    box-shadow: 0 10px 20px var(--irs-surface-dark-alpha);
+    opacity: 0.88;
+    transform: scale(1.06) rotate(-1.5deg);
+    box-shadow: 0 14px 28px rgba(0,0,0,0.55), 0 0 0 2px var(--irs-accent-primary);
+    border-radius: var(--irs-radius-md);
+  }
+
+  .irs-asset-library__ghost--multi::after {
+    content: '';
+    position: absolute;
+    inset: 5px -5px -7px 5px;
+    border-radius: var(--irs-radius-md);
+    background: var(--irs-surface-modal);
+    border: 2px solid var(--irs-accent-primary);
+    opacity: 0.5;
+    z-index: -1;
   }
 
   .irs-asset-library__placeholder {
-    border-radius: var(--irs-radius-lg);
-    border: 2px dashed var(--irs-border-blue-alpha);
-    background: var(--irs-surface-panel);
-    min-height: 132px;
+    border-radius: var(--irs-radius-md);
+    border: 2px solid var(--irs-accent-primary);
+    background: var(--irs-color-blue-alpha-22);
+    box-shadow: 0 0 0 3px rgba(99,130,255,0.18) inset;
+    animation: irs-drop-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes irs-drop-pulse {
+    0%, 100% { border-color: var(--irs-accent-primary); box-shadow: 0 0 0 3px rgba(99,130,255,0.18) inset; }
+    50%       { border-color: rgba(99,130,255,0.4); box-shadow: 0 0 0 7px rgba(99,130,255,0.28) inset; }
+  }
+
+  .irs-asset-capsule--drag-carried {
+    opacity: 0.28;
+    outline: 2px dashed var(--irs-accent-primary);
+    outline-offset: -2px;
+    pointer-events: none;
   }
 
   .irs-asset-library__sheet-scrim {
@@ -806,6 +830,8 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     /** Explicit dimensions pinned on the card before going absolute (prevents grid-height collapse). */
     prevWidth: string;
     prevHeight: string;
+    /** DOM elements for extra selected cards being carried; dimmed during drag. */
+    extraCardEls: HTMLElement[];
     onPointerMove: (event: PointerEvent) => void;
     onPointerUp: (event: PointerEvent) => void;
     onPointerCancel: (event: PointerEvent) => void;
@@ -1161,8 +1187,20 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       lastFinishReason: '',
     });
 
+    // Dim extra selected cards to show they are being "carried" along.
+    // Must happen before cloneNode so the ghost doesn't inherit the class.
+    const extraCardEls: HTMLElement[] = [];
+    for (const extraId of extraAssetIds) {
+      const el = grid.querySelector<HTMLElement>(`[data-asset-id="${extraId}"]`);
+      if (el && el !== card) {
+        el.classList.add('irs-asset-capsule--drag-carried');
+        extraCardEls.push(el);
+      }
+    }
+
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.classList.add('irs-asset-library__ghost');
+    if (extraAssetIds.length > 0) ghost.classList.add('irs-asset-library__ghost--multi');
     ghost.style.width = `${rect.width}px`;
     ghost.style.height = `${rect.height}px`;
     ghost.style.left = `${rect.left}px`;
@@ -1302,6 +1340,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       prevPointerEvents,
       prevWidth,
       prevHeight,
+      extraCardEls,
       onPointerMove,
       onPointerUp,
       onPointerCancel,
@@ -1421,14 +1460,20 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
     next.ghost.remove();
     next.placeholder.remove();
-    // Restore the card's prior inline style values (position/opacity/pointerEvents/
-    // width/height were overridden in beginDrag; '' restores the cascade for any
-    // property that had no prior inline value).
+    // Restore the primary card's prior inline style values.
     next.card.style.position = next.prevPosition;
     next.card.style.opacity = next.prevOpacity;
     next.card.style.pointerEvents = next.prevPointerEvents;
     next.card.style.width = next.prevWidth;
     next.card.style.height = next.prevHeight;
+    // Reset the count badge that was added to the primary card before cloning the ghost.
+    if (next.extraAssetIds.length > 0) {
+      capsuleMap.get(next.card)?.setBadge(null);
+    }
+    // Restore extra carried cards.
+    for (const el of next.extraCardEls) {
+      el.classList.remove('irs-asset-capsule--drag-carried');
+    }
 
     const crossGroup =
       next.targetGroupType !== next.groupType ||
@@ -1467,37 +1512,53 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         const beforeEl = cardNodes[next.toIndex] ?? null;
         const beforeId = beforeEl?.dataset.assetId ?? null;
 
-        // Reorder all selected assets together, maintaining relative order
-        const allIds = [next.assetId, ...next.extraAssetIds];
-        if (allIds.length > 1) {
-          // For multi-asset: reorder primary by ID, then move extras adjacent
-          // to it using real indices from the (now-updated) registry state.
+        if (next.extraAssetIds.length > 0) {
+          // ── Multi-asset reorder ───────────────────────────────────────────
+          // Sort extras by their current registry position so the cluster lands
+          // in the same relative order the user originally arranged them.
+          const preState = assetRegistry.getState();
+          const preGrp = preState.groups.find(
+            (g) => g.type === next.groupType && g.slug === next.groupSlug
+          );
+          const sortedExtras = preGrp
+            ? [...next.extraAssetIds].sort(
+                (a, b) =>
+                  preGrp.assets.findIndex((x) => x.id === a) -
+                  preGrp.assets.findIndex((x) => x.id === b)
+              )
+            : [...next.extraAssetIds];
+
+          // Move the primary asset to the drop position first.
           assetRegistry.reorderAssetById({
             groupType: next.groupType,
             groupSlug: next.groupSlug,
             movedId: next.assetId,
             beforeId,
           });
-          // Re-insert extras after primary (in original relative order)
-          const state = assetRegistry.getState();
-          const grp = state.groups.find(
-            (g) => g.type === next.groupType && g.slug === next.groupSlug
-          );
-          if (grp) {
-            const primaryNewIndex = grp.assets.findIndex((a) => a.id === next.assetId);
-            let insertAfter = primaryNewIndex + 1;
-            for (const extraId of next.extraAssetIds) {
-              const extraIndex = grp.assets.findIndex((a) => a.id === extraId);
-              if (extraIndex !== -1 && extraIndex !== insertAfter) {
-                assetRegistry.reorderAsset({
-                  groupType: next.groupType,
-                  groupSlug: next.groupSlug,
-                  fromIndex: extraIndex,
-                  toIndex: insertAfter,
-                });
-              }
-              insertAfter += 1;
+
+          // Then move each extra to be immediately after the previously placed
+          // asset.  Re-fetch state after every call so indices stay accurate —
+          // each reorderAssetById mutates the array and invalidates old indices.
+          let anchorId = next.assetId;
+          for (const extraId of sortedExtras) {
+            const s = assetRegistry.getState();
+            const g = s.groups.find(
+              (gr) => gr.type === next.groupType && gr.slug === next.groupSlug
+            );
+            if (!g) break;
+            const anchorIdx = g.assets.findIndex((a) => a.id === anchorId);
+            // Insert extra AFTER anchor (= BEFORE the item currently at anchorIdx+1).
+            const afterAnchorId = g.assets[anchorIdx + 1]?.id ?? null;
+            // Skip if extra is already right after the anchor.
+            if (afterAnchorId !== extraId) {
+              assetRegistry.reorderAssetById({
+                groupType: next.groupType,
+                groupSlug: next.groupSlug,
+                movedId: extraId,
+                beforeId: afterAnchorId,
+              });
             }
+            anchorId = extraId;
           }
         } else {
           assetRegistry.reorderAssetById({
@@ -3442,12 +3503,22 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       }
 
       // If this asset is part of a multi-selection, drag all selected together.
-      const dragIds =
-        selectedAssetIds.size > 1 && selectedAssetIds.has(assetId)
-          ? Array.from(selectedAssetIds)
-          : [assetId];
-      if (dragIds.length > 1) {
-        capsuleMap.get(itemEl)?.setBadge(`×${dragIds.length}`);
+      // Restrict extras to the same grid (same group) — cross-group multi-drag
+      // is not supported; those assets stay put.
+      const extraAssetIds: string[] = [];
+      if (selectedAssetIds.size > 1 && selectedAssetIds.has(assetId)) {
+        for (const selId of selectedAssetIds) {
+          if (selId === assetId) continue;
+          // Only include if the element is in the same grid
+          const el = grid.querySelector<HTMLElement>(`[data-asset-id="${selId}"]`);
+          if (el) extraAssetIds.push(selId);
+        }
+      }
+
+      if (extraAssetIds.length > 0) {
+        // Show a count on the ghost to indicate how many are moving together.
+        // setBadge modifies the real card which gets cloned immediately after.
+        capsuleMap.get(itemEl)?.setBadge(`×${extraAssetIds.length + 1}`);
       }
 
       beginDrag({
@@ -3457,7 +3528,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         group,
         fromIndex,
         assetId,
-        extraAssetIds: dragIds.length > 1 ? dragIds.filter((id) => id !== assetId) : [],
+        extraAssetIds,
       });
     },
 
