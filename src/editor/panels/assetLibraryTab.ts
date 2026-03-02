@@ -711,6 +711,92 @@ const STYLES = `
     pointer-events: none;
   }
 
+  /* Subgroup settings */
+  .irs-asset-library__subgroup-settings-btn {
+    min-height: var(--irs-touch-target);
+    min-width: var(--irs-touch-target);
+    padding: 0 6px;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--irs-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .irs-asset-library__subgroup-settings-btn:active,
+  .irs-asset-library__subgroup-settings-btn--open {
+    background: var(--irs-accent-primary-active);
+    color: var(--irs-text-primary);
+  }
+
+  .irs-asset-library__subgroup-settings-panel {
+    padding: 8px 10px;
+    background: var(--irs-surface-input, #141d38);
+    border: 1px solid var(--irs-border-heavy);
+    border-radius: var(--irs-radius-md);
+    margin: 4px 0 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .irs-asset-library__toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--irs-text-primary);
+  }
+
+  .irs-asset-library__toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Native checkbox styled as a toggle */
+  .irs-asset-library__toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+
+  .irs-asset-library__toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--irs-text-secondary);
+    transition: transform 120ms ease, background 120ms ease;
+  }
+
+  .irs-asset-library__toggle:checked {
+    background: var(--irs-accent-primary, #5b8ef4);
+    border-color: var(--irs-accent-primary, #5b8ef4);
+  }
+
+  .irs-asset-library__toggle:checked::after {
+    transform: translateX(14px);
+    background: #fff;
+  }
+
   /* Virtual scroller viewport – replaces overflow-y:auto for the asset tab */
   .irs-asset-viewport {
     overflow: hidden;
@@ -885,6 +971,9 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   // Inline subgroup create state
   let inlineSubgroupCreate: { type: AssetGroupType; parentSlug: string } | null = null;
+
+  // Which subgroup's settings panel is currently open
+  let subgroupSettingsSlug: string | null = null;
 
   // Group drag-reorder state
   type GroupDragState = {
@@ -2371,9 +2460,10 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
             (sum, sg) => sum + sg.assets.length, 0
           );
 
+      const displayName = group.isRandomGroup ? `🎲 ${group.name}` : group.name;
       toggle.innerHTML = `
         <span style="flex-shrink:0;font-size:10px;color:var(--irs-text-secondary)">${isOpen ? '▼' : '▶'}</span>
-        <span>${group.name}</span>
+        <span>${displayName}</span>
         <span class="irs-asset-library__group-count">${totalCount}</span>
       `;
 
@@ -2411,10 +2501,58 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
       const actions = document.createElement('div');
       actions.className = 'irs-asset-library__group-actions';
+
+      // Settings button — only shown on subgroups
+      if (isSubgroup) {
+        const settingsBtn = document.createElement('button');
+        settingsBtn.type = 'button';
+        const isSettingsOpen = subgroupSettingsSlug === group.slug;
+        settingsBtn.className = 'irs-asset-library__subgroup-settings-btn' +
+          (isSettingsOpen ? ' irs-asset-library__subgroup-settings-btn--open' : '');
+        settingsBtn.setAttribute('aria-label', 'Subgroup settings');
+        settingsBtn.setAttribute('title', 'Subgroup settings');
+        settingsBtn.textContent = '⚙';
+        settingsBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          subgroupSettingsSlug = isSettingsOpen ? null : group.slug;
+          refresh();
+        });
+        actions.appendChild(settingsBtn);
+      }
+
       actions.appendChild(groupMenuBtn);
       header.appendChild(actions);
 
       wrapper.appendChild(header);
+
+      // Inline settings panel for subgroups
+      if (isSubgroup && subgroupSettingsSlug === group.slug) {
+        const settingsPanel = document.createElement('div');
+        settingsPanel.className = 'irs-asset-library__subgroup-settings-panel';
+
+        const randomRow = document.createElement('div');
+        randomRow.className = 'irs-asset-library__toggle-row';
+
+        const randomLabel = document.createElement('label');
+        randomLabel.className = 'irs-asset-library__toggle-label';
+        randomLabel.htmlFor = `irs-random-toggle-${group.slug}`;
+        randomLabel.textContent = '🎲 Random sampling';
+
+        const randomToggle = document.createElement('input');
+        randomToggle.type = 'checkbox';
+        randomToggle.id = `irs-random-toggle-${group.slug}`;
+        randomToggle.className = 'irs-asset-library__toggle';
+        randomToggle.checked = !!group.isRandomGroup;
+        randomToggle.addEventListener('change', () => {
+          assetRegistry.setGroupRandomFlag(group.type, group.slug, randomToggle.checked);
+          refresh();
+        });
+
+        randomRow.appendChild(randomLabel);
+        randomRow.appendChild(randomToggle);
+        settingsPanel.appendChild(randomRow);
+        wrapper.appendChild(settingsPanel);
+      }
 
       const editForm = buildGroupEditForm(group);
       if (editForm) wrapper.appendChild(editForm);

@@ -254,11 +254,21 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
       const groupWrapper = document.createElement('div');
       groupWrapper.className = 'irs-asset-palette__group';
 
+      const activeSubgroup = activeSubgroupSlug
+        ? subgroups.find((s) => s.slug === activeSubgroupSlug)
+        : null;
+      const activeSubgroupName = activeSubgroup?.name ?? '';
+      const activeIsRandom = !!activeSubgroup?.isRandomGroup;
+
       const groupTitle = document.createElement('div');
       groupTitle.className = 'irs-asset-palette__group-title';
-      groupTitle.textContent = activeSubgroupSlug
-        ? `${group.name} › ${subgroups.find((s) => s.slug === activeSubgroupSlug)?.name ?? ''}`
-        : group.name;
+      if (activeSubgroupSlug) {
+        groupTitle.textContent = activeIsRandom
+          ? `${group.name} › 🎲 ${activeSubgroupName}`
+          : `${group.name} › ${activeSubgroupName}`;
+      } else {
+        groupTitle.textContent = group.name;
+      }
 
       groupWrapper.appendChild(groupTitle);
 
@@ -267,15 +277,12 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
         const nav = document.createElement('div');
         nav.className = 'irs-asset-palette__subgroup-nav';
 
-        // "All" pill — selects an asset outside any subgroup to show parent view
-        // We just render informational pills; clicking a subgroup pill selects a
-        // representative asset from that subgroup so the context switches.
         subgroups.forEach((sg) => {
           const pill = document.createElement('button');
           pill.type = 'button';
           pill.className = 'irs-asset-palette__subgroup-pill' +
             (activeSubgroupSlug === sg.slug ? ' irs-asset-palette__subgroup-pill--active' : '');
-          pill.textContent = sg.name;
+          pill.textContent = sg.isRandomGroup ? `🎲 ${sg.name}` : sg.name;
           pill.addEventListener('click', () => {
             // Select the first asset in this subgroup to switch context
             const first = sg.assets[0];
@@ -292,11 +299,8 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
       const grid = document.createElement('div');
       grid.className = 'irs-asset-palette__grid';
 
-      const sourceGroup = activeSubgroupSlug
-        ? subgroups.find((s) => s.slug === activeSubgroupSlug)
-        : group;
-      if (sourceGroup?.gridHint?.cols) {
-        grid.style.gridTemplateColumns = `repeat(${sourceGroup.gridHint.cols}, minmax(0, 1fr))`;
+      if (activeSubgroup?.gridHint?.cols) {
+        grid.style.gridTemplateColumns = `repeat(${activeSubgroup.gridHint.cols}, minmax(0, 1fr))`;
       } else if (group.gridHint?.cols && !activeSubgroupSlug) {
         grid.style.gridTemplateColumns = `repeat(${group.gridHint.cols}, minmax(0, 1fr))`;
       }
@@ -313,6 +317,16 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
       }
 
       groupWrapper.appendChild(grid);
+
+      // Status hint for random subgroups
+      if (activeIsRandom && displayAssets.length > 0) {
+        const hint = document.createElement('div');
+        hint.className = 'irs-asset-palette__empty';
+        hint.style.marginTop = '4px';
+        hint.textContent = `🎲 Random sampling on — each stroke picks a random tile`;
+        groupWrapper.appendChild(hint);
+      }
+
       section.appendChild(groupWrapper);
     });
   }

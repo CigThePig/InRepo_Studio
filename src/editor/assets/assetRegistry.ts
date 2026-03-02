@@ -172,6 +172,8 @@ export interface AssetRegistry {
   deleteGroup(type: AssetGroupType, slug: string): void;
   renameGroup(type: AssetGroupType, slug: string, newName: string): void;
   setGroupGridHint(type: AssetGroupType, slug: string, gridHint: { cols: number } | undefined): void;
+  /** Enable or disable random sampling for a group (typically a subgroup). */
+  setGroupRandomFlag(type: AssetGroupType, slug: string, isRandom: boolean): void;
   addAssets(options: {
     groupType: AssetGroupType;
     groupName: string;
@@ -279,6 +281,7 @@ function cloneGroup(group: AssetGroup): AssetGroup {
     })),
     gridHint: group.gridHint ? { ...group.gridHint } : undefined,
     parentSlug: group.parentSlug,
+    isRandomGroup: group.isRandomGroup,
   };
 }
 
@@ -343,6 +346,7 @@ function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
       }),
       gridHint: group.gridHint ? { ...group.gridHint } : undefined,
       parentSlug: group.parentSlug,
+      isRandomGroup: group.isRandomGroup,
     };
   });
 }
@@ -803,6 +807,14 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     const nextGroups = state.groups.map((group) => {
       if (group.type !== type || group.slug !== slug) return group;
       return { ...group, gridHint: gridHint ? { ...gridHint } : undefined };
+    });
+    updateGroups(nextGroups);
+  }
+
+  function setGroupRandomFlag(type: AssetGroupType, slug: string, isRandom: boolean): void {
+    const nextGroups = state.groups.map((group) => {
+      if (group.type !== type || group.slug !== slug) return group;
+      return { ...group, isRandomGroup: isRandom || undefined };
     });
     updateGroups(nextGroups);
   }
@@ -1446,6 +1458,7 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     deleteGroup,
     renameGroup,
     setGroupGridHint,
+    setGroupRandomFlag,
     addAssets,
     renameAsset,
     reorderAsset,

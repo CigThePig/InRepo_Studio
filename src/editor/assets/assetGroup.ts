@@ -33,6 +33,11 @@ export interface AssetGroup {
    * Only one level of nesting is supported.
    */
   parentSlug?: string;
+  /**
+   * When true, each paint stroke picks a random asset from this group instead
+   * of the explicitly selected one. Intended for subgroups (e.g. tile variants).
+   */
+  isRandomGroup?: boolean;
 }
 
 export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {
