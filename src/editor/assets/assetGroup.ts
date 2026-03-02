@@ -28,6 +28,11 @@ export interface AssetGroup {
   assets: AssetEntry[];
   /** Optional fixed-column grid override. Default is auto-fill. */
   gridHint?: { cols: number };
+  /**
+   * If set, this group is a subgroup of the group with this slug (same type).
+   * Only one level of nesting is supported.
+   */
+  parentSlug?: string;
 }
 
 export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {

@@ -149,6 +149,21 @@ export interface AssetRegistry {
   getGroupsByType(type: AssetGroupType): AssetGroup[];
   createGroup(type: AssetGroupType, name: string): AssetGroup;
   /**
+   * Create a subgroup (child group) under the specified parent group.
+   * Only one level of nesting is supported.
+   */
+  createSubgroup(type: AssetGroupType, parentSlug: string, name: string): AssetGroup;
+  /**
+   * Reorder a group (or subgroup) within its category. The moved group is placed
+   * immediately before `beforeSlug`, or appended to the end when `beforeSlug` is null.
+   * When moving a parent group, all its subgroups move with it.
+   */
+  reorderGroup(options: {
+    type: AssetGroupType;
+    fromSlug: string;
+    beforeSlug: string | null;
+  }): void;
+  /**
    * Ensure a group with the exact slug exists. Creates it if missing.
    * Used by rehydrate to materialise groups referenced by slice category overrides
    * that may not correspond to any repo folder.
@@ -263,6 +278,7 @@ function cloneGroup(group: AssetGroup): AssetGroup {
       rect: asset.rect ? { ...asset.rect } : undefined,
     })),
     gridHint: group.gridHint ? { ...group.gridHint } : undefined,
+    parentSlug: group.parentSlug,
   };
 }
 
@@ -326,6 +342,7 @@ function normalizeGroups(groups: AssetGroup[]): AssetGroup[] {
         return applySourceHeuristic(normalized);
       }),
       gridHint: group.gridHint ? { ...group.gridHint } : undefined,
+      parentSlug: group.parentSlug,
     };
   });
 }
@@ -566,6 +583,70 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     return group;
   }
 
+  function createSubgroup(type: AssetGroupType, parentSlug: string, name: string): AssetGroup {
+    const parentIndex = state.groups.findIndex((g) => g.type === type && g.slug === parentSlug);
+    if (parentIndex < 0) return createGroup(type, name); // fallback: create top-level group
+
+    const normalizedName = normalizeGroupName(name);
+    const slug = getUniqueSlug(state.groups, type, normalizedName);
+    const subgroup: AssetGroup = {
+      type,
+      name: normalizedName,
+      slug,
+      assets: [],
+      parentSlug,
+    };
+
+    // Insert immediately after the parent's last subgroup (or after the parent itself)
+    const nextGroups = [...state.groups];
+    let insertAt = parentIndex + 1;
+    while (insertAt < nextGroups.length && nextGroups[insertAt].parentSlug === parentSlug) {
+      insertAt += 1;
+    }
+    nextGroups.splice(insertAt, 0, subgroup);
+    updateGroups(nextGroups);
+    return subgroup;
+  }
+
+  function reorderGroup(options: {
+    type: AssetGroupType;
+    fromSlug: string;
+    beforeSlug: string | null;
+  }): void {
+    const { type, fromSlug, beforeSlug } = options;
+    if (fromSlug === beforeSlug) return;
+
+    const fromGroup = state.groups.find((g) => g.type === type && g.slug === fromSlug);
+    if (!fromGroup) return;
+
+    // Collect the moved group plus any of its subgroups (when it's a parent)
+    const moving = state.groups.filter(
+      (g) => g.type === type && (g.slug === fromSlug || g.parentSlug === fromSlug)
+    );
+
+    // The remaining groups preserve their relative order
+    const remaining = state.groups.filter(
+      (g) => !(g.type === type && (g.slug === fromSlug || g.parentSlug === fromSlug))
+    );
+
+    let insertAt: number;
+    if (beforeSlug === null) {
+      // Append after all groups of this type
+      const lastTypeIdx = remaining.reduce(
+        (acc, g, i) => (g.type === type ? i : acc),
+        -1
+      );
+      insertAt = lastTypeIdx + 1;
+    } else {
+      insertAt = remaining.findIndex((g) => g.type === type && g.slug === beforeSlug);
+      if (insertAt < 0) insertAt = remaining.length;
+    }
+
+    const next = [...remaining];
+    next.splice(insertAt, 0, ...moving);
+    updateGroups(next);
+  }
+
   function ensureGroup(type: AssetGroupType, slug: string, name?: string): AssetGroup {
     const existing = state.groups.find(
       (group) => group.type === type && group.slug === slug
@@ -669,10 +750,22 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     const targetGroup = state.groups.find((g) => g.type === type && g.slug === slug);
     if (!targetGroup) return;
 
-    // Move assets to the ungrouped group for this type
-    const orphanedAssets = targetGroup.assets;
+    // Collect the group itself plus any subgroups (if it is a parent)
+    const deletedSlugs = new Set<string>([slug]);
+    state.groups.forEach((g) => {
+      if (g.type === type && g.parentSlug === slug) deletedSlugs.add(g.slug);
+    });
+
+    // Gather all orphaned assets from every deleted group
+    const orphanedAssets: AssetEntry[] = [];
+    state.groups.forEach((g) => {
+      if (g.type === type && deletedSlugs.has(g.slug)) {
+        orphanedAssets.push(...g.assets);
+      }
+    });
+
     let nextGroups = state.groups.map((group) => {
-      if (group.type === type && group.slug === slug) return null; // will be filtered
+      if (group.type === type && deletedSlugs.has(group.slug)) return null; // will be filtered
       if (group.type === type && group.slug === 'ungrouped' && orphanedAssets.length > 0) {
         return { ...group, assets: [...group.assets, ...orphanedAssets] };
       }
@@ -1347,6 +1440,8 @@ export function createAssetRegistry(options?: AssetRegistryOptions): AssetRegist
     getGroupsByType: (type) =>
       state.groups.filter((group) => group.type === type).map((group) => cloneGroup(group)),
     createGroup,
+    createSubgroup,
+    reorderGroup,
     ensureGroup,
     deleteGroup,
     renameGroup,

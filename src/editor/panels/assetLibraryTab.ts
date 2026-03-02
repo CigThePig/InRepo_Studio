@@ -629,6 +629,88 @@ const STYLES = `
     display: none !important;
   }
 
+  /* Subgroup rows */
+  .irs-asset-library__subgroup {
+    border-top: 1px solid var(--irs-border-heavy);
+    padding-top: 8px;
+    margin-top: 8px;
+    padding-left: 16px;
+    border-left: 2px solid var(--irs-border-heavy);
+    margin-left: 8px;
+  }
+
+  .irs-asset-library__subgroup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .irs-asset-library__subgroup-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: var(--irs-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--irs-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .irs-asset-library__subgroup-toggle:active {
+    background: var(--irs-accent-primary-active);
+  }
+
+  /* Group drag handles */
+  .irs-asset-library__group-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--irs-touch-target);
+    min-width: 24px;
+    padding: 0 4px;
+    color: var(--irs-text-secondary);
+    font-size: 14px;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .irs-asset-library__group-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  /* Inline subgroup create */
+  .irs-asset-library__inline-subgroup-create {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0 6px;
+    flex-wrap: wrap;
+    margin-left: 24px;
+  }
+
+  .irs-asset-library__inline-subgroup-create-input {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  /* Group drop indicator */
+  .irs-asset-library__group-drop-indicator {
+    height: 2px;
+    background: var(--irs-accent-primary, #5b8ef4);
+    border-radius: 2px;
+    margin: 2px 0;
+    pointer-events: none;
+  }
+
   /* Virtual scroller viewport – replaces overflow-y:auto for the asset tab */
   .irs-asset-viewport {
     overflow: hidden;
@@ -800,6 +882,24 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
   type GroupEditMode = 'rename' | 'set-grid';
   let groupEditState: { type: AssetGroupType; slug: string; mode: GroupEditMode } | null = null;
   let inlineGroupCreateOpen = false;
+
+  // Inline subgroup create state
+  let inlineSubgroupCreate: { type: AssetGroupType; parentSlug: string } | null = null;
+
+  // Group drag-reorder state
+  type GroupDragState = {
+    type: AssetGroupType;
+    fromSlug: string;
+    pointerId: number;
+    captureEl: HTMLElement;
+    ghost: HTMLElement;
+    indicator: HTMLElement;
+    beforeSlug: string | null;
+    onPointerMove: (e: PointerEvent) => void;
+    onPointerUp: (e: PointerEvent) => void;
+    onPointerCancel: (e: PointerEvent) => void;
+  };
+  let groupDragState: GroupDragState | null = null;
 
   function clearSelection(): void {
     selectedAssetIds.clear();
@@ -1831,18 +1931,35 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       refresh();
     });
 
+    // Only top-level groups (non-subgroups) can have subgroups added
+    if (!group.parentSlug) {
+      addMenuBtn('Add Subgroup', () => {
+        inlineSubgroupCreate = { type: group.type, parentSlug: group.slug };
+        expandedGroups.add(groupKey(group));
+        refresh();
+      });
+    }
+
     if (group.slug !== 'ungrouped') {
       addMenuDivider();
       addMenuBtn('Delete', () => {
-        const count = group.assets.length;
+        const allGroups = assetRegistry.getGroupsByType(group.type);
+        const subgroupCount = allGroups.filter((g) => g.parentSlug === group.slug).length;
+        const totalAssets = group.assets.length +
+          allGroups.filter((g) => g.parentSlug === group.slug)
+            .reduce((sum, sg) => sum + sg.assets.length, 0);
         assetRegistry.deleteGroup(group.type, group.slug);
-        uxFeedback.undo.show(
-          count > 0
-            ? `"${group.name}" deleted — ${count} asset${count !== 1 ? 's' : ''} moved to Ungrouped.`
-            : `Group "${group.name}" deleted.`,
-          () => {},
-          { destructive: count > 0 }
-        );
+        let msg: string;
+        if (subgroupCount > 0 && totalAssets > 0) {
+          msg = `"${group.name}" and ${subgroupCount} subgroup${subgroupCount !== 1 ? 's' : ''} deleted — ${totalAssets} asset${totalAssets !== 1 ? 's' : ''} moved to Ungrouped.`;
+        } else if (subgroupCount > 0) {
+          msg = `"${group.name}" and ${subgroupCount} subgroup${subgroupCount !== 1 ? 's' : ''} deleted.`;
+        } else if (totalAssets > 0) {
+          msg = `"${group.name}" deleted — ${totalAssets} asset${totalAssets !== 1 ? 's' : ''} moved to Ungrouped.`;
+        } else {
+          msg = `Group "${group.name}" deleted.`;
+        }
+        uxFeedback.undo.show(msg, () => {}, { destructive: totalAssets > 0 });
       }, true);
     }
 
@@ -1966,193 +2083,414 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       return;
     }
 
-    const groupsByType = paintableGroups.reduce<Record<AssetGroupType, AssetGroup[]>>(
-      (acc, group) => {
-        if (group.type !== 'sources') {
-          acc[group.type].push(group);
+    // Separate parent groups from subgroups
+    const subgroupsByParent = new Map<string, AssetGroup[]>();
+    paintableGroups.forEach((g) => {
+      if (g.parentSlug) {
+        const list = subgroupsByParent.get(g.parentSlug) ?? [];
+        list.push(g);
+        subgroupsByParent.set(g.parentSlug, list);
+      }
+    });
+
+    // Collect rendered parent group wrappers keyed by "type:slug" for drop-indicator targeting
+    const groupWrapperMap = new Map<string, HTMLElement>();
+
+    function buildGroupEditForm(group: AssetGroup): HTMLElement | null {
+      const isEditing = groupEditState?.type === group.type && groupEditState?.slug === group.slug;
+      if (!isEditing || !groupEditState) return null;
+
+      const editForm = document.createElement('div');
+      if (groupEditState.mode === 'rename') {
+        editForm.className = 'irs-asset-library__group-rename-row';
+
+        const renameInput = document.createElement('input');
+        renameInput.type = 'text';
+        renameInput.className = 'irs-input irs-asset-library__group-rename-input';
+        renameInput.value = group.name;
+        renameInput.maxLength = 32;
+
+        const commitRename = (): void => {
+          const trimmed = renameInput.value.trim();
+          if (trimmed && trimmed !== group.name) {
+            assetRegistry.renameGroup(group.type, group.slug, trimmed);
+          }
+          groupEditState = null;
+          refresh();
+        };
+        const cancelEdit = (): void => { groupEditState = null; refresh(); };
+
+        renameInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+          if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+        });
+        renameInput.addEventListener('blur', commitRename);
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'irs-btn irs-btn--primary';
+        okBtn.textContent = '✓';
+        okBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitRename(); });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'irs-btn irs-btn--secondary';
+        cancelBtn.textContent = '✕';
+        cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelEdit(); });
+
+        editForm.appendChild(renameInput);
+        editForm.appendChild(okBtn);
+        editForm.appendChild(cancelBtn);
+        queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
+
+      } else if (groupEditState.mode === 'set-grid') {
+        editForm.className = 'irs-asset-library__group-grid-row';
+
+        const label = document.createElement('span');
+        label.className = 'irs-asset-library__group-grid-label';
+        label.textContent = 'Columns:';
+
+        const gridInput = document.createElement('input');
+        gridInput.type = 'number';
+        gridInput.className = 'irs-input irs-asset-library__group-grid-input';
+        gridInput.min = '1';
+        gridInput.max = '12';
+        gridInput.step = '1';
+        gridInput.value = String(group.gridHint?.cols ?? '');
+        gridInput.placeholder = 'Auto';
+
+        const commitGrid = (): void => {
+          const val = parseInt(gridInput.value, 10);
+          if (!isNaN(val) && val >= 1 && val <= 12) {
+            assetRegistry.setGroupGridHint(group.type, group.slug, { cols: val });
+          } else if (gridInput.value.trim() === '') {
+            assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
+          }
+          groupEditState = null;
+          refresh();
+        };
+        const cancelEdit = (): void => { groupEditState = null; refresh(); };
+
+        gridInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitGrid(); }
+          if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+        });
+
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'irs-btn irs-btn--primary';
+        applyBtn.textContent = 'Apply';
+        applyBtn.addEventListener('click', commitGrid);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'irs-btn irs-btn--secondary';
+        clearBtn.textContent = 'Auto';
+        clearBtn.addEventListener('click', () => {
+          assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
+          groupEditState = null;
+          refresh();
+        });
+
+        editForm.appendChild(label);
+        editForm.appendChild(gridInput);
+        editForm.appendChild(applyBtn);
+        editForm.appendChild(clearBtn);
+        queueMicrotask(() => { gridInput.focus(); gridInput.select(); });
+      }
+
+      return editForm;
+    }
+
+    /**
+     * Start a group-level drag-reorder. Only parent groups can be reordered
+     * at the top level; subgroups are reordered within their parent's section.
+     */
+    function startGroupDrag(group: AssetGroup, handle: HTMLElement, e: PointerEvent): void {
+      if (groupDragState) return;
+
+      // Create ghost: a minimal text label following the pointer
+      const ghost = document.createElement('div');
+      ghost.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 200;
+        background: var(--irs-surface-modal, #1a2240);
+        border: 1px solid var(--irs-accent-primary, #5b8ef4);
+        border-radius: var(--irs-radius-md, 6px);
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--irs-text-primary, #e0e8ff);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        opacity: 0.92;
+        left: ${e.clientX + 8}px;
+        top: ${e.clientY - 16}px;
+      `;
+      ghost.textContent = group.name;
+      document.body.appendChild(ghost);
+
+      // Drop indicator: a thin horizontal line inserted between groups
+      const indicator = document.createElement('div');
+      indicator.className = 'irs-asset-library__group-drop-indicator';
+      indicator.style.display = 'none';
+      document.body.appendChild(indicator);
+
+      handle.setPointerCapture(e.pointerId);
+
+      let currentBeforeSlug: string | null = null;
+
+      const onPointerMove = (ev: PointerEvent): void => {
+        ghost.style.left = `${ev.clientX + 8}px`;
+        ghost.style.top = `${ev.clientY - 16}px`;
+
+        // Find which group wrapper the pointer is hovering over
+        indicator.style.display = 'none';
+        const hoverEl = document.elementFromPoint(ev.clientX, ev.clientY);
+
+        // Walk up to find a group wrapper
+        let candidate: HTMLElement | null = hoverEl as HTMLElement;
+        while (candidate && !candidate.dataset.groupSlug) {
+          candidate = candidate.parentElement;
         }
-        return acc;
-      },
-      { tilesets: [], props: [], entities: [], sources: [] }
-    );
+
+        if (candidate && candidate.dataset.groupType === group.type) {
+          const targetSlug = candidate.dataset.groupSlug!;
+          if (targetSlug !== group.slug) {
+            // Is pointer in top or bottom half of the candidate?
+            const rect = candidate.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+
+            if (ev.clientY < midY) {
+              // Insert before this group
+              currentBeforeSlug = targetSlug;
+            } else {
+              // Insert after this group — find the next sibling
+              const nextSlug = candidate.nextElementSibling
+                ? (candidate.nextElementSibling as HTMLElement).dataset.groupSlug ?? null
+                : null;
+              currentBeforeSlug = nextSlug;
+            }
+
+            // Position indicator
+            const insertY = ev.clientY < midY ? rect.top - 1 : rect.bottom + 1;
+            indicator.style.display = 'block';
+            indicator.style.position = 'fixed';
+            indicator.style.left = `${rect.left}px`;
+            indicator.style.width = `${rect.width}px`;
+            indicator.style.top = `${insertY}px`;
+          }
+        } else {
+          currentBeforeSlug = null;
+        }
+      };
+
+      const finish = (): void => {
+        ghost.remove();
+        indicator.remove();
+        handle.releasePointerCapture(e.pointerId);
+        handle.removeEventListener('pointermove', onPointerMove);
+        handle.removeEventListener('pointerup', onPointerUp);
+        handle.removeEventListener('pointercancel', onPointerCancel);
+        groupDragState = null;
+      };
+
+      const onPointerUp = (): void => {
+        assetRegistry.reorderGroup({
+          type: group.type,
+          fromSlug: group.slug,
+          beforeSlug: currentBeforeSlug,
+        });
+        finish();
+        refresh();
+      };
+
+      const onPointerCancel = (): void => {
+        finish();
+        refresh();
+      };
+
+      handle.addEventListener('pointermove', onPointerMove);
+      handle.addEventListener('pointerup', onPointerUp);
+      handle.addEventListener('pointercancel', onPointerCancel);
+
+      groupDragState = {
+        type: group.type,
+        fromSlug: group.slug,
+        pointerId: e.pointerId,
+        captureEl: handle,
+        ghost,
+        indicator,
+        beforeSlug: null,
+        onPointerMove,
+        onPointerUp,
+        onPointerCancel,
+      };
+    }
+
+    function renderGroupRow(group: AssetGroup, isSubgroup: boolean): HTMLElement {
+      const wrapper = document.createElement('div');
+      wrapper.className = isSubgroup
+        ? 'irs-asset-library__subgroup'
+        : 'irs-asset-library__group';
+      wrapper.dataset.groupType = group.type;
+      wrapper.dataset.groupSlug = group.slug;
+
+      const header = document.createElement('div');
+      header.className = isSubgroup
+        ? 'irs-asset-library__subgroup-header'
+        : 'irs-asset-library__group-header';
+
+      // Drag handle (only for reordering groups in library tab)
+      const dragHandle = document.createElement('button');
+      dragHandle.type = 'button';
+      dragHandle.className = 'irs-asset-library__group-drag-handle';
+      dragHandle.setAttribute('aria-label', 'Reorder group');
+      dragHandle.setAttribute('title', 'Drag to reorder');
+      dragHandle.textContent = '⠿';
+      dragHandle.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        startGroupDrag(group, dragHandle, ev);
+      });
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = isSubgroup
+        ? 'irs-asset-library__subgroup-toggle'
+        : 'irs-asset-library__group-toggle';
+      const key = groupKey(group);
+      const isOpen = expandedGroups.has(key) || group.assets.length > 0;
+      if (isOpen) expandedGroups.add(key);
+
+      const totalCount = isSubgroup
+        ? group.assets.length
+        : group.assets.length + (subgroupsByParent.get(group.slug) ?? []).reduce(
+            (sum, sg) => sum + sg.assets.length, 0
+          );
+
+      toggle.innerHTML = `
+        <span style="flex-shrink:0;font-size:10px;color:var(--irs-text-secondary)">${isOpen ? '▼' : '▶'}</span>
+        <span>${group.name}</span>
+        <span class="irs-asset-library__group-count">${totalCount}</span>
+      `;
+
+      const groupMenuBtn = document.createElement('button');
+      groupMenuBtn.type = 'button';
+      groupMenuBtn.className = 'irs-asset-library__group-menu-btn';
+      groupMenuBtn.setAttribute('aria-label', 'Group options');
+      groupMenuBtn.setAttribute('title', 'Group options');
+      groupMenuBtn.textContent = '⋯';
+      groupMenuBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openGroupMenu(group, groupMenuBtn);
+      });
+
+      const assetsContainer = renderAssets(group, selectedAssetId);
+      assetsContainer.classList.toggle('irs-asset-library__assets--open', isOpen);
+
+      toggle.addEventListener('click', () => {
+        const open = !expandedGroups.has(key);
+        if (open) {
+          expandedGroups.add(key);
+        } else {
+          expandedGroups.delete(key);
+          if (groupEditState?.type === group.type && groupEditState?.slug === group.slug) {
+            groupEditState = null;
+          }
+        }
+        assetsContainer.classList.toggle('irs-asset-library__assets--open', open);
+        const ind = toggle.querySelector('span:first-child');
+        if (ind) ind.textContent = open ? '▼' : '▶';
+      });
+
+      header.appendChild(dragHandle);
+      header.appendChild(toggle);
+
+      const actions = document.createElement('div');
+      actions.className = 'irs-asset-library__group-actions';
+      actions.appendChild(groupMenuBtn);
+      header.appendChild(actions);
+
+      wrapper.appendChild(header);
+
+      const editForm = buildGroupEditForm(group);
+      if (editForm) wrapper.appendChild(editForm);
+
+      wrapper.appendChild(assetsContainer);
+
+      return wrapper;
+    }
 
     ((['tilesets', 'props', 'entities'] as AssetGroupType[])).forEach((type) => {
-      const typeGroups = groupsByType[type];
+      const typeGroups = paintableGroups.filter((g) => g.type === type && !g.parentSlug);
       if (typeGroups.length === 0) return;
 
       typeGroups.forEach((group) => {
-        const groupWrapper = document.createElement('div');
-        groupWrapper.className = 'irs-asset-library__group';
+        const groupWrapper = renderGroupRow(group, false);
+        groupWrapperMap.set(`${group.type}:${group.slug}`, groupWrapper);
 
-        const header = document.createElement('div');
-        header.className = 'irs-asset-library__group-header';
-
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'irs-asset-library__group-toggle';
-        const key = groupKey(group);
-        const isOpen = expandedGroups.has(key) || group.assets.length > 0;
-        if (isOpen) {
-          expandedGroups.add(key);
-        }
-
-        toggle.innerHTML = `
-          <span style="flex-shrink:0;font-size:10px;color:var(--irs-text-secondary)">${isOpen ? '▼' : '▶'}</span>
-          <span>${group.name}</span>
-          <span class="irs-asset-library__group-count">${group.assets.length}</span>
-        `;
-
-        // "⋯" group menu button
-        const groupMenuBtn = document.createElement('button');
-        groupMenuBtn.type = 'button';
-        groupMenuBtn.className = 'irs-asset-library__group-menu-btn';
-        groupMenuBtn.setAttribute('aria-label', 'Group options');
-        groupMenuBtn.setAttribute('title', 'Group options');
-        groupMenuBtn.textContent = '⋯';
-        groupMenuBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          openGroupMenu(group, groupMenuBtn);
+        // Render subgroups for this parent
+        const subgroups = subgroupsByParent.get(group.slug) ?? [];
+        subgroups.forEach((sg) => {
+          const sgWrapper = renderGroupRow(sg, true);
+          groupWrapper.appendChild(sgWrapper);
         });
 
-        const assetsContainer = renderAssets(group, selectedAssetId);
-        assetsContainer.classList.toggle('irs-asset-library__assets--open', isOpen);
+        // Inline subgroup create form
+        const isCreatingSubgroup =
+          inlineSubgroupCreate?.type === group.type &&
+          inlineSubgroupCreate?.parentSlug === group.slug;
+        if (isCreatingSubgroup) {
+          const createRow = document.createElement('div');
+          createRow.className = 'irs-asset-library__inline-subgroup-create';
 
-        toggle.addEventListener('click', () => {
-          const open = !expandedGroups.has(key);
-          if (open) {
-            expandedGroups.add(key);
-          } else {
-            expandedGroups.delete(key);
-            // Close any edit for this group when collapsing
-            if (groupEditState?.type === group.type && groupEditState?.slug === group.slug) {
-              groupEditState = null;
+          const createInput = document.createElement('input');
+          createInput.type = 'text';
+          createInput.className = 'irs-input irs-asset-library__inline-subgroup-create-input';
+          createInput.placeholder = 'Subgroup name…';
+          createInput.maxLength = 32;
+
+          const commitCreate = (): void => {
+            const trimmed = createInput.value.trim();
+            if (trimmed) {
+              const newSg = assetRegistry.createSubgroup(group.type, group.slug, trimmed);
+              expandedGroups.add(groupKey(newSg));
+              uxFeedback.toast.success(`Subgroup "${newSg.name}" created.`);
             }
-          }
-          assetsContainer.classList.toggle('irs-asset-library__assets--open', open);
-          // Update indicator without full refresh
-          const indicator = toggle.querySelector('span:first-child');
-          if (indicator) indicator.textContent = open ? '▼' : '▶';
-        });
+            inlineSubgroupCreate = null;
+            refresh();
+          };
+          const cancelCreate = (): void => { inlineSubgroupCreate = null; refresh(); };
 
-        header.appendChild(toggle);
+          createInput.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); commitCreate(); }
+            if (ev.key === 'Escape') { ev.preventDefault(); cancelCreate(); }
+          });
 
-        {
-          const actions = document.createElement('div');
-          actions.className = 'irs-asset-library__group-actions';
-          actions.appendChild(groupMenuBtn);
-          header.appendChild(actions);
+          const createBtn = document.createElement('button');
+          createBtn.type = 'button';
+          createBtn.className = 'irs-btn irs-btn--primary';
+          createBtn.textContent = 'Create';
+          createBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
+          createBtn.addEventListener('click', () => { uxFeedback.motion.pulse(createBtn); commitCreate(); });
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'irs-btn irs-btn--secondary';
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
+          cancelBtn.addEventListener('click', cancelCreate);
+
+          createRow.appendChild(createInput);
+          createRow.appendChild(createBtn);
+          createRow.appendChild(cancelBtn);
+          groupWrapper.appendChild(createRow);
+          queueMicrotask(() => createInput.focus());
         }
 
-        groupWrapper.appendChild(header);
-
-        // Inline edit form (rename / set-grid) shown below group header
-        const isEditing = groupEditState?.type === group.type && groupEditState?.slug === group.slug;
-        if (isEditing && groupEditState) {
-          const editForm = document.createElement('div');
-          if (groupEditState.mode === 'rename') {
-            editForm.className = 'irs-asset-library__group-rename-row';
-
-            const renameInput = document.createElement('input');
-            renameInput.type = 'text';
-            renameInput.className = 'irs-input irs-asset-library__group-rename-input';
-            renameInput.value = group.name;
-            renameInput.maxLength = 32;
-
-            const commitRename = (): void => {
-              const trimmed = renameInput.value.trim();
-              if (trimmed && trimmed !== group.name) {
-                assetRegistry.renameGroup(group.type, group.slug, trimmed);
-              }
-              groupEditState = null;
-              refresh();
-            };
-            const cancelEdit = (): void => { groupEditState = null; refresh(); };
-
-            renameInput.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
-              if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-            });
-            renameInput.addEventListener('blur', commitRename);
-
-            const okBtn = document.createElement('button');
-            okBtn.type = 'button';
-            okBtn.className = 'irs-btn irs-btn--primary';
-            okBtn.textContent = '✓';
-            okBtn.addEventListener('mousedown', (e) => e.preventDefault());
-            okBtn.addEventListener('click', (e) => { e.stopPropagation(); commitRename(); });
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.type = 'button';
-            cancelBtn.className = 'irs-btn irs-btn--secondary';
-            cancelBtn.textContent = '✕';
-            cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
-            cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelEdit(); });
-
-            editForm.appendChild(renameInput);
-            editForm.appendChild(okBtn);
-            editForm.appendChild(cancelBtn);
-            queueMicrotask(() => { renameInput.focus(); renameInput.select(); });
-
-          } else if (groupEditState.mode === 'set-grid') {
-            editForm.className = 'irs-asset-library__group-grid-row';
-
-            const label = document.createElement('span');
-            label.className = 'irs-asset-library__group-grid-label';
-            label.textContent = 'Columns:';
-
-            const gridInput = document.createElement('input');
-            gridInput.type = 'number';
-            gridInput.className = 'irs-input irs-asset-library__group-grid-input';
-            gridInput.min = '1';
-            gridInput.max = '12';
-            gridInput.step = '1';
-            gridInput.value = String(group.gridHint?.cols ?? '');
-            gridInput.placeholder = 'Auto';
-
-            const commitGrid = (): void => {
-              const val = parseInt(gridInput.value, 10);
-              if (!isNaN(val) && val >= 1 && val <= 12) {
-                assetRegistry.setGroupGridHint(group.type, group.slug, { cols: val });
-              } else if (gridInput.value.trim() === '') {
-                assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
-              }
-              groupEditState = null;
-              refresh();
-            };
-            const cancelEdit = (): void => { groupEditState = null; refresh(); };
-
-            gridInput.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') { e.preventDefault(); commitGrid(); }
-              if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-            });
-
-            const applyBtn = document.createElement('button');
-            applyBtn.type = 'button';
-            applyBtn.className = 'irs-btn irs-btn--primary';
-            applyBtn.textContent = 'Apply';
-            applyBtn.addEventListener('click', commitGrid);
-
-            const clearBtn = document.createElement('button');
-            clearBtn.type = 'button';
-            clearBtn.className = 'irs-btn irs-btn--secondary';
-            clearBtn.textContent = 'Auto';
-            clearBtn.addEventListener('click', () => {
-              assetRegistry.setGroupGridHint(group.type, group.slug, undefined);
-              groupEditState = null;
-              refresh();
-            });
-
-            editForm.appendChild(label);
-            editForm.appendChild(gridInput);
-            editForm.appendChild(applyBtn);
-            editForm.appendChild(clearBtn);
-            queueMicrotask(() => { gridInput.focus(); gridInput.select(); });
-          }
-
-          groupWrapper.appendChild(editForm);
-        }
-
-        groupWrapper.appendChild(assetsContainer);
         librarySection.appendChild(groupWrapper);
       });
     });
