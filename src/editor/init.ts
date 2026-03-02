@@ -60,6 +60,7 @@ import {
   type AssetEntry,
   type AssetRegistry,
   type AssetRegistryState,
+  type AssetGroupType,
 } from '@/editor/assets';
 import { ASSET_GROUP_PATHS } from '@/editor/assets/assetGroup';
 import { setContentVersionToken } from '@/shared/paths';
@@ -1290,6 +1291,20 @@ async function initCanvas(tileSize: number): Promise<void> {
       handleSceneChange(scene);
     },
     history: historyManager,
+    resolveRandomIndex: (layer, category) => {
+      if (!assetRegistry) return null;
+      const typeMap: Partial<Record<LayerType, AssetGroupType>> = {
+        ground: 'tilesets',
+        props: 'props',
+      };
+      const groupType = typeMap[layer];
+      if (!groupType) return null;
+      const group = assetRegistry.getGroupsByType(groupType).find((g) => g.slug === category);
+      if (!group?.isRandomGroup) return null;
+      const paintable = group.assets.filter((a) => !a.isSource);
+      if (paintable.length === 0) return null;
+      return Math.floor(Math.random() * paintable.length);
+    },
   });
 
   // Initialize erase tool

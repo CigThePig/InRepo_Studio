@@ -28,6 +28,16 @@ export interface AssetGroup {
   assets: AssetEntry[];
   /** Optional fixed-column grid override. Default is auto-fill. */
   gridHint?: { cols: number };
+  /**
+   * If set, this group is a subgroup of the group with this slug (same type).
+   * Only one level of nesting is supported.
+   */
+  parentSlug?: string;
+  /**
+   * When true, each paint stroke picks a random asset from this group instead
+   * of the explicitly selected one. Intended for subgroups (e.g. tile variants).
+   */
+  isRandomGroup?: boolean;
 }
 
 export const ASSET_GROUP_PATHS: Record<AssetGroupType, string> = {

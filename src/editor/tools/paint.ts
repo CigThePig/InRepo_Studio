@@ -30,6 +30,14 @@ export interface PaintToolConfig {
 
   /** History manager for undo/redo */
   history: HistoryManager;
+
+  /**
+   * Optional resolver for random-group sampling.
+   * Called with the active layer and tile category (group slug) before each
+   * placement. Return a randomised tile index when the group has random
+   * sampling enabled, or null to use the explicitly selected index.
+   */
+  resolveRandomIndex?: (layer: LayerType, category: string) => number | null;
 }
 
 export interface PaintTool {
@@ -52,8 +60,16 @@ export interface PaintTool {
  * Get the tile value to paint based on layer type and selected tile.
  * - Ground/Props: global tile GID computed from scene.tilesets (0 is empty)
  * - Collision/Triggers: 1 (binary filled state)
+ *
+ * When `resolveRandomIndex` is provided and returns a number, that index is
+ * used instead of the selected tile's index (random-group sampling).
  */
-function getTileValue(scene: Scene, layer: LayerType, selectedTile: SelectedTile | null): number {
+function getTileValue(
+  scene: Scene,
+  layer: LayerType,
+  selectedTile: SelectedTile | null,
+  resolveRandomIndex?: (layer: LayerType, category: string) => number | null
+): number {
   if (layer === 'collision' || layer === 'triggers') {
     return 1; // Binary filled state
   }
@@ -62,7 +78,11 @@ function getTileValue(scene: Scene, layer: LayerType, selectedTile: SelectedTile
     return 0; // No tile selected, do nothing
   }
 
-  const gid = getGidForTile(scene, selectedTile.category, selectedTile.index);
+  const tileIndex = resolveRandomIndex
+    ? (resolveRandomIndex(layer, selectedTile.category) ?? selectedTile.index)
+    : selectedTile.index;
+
+  const gid = getGidForTile(scene, selectedTile.category, tileIndex);
   if (gid === null) {
     // This should not happen if scenes are normalized with ensureSceneTilesets().
     console.warn(
@@ -113,7 +133,7 @@ function paintTile(
 // --- Factory ---
 
 export function createPaintTool(config: PaintToolConfig): PaintTool {
-  const { getEditorState, getScene, onSceneChange, history } = config;
+  const { getEditorState, getScene, onSceneChange, history, resolveRandomIndex } = config;
 
   // Paint state
   let painting = false;
@@ -136,7 +156,7 @@ export function createPaintTool(config: PaintToolConfig): PaintTool {
     }
 
     const selectedTile = editorState.selectedTile;
-    const value = getTileValue(scene, activeLayer, selectedTile);
+    const value = getTileValue(scene, activeLayer, selectedTile, resolveRandomIndex);
 
     // Skip if no tile to paint (ground/props without selection)
     if (value === 0 && (activeLayer === 'ground' || activeLayer === 'props')) {

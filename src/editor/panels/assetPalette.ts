@@ -41,6 +41,30 @@ const STYLES = `
     margin-bottom: 6px;
   }
 
+  .irs-asset-palette__subgroup-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .irs-asset-palette__subgroup-pill {
+    padding: 2px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--irs-border-heavy);
+    background: var(--irs-surface-modal);
+    color: var(--irs-text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .irs-asset-palette__subgroup-pill--active {
+    background: var(--irs-accent, #5b8ef4);
+    border-color: var(--irs-accent, #5b8ef4);
+    color: #fff;
+  }
+
   .irs-asset-palette__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
@@ -142,60 +166,174 @@ export function createAssetPalette(config: AssetPaletteConfig): AssetPaletteCont
     return capsule.el;
   }
 
-  function renderGroups(groups: AssetGroup[], selectedAssetId: string | null): void {
+  /**
+   * Determine which group context (parent group slug + optional subgroup slug) the
+   * currently-selected asset lives in, so the palette can show the right asset set.
+   *
+   * Rules (bottom-bar palette behaviour):
+   * - No selected asset → show all parent groups with their direct assets
+   * - Selected asset is in a subgroup → show only that subgroup's assets
+   * - Selected asset is in a top-level group → show that group's direct assets
+   *   (i.e. assets that are NOT inside any of the group's subgroups)
+   */
+  function resolveContext(
+    allGroups: AssetGroup[],
+    selectedAssetId: string | null
+  ): { parentSlug: string; subgroupSlug: string | null } | null {
+    if (!selectedAssetId) return null;
+
+    for (const group of allGroups) {
+      if (group.type !== groupType) continue;
+      const hit = group.assets.find((a) => a.id === selectedAssetId);
+      if (!hit) continue;
+      if (group.parentSlug) {
+        return { parentSlug: group.parentSlug, subgroupSlug: group.slug };
+      }
+      return { parentSlug: group.slug, subgroupSlug: null };
+    }
+    return null;
+  }
+
+  function renderGroups(allGroups: AssetGroup[], selectedAssetId: string | null): void {
     section.querySelectorAll('.irs-asset-palette__group, .irs-asset-palette__empty').forEach((node) =>
       node.remove()
     );
 
-    if (groups.length === 0) {
+    // Exclude source spritesheets from paint/placement contexts
+    const groups = allGroups
+      .filter((g) => g.type === groupType)
+      .map((group) => ({
+        ...group,
+        assets: group.assets.filter((asset) => !asset.isSource),
+      }));
+
+    // Separate parent groups from subgroups
+    const parentGroups = groups.filter((g) => !g.parentSlug);
+    const subgroupsByParent = new Map<string, AssetGroup[]>();
+    groups.forEach((g) => {
+      if (g.parentSlug) {
+        const list = subgroupsByParent.get(g.parentSlug) ?? [];
+        list.push(g);
+        subgroupsByParent.set(g.parentSlug, list);
+      }
+    });
+
+    if (parentGroups.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'irs-asset-palette__empty';
-      empty.textContent = 'No assets yet. Use the left berry to import and slice sprites.';
+      empty.textContent = 'No assets yet. Use the left panel to import and slice sprites.';
       section.appendChild(empty);
       return;
     }
 
-    groups.forEach((group) => {
+    const ctx = resolveContext(groups, selectedAssetId);
+
+    parentGroups.forEach((group) => {
+      const subgroups = subgroupsByParent.get(group.slug) ?? [];
+      const subgroupAssetIds = new Set(subgroups.flatMap((sg) => sg.assets.map((a) => a.id)));
+
+      // Determine which assets to display for this section
+      let displayAssets: AssetEntry[];
+      let activeSubgroupSlug: string | null = null;
+
+      if (ctx && ctx.parentSlug === group.slug) {
+        if (ctx.subgroupSlug) {
+          // Show only the active subgroup's assets
+          activeSubgroupSlug = ctx.subgroupSlug;
+          const sg = subgroups.find((s) => s.slug === ctx.subgroupSlug);
+          displayAssets = sg ? sg.assets : [];
+        } else {
+          // Show direct (non-subgroup) assets of the parent
+          displayAssets = group.assets.filter((a) => !subgroupAssetIds.has(a.id));
+        }
+      } else {
+        // Default: show direct assets only (minus subgroup assets)
+        displayAssets = group.assets.filter((a) => !subgroupAssetIds.has(a.id));
+      }
+
       const groupWrapper = document.createElement('div');
       groupWrapper.className = 'irs-asset-palette__group';
 
+      const activeSubgroup = activeSubgroupSlug
+        ? subgroups.find((s) => s.slug === activeSubgroupSlug)
+        : null;
+      const activeSubgroupName = activeSubgroup?.name ?? '';
+      const activeIsRandom = !!activeSubgroup?.isRandomGroup;
+
       const groupTitle = document.createElement('div');
       groupTitle.className = 'irs-asset-palette__group-title';
-      groupTitle.textContent = group.name;
+      if (activeSubgroupSlug) {
+        groupTitle.textContent = activeIsRandom
+          ? `${group.name} › 🎲 ${activeSubgroupName}`
+          : `${group.name} › ${activeSubgroupName}`;
+      } else {
+        groupTitle.textContent = group.name;
+      }
+
+      groupWrapper.appendChild(groupTitle);
+
+      // Subgroup navigation pills (only shown when there are subgroups)
+      if (subgroups.length > 0) {
+        const nav = document.createElement('div');
+        nav.className = 'irs-asset-palette__subgroup-nav';
+
+        subgroups.forEach((sg) => {
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = 'irs-asset-palette__subgroup-pill' +
+            (activeSubgroupSlug === sg.slug ? ' irs-asset-palette__subgroup-pill--active' : '');
+          pill.textContent = sg.isRandomGroup ? `🎲 ${sg.name}` : sg.name;
+          pill.addEventListener('click', () => {
+            // Select the first asset in this subgroup to switch context
+            const first = sg.assets[0];
+            if (first) {
+              assetRegistry.setSelectedAsset(first.id);
+            }
+          });
+          nav.appendChild(pill);
+        });
+
+        groupWrapper.appendChild(nav);
+      }
 
       const grid = document.createElement('div');
       grid.className = 'irs-asset-palette__grid';
-      if (group.gridHint?.cols) {
-        grid.style.setProperty('--irs-group-cols', String(group.gridHint.cols));
+
+      if (activeSubgroup?.gridHint?.cols) {
+        grid.style.gridTemplateColumns = `repeat(${activeSubgroup.gridHint.cols}, minmax(0, 1fr))`;
+      } else if (group.gridHint?.cols && !activeSubgroupSlug) {
         grid.style.gridTemplateColumns = `repeat(${group.gridHint.cols}, minmax(0, 1fr))`;
       }
 
-      if (group.assets.length === 0) {
+      if (displayAssets.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'irs-asset-palette__empty';
         empty.textContent = 'No assets in this group.';
         grid.appendChild(empty);
       } else {
-        group.assets.forEach((asset) => {
+        displayAssets.forEach((asset) => {
           grid.appendChild(renderAssetCard(asset, selectedAssetId));
         });
       }
 
-      groupWrapper.appendChild(groupTitle);
       groupWrapper.appendChild(grid);
+
+      // Status hint for random subgroups
+      if (activeIsRandom && displayAssets.length > 0) {
+        const hint = document.createElement('div');
+        hint.className = 'irs-asset-palette__empty';
+        hint.style.marginTop = '4px';
+        hint.textContent = `🎲 Random sampling on — each stroke picks a random tile`;
+        groupWrapper.appendChild(hint);
+      }
+
       section.appendChild(groupWrapper);
     });
   }
 
   function refresh(): void {
     const state = assetRegistry.getState();
-    const rawGroups = assetRegistry.getGroupsByType(groupType);
-    // Exclude source spritesheets from paint/placement contexts
-    const groups = rawGroups.map((group) => ({
-      ...group,
-      assets: group.assets.filter((asset) => !asset.isSource),
-    }));
-    renderGroups(groups, state.selectedAssetId);
+    renderGroups(state.groups, state.selectedAssetId);
   }
 
   const unsubscribe = assetRegistry.onChange(() => refresh());
