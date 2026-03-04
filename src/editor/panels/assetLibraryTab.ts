@@ -953,7 +953,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
 
   const expandedGroups = new Set<string>();
   let sheetAssetId: string | null = null;
-  let sheetView: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu';
+  let sheetView: 'menu' | 'rename' | 'delete-confirm' | 'move-to' | 'create-subgroup' = 'menu';
   let moveToType: AssetGroupType = 'tilesets';
   let activeSubtab: AssetSubtabId = 'tiles';
 
@@ -1218,7 +1218,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     sheetAssetId = null;
     refresh();
   });
-  root.appendChild(sheetScrim);
+  document.body.appendChild(sheetScrim);
 
   // Tap outside any asset capsule clears the selection, but ONLY when the
   // pointer didn't move (i.e. it was a real tap, not the start of a scroll).
@@ -1256,7 +1256,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     directionSheetSetId = null;
     renderAnimSheet();
   });
-  root.appendChild(animScrim);
+  document.body.appendChild(animScrim);
 
   // Wrap the asset library in a gesture-owned viewport so we can replace
   // native overflow-y:auto with a custom translateY scroller.  Only this
@@ -1273,7 +1273,7 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
     return `${group.type}:${group.slug}`;
   }
 
-  function openAssetSheet(assetId: string, view: 'menu' | 'rename' | 'delete-confirm' | 'move-to' = 'menu'): void {
+  function openAssetSheet(assetId: string, view: 'menu' | 'rename' | 'delete-confirm' | 'move-to' | 'create-subgroup' = 'menu'): void {
     sheetAssetId = assetId;
     sheetView = view;
     refresh();
@@ -3620,6 +3620,14 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
         },
       });
 
+      const allInSameGroup = batchIds.every(id => activeGroup.assets.some(a => a.id === id));
+      if (isBatch && allInSameGroup && !activeGroup.parentSlug && activeGroup.type !== 'sources') {
+        actions.push({
+          label: 'Create Subgroup\u2026',
+          onClick: () => openAssetSheet(activeAsset.id, 'create-subgroup'),
+        });
+      }
+
       actions.push({
         label: isBatch ? `Delete (${batchIds.length})` : 'Delete',
         onClick: () => openAssetSheet(activeAsset.id, 'delete-confirm'),
@@ -3785,6 +3793,47 @@ export function createAssetLibraryTab(config: AssetLibraryTabConfig): AssetLibra
       cancelButton.textContent = 'Cancel';
       cancelButton.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
       sheet.appendChild(cancelButton);
+    }
+
+    if (sheetView === 'create-subgroup') {
+      const title = document.createElement('div');
+      title.className = 'irs-asset-library__sheet-title';
+      title.textContent = 'New Subgroup';
+      sheet.appendChild(title);
+
+      const input = document.createElement('input');
+      input.className = 'irs-input';
+      input.type = 'text';
+      input.placeholder = 'Subgroup name\u2026';
+      input.maxLength = 64;
+      sheet.appendChild(input);
+
+      const createButton = document.createElement('button');
+      createButton.type = 'button';
+      createButton.className = 'irs-btn irs-btn--primary';
+      createButton.textContent = 'Create';
+      createButton.addEventListener('click', () => {
+        const name = input.value.trim();
+        if (!name) return;
+        const newGroup = assetRegistry.createSubgroup(activeGroup.type, activeGroup.slug, name);
+        for (const id of batchIds) {
+          assetRegistry.moveAsset({ assetId: id, toGroupType: newGroup.type, toGroupSlug: newGroup.slug });
+        }
+        clearSelection();
+        sheetAssetId = null;
+        uxFeedback.undo.show(`Subgroup "${name}" created.`, () => {}, {});
+        refresh();
+      });
+      sheet.appendChild(createButton);
+
+      const cancelButton2 = document.createElement('button');
+      cancelButton2.type = 'button';
+      cancelButton2.className = 'irs-btn irs-btn--secondary';
+      cancelButton2.textContent = 'Cancel';
+      cancelButton2.addEventListener('click', () => openAssetSheet(activeAsset.id, 'menu'));
+      sheet.appendChild(cancelButton2);
+
+      queueMicrotask(() => input.focus());
     }
 
     sheetScrim.appendChild(sheet);
