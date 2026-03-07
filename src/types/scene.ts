@@ -353,6 +353,94 @@ export function ensureSceneTilesets(scene: Scene, project: Project): EnsureTiles
 }
 
 
+// --- Scene Tileset Canonicalization ---
+
+export interface CanonicalizeResult {
+  scene: Scene;
+  changed: boolean;
+  warnings: string[];
+}
+
+/**
+ * Canonicalize a scene's tileset table to the standard block layout produced by
+ * `computeDefaultTilesets()`, remapping all layer GIDs accordingly.
+ *
+ * Use this for committed data validation, build/verify paths, and migration
+ * canonicalization. It is intentionally stricter than `ensureSceneTilesets()`,
+ * which is conservative for user data recovery.
+ *
+ * What it does:
+ * - Computes the canonical tileset table for the project (1 + i * DEFAULT_TILESET_BLOCK_SIZE).
+ * - If the scene already matches exactly (every category at the correct firstGid), returns
+ *   changed=false immediately.
+ * - Otherwise, remaps every GID in ground and props layers by resolving {category, index}
+ *   from the current tilesets then re-encoding against the canonical firstGids.
+ * - Collision and triggers layers contain binary markers (0 or 1), not tile GIDs — they
+ *   are never remapped.
+ * - If a GID cannot be resolved (unknown category or no matching tileset), it is left
+ *   unchanged and a warning is emitted.
+ */
+export function canonicalizeSceneTilesets(scene: Scene, project: Project): CanonicalizeResult {
+  const warnings: string[] = [];
+  const canonical = computeDefaultTilesets(project);
+
+  // Check if already canonical: same count, same category order, same firstGids.
+  const current = scene.tilesets ?? [];
+  const alreadyCanonical =
+    current.length === canonical.length &&
+    canonical.every((cs, i) => {
+      const actual = current[i];
+      return actual && actual.category === cs.category && actual.firstGid === cs.firstGid;
+    });
+
+  if (alreadyCanonical) {
+    return { scene, changed: false, warnings };
+  }
+
+  // Build a lookup from category name to canonical firstGid.
+  const canonicalByCategory = new Map<string, number>(
+    canonical.map(ts => [ts.category, ts.firstGid])
+  );
+
+  // Remap a single GID using the current (possibly non-canonical) scene tilesets.
+  const remapGid = (gid: number): number => {
+    if (gid <= 0) return gid;
+    const ref = resolveTileGid(scene, gid);
+    if (!ref) {
+      warnings.push(`Could not resolve GID ${gid} — left unchanged.`);
+      return gid;
+    }
+    const newFirst = canonicalByCategory.get(ref.category);
+    if (newFirst === undefined) {
+      warnings.push(
+        `GID ${gid} resolved to category "${ref.category}" which is not in the canonical layout — left unchanged.`
+      );
+      return gid;
+    }
+    return newFirst + ref.index;
+  };
+
+  const remapLayer = (layer: TileLayer): TileLayer =>
+    layer.map(row => row.map(remapGid));
+
+  const newLayers: LayerData = {
+    ground: remapLayer(scene.layers.ground),
+    props: remapLayer(scene.layers.props),
+    // collision and triggers store binary markers, not tile GIDs — do not remap.
+    collision: scene.layers.collision,
+    triggers: scene.layers.triggers,
+  };
+
+  warnings.push('Canonicalized scene tilesets from non-canonical layout.');
+
+  return {
+    scene: { ...scene, tilesets: canonical, layers: newLayers },
+    changed: true,
+    warnings,
+  };
+}
+
+
 // --- Layer Data ---
 
 /**

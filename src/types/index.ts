@@ -57,6 +57,7 @@ export type {
   LayerType,
   ResolvedTileRef,
   EnsureTilesetsResult,
+  CanonicalizeResult,
 } from './scene';
 
 export {
@@ -76,6 +77,7 @@ export {
   getGidForTile,
   computeDefaultTilesets,
   ensureSceneTilesets,
+  canonicalizeSceneTilesets,
   getTile,
   setTile,
   resizeLayer,

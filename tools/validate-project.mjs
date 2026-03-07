@@ -24,6 +24,125 @@ const legacyDirs = [
 
 const errors = [];
 
+// --- Canonical tileset helpers (mirrors src/types/scene.ts logic) ---
+
+const DEFAULT_TILESET_BLOCK_SIZE = 1000;
+
+function getAtlasSlug(atlasPath) {
+  const normalized = atlasPath.replace(/^\/+/, '').replace(/^game\//, '').replace(/\\/g, '/').replace(/\/+/g, '/');
+  const match = normalized.match(/^assets\/tilesets\/([^/]+)\//i);
+  const slug = match ? match[1]?.trim() : null;
+  if (slug) return slug;
+  const parts = normalized.split('/').filter(Boolean);
+  return parts.length >= 2 ? parts[parts.length - 2] : normalized;
+}
+
+function getAtlasCategoryName(atlasPath) {
+  return `atlas:${getAtlasSlug(atlasPath)}`;
+}
+
+/**
+ * Compute canonical tileset layout for a project.
+ * Mirrors computeDefaultTilesets() from src/types/scene.ts.
+ */
+function computeCanonicalTilesets(project) {
+  const categories = [];
+  for (const cat of project.tileCategories ?? []) {
+    categories.push({ name: cat.name, count: cat.files?.length ?? 0 });
+  }
+  for (const atlas of project.spriteAtlases ?? []) {
+    const name = getAtlasCategoryName(atlas.path);
+    const slices = atlas.slices ?? [];
+    let maxId = -1;
+    for (const s of slices) {
+      if (typeof s.tileId === 'number' && Number.isFinite(s.tileId) && Number.isInteger(s.tileId) && s.tileId >= 0 && s.tileId > maxId) {
+        maxId = s.tileId;
+      }
+    }
+    const count = maxId >= 0 ? maxId + 1 : slices.length;
+    categories.push({ name, count });
+  }
+  return categories.map((cat, i) => ({ category: cat.name, firstGid: 1 + i * DEFAULT_TILESET_BLOCK_SIZE }));
+}
+
+/**
+ * Validate that every atlas slice has a valid non-negative integer tileId.
+ */
+function validateAtlasSliceTileIds(project) {
+  for (const atlas of project.spriteAtlases ?? []) {
+    const catName = getAtlasCategoryName(atlas.path);
+    for (let i = 0; i < (atlas.slices ?? []).length; i++) {
+      const slice = atlas.slices[i];
+      const tid = slice.tileId;
+      if (tid === undefined || tid === null || typeof tid !== 'number' || !Number.isInteger(tid) || tid < 0) {
+        errors.push(`Atlas "${catName}" slice [${i}] "${slice.name ?? '?'}": missing or invalid tileId (got ${JSON.stringify(tid)})`);
+      }
+    }
+  }
+}
+
+/**
+ * Validate a single scene file for project/scene consistency:
+ * - All scene tileset categories exist in the project
+ * - All canonical project categories are present in scene tilesets
+ * - firstGid values match canonical values
+ * - No GID range overlaps
+ */
+async function validateSceneConsistency(sceneId, project) {
+  const sceneFile = path.join(scenesRoot, `${sceneId}.json`);
+  if (!(await pathExists(sceneFile))) {
+    // File existence is already checked in the main scene index loop; skip here.
+    return;
+  }
+
+  let scene;
+  try {
+    const raw = await fs.readFile(sceneFile, 'utf8');
+    scene = JSON.parse(raw);
+  } catch (e) {
+    errors.push(`Scene "${sceneId}": failed to parse JSON — ${e.message}`);
+    return;
+  }
+
+  const canonical = computeCanonicalTilesets(project);
+  const canonicalMap = new Map(canonical.map(ts => [ts.category, ts.firstGid]));
+  const sceneTilesets = scene.tilesets ?? [];
+
+  // Check each scene tileset category is a known project category
+  for (const ts of sceneTilesets) {
+    if (!canonicalMap.has(ts.category)) {
+      errors.push(`Scene "${sceneId}": tileset references unknown project category "${ts.category}"`);
+    }
+  }
+
+  // Check each canonical category is present in scene tilesets with the correct firstGid
+  const sceneMap = new Map(sceneTilesets.map(ts => [ts.category, ts.firstGid]));
+  for (const { category, firstGid } of canonical) {
+    if (!sceneMap.has(category)) {
+      errors.push(`Scene "${sceneId}": missing tileset for project category "${category}" (expected firstGid ${firstGid})`);
+    } else if (sceneMap.get(category) !== firstGid) {
+      errors.push(
+        `Scene "${sceneId}": non-canonical firstGid for category "${category}": expected ${firstGid}, got ${sceneMap.get(category)}`
+      );
+    }
+  }
+
+  // Warn about GID range overlaps (informational; does not fail)
+  const sorted = [...sceneTilesets].sort((a, b) => a.firstGid - b.firstGid);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const catA = project.tileCategories?.find(c => c.name === a.category);
+    const countA = catA ? (catA.files?.length ?? 0) : 0;
+    const aEnd = a.firstGid + Math.max(countA, 1);
+    if (b.firstGid < aEnd) {
+      errors.push(
+        `Scene "${sceneId}": GID range overlap — "${a.category}" [${a.firstGid}..${aEnd - 1}] overlaps "${b.category}" at ${b.firstGid}`
+      );
+    }
+  }
+}
+
 async function pathExists(target) {
   try {
     await fs.stat(target);
@@ -110,6 +229,9 @@ async function validateProject() {
     await assertFileExists(spritePath, `entityTypes.${entityType.name}.sprite`);
   }
 
+  // Validate atlas slice tileIds before scene checks (scene canonical check depends on correct count)
+  validateAtlasSliceTileIds(project);
+
   const indexPath = requiredFiles[1];
   if (await pathExists(indexPath)) {
     const indexRaw = await fs.readFile(indexPath, 'utf8');
@@ -133,6 +255,8 @@ async function validateProject() {
         }
         const sceneFile = path.join(scenesRoot, `${id}.json`);
         await assertFileExists(sceneFile, `scenes.index ${id}`);
+        // Semantic consistency: scene tilesets must align with canonical project layout
+        await validateSceneConsistency(id, project);
       }
     }
   }

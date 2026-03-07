@@ -6,7 +6,7 @@
  */
 
 import type { Scene } from '@/types';
-import { createDefaultProject, createScene, ensureSceneTilesets, validateProject } from '@/types';
+import { createDefaultProject, createScene, ensureSceneTilesets, canonicalizeSceneTilesets, validateProject } from '@/types';
 import { PROJECT_JSON_PATH, resolveGamePath } from '@/shared/paths';
 import * as hot from './hot';
 import * as cold from './cold';
@@ -141,6 +141,16 @@ export async function migrateFromCold(): Promise<MigrationResult> {
           }
         }
 
+        // Canonicalize to block-based layout so hot storage never retains hybrid GID schemes.
+        const canonicalized = canonicalizeSceneTilesets(scene, project);
+        if (canonicalized.changed) {
+          scene = canonicalized.scene;
+          console.log(`${LOG_PREFIX} Scene "${sceneId}" tileset layout canonicalized`);
+          for (const w of canonicalized.warnings) {
+            console.warn(`${LOG_PREFIX} ${w}`);
+          }
+        }
+
         await hot.saveScene(scene);
         result.scenesLoaded.push(sceneId);
       } catch (error) {
@@ -204,14 +214,32 @@ export async function forceRefreshFromCold(): Promise<MigrationResult> {
 export async function syncSceneFromCold(sceneId: string): Promise<Scene | null> {
   console.log(`${LOG_PREFIX} Syncing scene "${sceneId}" from cold storage...`);
 
-  const scene = await cold.fetchScene(sceneId);
+  let scene = await cold.fetchScene(sceneId);
 
   if (scene) {
+    // Normalize tilesets against the current hot project before saving to hot storage,
+    // consistent with the normalization done in migrateFromCold().
+    const hotData = await hot.getHotProject();
+    const project = hotData?.project ?? null;
+    if (project) {
+      const ensured = ensureSceneTilesets(scene, project);
+      scene = ensured.scene;
+      if (ensured.warnings.length > 0) {
+        for (const w of ensured.warnings) {
+          console.warn(`${LOG_PREFIX} ${w}`);
+        }
+      }
+      const canonicalized = canonicalizeSceneTilesets(scene, project);
+      if (canonicalized.changed) {
+        scene = canonicalized.scene;
+        console.log(`${LOG_PREFIX} Scene "${sceneId}" tileset layout canonicalized during sync`);
+      }
+    }
     await hot.saveScene(scene);
     console.log(`${LOG_PREFIX} Scene "${sceneId}" synced`);
   }
 
-  return scene;
+  return scene ?? null;
 }
 
 /**

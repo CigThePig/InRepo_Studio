@@ -140,6 +140,7 @@
       },
       "slices": [
         {
+          "tileId": 0,
           "name": "forest_tiles_region_1",
           "rect": {
             "x": 0,
@@ -149,6 +150,7 @@
           }
         },
         {
+          "tileId": 1,
           "name": "forest_tiles_region_3",
           "rect": {
             "x": 448,
@@ -158,6 +160,7 @@
           }
         },
         {
+          "tileId": 2,
           "name": "forest_tiles_region_2",
           "rect": {
             "x": 0,
@@ -167,6 +170,7 @@
           }
         },
         {
+          "tileId": 3,
           "name": "forest_tiles_region_4",
           "rect": {
             "x": 480,
@@ -176,6 +180,7 @@
           }
         },
         {
+          "tileId": 4,
           "name": "forest_tiles_region_6",
           "rect": {
             "x": 384,
@@ -185,6 +190,7 @@
           }
         },
         {
+          "tileId": 5,
           "name": "forest_tiles_region_5",
           "rect": {
             "x": 448,
@@ -194,6 +200,7 @@
           }
         },
         {
+          "tileId": 6,
           "name": "forest_tiles_region_8",
           "rect": {
             "x": 320,
@@ -203,6 +210,7 @@
           }
         },
         {
+          "tileId": 7,
           "name": "forest_tiles_region_7",
           "rect": {
             "x": 352,
@@ -212,6 +220,7 @@
           }
         },
         {
+          "tileId": 8,
           "name": "forest_tiles_region_9",
           "rect": {
             "x": 224,
@@ -221,6 +230,7 @@
           }
         },
         {
+          "tileId": 9,
           "name": "forest_tiles_region_10",
           "rect": {
             "x": 288,
@@ -230,6 +240,7 @@
           }
         },
         {
+          "tileId": 10,
           "name": "forest_tiles_0",
           "rect": {
             "x": 0,
@@ -239,6 +250,7 @@
           }
         },
         {
+          "tileId": 11,
           "name": "forest_tiles_1",
           "rect": {
             "x": 32,
@@ -248,6 +260,7 @@
           }
         },
         {
+          "tileId": 12,
           "name": "forest_tiles_2",
           "rect": {
             "x": 64,
@@ -257,6 +270,7 @@
           }
         },
         {
+          "tileId": 13,
           "name": "forest_tiles_3",
           "rect": {
             "x": 96,
@@ -266,6 +280,7 @@
           }
         },
         {
+          "tileId": 14,
           "name": "forest_tiles_4",
           "rect": {
             "x": 128,
@@ -275,6 +290,7 @@
           }
         },
         {
+          "tileId": 15,
           "name": "forest_tiles_5",
           "rect": {
             "x": 160,
@@ -284,6 +300,7 @@
           }
         },
         {
+          "tileId": 16,
           "name": "forest_tiles_6",
           "rect": {
             "x": 192,
@@ -293,6 +310,7 @@
           }
         },
         {
+          "tileId": 17,
           "name": "forest_tiles_7",
           "rect": {
             "x": 224,
@@ -302,6 +320,7 @@
           }
         },
         {
+          "tileId": 18,
           "name": "forest_tiles_8",
           "rect": {
             "x": 256,
@@ -311,6 +330,7 @@
           }
         },
         {
+          "tileId": 19,
           "name": "forest_tiles_9",
           "rect": {
             "x": 288,
@@ -320,6 +340,7 @@
           }
         },
         {
+          "tileId": 20,
           "name": "forest_tiles_23",
           "rect": {
             "x": 288,
@@ -329,6 +350,7 @@
           }
         },
         {
+          "tileId": 21,
           "name": "forest_tiles_10",
           "rect": {
             "x": 320,
@@ -338,6 +360,7 @@
           }
         },
         {
+          "tileId": 22,
           "name": "forest_tiles_22",
           "rect": {
             "x": 256,
@@ -347,6 +370,7 @@
           }
         },
         {
+          "tileId": 23,
           "name": "forest_tiles_21",
           "rect": {
             "x": 224,
@@ -356,6 +380,7 @@
           }
         },
         {
+          "tileId": 24,
           "name": "forest_tiles_13",
           "rect": {
             "x": 416,
@@ -365,6 +390,7 @@
           }
         },
         {
+          "tileId": 25,
           "name": "forest_tiles_11",
           "rect": {
             "x": 352,
@@ -374,6 +400,7 @@
           }
         },
         {
+          "tileId": 26,
           "name": "forest_tiles_17",
           "rect": {
             "x": 96,
@@ -383,6 +410,7 @@
           }
         },
         {
+          "tileId": 27,
           "name": "forest_tiles_14",
           "rect": {
             "x": 0,
@@ -392,6 +420,7 @@
           }
         },
         {
+          "tileId": 28,
           "name": "forest_tiles_12",
           "rect": {
             "x": 384,
@@ -401,6 +430,7 @@
           }
         },
         {
+          "tileId": 29,
           "name": "forest_tiles_19",
           "rect": {
             "x": 160,
@@ -410,6 +440,7 @@
           }
         },
         {
+          "tileId": 30,
           "name": "forest_tiles_20",
           "rect": {
             "x": 192,
@@ -419,6 +450,7 @@
           }
         },
         {
+          "tileId": 31,
           "name": "forest_tiles_15",
           "rect": {
             "x": 32,
@@ -428,6 +460,7 @@
           }
         },
         {
+          "tileId": 32,
           "name": "forest_tiles_16",
           "rect": {
             "x": 64,
@@ -437,6 +470,7 @@
           }
         },
         {
+          "tileId": 33,
           "name": "forest_tiles_18",
           "rect": {
             "x": 128,
@@ -446,6 +480,7 @@
           }
         },
         {
+          "tileId": 34,
           "name": "forest_tiles_24",
           "rect": {
             "x": 352,
@@ -455,6 +490,7 @@
           }
         },
         {
+          "tileId": 35,
           "name": "forest_tiles_25",
           "rect": {
             "x": 384,
@@ -464,6 +500,7 @@
           }
         },
         {
+          "tileId": 36,
           "name": "forest_tiles_26",
           "rect": {
             "x": 416,
@@ -473,6 +510,7 @@
           }
         },
         {
+          "tileId": 37,
           "name": "forest_tiles_27",
           "rect": {
             "x": 0,
@@ -482,6 +520,7 @@
           }
         },
         {
+          "tileId": 38,
           "name": "forest_tiles_28",
           "rect": {
             "x": 32,
@@ -491,6 +530,7 @@
           }
         },
         {
+          "tileId": 39,
           "name": "forest_tiles_29",
           "rect": {
             "x": 64,
@@ -500,6 +540,7 @@
           }
         },
         {
+          "tileId": 40,
           "name": "forest_tiles_30",
           "rect": {
             "x": 96,
@@ -509,6 +550,7 @@
           }
         },
         {
+          "tileId": 41,
           "name": "forest_tiles_31",
           "rect": {
             "x": 128,
@@ -518,6 +560,7 @@
           }
         },
         {
+          "tileId": 42,
           "name": "forest_tiles_32",
           "rect": {
             "x": 160,
@@ -527,6 +570,7 @@
           }
         },
         {
+          "tileId": 43,
           "name": "forest_tiles_37",
           "rect": {
             "x": 416,
@@ -536,6 +580,7 @@
           }
         },
         {
+          "tileId": 44,
           "name": "forest_tiles_33",
           "rect": {
             "x": 192,
@@ -545,6 +590,7 @@
           }
         },
         {
+          "tileId": 45,
           "name": "forest_tiles_34",
           "rect": {
             "x": 224,
@@ -554,6 +600,7 @@
           }
         },
         {
+          "tileId": 46,
           "name": "forest_tiles_35",
           "rect": {
             "x": 256,
@@ -563,6 +610,7 @@
           }
         },
         {
+          "tileId": 47,
           "name": "forest_tiles_36",
           "rect": {
             "x": 288,
@@ -572,6 +620,7 @@
           }
         },
         {
+          "tileId": 48,
           "name": "forest_tiles_38",
           "rect": {
             "x": 0,
@@ -581,6 +630,7 @@
           }
         },
         {
+          "tileId": 49,
           "name": "forest_tiles_39",
           "rect": {
             "x": 32,
@@ -590,6 +640,7 @@
           }
         },
         {
+          "tileId": 50,
           "name": "forest_tiles_40",
           "rect": {
             "x": 64,
@@ -599,6 +650,7 @@
           }
         },
         {
+          "tileId": 51,
           "name": "forest_tiles_41",
           "rect": {
             "x": 96,
@@ -608,6 +660,7 @@
           }
         },
         {
+          "tileId": 52,
           "name": "forest_tiles_42",
           "rect": {
             "x": 128,
@@ -617,6 +670,7 @@
           }
         },
         {
+          "tileId": 53,
           "name": "forest_tiles_43",
           "rect": {
             "x": 160,
@@ -626,6 +680,7 @@
           }
         },
         {
+          "tileId": 54,
           "name": "forest_tiles_44",
           "rect": {
             "x": 192,
@@ -635,6 +690,7 @@
           }
         },
         {
+          "tileId": 55,
           "name": "forest_tiles_45",
           "rect": {
             "x": 384,
@@ -644,6 +700,7 @@
           }
         },
         {
+          "tileId": 56,
           "name": "forest_tiles_46",
           "rect": {
             "x": 0,
@@ -653,6 +710,7 @@
           }
         },
         {
+          "tileId": 57,
           "name": "forest_tiles_47",
           "rect": {
             "x": 32,
@@ -662,6 +720,7 @@
           }
         },
         {
+          "tileId": 58,
           "name": "forest_tiles_48",
           "rect": {
             "x": 64,
@@ -671,6 +730,7 @@
           }
         },
         {
+          "tileId": 59,
           "name": "forest_tiles_49",
           "rect": {
             "x": 96,
@@ -680,6 +740,7 @@
           }
         },
         {
+          "tileId": 60,
           "name": "forest_tiles_50",
           "rect": {
             "x": 128,
@@ -689,6 +750,7 @@
           }
         },
         {
+          "tileId": 61,
           "name": "forest_tiles_51",
           "rect": {
             "x": 160,
@@ -698,6 +760,7 @@
           }
         },
         {
+          "tileId": 62,
           "name": "forest_tiles_52",
           "rect": {
             "x": 192,
@@ -707,6 +770,7 @@
           }
         },
         {
+          "tileId": 63,
           "name": "forest_tiles_53",
           "rect": {
             "x": 224,
@@ -716,6 +780,7 @@
           }
         },
         {
+          "tileId": 64,
           "name": "forest_tiles_54",
           "rect": {
             "x": 256,
@@ -725,6 +790,7 @@
           }
         },
         {
+          "tileId": 65,
           "name": "forest_tiles_55",
           "rect": {
             "x": 288,
@@ -734,6 +800,7 @@
           }
         },
         {
+          "tileId": 66,
           "name": "forest_tiles_56",
           "rect": {
             "x": 320,
@@ -743,6 +810,7 @@
           }
         },
         {
+          "tileId": 67,
           "name": "forest_tiles_57",
           "rect": {
             "x": 352,
@@ -752,6 +820,7 @@
           }
         },
         {
+          "tileId": 68,
           "name": "forest_tiles_58",
           "rect": {
             "x": 448,
@@ -761,6 +830,7 @@
           }
         },
         {
+          "tileId": 69,
           "name": "forest_tiles_59",
           "rect": {
             "x": 0,
@@ -770,6 +840,7 @@
           }
         },
         {
+          "tileId": 70,
           "name": "forest_tiles_60",
           "rect": {
             "x": 32,
@@ -779,6 +850,7 @@
           }
         },
         {
+          "tileId": 71,
           "name": "forest_tiles_61",
           "rect": {
             "x": 64,
@@ -788,6 +860,7 @@
           }
         },
         {
+          "tileId": 72,
           "name": "forest_tiles_62",
           "rect": {
             "x": 96,
@@ -797,6 +870,7 @@
           }
         },
         {
+          "tileId": 73,
           "name": "forest_tiles_63",
           "rect": {
             "x": 128,
@@ -806,6 +880,7 @@
           }
         },
         {
+          "tileId": 74,
           "name": "forest_tiles_64",
           "rect": {
             "x": 160,
@@ -815,6 +890,7 @@
           }
         },
         {
+          "tileId": 75,
           "name": "forest_tiles_65",
           "rect": {
             "x": 192,
@@ -824,6 +900,7 @@
           }
         },
         {
+          "tileId": 76,
           "name": "forest_tiles_66",
           "rect": {
             "x": 224,
@@ -833,6 +910,7 @@
           }
         },
         {
+          "tileId": 77,
           "name": "forest_tiles_67",
           "rect": {
             "x": 256,
@@ -842,6 +920,7 @@
           }
         },
         {
+          "tileId": 78,
           "name": "forest_tiles_68",
           "rect": {
             "x": 288,
@@ -851,6 +930,7 @@
           }
         },
         {
+          "tileId": 79,
           "name": "forest_tiles_69",
           "rect": {
             "x": 320,
@@ -860,6 +940,7 @@
           }
         },
         {
+          "tileId": 80,
           "name": "forest_tiles_70",
           "rect": {
             "x": 352,
@@ -869,6 +950,7 @@
           }
         },
         {
+          "tileId": 81,
           "name": "forest_tiles_71",
           "rect": {
             "x": 448,
@@ -878,6 +960,7 @@
           }
         },
         {
+          "tileId": 82,
           "name": "forest_tiles_72",
           "rect": {
             "x": 0,
@@ -887,6 +970,7 @@
           }
         },
         {
+          "tileId": 83,
           "name": "forest_tiles_73",
           "rect": {
             "x": 32,
@@ -896,6 +980,7 @@
           }
         },
         {
+          "tileId": 84,
           "name": "forest_tiles_74",
           "rect": {
             "x": 64,
@@ -905,6 +990,7 @@
           }
         },
         {
+          "tileId": 85,
           "name": "forest_tiles_75",
           "rect": {
             "x": 96,
@@ -914,6 +1000,7 @@
           }
         },
         {
+          "tileId": 86,
           "name": "forest_tiles_76",
           "rect": {
             "x": 128,
@@ -923,6 +1010,7 @@
           }
         },
         {
+          "tileId": 87,
           "name": "forest_tiles_77",
           "rect": {
             "x": 160,
@@ -932,6 +1020,7 @@
           }
         },
         {
+          "tileId": 88,
           "name": "forest_tiles_78",
           "rect": {
             "x": 192,
@@ -941,6 +1030,7 @@
           }
         },
         {
+          "tileId": 89,
           "name": "forest_tiles_79",
           "rect": {
             "x": 224,
@@ -950,6 +1040,7 @@
           }
         },
         {
+          "tileId": 90,
           "name": "forest_tiles_80",
           "rect": {
             "x": 256,
@@ -959,6 +1050,7 @@
           }
         },
         {
+          "tileId": 91,
           "name": "forest_tiles_81",
           "rect": {
             "x": 288,
@@ -968,6 +1060,7 @@
           }
         },
         {
+          "tileId": 92,
           "name": "forest_tiles_82",
           "rect": {
             "x": 320,
@@ -977,6 +1070,7 @@
           }
         },
         {
+          "tileId": 93,
           "name": "forest_tiles_83",
           "rect": {
             "x": 352,
@@ -986,6 +1080,7 @@
           }
         },
         {
+          "tileId": 94,
           "name": "forest_tiles_84",
           "rect": {
             "x": 384,
@@ -995,6 +1090,7 @@
           }
         },
         {
+          "tileId": 95,
           "name": "forest_tiles_86",
           "rect": {
             "x": 32,
@@ -1004,6 +1100,7 @@
           }
         },
         {
+          "tileId": 96,
           "name": "forest_tiles_87",
           "rect": {
             "x": 64,
@@ -1013,6 +1110,7 @@
           }
         },
         {
+          "tileId": 97,
           "name": "forest_tiles_88",
           "rect": {
             "x": 96,
@@ -1022,6 +1120,7 @@
           }
         },
         {
+          "tileId": 98,
           "name": "forest_tiles_89",
           "rect": {
             "x": 128,
@@ -1031,6 +1130,7 @@
           }
         },
         {
+          "tileId": 99,
           "name": "forest_tiles_85",
           "rect": {
             "x": 0,
@@ -1040,6 +1140,7 @@
           }
         },
         {
+          "tileId": 100,
           "name": "forest_tiles_90",
           "rect": {
             "x": 160,
@@ -1049,6 +1150,7 @@
           }
         },
         {
+          "tileId": 101,
           "name": "forest_tiles_91",
           "rect": {
             "x": 192,
@@ -1058,6 +1160,7 @@
           }
         },
         {
+          "tileId": 102,
           "name": "forest_tiles_92",
           "rect": {
             "x": 224,
@@ -1067,6 +1170,7 @@
           }
         },
         {
+          "tileId": 103,
           "name": "forest_tiles_93",
           "rect": {
             "x": 256,
@@ -1076,6 +1180,7 @@
           }
         },
         {
+          "tileId": 104,
           "name": "forest_tiles_94",
           "rect": {
             "x": 288,
@@ -1085,6 +1190,7 @@
           }
         },
         {
+          "tileId": 105,
           "name": "forest_tiles_95",
           "rect": {
             "x": 352,
@@ -1094,6 +1200,7 @@
           }
         },
         {
+          "tileId": 106,
           "name": "forest_tiles_96",
           "rect": {
             "x": 384,
@@ -1103,6 +1210,7 @@
           }
         },
         {
+          "tileId": 107,
           "name": "forest_tiles_97",
           "rect": {
             "x": 128,
@@ -1112,6 +1220,7 @@
           }
         },
         {
+          "tileId": 108,
           "name": "forest_tiles_98",
           "rect": {
             "x": 160,
@@ -1121,6 +1230,7 @@
           }
         },
         {
+          "tileId": 109,
           "name": "forest_tiles_99",
           "rect": {
             "x": 192,
@@ -1130,6 +1240,7 @@
           }
         },
         {
+          "tileId": 110,
           "name": "forest_tiles_100",
           "rect": {
             "x": 224,
@@ -1139,6 +1250,7 @@
           }
         },
         {
+          "tileId": 111,
           "name": "forest_tiles_101",
           "rect": {
             "x": 256,
@@ -1148,6 +1260,7 @@
           }
         },
         {
+          "tileId": 112,
           "name": "forest_tiles_102",
           "rect": {
             "x": 288,
@@ -1157,6 +1270,7 @@
           }
         },
         {
+          "tileId": 113,
           "name": "forest_tiles_103",
           "rect": {
             "x": 320,
@@ -1166,6 +1280,7 @@
           }
         },
         {
+          "tileId": 114,
           "name": "forest_tiles_104",
           "rect": {
             "x": 352,
@@ -1175,6 +1290,7 @@
           }
         },
         {
+          "tileId": 115,
           "name": "forest_tiles_105",
           "rect": {
             "x": 384,
@@ -1184,6 +1300,7 @@
           }
         },
         {
+          "tileId": 116,
           "name": "forest_tiles_106",
           "rect": {
             "x": 128,
@@ -1193,6 +1310,7 @@
           }
         },
         {
+          "tileId": 117,
           "name": "forest_tiles_107",
           "rect": {
             "x": 160,
@@ -1202,6 +1320,7 @@
           }
         },
         {
+          "tileId": 118,
           "name": "forest_tiles_108",
           "rect": {
             "x": 192,
@@ -1211,6 +1330,7 @@
           }
         },
         {
+          "tileId": 119,
           "name": "forest_tiles_109",
           "rect": {
             "x": 224,
@@ -1220,6 +1340,7 @@
           }
         },
         {
+          "tileId": 120,
           "name": "forest_tiles_110",
           "rect": {
             "x": 256,
@@ -1229,6 +1350,7 @@
           }
         },
         {
+          "tileId": 121,
           "name": "forest_tiles_111",
           "rect": {
             "x": 288,
@@ -1238,6 +1360,7 @@
           }
         },
         {
+          "tileId": 122,
           "name": "forest_tiles_112",
           "rect": {
             "x": 320,
@@ -1247,6 +1370,7 @@
           }
         },
         {
+          "tileId": 123,
           "name": "forest_tiles_113",
           "rect": {
             "x": 352,
@@ -1256,6 +1380,7 @@
           }
         },
         {
+          "tileId": 124,
           "name": "forest_tiles_114",
           "rect": {
             "x": 384,
@@ -1265,6 +1390,7 @@
           }
         },
         {
+          "tileId": 125,
           "name": "forest_tiles_115",
           "rect": {
             "x": 128,
@@ -1274,6 +1400,7 @@
           }
         },
         {
+          "tileId": 126,
           "name": "forest_tiles_116",
           "rect": {
             "x": 160,
@@ -1283,6 +1410,7 @@
           }
         },
         {
+          "tileId": 127,
           "name": "forest_tiles_117",
           "rect": {
             "x": 192,
@@ -1292,6 +1420,7 @@
           }
         },
         {
+          "tileId": 128,
           "name": "forest_tiles_118",
           "rect": {
             "x": 224,
@@ -1301,6 +1430,7 @@
           }
         },
         {
+          "tileId": 129,
           "name": "forest_tiles_119",
           "rect": {
             "x": 256,
@@ -1310,6 +1440,7 @@
           }
         },
         {
+          "tileId": 130,
           "name": "forest_tiles_120",
           "rect": {
             "x": 288,
@@ -1319,6 +1450,7 @@
           }
         },
         {
+          "tileId": 131,
           "name": "forest_tiles_121",
           "rect": {
             "x": 320,
@@ -1328,6 +1460,7 @@
           }
         },
         {
+          "tileId": 132,
           "name": "forest_tiles_122",
           "rect": {
             "x": 352,
@@ -1337,6 +1470,7 @@
           }
         },
         {
+          "tileId": 133,
           "name": "forest_tiles_123",
           "rect": {
             "x": 384,
@@ -1346,6 +1480,7 @@
           }
         },
         {
+          "tileId": 134,
           "name": "forest_tiles_124",
           "rect": {
             "x": 128,
@@ -1355,6 +1490,7 @@
           }
         },
         {
+          "tileId": 135,
           "name": "forest_tiles_125",
           "rect": {
             "x": 160,
@@ -1364,6 +1500,7 @@
           }
         },
         {
+          "tileId": 136,
           "name": "forest_tiles_126",
           "rect": {
             "x": 192,
@@ -1373,6 +1510,7 @@
           }
         },
         {
+          "tileId": 137,
           "name": "forest_tiles_127",
           "rect": {
             "x": 224,
@@ -1382,6 +1520,7 @@
           }
         },
         {
+          "tileId": 138,
           "name": "forest_tiles_128",
           "rect": {
             "x": 256,
@@ -1391,6 +1530,7 @@
           }
         },
         {
+          "tileId": 139,
           "name": "forest_tiles_129",
           "rect": {
             "x": 288,
@@ -1400,6 +1540,7 @@
           }
         },
         {
+          "tileId": 140,
           "name": "forest_tiles_130",
           "rect": {
             "x": 320,
@@ -1409,6 +1550,7 @@
           }
         },
         {
+          "tileId": 141,
           "name": "forest_tiles_131",
           "rect": {
             "x": 352,
@@ -1418,6 +1560,7 @@
           }
         },
         {
+          "tileId": 142,
           "name": "forest_tiles_132",
           "rect": {
             "x": 384,
